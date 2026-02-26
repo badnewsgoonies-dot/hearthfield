@@ -1,4 +1,5 @@
 mod hud;
+mod toast;
 mod inventory_screen;
 mod dialogue_box;
 mod shop_screen;
@@ -86,6 +87,22 @@ impl Plugin for UiPlugin {
                 hud::update_stamina_bar,
                 hud::update_tool_display,
                 hud::update_hotbar,
+                hud::update_map_name,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── TOAST NOTIFICATIONS ───
+        app.add_systems(OnEnter(GameState::Playing), toast::spawn_toast_container);
+        app.add_systems(OnExit(GameState::Playing), toast::despawn_toast_container);
+        app.add_systems(
+            Update,
+            (
+                toast::handle_toast_events,
+                toast::update_toasts,
+                toast::wire_gold_toasts,
+                toast::wire_season_toasts,
+                toast::wire_pickup_toasts,
             )
                 .run_if(in_state(GameState::Playing)),
         );

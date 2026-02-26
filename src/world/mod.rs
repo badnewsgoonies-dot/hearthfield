@@ -16,11 +16,28 @@ use crate::shared::*;
 pub mod maps;
 pub mod objects;
 pub mod chests;
+pub mod seasonal;
+pub mod lighting;
+pub mod weather_fx;
 
 use maps::{generate_map, MapDef};
 use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
     WorldObject,
+};
+use seasonal::{
+    SeasonalTintApplied, LeafSpawnAccumulator,
+    apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves,
+};
+use lighting::{
+    spawn_day_night_overlay, despawn_day_night_overlay,
+    update_day_night_tint, update_lightning_flash,
+    LightningFlash,
+};
+use weather_fx::{
+    spawn_weather_particles, update_weather_particles,
+    cleanup_weather_on_change, cleanup_all_weather_particles,
+    PreviousWeather,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -37,8 +54,22 @@ impl Plugin for WorldPlugin {
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
             .init_resource::<chests::ChestInteraction>()
-            // Spawn the initial farm map when entering Playing state
-            .add_systems(OnEnter(GameState::Playing), spawn_initial_map)
+            .init_resource::<SeasonalTintApplied>()
+            .init_resource::<LeafSpawnAccumulator>()
+            // Day/night + weather resources
+            .init_resource::<DayNightTint>()
+            .init_resource::<LightningFlash>()
+            .init_resource::<PreviousWeather>()
+            // Spawn overlay + initial map when entering Playing state
+            .add_systems(
+                OnEnter(GameState::Playing),
+                (spawn_initial_map, spawn_day_night_overlay),
+            )
+            // Despawn overlay + weather particles when leaving Playing state
+            .add_systems(
+                OnExit(GameState::Playing),
+                (despawn_day_night_overlay, cleanup_all_weather_particles),
+            )
             // Gameplay systems: tool interactions, transitions, forageables
             .add_systems(
                 Update,
@@ -49,13 +80,26 @@ impl Plugin for WorldPlugin {
                     chests::place_chest,
                     chests::interact_with_chest,
                     chests::close_chest_on_escape,
+                    // Seasonal tinting and leaf particles
+                    apply_seasonal_tint,
+                    spawn_falling_leaves,
+                    update_falling_leaves,
+                    // Day/night ambient tint
+                    update_day_night_tint,
+                    update_lightning_flash,
+                    // Weather particle effects
+                    spawn_weather_particles,
+                    update_weather_particles,
+                    cleanup_weather_on_change,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
             // Listen for day-end events (forageable respawn) in any state
             // so we don't miss the event
             .add_systems(Update, handle_day_end_forageables)
-            // Listen for season changes for visual updates
+            // Listen for season changes for visual updates.
+            // This handles season-switch atlas swaps (index-based).
+            // apply_seasonal_tint handles multiplicative colour tinting.
             .add_systems(Update, handle_season_change);
     }
 }
@@ -639,11 +683,16 @@ fn handle_day_end_forageables(
 /// Handle SeasonChangeEvent: update tile sprites for the new season.
 /// For atlas-based tiles, we swap the atlas index to the seasonal variant.
 /// For Void tiles (plain colored), we leave them as-is.
+///
+/// Also resets `SeasonalTintApplied` so that `apply_seasonal_tint` will
+/// re-apply the new season's colour tint on the next frame (after the atlas
+/// indices have been updated).
 fn handle_season_change(
     mut season_events: EventReader<SeasonChangeEvent>,
     mut tile_query: Query<(&Transform, &mut Sprite), With<MapTile>>,
     world_map: Res<WorldMap>,
     terrain_atlases: Res<TerrainAtlases>,
+    mut tint_applied: ResMut<SeasonalTintApplied>,
 ) {
     for event in season_events.read() {
         let new_season = event.new_season;
@@ -658,7 +707,8 @@ fn handle_season_change(
 
                 match tile_atlas_info(tile, new_season, &terrain_atlases) {
                     Some((image, layout, index)) => {
-                        // Update the sprite to use the new seasonal atlas image and index
+                        // Update the sprite to use the new seasonal atlas image and index.
+                        // Reset color to white so apply_seasonal_tint can tint cleanly.
                         *sprite = Sprite::from_atlas_image(
                             image,
                             TextureAtlas { layout, index },
@@ -671,5 +721,9 @@ fn handle_season_change(
                 }
             }
         }
+
+        // Force apply_seasonal_tint to re-run on the next frame so the new
+        // season's colour tint is applied over the freshly-swapped atlas tiles.
+        tint_applied.season = None;
     }
 }
