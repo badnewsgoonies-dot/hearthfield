@@ -11,10 +11,6 @@ mod minigame;
 mod render;
 mod resolve;
 
-use cast::*;
-use minigame::*;
-use render::*;
-
 // ─── Plugin ─────────────────────────────────────────────────────────────────
 
 pub struct FishingPlugin;
@@ -50,6 +46,11 @@ impl Plugin for FishingPlugin {
             // Setup/teardown on state transitions
             .add_systems(OnEnter(GameState::Fishing), render::spawn_minigame_ui)
             .add_systems(OnExit(GameState::Fishing), render::despawn_minigame_ui)
+            // Minigame visual updates (color feedback on progress bar)
+            .add_systems(
+                Update,
+                render::update_progress_fill_color.run_if(in_state(GameState::Fishing)),
+            )
             // Bobber animation runs in both Playing (while waiting for bite) and Fishing
             .add_systems(
                 Update,
