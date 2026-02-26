@@ -17,7 +17,7 @@ use rand::Rng;
 
 use crate::shared::*;
 use super::{
-    FishingState, FishingMinigameState,
+    FishingState, FishingMinigameState, FishEncyclopedia,
     MinigameFishZone, MinigameCatchBar, MinigameProgressFill,
 };
 use super::resolve::{catch_fish, end_fishing_escape};
@@ -127,8 +127,10 @@ pub fn update_catch_bar(
                 100.0 - catch_half,
             );
     } else {
+        // Lead Bobber reduces fall speed so the bar is easier to hold up.
+        let effective_fall = CATCH_FALL_SPEED * minigame_state.catch_fall_multiplier;
         minigame_state.catch_bar_center =
-            (minigame_state.catch_bar_center - CATCH_FALL_SPEED * dt).clamp(
+            (minigame_state.catch_bar_center - effective_fall * dt).clamp(
                 catch_half,
                 100.0 - catch_half,
             );
@@ -165,8 +167,10 @@ pub fn update_progress(
             minigame_state.overlap_sfx_cooldown = 0.3;
         }
     } else {
+        // Trap Bobber slows the drain rate so misses are less punishing.
+        let effective_drain = PROGRESS_DRAIN_RATE * minigame_state.progress_drain_multiplier;
         minigame_state.progress =
-            (minigame_state.progress - PROGRESS_DRAIN_RATE * dt).clamp(0.0, 100.0);
+            (minigame_state.progress - effective_drain * dt).clamp(0.0, 100.0);
     }
 
     let fraction = minigame_state.progress / 100.0;
@@ -185,8 +189,11 @@ pub fn check_minigame_result(
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut item_pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     keyboard: Res<ButtonInput<KeyCode>>,
     fish_registry: Res<FishRegistry>,
+    calendar: Res<Calendar>,
+    mut encyclopedia: ResMut<FishEncyclopedia>,
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
 ) {
@@ -202,6 +209,9 @@ pub fn check_minigame_result(
             &fish_registry,
             &mut commands,
             bobber_entities,
+            &mut encyclopedia,
+            &calendar,
+            &mut toast_events,
         );
         return;
     }

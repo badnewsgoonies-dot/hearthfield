@@ -166,6 +166,38 @@ pub struct CollectMachineOutputEvent {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// ITEM → MACHINE TYPE MAPPING
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Returns the MachineType that corresponds to a placeable item id, or None if
+/// the item is not a placeable machine.
+pub fn item_to_machine_type(item_id: &str) -> Option<MachineType> {
+    match item_id {
+        "furnace"      => Some(MachineType::Furnace),
+        "preserves_jar" => Some(MachineType::PreservesJar),
+        "cheese_press" => Some(MachineType::CheesePress),
+        "loom"         => Some(MachineType::Loom),
+        "keg"          => Some(MachineType::Keg),
+        "oil_maker"    => Some(MachineType::OilMaker),
+        _              => None,
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MACHINE PLACEMENT EVENT
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Fired when the player wants to place a machine on the farm at a grid tile.
+/// The player plugin sends this when the hotbar contains a machine item and
+/// the player activates the "use/place" action.
+#[derive(Event, Debug, Clone)]
+pub struct PlaceMachineEvent {
+    pub item_id: ItemId,
+    pub grid_x: i32,
+    pub grid_y: i32,
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // SYSTEMS
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -176,6 +208,7 @@ pub fn tick_processing_machines(
     time: Res<Time>,
     calendar: Res<Calendar>,
     mut machines: Query<&mut ProcessingMachine>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     if calendar.time_paused {
         return;
@@ -191,12 +224,25 @@ pub fn tick_processing_machines(
             if machine.processing_time_remaining <= 0.0 {
                 machine.processing_time_remaining = 0.0;
                 machine.is_ready = true;
+
+                let output_name = machine
+                    .output_item
+                    .as_deref()
+                    .unwrap_or("item")
+                    .to_string();
+                let machine_name = machine.machine_type.display_name();
+
                 info!(
                     "{} finished processing {:?} → {:?}",
-                    machine.machine_type.display_name(),
+                    machine_name,
                     machine.input_item,
                     machine.output_item
                 );
+
+                toast_events.send(ToastEvent {
+                    message: format!("{} is ready in your {}!", output_name, machine_name),
+                    duration_secs: 4.0,
+                });
             }
         }
     }
@@ -232,6 +278,7 @@ pub fn handle_insert_machine_input(
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for event in events.read() {
         let Ok(mut machine) = machines.get_mut(event.machine_entity) else {
@@ -244,6 +291,13 @@ pub fn handle_insert_machine_input(
                 "Cannot insert into {} — already has input or output ready",
                 machine.machine_type.display_name()
             );
+            toast_events.send(ToastEvent {
+                message: format!(
+                    "{} is already busy!",
+                    machine.machine_type.display_name()
+                ),
+                duration_secs: 2.0,
+            });
             continue;
         }
 
@@ -262,6 +316,13 @@ pub fn handle_insert_machine_input(
                 machine.machine_type.display_name(),
                 event.item_id
             );
+            toast_events.send(ToastEvent {
+                message: format!(
+                    "{} can't process that item.",
+                    machine.machine_type.display_name()
+                ),
+                duration_secs: 2.5,
+            });
             continue;
         };
 
@@ -280,8 +341,21 @@ pub fn handle_insert_machine_input(
                     .unwrap_or(99);
                 inventory.try_add(&event.item_id, removed, max_stack);
             }
+            toast_events.send(ToastEvent {
+                message: format!("Not enough {} in inventory.", event.item_id),
+                duration_secs: 2.5,
+            });
             continue;
         }
+
+        // Build friendly input name for the toast
+        let input_display = item_registry
+            .get(&event.item_id)
+            .map(|d| d.name.as_str())
+            .unwrap_or(&event.item_id)
+            .to_string();
+
+        let machine_name = machine.machine_type.display_name();
 
         // Start processing
         let processing_hours = machine.machine_type.processing_hours();
@@ -293,9 +367,14 @@ pub fn handle_insert_machine_input(
         info!(
             "Started processing '{}' in {} ({}h remaining)",
             event.item_id,
-            machine.machine_type.display_name(),
+            machine_name,
             processing_hours
         );
+
+        toast_events.send(ToastEvent {
+            message: format!("Processing {} in {}...", input_display, machine_name),
+            duration_secs: 3.0,
+        });
 
         sfx_events.send(PlaySfxEvent {
             sfx_id: "machine_insert".to_string(),
@@ -311,6 +390,7 @@ pub fn handle_collect_machine_output(
     item_registry: Res<ItemRegistry>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for event in events.read() {
         let Ok(mut machine) = machines.get_mut(event.machine_entity) else {
@@ -323,6 +403,13 @@ pub fn handle_collect_machine_output(
                 "Cannot collect from {} — output not ready yet",
                 machine.machine_type.display_name()
             );
+            toast_events.send(ToastEvent {
+                message: format!(
+                    "{} is still processing...",
+                    machine.machine_type.display_name()
+                ),
+                duration_secs: 2.0,
+            });
             continue;
         }
 
@@ -332,6 +419,13 @@ pub fn handle_collect_machine_output(
             machine.input_item = None;
             continue;
         };
+
+        let output_display = item_registry
+            .get(output_id)
+            .map(|d| d.name.clone())
+            .unwrap_or_else(|| output_id.clone());
+
+        let machine_name = machine.machine_type.display_name();
 
         let max_stack = item_registry
             .get(output_id)
@@ -349,8 +443,13 @@ pub fn handle_collect_machine_output(
             info!(
                 "Collected '{}' from {}",
                 output_id,
-                machine.machine_type.display_name()
+                machine_name
             );
+
+            toast_events.send(ToastEvent {
+                message: format!("{} collected from your {}!", output_display, machine_name),
+                duration_secs: 3.0,
+            });
 
             // Reset machine state
             machine.input_item = None;
@@ -363,6 +462,96 @@ pub fn handle_collect_machine_output(
             });
         } else {
             warn!("Inventory full — cannot collect output from machine");
+            toast_events.send(ToastEvent {
+                message: "Inventory full! Can't collect output.".to_string(),
+                duration_secs: 3.0,
+            });
         }
+    }
+}
+
+/// Handles PlaceMachineEvent — spawns a ProcessingMachine entity at the given farm grid tile.
+/// Consumes the machine item from the player's inventory and registers the entity in
+/// ProcessingMachineRegistry so that other systems can look it up by position.
+pub fn handle_place_machine(
+    mut commands: Commands,
+    mut events: EventReader<PlaceMachineEvent>,
+    mut inventory: ResMut<Inventory>,
+    mut machine_registry: ResMut<ProcessingMachineRegistry>,
+    item_registry: Res<ItemRegistry>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
+) {
+    for event in events.read() {
+        // Validate item id maps to a machine type
+        let Some(machine_type) = item_to_machine_type(&event.item_id) else {
+            warn!(
+                "PlaceMachineEvent: item '{}' is not a placeable machine",
+                event.item_id
+            );
+            continue;
+        };
+
+        // Check the tile isn't already occupied
+        let pos = (event.grid_x, event.grid_y);
+        if machine_registry.machines.contains_key(&pos) {
+            toast_events.send(ToastEvent {
+                message: "There's already a machine here!".to_string(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
+
+        // Consume one machine item from inventory
+        let removed = inventory.try_remove(&event.item_id, 1);
+        if removed < 1 {
+            warn!(
+                "PlaceMachineEvent: no '{}' in inventory to place",
+                event.item_id
+            );
+            toast_events.send(ToastEvent {
+                message: format!("You don't have a {} to place.", event.item_id),
+                duration_secs: 2.5,
+            });
+            continue;
+        }
+
+        // Calculate world position from grid position
+        let world_x = event.grid_x as f32 * TILE_SIZE * PIXEL_SCALE;
+        let world_y = event.grid_y as f32 * TILE_SIZE * PIXEL_SCALE;
+
+        // Spawn machine entity
+        let machine_entity = commands
+            .spawn((
+                ProcessingMachine::new(machine_type),
+                GridPosition::new(event.grid_x, event.grid_y),
+                Sprite::from_color(
+                    Color::srgb(0.6, 0.4, 0.2),
+                    Vec2::new(TILE_SIZE * PIXEL_SCALE, TILE_SIZE * PIXEL_SCALE),
+                ),
+                Transform::from_xyz(world_x, world_y, 1.0),
+                GlobalTransform::default(),
+            ))
+            .id();
+
+        // Register in registry
+        machine_registry.machines.insert(pos, machine_entity);
+
+        let display_name = machine_type.display_name();
+        info!(
+            "Placed {} at grid ({}, {})",
+            display_name, event.grid_x, event.grid_y
+        );
+
+        toast_events.send(ToastEvent {
+            message: format!("{} placed on farm.", display_name),
+            duration_secs: 2.5,
+        });
+
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "place_machine".to_string(),
+        });
+
+        let _ = item_registry; // registry available for future use (stack_size lookups, etc.)
     }
 }

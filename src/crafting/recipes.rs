@@ -8,7 +8,8 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
         "sprinkler" => Recipe {
             id: "sprinkler".into(),
             name: "Sprinkler".into(),
-            ingredients: vec![("copper_bar".into(), 1)],
+            // Auto-waters the 4 adjacent tiles each morning.
+            ingredients: vec![("copper_bar".into(), 1), ("iron_bar".into(), 1)],
             result: "sprinkler".into(),
             result_quantity: 1,
             is_cooking: false,
@@ -17,7 +18,8 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
         "quality_sprinkler" => Recipe {
             id: "quality_sprinkler".into(),
             name: "Quality Sprinkler".into(),
-            ingredients: vec![("iron_bar".into(), 1), ("gold_bar".into(), 1)],
+            // Auto-waters the 8 surrounding tiles each morning.
+            ingredients: vec![("iron_bar".into(), 2), ("gold_bar".into(), 1)],
             result: "quality_sprinkler".into(),
             result_quantity: 1,
             is_cooking: false,
@@ -78,10 +80,11 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
         "cheese_press" => Recipe {
             id: "cheese_press".into(),
             name: "Cheese Press".into(),
+            // Converts milk → cheese, large milk → gold cheese.
             ingredients: vec![
                 ("wood".into(), 45),
                 ("stone".into(), 45),
-                ("copper_bar".into(), 10),
+                ("hardwood".into(), 10),
             ],
             result: "cheese_press".into(),
             result_quantity: 1,
@@ -161,12 +164,26 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
         "bee_house" => Recipe {
             id: "bee_house".into(),
             name: "Bee House".into(),
+            // Produces honey every 4 days (not during Winter).
             ingredients: vec![
                 ("wood".into(), 40),
                 ("coal".into(), 8),
-                ("maple_syrup".into(), 1),
+                ("iron_bar".into(), 1),
             ],
             result: "bee_house".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: false,
+        },
+        "lightning_rod" => Recipe {
+            id: "lightning_rod".into(),
+            name: "Lightning Rod".into(),
+            // Protects the farm from lightning strikes during storms.
+            ingredients: vec![
+                ("iron_bar".into(), 5),
+                ("bat_wing".into(), 5),
+            ],
+            result: "lightning_rod".into(),
             result_quantity: 1,
             is_cooking: false,
             unlocked_by_default: false,
@@ -174,10 +191,12 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
         "keg" => Recipe {
             id: "keg".into(),
             name: "Keg".into(),
+            // Turns fruit into wine, wheat into beer, hops into ale.
             ingredients: vec![
                 ("wood".into(), 30),
                 ("copper_bar".into(), 1),
                 ("iron_bar".into(), 1),
+                ("oak_resin".into(), 1),
             ],
             result: "keg".into(),
             result_quantity: 1,
@@ -424,6 +443,7 @@ pub const ALL_CRAFTING_RECIPE_IDS: &[&str] = &[
     "torch",
     "campfire",
     "bee_house",
+    "lightning_rod",
     "keg",
     "oil_maker",
     "seed_maker",

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use rand::Rng;
+use std::collections::HashMap;
 
 use crate::shared::*;
 
@@ -21,6 +22,7 @@ impl Plugin for FishingPlugin {
             // Resources
             .init_resource::<FishingState>()
             .init_resource::<FishingMinigameState>()
+            .init_resource::<FishEncyclopedia>()
             // Systems that run in Playing state (cast detection)
             .add_systems(
                 Update,
@@ -66,6 +68,88 @@ impl Plugin for FishingPlugin {
     }
 }
 
+// ─── Fish Encyclopedia Resource ──────────────────────────────────────────────
+
+/// Tracks every species the player has ever caught.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct FishEncyclopedia {
+    /// fish_id → CaughtFishEntry
+    pub entries: HashMap<String, CaughtFishEntry>,
+}
+
+impl FishEncyclopedia {
+    /// Record a successful catch. Returns `true` if this is the first time this
+    /// species has been caught (useful for triggering a "New fish!" toast).
+    pub fn record_catch(&mut self, fish_id: &str, day: u32, season: Season) -> bool {
+        if let Some(entry) = self.entries.get_mut(fish_id) {
+            entry.times_caught += 1;
+            false
+        } else {
+            self.entries.insert(
+                fish_id.to_string(),
+                CaughtFishEntry {
+                    fish_id: fish_id.to_string(),
+                    times_caught: 1,
+                    first_caught_day: day,
+                    first_caught_season: season,
+                },
+            );
+            true
+        }
+    }
+
+    /// How many unique species have been caught.
+    pub fn unique_species(&self) -> usize {
+        self.entries.len()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CaughtFishEntry {
+    pub fish_id: String,
+    pub times_caught: u32,
+    pub first_caught_day: u32,
+    pub first_caught_season: Season,
+}
+
+// ─── Tackle Types ────────────────────────────────────────────────────────────
+
+/// Specific tackle items that modify minigame parameters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TackleKind {
+    /// No tackle equipped — no modifier.
+    #[default]
+    None,
+    /// Spinner: enlarges the fish zone by 25% (easier target).
+    Spinner,
+    /// Trap Bobber: slows progress drain by 50% (more forgiving).
+    TrapBobber,
+    /// Lead Bobber: reduces catch bar fall speed by 30% (easier to hold up).
+    LeadBobber,
+}
+
+impl TackleKind {
+    /// Derive tackle kind from an inventory item ID.
+    pub fn from_item_id(id: &str) -> Self {
+        match id {
+            "spinner" => TackleKind::Spinner,
+            "trap_bobber" => TackleKind::TrapBobber,
+            "lead_bobber" => TackleKind::LeadBobber,
+            _ => TackleKind::None,
+        }
+    }
+
+    /// User-facing description of the tackle effect.
+    pub fn effect_description(self) -> Option<&'static str> {
+        match self {
+            TackleKind::None => None,
+            TackleKind::Spinner => Some("Spinner: larger fish zone"),
+            TackleKind::TrapBobber => Some("Trap Bobber: slower progress drain"),
+            TackleKind::LeadBobber => Some("Lead Bobber: slower catch bar fall"),
+        }
+    }
+}
+
 // ─── Fishing State Resource ──────────────────────────────────────────────────
 
 /// Phase of the fishing sequence.
@@ -96,8 +180,10 @@ pub struct FishingState {
     pub selected_fish_id: Option<ItemId>,
     /// Whether bait is currently equipped.
     pub bait_equipped: bool,
-    /// Whether tackle is currently equipped.
+    /// Whether tackle is currently equipped (any kind).
     pub tackle_equipped: bool,
+    /// Specific tackle type that is equipped (None if no tackle).
+    pub tackle_kind: TackleKind,
     /// Tier of the equipped fishing rod.
     pub rod_tier: ToolTier,
 }
@@ -113,6 +199,7 @@ impl Default for FishingState {
             selected_fish_id: None,
             bait_equipped: false,
             tackle_equipped: false,
+            tackle_kind: TackleKind::None,
             rod_tier: ToolTier::Basic,
         }
     }
@@ -154,6 +241,10 @@ pub struct FishingMinigameState {
     pub elapsed: f32,
     /// Quick sound pulse for overlap
     pub overlap_sfx_cooldown: f32,
+    /// Multiplier on the progress drain rate (1.0 = normal; 0.5 = Trap Bobber).
+    pub progress_drain_multiplier: f32,
+    /// Multiplier on the catch bar fall speed (1.0 = normal; 0.7 = Lead Bobber).
+    pub catch_fall_multiplier: f32,
 }
 
 impl Default for FishingMinigameState {
@@ -170,12 +261,14 @@ impl Default for FishingMinigameState {
             space_held: false,
             elapsed: 0.0,
             overlap_sfx_cooldown: 0.0,
+            progress_drain_multiplier: 1.0,
+            catch_fall_multiplier: 1.0,
         }
     }
 }
 
 impl FishingMinigameState {
-    pub fn setup(&mut self, difficulty: f32, rod_tier: ToolTier, tackle_equipped: bool) {
+    pub fn setup(&mut self, difficulty: f32, rod_tier: ToolTier, tackle_kind: TackleKind) {
         let mut rng = rand::thread_rng();
         self.fish_zone_center = rng.gen_range(20.0..80.0);
         self.fish_zone_velocity = 0.0;
@@ -186,14 +279,19 @@ impl FishingMinigameState {
         self.overlap_sfx_cooldown = 0.0;
         self.space_held = false;
 
-        // Fish zone size: easier fish have bigger zones (more forgiving)
+        // Fish zone size: easier fish have bigger zones (more forgiving).
         // Difficulty 0.0 → fish_zone_half = 22.0
         // Difficulty 1.0 → fish_zone_half = 8.0
-        self.fish_zone_half = 22.0 - difficulty * 14.0;
+        let base_fish_zone = 22.0 - difficulty * 14.0;
 
-        // Catch bar size: base 12.5 per half (25 total)
-        // Tackle adds 25% → 15.625 half
-        let tackle_bonus = if tackle_equipped { 1.25 } else { 1.0 };
+        // Spinner: enlarges the fish zone by 25% (makes the target bigger).
+        self.fish_zone_half = match tackle_kind {
+            TackleKind::Spinner => base_fish_zone * 1.25,
+            _ => base_fish_zone,
+        };
+
+        // Catch bar size: base 12.5 per half (25 total).
+        // Rod tier grants a small size bonus.
         let tier_bonus = match rod_tier {
             ToolTier::Basic => 1.0,
             ToolTier::Copper => 1.05,
@@ -201,7 +299,28 @@ impl FishingMinigameState {
             ToolTier::Gold => 1.15,
             ToolTier::Iridium => 1.20,
         };
-        self.catch_bar_half = 12.5 * tackle_bonus * tier_bonus;
+        // Generic tackle bonus (any tackle = +25% catch bar) is kept for non-Spinner tackle.
+        // Spinner's benefit is the fish zone, not the catch bar.
+        let catch_bar_tackle_bonus = match tackle_kind {
+            TackleKind::None => 1.0,
+            TackleKind::Spinner => 1.0,    // Spinner helps via fish zone instead
+            TackleKind::TrapBobber => 1.0, // TrapBobber helps via drain rate instead
+            TackleKind::LeadBobber => 1.25, // LeadBobber was the old generic +25%
+        };
+        self.catch_bar_half = 12.5 * catch_bar_tackle_bonus * tier_bonus;
+
+        // Trap Bobber: slow progress drain rate (stored on minigame state for
+        // update_progress to read at runtime).
+        // Lead Bobber: reduce catch bar fall speed.
+        // These modifiers are stored as multipliers read by the systems.
+        self.progress_drain_multiplier = match tackle_kind {
+            TackleKind::TrapBobber => 0.5,
+            _ => 1.0,
+        };
+        self.catch_fall_multiplier = match tackle_kind {
+            TackleKind::LeadBobber => 0.7,
+            _ => 1.0,
+        };
 
         // Reset timer with randomized first direction change
         let first_change = rng.gen_range(0.8..2.5);

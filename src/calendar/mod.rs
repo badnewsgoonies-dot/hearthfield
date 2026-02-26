@@ -19,10 +19,13 @@
 //!   auto-trigger in `tick_time` advanced the calendar; external DayEndEvents left
 //!   the calendar stuck on the same day.
 
+pub mod festivals;
+
 use bevy::prelude::*;
 use rand::Rng;
 
 use crate::shared::*;
+use festivals::FestivalState;
 
 /// Stores the weather of the most recently ended day so other domains can
 /// check whether it rained *today* (the ended day) rather than tomorrow.
@@ -47,6 +50,8 @@ impl Plugin for CalendarPlugin {
         app
             // Track weather of the ended day for cross-domain rain checks
             .init_resource::<PreviousDayWeather>()
+            // Festival state
+            .init_resource::<FestivalState>()
             // Pause time whenever we leave Playing state
             .add_systems(OnEnter(GameState::Playing), resume_time)
             .add_systems(OnExit(GameState::Playing), pause_time)
@@ -74,6 +79,21 @@ impl Plugin for CalendarPlugin {
                     .run_if(in_state(GameState::Playing))
                     .after(tick_time)
                     .after(trigger_sleep),
+            )
+            // Festival systems — all run in Playing state
+            .add_systems(
+                Update,
+                (
+                    festivals::check_festival_day,
+                    festivals::start_egg_hunt,
+                    festivals::collect_eggs,
+                    festivals::start_luau,
+                    festivals::start_harvest_festival,
+                    festivals::setup_winter_star,
+                    festivals::winter_star_give_gift,
+                    festivals::cleanup_festival_on_day_end,
+                )
+                    .run_if(in_state(GameState::Playing)),
             );
     }
 }
