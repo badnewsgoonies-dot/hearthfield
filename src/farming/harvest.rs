@@ -125,6 +125,7 @@ fn try_harvest_at(
         quantity,
         x: pos.0,
         y: pos.1,
+        quality: None, // TODO(A2): roll quality based on fertilizer/luck
     });
 
     if def.regrows {
