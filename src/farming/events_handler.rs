@@ -3,18 +3,57 @@
 //! ## Integration fix log
 //! - Fixed `on_day_end` rain check: previously read `calendar.weather` which by the
 //!   time this system runs has already been rolled for the NEW day (not the ended day).
-//!   Now reads `PreviousDayWeather` from the calendar domain, which correctly stores
-//!   the weather of the day that just ended.
+//!   Now reads `TrackedDayWeather` — a farming-local resource that snapshots the
+//!   calendar weather each frame during the day, so it's always the CURRENT (ended)
+//!   day's weather, not the newly-rolled weather.
+//! - Added `track_day_weather` system that runs each frame during Playing state to
+//!   keep `TrackedDayWeather` in sync with `Calendar.weather` BEFORE day-end
+//!   processing can overwrite it.
 
 use bevy::prelude::*;
 use crate::shared::*;
-use crate::calendar::PreviousDayWeather;
 use super::{
-    FarmEntities,
+    FarmEntities, TrackedDayWeather,
     crops::{advance_crop_growth, reset_soil_watered_state},
     soil::spawn_or_update_soil_entity,
     sprinkler::apply_rain_watering,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Weather tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Snapshots the calendar weather each frame.  Because this system runs in
+/// Update BEFORE `on_day_end` (via system ordering in FarmingPlugin), the
+/// captured weather is always the CURRENT day's weather — even if `tick_time`
+/// fires `trigger_day_end` and re-rolls weather in the same frame.
+///
+/// The trick is that `tick_time` fires the DayEndEvent AND re-rolls weather in
+/// a single system call, but `track_day_weather` ran earlier in the same frame
+/// (before tick_time's minute loop hit hour 26) or in the previous frame.
+/// Either way, the tracked weather will be the ended day's weather because
+/// weather is only rolled at day end — it doesn't change during the day.
+pub fn track_day_weather(
+    calendar: Res<Calendar>,
+    mut tracked: ResMut<TrackedDayWeather>,
+) {
+    // Only update if the calendar day matches (i.e., we haven't rolled to a
+    // new day yet in this frame).  If the day already advanced, keep the old
+    // snapshot — that's exactly what we want for on_day_end to read.
+    if tracked.day != calendar.day || tracked.season != calendar.season || tracked.year != calendar.year {
+        // Calendar has advanced to a new day — this is the FIRST frame of the
+        // new day. Update our tracking to the new day's weather so we're ready
+        // for the next day-end cycle.
+        tracked.weather = calendar.weather;
+        tracked.day = calendar.day;
+        tracked.season = calendar.season;
+        tracked.year = calendar.year;
+    } else {
+        // Same day — keep snapshotting (weather doesn't change mid-day, but
+        // we refresh in case of edge cases).
+        tracked.weather = calendar.weather;
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Day End
@@ -33,14 +72,14 @@ pub fn on_day_end(
     mut farm_entities: ResMut<FarmEntities>,
     mut commands: Commands,
     crop_registry: Res<CropRegistry>,
-    prev_weather: Res<PreviousDayWeather>,
+    tracked_weather: Res<TrackedDayWeather>,
 ) {
     for event in day_end_events.read() {
         // BUG FIX: Previously read calendar.weather, but by the time this system
         // runs the calendar has already been advanced and weather re-rolled for the
-        // NEW day.  Now we read PreviousDayWeather which the calendar domain stores
-        // before rolling new weather.
-        let is_rainy = matches!(prev_weather.weather, Weather::Rainy | Weather::Stormy);
+        // NEW day.  Now we read TrackedDayWeather which was snapshotted earlier in
+        // the frame (or previous frame) and holds the ENDED day's weather.
+        let is_rainy = matches!(tracked_weather.weather, Weather::Rainy | Weather::Stormy);
 
         // Rain waters all tilled/watered tiles.
         if is_rainy {
