@@ -12,12 +12,7 @@ mod render;
 mod events_handler;
 mod sprinkler;
 
-pub use soil::*;
-pub use crops::*;
-pub use harvest::*;
-pub use render::*;
-pub use events_handler::*;
-pub use sprinkler::*;
+// Internal re-exports used by Bevy queries from outside the module (not currently needed).
 
 /// Marker component for soil tile entities managed by the farming domain.
 #[derive(Component, Debug, Clone)]

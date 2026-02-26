@@ -83,7 +83,7 @@ pub enum FishingPhase {
     Minigame,
 }
 
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Debug)]
 pub struct FishingState {
     pub phase: FishingPhase,
     /// Tile coords where the bobber landed.
@@ -102,6 +102,22 @@ pub struct FishingState {
     pub tackle_equipped: bool,
     /// Tier of the equipped fishing rod.
     pub rod_tier: ToolTier,
+}
+
+impl Default for FishingState {
+    fn default() -> Self {
+        Self {
+            phase: FishingPhase::Idle,
+            bobber_tile: (0, 0),
+            bobber_pos: Vec2::ZERO,
+            bite_timer: None,
+            reaction_timer: None,
+            selected_fish_id: None,
+            bait_equipped: false,
+            tackle_equipped: false,
+            rod_tier: ToolTier::Basic,
+        }
+    }
 }
 
 impl FishingState {

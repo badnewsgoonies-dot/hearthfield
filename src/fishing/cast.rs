@@ -94,7 +94,7 @@ pub fn handle_tool_use_for_fishing(
             },
         ));
 
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "fishing_cast".to_string(),
         });
 
@@ -140,7 +140,7 @@ pub fn update_bite_timer(
         fishing_state.reaction_timer = Some(Timer::from_seconds(REACTION_WINDOW, TimerMode::Once));
 
         // Play bite sound — bobber dip signal
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "fish_bite".to_string(),
         });
     }

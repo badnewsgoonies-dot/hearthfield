@@ -3,7 +3,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
-use super::crops::spawn_crop_entity;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detect harvest input (Space bar)

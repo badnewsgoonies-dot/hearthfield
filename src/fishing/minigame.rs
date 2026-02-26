@@ -17,7 +17,7 @@ use rand::Rng;
 
 use crate::shared::*;
 use super::{
-    FishingPhase, FishingState, FishingMinigameState,
+    FishingState, FishingMinigameState,
     MinigameFishZone, MinigameCatchBar, MinigameProgressFill,
 };
 use super::resolve::{catch_fish, end_fishing_escape};
@@ -62,7 +62,7 @@ pub fn update_fish_zone(
         let max_speed = FISH_MIN_SPEED + difficulty * (FISH_MAX_SPEED - FISH_MIN_SPEED);
 
         // Choose a target position biased away from center for harder fish
-        let target = if rng.gen_bool(0.5) {
+        let target: f32 = if rng.gen_bool(0.5) {
             rng.gen_range(15.0_f32..45.0_f32)
         } else {
             rng.gen_range(55.0_f32..85.0_f32)
@@ -100,8 +100,9 @@ pub fn update_fish_zone(
     }
 
     // Update sprite position
+    let fish_center = minigame_state.fish_zone_center;
     for mut transform in fish_zone_query.iter_mut() {
-        let y = zone_to_screen_y(minigame_state.fish_zone_center);
+        let y = zone_to_screen_y(fish_center);
         transform.translation.y = y;
     }
 }
@@ -117,28 +118,32 @@ pub fn update_catch_bar(
     let space_held = keyboard.pressed(KeyCode::Space);
     minigame_state.space_held = space_held;
 
+    let catch_half = minigame_state.catch_bar_half;
+
     if space_held {
         minigame_state.catch_bar_center =
             (minigame_state.catch_bar_center + CATCH_RISE_SPEED * dt).clamp(
-                minigame_state.catch_bar_half,
-                100.0 - minigame_state.catch_bar_half,
+                catch_half,
+                100.0 - catch_half,
             );
     } else {
         minigame_state.catch_bar_center =
             (minigame_state.catch_bar_center - CATCH_FALL_SPEED * dt).clamp(
-                minigame_state.catch_bar_half,
-                100.0 - minigame_state.catch_bar_half,
+                catch_half,
+                100.0 - catch_half,
             );
     }
 
+    let catch_center = minigame_state.catch_bar_center;
+
     // Update sprite
     for mut transform in catch_bar_query.iter_mut() {
-        let y = zone_to_screen_y(minigame_state.catch_bar_center);
+        let y = zone_to_screen_y(catch_center);
         transform.translation.y = y;
     }
 }
 
-/// Update progress bar and check for completion / failure.
+/// Update progress bar fill.
 pub fn update_progress(
     mut minigame_state: ResMut<FishingMinigameState>,
     time: Res<Time>,
@@ -151,10 +156,10 @@ pub fn update_progress(
         minigame_state.progress =
             (minigame_state.progress + PROGRESS_FILL_RATE * dt).clamp(0.0, 100.0);
 
-        // Tick overlap SFX cooldown
+        // Overlap SFX — pulsed to avoid spam
         minigame_state.overlap_sfx_cooldown -= dt;
         if minigame_state.overlap_sfx_cooldown <= 0.0 {
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "fishing_overlap_tick".to_string(),
             });
             minigame_state.overlap_sfx_cooldown = 0.3;
@@ -164,18 +169,17 @@ pub fn update_progress(
             (minigame_state.progress - PROGRESS_DRAIN_RATE * dt).clamp(0.0, 100.0);
     }
 
-    // Update progress fill bar width
-    // The progress fill transform's x-scale represents filled fraction
+    let fraction = minigame_state.progress / 100.0;
+
+    // Update progress fill bar x-scale
     for mut transform in progress_fill_query.iter_mut() {
-        // Full width = 100 screen units; scale x from 0.0 to 1.0
-        let fraction = minigame_state.progress / 100.0;
-        transform.scale.x = fraction.max(0.001); // avoid zero scale artifacts
+        transform.scale.x = fraction.max(0.001);
     }
 }
 
 /// Check whether the minigame is won, lost, or cancelled.
 pub fn check_minigame_result(
-    fishing_state: ResMut<FishingState>,
+    mut fishing_state: ResMut<FishingState>,
     minigame_state: Res<FishingMinigameState>,
     mut next_state: ResMut<NextState<GameState>>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
@@ -188,11 +192,9 @@ pub fn check_minigame_result(
 ) {
     // Win condition
     if minigame_state.progress >= 100.0 {
-        let fish_id = fishing_state.selected_fish_id.clone();
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         catch_fish(
-            fishing_state,
-            minigame_state,
+            &mut fishing_state,
             &mut next_state,
             &mut stamina_events,
             &mut item_pickup_events,
@@ -204,15 +206,14 @@ pub fn check_minigame_result(
         return;
     }
 
-    // Loss condition
+    // Loss condition (progress drained to zero after game started)
     if minigame_state.progress <= 0.0 && minigame_state.elapsed > 0.5 {
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "fish_escape".to_string(),
         });
-        let mut fishing_state_mut = fishing_state;
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         end_fishing_escape(
-            &mut fishing_state_mut,
+            &mut fishing_state,
             &mut next_state,
             &mut stamina_events,
             &mut commands,
@@ -222,15 +223,14 @@ pub fn check_minigame_result(
         return;
     }
 
-    // Cancel condition (Escape key during minigame)
+    // Cancel with Escape key
     if keyboard.just_pressed(KeyCode::Escape) {
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "fish_escape".to_string(),
         });
-        let mut fishing_state_mut = fishing_state;
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         end_fishing_escape(
-            &mut fishing_state_mut,
+            &mut fishing_state,
             &mut next_state,
             &mut stamina_events,
             &mut commands,
@@ -243,7 +243,7 @@ pub fn check_minigame_result(
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /// Convert a 0-100 zone position to a screen Y coordinate within the minigame bar.
-/// The bar occupies MINIGAME_BAR_HEIGHT screen pixels, centered on screen.
+/// The bar occupies MINIGAME_BAR_HEIGHT screen pixels, centered on the bar origin.
 pub(super) fn zone_to_screen_y(zone: f32) -> f32 {
     let bar_bottom = -MINIGAME_BAR_HEIGHT / 2.0;
     bar_bottom + (zone / 100.0) * MINIGAME_BAR_HEIGHT
@@ -251,7 +251,6 @@ pub(super) fn zone_to_screen_y(zone: f32) -> f32 {
 
 pub(super) const MINIGAME_BAR_HEIGHT: f32 = 200.0;
 pub(super) const MINIGAME_BAR_WIDTH: f32 = 40.0;
-pub(super) const MINIGAME_BAR_X: f32 = 160.0; // right side of screen (screen coords)
 pub(super) const PROGRESS_BAR_Y: f32 = -130.0;
 pub(super) const PROGRESS_BAR_WIDTH: f32 = 120.0;
 pub(super) const PROGRESS_BAR_HEIGHT: f32 = 12.0;

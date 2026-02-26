@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{grid_to_world, world_to_grid, CollisionMap};
+use super::grid_to_world;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Map Transition Detection

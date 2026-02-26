@@ -12,7 +12,8 @@ use super::{
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Detect when the player presses the interact key (F) while holding a seed
-/// item in their selected hotbar slot, then emit a PlantSeedEvent.
+/// item in their selected hotbar slot, then emit a PlantSeedEvent at the player's
+/// current grid tile (or the tile the player is facing).
 pub fn detect_seed_use(
     keys: Res<ButtonInput<KeyCode>>,
     player_state: Res<PlayerState>,
@@ -20,6 +21,7 @@ pub fn detect_seed_use(
     farm_state: Res<FarmState>,
     calendar: Res<Calendar>,
     crop_registry: Res<CropRegistry>,
+    player_query: Query<(&Transform, &PlayerMovement), With<Player>>,
     mut plant_events: EventWriter<PlantSeedEvent>,
 ) {
     // Interact key: F
@@ -47,35 +49,44 @@ pub fn detect_seed_use(
 
     // Check season validity.
     if !crop_can_grow_in_season(crop_def, calendar.season) {
-        // The player tried to plant out of season — silently ignore (UI could show a message).
         return;
     }
 
-    // Determine the player's facing direction to find the target tile.
-    // We'll use grid_x/grid_y relative to the player's world position.
-    // Since we don't have the player's transform here, we rely on the player domain
-    // to send a ToolUseEvent. For planting we use the same target_x/target_y from the
-    // ToolUseEvent mechanism. However, planting uses "interact" rather than a tool.
-    //
-    // As an alternative approach that doesn't require cross-domain coupling, we'll
-    // emit the event with a special sentinel and let the player plugin's position
-    // inform us. Instead we detect it simply: we look for ANY adjacent tilled tile
-    // that could be planted. To keep things decoupled, we make the PlantSeedEvent
-    // fired from ToolUseEvent in the farming domain itself (see handle_plant_seed).
-    //
-    // For now emit a PlantSeedEvent at tile 0,0 — the actual coupling is via ToolUseEvent.
-    // This system is a secondary path for direct keyboard use:
+    // Get the player's grid position and facing direction.
+    let Ok((transform, movement)) = player_query.get_single() else {
+        return;
+    };
 
-    // We need the player's position. Since we cannot import from player domain, we use
-    // a convention: read from PlayerState.current_map + assume the player is at origin
-    // if we don't have transform data. The real planting trigger comes from ToolUseEvent
-    // which carries target_x/target_y. This system augments it.
-    //
-    // Practical approach: scan farm_state for tilled tiles near (0,0) origin as placeholder.
-    // The actual, correct planting trigger is in handle_plant_seed which reads ToolUseEvent.
-    let _ = (farm_state, plant_events, seed_id);
-    // NOTE: planting is primarily triggered via ToolUseEvent with the Hoe already used.
-    // The PlantSeedEvent path is used by higher-level planting logic. See handle_plant_seed.
+    let player_gx = (transform.translation.x / TILE_SIZE).round() as i32;
+    let player_gy = (transform.translation.y / TILE_SIZE).round() as i32;
+
+    // Target tile is the tile the player is facing.
+    let (offset_x, offset_y) = match movement.facing {
+        Facing::Up    => (0,  1),
+        Facing::Down  => (0, -1),
+        Facing::Left  => (-1, 0),
+        Facing::Right => (1,  0),
+    };
+
+    // Try facing tile first, then player's own tile.
+    let candidates = [
+        (player_gx + offset_x, player_gy + offset_y),
+        (player_gx, player_gy),
+    ];
+
+    for &target_pos in &candidates {
+        let soil = farm_state.soil.get(&target_pos).copied();
+        if (soil == Some(SoilState::Tilled) || soil == Some(SoilState::Watered))
+            && !farm_state.crops.contains_key(&target_pos)
+        {
+            plant_events.send(PlantSeedEvent {
+                grid_x: target_pos.0,
+                grid_y: target_pos.1,
+                seed_item_id: seed_id.clone(),
+            });
+            break;
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

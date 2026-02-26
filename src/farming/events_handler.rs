@@ -5,8 +5,7 @@ use crate::shared::*;
 use super::{
     FarmEntities,
     crops::{advance_crop_growth, reset_soil_watered_state},
-    harvest::despawn_crop,
-    soil::{soil_color, spawn_or_update_soil_entity},
+    soil::spawn_or_update_soil_entity,
     sprinkler::apply_rain_watering,
 };
 
