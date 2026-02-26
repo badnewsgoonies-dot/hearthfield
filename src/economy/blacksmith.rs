@@ -204,6 +204,7 @@ pub fn tick_upgrade_queue(
     mut player_state: ResMut<PlayerState>,
     mut complete_writer: EventWriter<ToolUpgradeCompleteEvent>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
 ) {
     for _ev in day_end_events.read() {
         let mut completed = Vec::new();
@@ -224,6 +225,11 @@ pub fn tick_upgrade_queue(
 
             sfx_writer.send(PlaySfxEvent {
                 sfx_id: "upgrade_complete".to_string(),
+            });
+
+            toast_writer.send(ToastEvent {
+                message: format!("Your {:?} upgrade is ready! Pick it up at the Blacksmith.", tool),
+                duration_secs: 4.0,
             });
 
             info!(

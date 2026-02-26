@@ -2,6 +2,9 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::{grid_to_world, CollisionMap};
 
+// Default energy restored by an edible item when no registry entry is found.
+const DEFAULT_FOOD_ENERGY: f32 = 20.0;
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Map Transition Detection
 // ═══════════════════════════════════════════════════════════════════════════
@@ -295,5 +298,105 @@ pub fn handle_day_end(
             grid_pos.x = bed_gx;
             grid_pos.y = bed_gy;
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Stamina Recovery
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Reads `StaminaRestoreEvent` and applies stamina recovery to the player,
+/// capped at `max_stamina`.
+pub fn handle_stamina_restore(
+    mut events: EventReader<StaminaRestoreEvent>,
+    mut player_state: ResMut<PlayerState>,
+) {
+    for ev in events.read() {
+        let before = player_state.stamina;
+        player_state.stamina =
+            (player_state.stamina + ev.amount).min(player_state.max_stamina);
+        let gained = player_state.stamina - before;
+        info!(
+            "[Player] Stamina restored {:.1} (source: {:?}) — now {:.1}/{:.1}",
+            gained, ev.source, player_state.stamina, player_state.max_stamina
+        );
+    }
+}
+
+/// Reads `ConsumeItemEvent`, looks the item up in the `ItemRegistry`, removes
+/// it from inventory, and fires a `StaminaRestoreEvent` for the appropriate
+/// energy value.
+pub fn handle_consume_item(
+    mut events: EventReader<ConsumeItemEvent>,
+    mut inventory: ResMut<Inventory>,
+    item_registry: Res<ItemRegistry>,
+    mut stamina_restore_events: EventWriter<StaminaRestoreEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
+) {
+    for ev in events.read() {
+        // Look up item definition to get the energy restore value.
+        let energy_value = if let Some(def) = item_registry.get(&ev.item_id) {
+            if def.edible {
+                def.energy_restore
+            } else {
+                // Item exists but is not edible — skip.
+                info!("[Player] Tried to consume non-edible item '{}'", ev.item_id);
+                continue;
+            }
+        } else {
+            // Item not in registry; apply a default for any unknown food-like item.
+            DEFAULT_FOOD_ENERGY
+        };
+
+        // Remove one from inventory.
+        let removed = inventory.try_remove(&ev.item_id, 1);
+        if removed == 0 {
+            info!("[Player] Cannot consume '{}' — not in inventory", ev.item_id);
+            continue;
+        }
+
+        // Send stamina restore event.
+        stamina_restore_events.send(StaminaRestoreEvent {
+            amount: energy_value,
+            source: StaminaSource::Food(ev.item_id.clone()),
+        });
+
+        // Play eat sound effect.
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "eat".to_string(),
+        });
+
+        info!(
+            "[Player] Consumed '{}' — restoring {:.1} stamina",
+            ev.item_id, energy_value
+        );
+    }
+}
+
+/// Checks each frame whether stamina has reached zero at or past midnight
+/// (hour >= 24). If so, the player passes out and a `DayEndEvent` is sent.
+pub fn check_stamina_consequences(
+    player_state: Res<PlayerState>,
+    calendar: Res<Calendar>,
+    mut day_end_events: EventWriter<DayEndEvent>,
+    mut has_passed_out: Local<bool>,
+) {
+    if player_state.stamina <= 0.0 && calendar.hour >= 24 {
+        // Only fire once per exhaustion episode; reset when stamina recovers.
+        if !*has_passed_out {
+            *has_passed_out = true;
+            warn!(
+                "[Player] Passed out from exhaustion at hour {}! Ending the day.",
+                calendar.hour
+            );
+            day_end_events.send(DayEndEvent {
+                day: calendar.day,
+                season: calendar.season,
+                year: calendar.year,
+            });
+        }
+    } else if player_state.stamina > 0.0 {
+        // Reset the flag once stamina is restored (e.g. after sleep).
+        *has_passed_out = false;
     }
 }

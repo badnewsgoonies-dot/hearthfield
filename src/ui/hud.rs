@@ -9,6 +9,23 @@ use super::UiFontHandle;
 #[derive(Component)]
 pub struct HudRoot;
 
+/// Marker for the map name text node at bottom-left.
+#[derive(Component)]
+pub struct HudMapName;
+
+/// Resource: tracks fade-in/out for the map name indicator.
+#[derive(Resource)]
+pub struct MapNameFadeTimer {
+    /// How long the name stays fully visible before fading out.
+    pub display_timer: Timer,
+    /// How long the fade-out takes.
+    pub fade_timer: Timer,
+    /// Current alpha of the map name text (0.0 = invisible, 1.0 = fully visible).
+    pub alpha: f32,
+    /// Last map that was displayed (to detect changes).
+    pub last_map: Option<MapId>,
+}
+
 #[derive(Component)]
 pub struct HudTimeText;
 
@@ -195,6 +212,45 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
             // ─── BOTTOM: HOTBAR ───
             spawn_hotbar(parent, &font);
         });
+
+    // ─── MAP NAME — absolute position, bottom-left ───
+    commands.spawn((
+        HudMapName,
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(70.0),
+            left: Val::Px(12.0),
+            padding: UiRect {
+                left: Val::Px(8.0),
+                right: Val::Px(8.0),
+                top: Val::Px(4.0),
+                bottom: Val::Px(4.0),
+            },
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+        PickingBehavior::IGNORE,
+    ))
+    .with_children(|parent| {
+        parent.spawn((
+            Text::new(""),
+            TextFont {
+                font: font.clone(),
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)),
+            PickingBehavior::IGNORE,
+        ));
+    });
+
+    // Initialise the fade timer resource every time the HUD spawns.
+    commands.insert_resource(MapNameFadeTimer {
+        display_timer: Timer::from_seconds(2.0, TimerMode::Once),
+        fade_timer: Timer::from_seconds(0.8, TimerMode::Once),
+        alpha: 0.0,
+        last_map: None,
+    });
 }
 
 fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
@@ -265,9 +321,34 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
 // DESPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn despawn_hud(mut commands: Commands, query: Query<Entity, With<HudRoot>>) {
-    for entity in &query {
-        commands.entity(entity).despawn();
+pub fn despawn_hud(
+    mut commands: Commands,
+    hud_query: Query<Entity, With<HudRoot>>,
+    map_name_query: Query<Entity, With<HudMapName>>,
+) {
+    for entity in &hud_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in &map_name_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    commands.remove_resource::<MapNameFadeTimer>();
+}
+
+// ─── MAP NAME DISPLAY HELPER ──────────────────────────────────────────
+
+fn map_display_name(map: MapId) -> &'static str {
+    match map {
+        MapId::Farm => "The Farm",
+        MapId::Town => "Pelican Town",
+        MapId::Beach => "The Beach",
+        MapId::Forest => "Cindersap Forest",
+        MapId::MineEntrance => "The Mines",
+        MapId::Mine => "Mine Floor",
+        MapId::PlayerHouse => "Home",
+        MapId::GeneralStore => "Pierre's Shop",
+        MapId::AnimalShop => "Marnie's Ranch",
+        MapId::Blacksmith => "Clint's Blacksmith",
     }
 }
 
@@ -444,6 +525,59 @@ pub fn update_hotbar(
                 }
             } else {
                 **text = String::new();
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MAP NAME UPDATE
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Watches PlayerState.current_map for changes, displays a map name
+/// indicator that holds visible then fades out.
+pub fn update_map_name(
+    time: Res<Time>,
+    player: Res<PlayerState>,
+    mut fade: ResMut<MapNameFadeTimer>,
+    mut container_query: Query<(&Children, &mut BackgroundColor), With<HudMapName>>,
+    mut text_query: Query<(&mut Text, &mut TextColor)>,
+) {
+    // Detect map change.
+    let map_changed = fade.last_map != Some(player.current_map);
+
+    if map_changed {
+        fade.last_map = Some(player.current_map);
+        fade.display_timer.reset();
+        fade.fade_timer.reset();
+        fade.alpha = 1.0;
+    }
+
+    // Tick hold timer, then fade-out timer.
+    if fade.alpha > 0.0 {
+        if !fade.display_timer.finished() {
+            fade.display_timer.tick(time.delta());
+        } else {
+            fade.fade_timer.tick(time.delta());
+            let elapsed = fade.fade_timer.elapsed_secs();
+            let duration = fade.fade_timer.duration().as_secs_f32();
+            fade.alpha = (1.0 - elapsed / duration).clamp(0.0, 1.0);
+        }
+    }
+
+    // Apply alpha and update text if map just changed.
+    let bg_alpha = fade.alpha * 0.65;
+    let current_alpha = fade.alpha;
+    let current_map = player.current_map;
+
+    for (children, mut bg_color) in &mut container_query {
+        bg_color.0 = Color::srgba(0.0, 0.0, 0.0, bg_alpha);
+        for &child in children.iter() {
+            if let Ok((mut text, mut tc)) = text_query.get_mut(child) {
+                if map_changed {
+                    **text = map_display_name(current_map).to_string();
+                }
+                tc.0 = Color::srgba(1.0, 1.0, 1.0, current_alpha);
             }
         }
     }

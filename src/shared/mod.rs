@@ -862,6 +862,8 @@ pub struct CropHarvestedEvent {
     pub quantity: u8,
     pub x: i32,
     pub y: i32,
+    /// Phase 3: quality of the harvested crop (None = Normal for backward compat).
+    pub quality: Option<ItemQuality>,
 }
 
 #[derive(Event, Debug, Clone)]
@@ -923,3 +925,115 @@ pub const TOTAL_INVENTORY_SLOTS: usize = HOTBAR_SLOTS + BACKPACK_SLOTS;
 pub const FRIENDSHIP_PER_HEART: u32 = 100;
 pub const MAX_HEARTS: u32 = 10;
 pub const MAX_FRIENDSHIP: u32 = MAX_HEARTS * FRIENDSHIP_PER_HEART;
+
+// ═══════════════════════════════════════════════════════════════════════
+// PHASE 3 ADDITIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Item quality affects sell price multiplier and display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum ItemQuality {
+    #[default]
+    Normal,
+    Silver,
+    Gold,
+    Iridium,
+}
+
+impl ItemQuality {
+    pub fn sell_multiplier(&self) -> f32 {
+        match self {
+            ItemQuality::Normal => 1.0,
+            ItemQuality::Silver => 1.25,
+            ItemQuality::Gold => 1.5,
+            ItemQuality::Iridium => 2.0,
+        }
+    }
+
+    pub fn next(&self) -> Option<ItemQuality> {
+        match self {
+            ItemQuality::Normal => Some(ItemQuality::Silver),
+            ItemQuality::Silver => Some(ItemQuality::Gold),
+            ItemQuality::Gold => Some(ItemQuality::Iridium),
+            ItemQuality::Iridium => None,
+        }
+    }
+}
+
+/// Quality-aware inventory slot for storage chests.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct QualityStack {
+    pub item_id: String,
+    pub quantity: u8,
+    pub quality: ItemQuality,
+}
+
+/// Eating food restores stamina/health.
+#[derive(Event, Debug, Clone)]
+pub struct ConsumeItemEvent {
+    pub item_id: String,
+    pub quality: ItemQuality,
+}
+
+/// Stamina recovery from food, sleep, or spa.
+#[derive(Event, Debug, Clone)]
+pub struct StaminaRestoreEvent {
+    pub amount: f32,
+    pub source: StaminaSource,
+}
+
+#[derive(Debug, Clone)]
+pub enum StaminaSource {
+    Food(String),
+    Sleep,
+    Spa,
+}
+
+/// Animal purchase request from shop.
+#[derive(Event, Debug, Clone)]
+pub struct AnimalPurchaseEvent {
+    pub animal_type: AnimalKind,
+    pub cost: u32,
+    pub name: String,
+}
+
+/// Toast notification for player feedback.
+#[derive(Event, Debug, Clone)]
+pub struct ToastEvent {
+    pub message: String,
+    pub duration_secs: f32,
+}
+
+/// Chest/storage container on farm.
+#[derive(Component, Debug, Clone, Serialize, Deserialize)]
+pub struct StorageChest {
+    pub slots: Vec<Option<QualityStack>>,
+    pub capacity: usize,
+    pub grid_pos: (i32, i32),
+}
+
+impl StorageChest {
+    pub fn new(capacity: usize, x: i32, y: i32) -> Self {
+        Self {
+            slots: vec![None; capacity],
+            capacity,
+            grid_pos: (x, y),
+        }
+    }
+}
+
+/// Day/night ambient light level (0.0 = midnight dark, 1.0 = noon bright).
+#[derive(Resource, Debug, Clone)]
+pub struct DayNightTint {
+    pub intensity: f32,
+    pub tint: (f32, f32, f32),
+}
+
+impl Default for DayNightTint {
+    fn default() -> Self {
+        Self {
+            intensity: 1.0,
+            tint: (1.0, 1.0, 1.0),
+        }
+    }
+}

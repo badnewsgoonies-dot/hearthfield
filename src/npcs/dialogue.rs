@@ -21,6 +21,7 @@ pub fn handle_npc_interaction(
     npc_query: Query<(&Npc, &Transform)>,
     relationships: Res<Relationships>,
     npc_registry: Res<NpcRegistry>,
+    calendar: Res<Calendar>,
     mut dialogue_writer: EventWriter<DialogueStartEvent>,
     mut active_interaction: ResMut<ActiveNpcInteraction>,
     current_state: Res<State<GameState>>,
@@ -62,7 +63,7 @@ pub fn handle_npc_interaction(
 
     let npc_id = &npc.id;
     let hearts = relationships.hearts(npc_id);
-    let lines = build_dialogue_lines(npc_id, hearts, &npc_registry, &relationships);
+    let lines = build_dialogue_lines(npc_id, hearts, &npc_registry, &relationships, &calendar);
 
     let portrait_index = npc_registry.npcs.get(npc_id)
         .map(|def| def.portrait_index);
@@ -80,11 +81,13 @@ pub fn handle_npc_interaction(
 
 /// Build dialogue lines for an NPC at the given friendship tier.
 /// Falls back through lower tiers to always provide content.
+/// Also prepends contextual lines based on weather and season.
 pub fn build_dialogue_lines(
     npc_id: &str,
     hearts: u8,
     npc_registry: &NpcRegistry,
     relationships: &Relationships,
+    calendar: &Calendar,
 ) -> Vec<String> {
     let Some(npc_def) = npc_registry.npcs.get(npc_id) else {
         return vec!["...".to_string()];
@@ -92,9 +95,36 @@ pub fn build_dialogue_lines(
 
     let mut lines = Vec::new();
 
-    // Check if today is NPC's birthday (use a simple marker in the line)
-    // The calendar check would need injecting — we annotate the line instead
-    // In a full system, CalendarRes would be passed in
+    // --- Contextual: "already gifted today" notice ---
+    if relationships.gifted_today.get(npc_id).copied().unwrap_or(false) {
+        lines.push(
+            "I really appreciate everything you've given me today. Come back tomorrow!".to_string(),
+        );
+        return lines;
+    }
+
+    // --- Contextual: birthday greeting (checked here with real calendar) ---
+    let is_birthday =
+        calendar.season == npc_def.birthday_season && calendar.day == npc_def.birthday_day;
+    if is_birthday {
+        lines.push(format!(
+            "Oh! Today is my birthday! I can't believe you remembered, {}!",
+            npc_def.name
+        ));
+    }
+
+    // --- Contextual: weather comment (prepend one line) ---
+    let weather_line = npc_weather_comment(npc_id, calendar.weather);
+    if let Some(wl) = weather_line {
+        lines.push(wl);
+    }
+
+    // --- Contextual: seasonal comment ---
+    let season_line = npc_season_comment(npc_id, calendar.season);
+    if let Some(sl) = season_line {
+        lines.push(sl);
+    }
+
     let tier = friendship_tier(hearts);
 
     // Get tier-specific dialogue if available
@@ -139,6 +169,102 @@ pub fn build_dialogue_lines(
     }
 
     lines
+}
+
+/// Return a weather-aware comment for the given NPC, or None if no comment is warranted.
+fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
+    match weather {
+        Weather::Sunny => None, // sunny is default — no special comment
+        Weather::Rainy => {
+            let line = match npc_id {
+                "mayor_thomas"   => "Wet day today! Good for the crops, I suppose.",
+                "elena"          => "The rain has kept the shop quiet. I like the sound it makes on the roof, honestly.",
+                "marcus"         => "Rainy days mean fewer customers. I use the time to sharpen the tools.",
+                "dr_iris"        => "Stay dry out there! Wet feet lead to all sorts of trouble.",
+                "old_pete"       => "Rain's good fishing weather, if you know where to look.",
+                "chef_rosa"      => "Rain days are soup days. Come by the inn later — I'm making chowder.",
+                "miner_gil"      => "Rain keeps me out of the mountains. Might as well dig inside.",
+                "librarian_faye" => "A perfect reading day. I almost don't mind the clouds.",
+                "farmer_dale"    => "Good steady rain. The fields will thank us for it.",
+                "child_lily"     => "It's RAINING! I jumped in three puddles already!",
+                _                => "Wet day, isn't it? Hope you brought an umbrella.",
+            };
+            Some(line.to_string())
+        }
+        Weather::Stormy => {
+            let line = match npc_id {
+                "mayor_thomas"   => "Nasty storm rolling in. Please be careful out there.",
+                "elena"          => "This storm has me worried. Please don't stay out too long.",
+                "marcus"         => "A storm like this could bring down a tree. Watch your head.",
+                "dr_iris"        => "In this weather? You're lucky I'm open! Please be safe.",
+                "old_pete"       => "I'd stay off the water today. That storm's no joke.",
+                "chef_rosa"      => "I closed the shutters and lit the fire. Come in if you need to warm up!",
+                "miner_gil"      => "Even I stay out of the mine when lightning's this close.",
+                "librarian_faye" => "The storm knocked my shutters open! Three books got damp. I'm devastated.",
+                "farmer_dale"    => "Storm like this can flatten crops. Hope you've got some shelter built.",
+                "child_lily"     => "Mama said I can't go outside but the thunder is SO COOL.",
+                _                => "Quite a storm today, eh? You should head inside soon.",
+            };
+            Some(line.to_string())
+        }
+        Weather::Snowy => {
+            let line = match npc_id {
+                "mayor_thomas"   => "First snow of winter! Hearthfield looks like a painting today.",
+                "elena"          => "Snow! The shop window looks magical with the flakes drifting by.",
+                "marcus"         => "Snow days are slow days. I use the time to plan spring inventory.",
+                "dr_iris"        => "Bundle up! Frostbite is no laughing matter.",
+                "old_pete"       => "Ice fishing season. The pond freezes just right by the old bridge.",
+                "chef_rosa"      => "Snow means hot cocoa weather. I'll put a pot on.",
+                "miner_gil"      => "Doesn't matter what the sky does — it's always the same temperature down in the mine.",
+                "librarian_faye" => "Snow makes everything so quiet. I could read all day.",
+                "farmer_dale"    => "Snow cover actually protects the winter crops. Nature's blanket.",
+                "child_lily"     => "SNOW!! Can you build a snowman with me later?!",
+                _                => "Snow's here! Stay warm out there.",
+            };
+            Some(line.to_string())
+        }
+    }
+}
+
+/// Return a season-aware comment for the given NPC, or None if no comment is warranted.
+/// To keep dialogue from feeling repetitive, only return something for specific season/NPC combos.
+fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
+    let line = match (npc_id, season) {
+        // Spring
+        ("elena", Season::Spring) =>
+            Some("Spring is my favourite time of year. Everything is blooming!"),
+        ("farmer_dale", Season::Spring) =>
+            Some("Time to get those seeds in the ground. Spring waits for no one."),
+        ("child_lily", Season::Spring) =>
+            Some("Spring means the Egg Festival is coming! I can't wait!!"),
+
+        // Summer
+        ("old_pete", Season::Summer) =>
+            Some("Summer's when the big fish come in. Best season for the rod, no question."),
+        ("chef_rosa", Season::Summer) =>
+            Some("Summer produce is just bursting with flavour. Best season to cook."),
+        ("mayor_thomas", Season::Summer) =>
+            Some("The town square festival is my proudest achievement as mayor. Still months of planning every year."),
+
+        // Fall
+        ("farmer_dale", Season::Fall) =>
+            Some("Harvest time. This is what all that spring planting was for."),
+        ("librarian_faye", Season::Fall) =>
+            Some("Fall colours through the library window. It's almost too pretty to concentrate."),
+        ("miner_gil", Season::Fall) =>
+            Some("The mine runs deep this time of year. Some say the rocks change with the seasons. I believe it."),
+
+        // Winter
+        ("old_pete", Season::Winter) =>
+            Some("Not much fishing to be had above ground. Good time to mend the nets."),
+        ("dr_iris", Season::Winter) =>
+            Some("Winter's my busiest season — everyone catches cold. Please dress warmly!"),
+        ("marcus", Season::Winter) =>
+            Some("Winter gives me time to practice new techniques at the forge. Quiet work is good work."),
+
+        _ => None,
+    };
+    line.map(|s| s.to_string())
 }
 
 /// Get the dialogue tier key for a given heart count.

@@ -65,6 +65,13 @@ pub fn sync_soil_sprites(
             if let Some(atlas) = &mut sprite.texture_atlas {
                 // Atlas sprite: update the slice index.
                 atlas.index = soil_atlas_index(state);
+                // Apply color tint: watered soil gets a dark brown multiply,
+                // tilled soil stays white (no tint).
+                sprite.color = match state {
+                    SoilState::Watered => Color::srgb(0.6, 0.5, 0.4),
+                    SoilState::Tilled  => Color::WHITE,
+                    SoilState::Untilled => Color::WHITE,
+                };
             } else {
                 // Fallback colour sprite (spawned before atlases were ready).
                 sprite.color = soil_color(state);
@@ -161,20 +168,29 @@ pub fn sync_crop_sprites(
                 .unwrap_or(4);
 
             if crop.dead {
-                // Dead crops always rendered as a brown-tinted colour sprite.
+                // Dead crops: dark brown tint regardless of atlas availability.
                 // Remove any atlas reference so the colour shows through.
                 sprite.texture_atlas = None;
-                sprite.color = Color::srgb(0.35, 0.28, 0.20);
+                sprite.color = Color::srgb(0.4, 0.3, 0.2);
                 sprite.custom_size = Some(Vec2::splat(TILE_SIZE * 0.8));
             } else if let Some(atlas) = &mut sprite.texture_atlas {
                 // Atlas sprite: update slice index for current stage.
                 atlas.index = crop_atlas_index(crop.current_stage, total_stages);
-                // Reset colour to opaque white so the atlas image shows correctly.
-                sprite.color = Color::WHITE;
+                // Apply dehydration tint on top of the atlas image.
+                // Freshly watered or healthy crops get no tint (WHITE).
+                sprite.color = if crop.days_without_water >= 2 {
+                    Color::srgb(0.85, 0.70, 0.30) // severely dehydrated — deep yellow
+                } else if crop.days_without_water >= 1 {
+                    Color::srgb(0.90, 0.85, 0.50) // mildly dehydrated — light yellow
+                } else {
+                    Color::WHITE // healthy / watered today
+                };
             } else {
                 // Fallback: colour placeholder, update tint.
                 let color = if crop.days_without_water >= 2 {
-                    Color::srgb(0.65, 0.62, 0.25) // wilting — desaturated yellowish
+                    Color::srgb(0.85, 0.70, 0.30) // severely dehydrated
+                } else if crop.days_without_water >= 1 {
+                    Color::srgb(0.90, 0.85, 0.50) // mildly dehydrated
                 } else {
                     crop_stage_color(crop.current_stage, total_stages, crop.dead)
                 };
@@ -231,7 +247,11 @@ pub fn sync_crop_sprites(
         } else {
             // Fallback: coloured rectangle (also used for dead crops).
             let color = if crop.dead {
-                Color::srgb(0.35, 0.28, 0.20)
+                Color::srgb(0.4, 0.3, 0.2) // dark brown — withered/dead
+            } else if crop.days_without_water >= 2 {
+                Color::srgb(0.85, 0.70, 0.30) // severely dehydrated
+            } else if crop.days_without_water >= 1 {
+                Color::srgb(0.90, 0.85, 0.50) // mildly dehydrated
             } else {
                 crop_stage_color(crop.current_stage, total_stages, crop.dead)
             };

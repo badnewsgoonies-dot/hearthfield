@@ -58,6 +58,14 @@ pub struct ProductReadyIndicator {
     pub owner: Entity,
 }
 
+/// Tracks how many consecutive days this animal has gone without being fed.
+/// Reset to 0 when fed_today is true at day-end. After 3+ days the animal
+/// refuses to produce anything until it is fed again.
+#[derive(Component, Debug, Clone, Default)]
+pub struct UnfedDays {
+    pub count: u8,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
 // ─────────────────────────────────────────────────────────────────────────────

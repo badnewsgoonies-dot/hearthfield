@@ -11,7 +11,8 @@ mod unlock;
 
 pub use machines::{
     MachineType, ProcessingMachine, ProcessingMachineRegistry,
-    InsertMachineInputEvent, CollectMachineOutputEvent,
+    InsertMachineInputEvent, CollectMachineOutputEvent, PlaceMachineEvent,
+    item_to_machine_type,
 };
 pub use recipes::{
     make_crafting_recipe, make_cooking_recipe, populate_recipe_registry,
@@ -34,6 +35,7 @@ impl Plugin for CraftingPlugin {
             .add_event::<CloseCraftingEvent>()
             .add_event::<InsertMachineInputEvent>()
             .add_event::<CollectMachineOutputEvent>()
+            .add_event::<PlaceMachineEvent>()
             .add_event::<UnlockRecipeEvent>()
             // Startup: register default recipe unlocks once we enter Playing
             .add_systems(OnEnter(GameState::Playing), unlock::initialize_unlocked_recipes)
@@ -43,6 +45,8 @@ impl Plugin for CraftingPlugin {
                 (
                     // Processing machine real-time tick
                     machines::tick_processing_machines,
+                    // Machine placement from hotbar
+                    machines::handle_place_machine,
                     // Machine interaction (insert / collect)
                     machines::handle_insert_machine_input,
                     machines::handle_collect_machine_output,

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use crate::shared::*;
-use super::{Bobber, FishingPhase, FishingState, FishingMinigameState};
+use super::{Bobber, FishingPhase, FishingState, FishingMinigameState, TackleKind};
 use super::fish_select::select_fish;
 use super::resolve::end_fishing_escape;
 
@@ -23,8 +23,10 @@ pub fn handle_tool_use_for_fishing(
     mut fishing_state: ResMut<FishingState>,
     mut commands: Commands,
     player_state: Res<PlayerState>,
-    inventory: Res<Inventory>,
+    mut inventory: ResMut<Inventory>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut item_removed_events: EventWriter<ItemRemovedEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {
@@ -39,9 +41,24 @@ pub fn handle_tool_use_for_fishing(
         let target_x = event.target_x;
         let target_y = event.target_y;
 
-        // Check bait / tackle from inventory
+        // Check bait from inventory
         let bait_equipped = inventory.has("bait", 1);
-        let tackle_equipped = inventory.has("tackle", 1);
+
+        // Detect specific tackle type. Priority order: spinner > trap_bobber > lead_bobber > generic.
+        let tackle_kind = if inventory.has("spinner", 1) {
+            TackleKind::Spinner
+        } else if inventory.has("trap_bobber", 1) {
+            TackleKind::TrapBobber
+        } else if inventory.has("lead_bobber", 1) {
+            TackleKind::LeadBobber
+        } else if inventory.has("tackle", 1) {
+            // Generic tackle item (treated as no specific modifier).
+            TackleKind::None
+        } else {
+            TackleKind::None
+        };
+        let tackle_equipped = tackle_kind != TackleKind::None || inventory.has("tackle", 1);
+
         let rod_tier = player_state
             .tools
             .get(&ToolKind::FishingRod)
@@ -67,6 +84,7 @@ pub fn handle_tool_use_for_fishing(
         fishing_state.bite_timer = Some(Timer::from_seconds(wait, TimerMode::Once));
         fishing_state.bait_equipped = bait_equipped;
         fishing_state.tackle_equipped = tackle_equipped;
+        fishing_state.tackle_kind = tackle_kind;
         fishing_state.rod_tier = rod_tier;
 
         // Spawn bobber sprite in world space
@@ -91,7 +109,16 @@ pub fn handle_tool_use_for_fishing(
             sfx_id: "fishing_cast".to_string(),
         });
 
-        // TODO: consume bait item (ItemRemovedEvent via player domain)
+        // Consume bait if equipped
+        if bait_equipped {
+            let removed = inventory.try_remove("bait", 1);
+            if removed > 0 {
+                item_removed_events.send(ItemRemovedEvent {
+                    item_id: "bait".to_string(),
+                    quantity: removed,
+                });
+            }
+        }
     }
 }
 
@@ -177,7 +204,7 @@ pub fn handle_bite_reaction_window(
         minigame_state.setup(
             difficulty,
             fishing_state.rod_tier,
-            fishing_state.tackle_equipped,
+            fishing_state.tackle_kind,
         );
 
         // Transition to Fishing game state; OnEnter will spawn the minigame UI

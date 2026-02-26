@@ -1,4 +1,5 @@
 mod hud;
+mod toast;
 mod inventory_screen;
 mod dialogue_box;
 mod shop_screen;
@@ -8,6 +9,7 @@ mod main_menu;
 mod input;
 mod transitions;
 mod audio;
+mod chest_screen;
 
 use bevy::prelude::*;
 use crate::shared::*;
@@ -54,7 +56,11 @@ impl Plugin for UiPlugin {
         // ─── DIALOGUE LISTENER — runs in Playing to catch events ───
         app.add_systems(
             Update,
-            dialogue_box::listen_for_dialogue_start.run_if(in_state(GameState::Playing)),
+            (
+                dialogue_box::listen_for_dialogue_start,
+                dialogue_box::handle_dialogue_end,
+            )
+                .run_if(in_state(GameState::Playing)),
         );
 
         // ─── MAIN MENU ───
@@ -81,6 +87,22 @@ impl Plugin for UiPlugin {
                 hud::update_stamina_bar,
                 hud::update_tool_display,
                 hud::update_hotbar,
+                hud::update_map_name,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── TOAST NOTIFICATIONS ───
+        app.add_systems(OnEnter(GameState::Playing), toast::spawn_toast_container);
+        app.add_systems(OnExit(GameState::Playing), toast::despawn_toast_container);
+        app.add_systems(
+            Update,
+            (
+                toast::handle_toast_events,
+                toast::update_toasts,
+                toast::wire_gold_toasts,
+                toast::wire_season_toasts,
+                toast::wire_pickup_toasts,
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -162,6 +184,19 @@ impl Plugin for UiPlugin {
                 pause_menu::pause_menu_navigation,
             )
                 .run_if(in_state(GameState::Paused)),
+        );
+
+        // ─── CHEST SCREEN (reactive overlay during Playing state) ───
+        app.add_systems(
+            Update,
+            (
+                chest_screen::update_chest_ui_lifecycle,
+                chest_screen::update_chest_inv_display,
+                chest_screen::update_chest_storage_display,
+                chest_screen::update_chest_cursor,
+                chest_screen::handle_chest_input,
+            )
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }

@@ -10,6 +10,7 @@ pub mod gold;
 pub mod shop;
 pub mod shipping;
 pub mod blacksmith;
+pub mod stats;
 
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{
@@ -24,6 +25,7 @@ use blacksmith::{
     ToolUpgradeQueue, ToolUpgradeRequestEvent, ToolUpgradeCompleteEvent,
     handle_upgrade_request, tick_upgrade_queue,
 };
+use stats::{HarvestStats, AnimalProductStats, track_crop_harvests, track_animal_products};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
@@ -37,7 +39,9 @@ impl Plugin for EconomyPlugin {
         app.init_resource::<EconomyStats>()
             .init_resource::<ActiveShop>()
             .init_resource::<ShippingBinPreview>()
-            .init_resource::<ToolUpgradeQueue>();
+            .init_resource::<ToolUpgradeQueue>()
+            .init_resource::<HarvestStats>()
+            .init_resource::<AnimalProductStats>();
 
         // ── Internal Events ────────────────────────────────────────────────
         app.add_event::<BuyRequestEvent>()
@@ -62,6 +66,9 @@ impl Plugin for EconomyPlugin {
                 process_shipping_bin_on_day_end,
                 // Day-end: tick tool upgrade timers.
                 tick_upgrade_queue,
+                // Harvest and animal product stat tracking.
+                track_crop_harvests,
+                track_animal_products,
             )
                 .run_if(in_state(GameState::Playing)),
         );

@@ -75,10 +75,26 @@ pub fn on_day_end(
     tracked_weather: Res<TrackedDayWeather>,
 ) {
     for event in day_end_events.read() {
-        // BUG FIX: Previously read calendar.weather, but by the time this system
-        // runs the calendar has already been advanced and weather re-rolled for the
-        // NEW day.  Now we read TrackedDayWeather which was snapshotted earlier in
-        // the frame (or previous frame) and holds the ENDED day's weather.
+        // VERIFIED: The rain auto-watering chain is correct end-to-end.
+        //
+        // Chain verification:
+        //   1. `track_day_weather` runs in the `First` schedule each frame (registered
+        //      in FarmingPlugin), which executes before `Update` where `on_day_end` lives.
+        //   2. `tick_time` (in the calendar domain) fires `DayEndEvent` AND rolls new
+        //      weather in the same Update frame.  By the time `on_day_end` processes the
+        //      event, `calendar.weather` is already the new day's weather.
+        //   3. `track_day_weather` ran earlier (First schedule) and captured the OLD
+        //      day's weather into `TrackedDayWeather`.  Weather never changes mid-day,
+        //      so the snapshot is always the ENDED day's weather.
+        //   4. `apply_rain_watering` (sprinkler.rs) sets all `SoilState::Tilled` tiles to
+        //      `SoilState::Watered` AND marks `watered_today = true` / resets
+        //      `days_without_water = 0` for ALL living crops — ensuring both soil state
+        //      and crop state are consistent before `advance_crop_growth` evaluates them.
+        //   5. `reset_soil_watered_state` then runs after crop growth to flip Watered
+        //      back to Tilled for the next morning, so sprinklers/rain can re-water.
+        //
+        // No bug found. Reading TrackedDayWeather (not calendar.weather) is the correct
+        // approach and is already implemented.
         let is_rainy = matches!(tracked_weather.weather, Weather::Rainy | Weather::Stormy);
 
         // Rain waters all tilled/watered tiles.

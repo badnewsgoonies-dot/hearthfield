@@ -86,10 +86,10 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
         Recipe {
             id: "recipe_quality_sprinkler".into(),
             name: "Quality Sprinkler".into(),
+            // Auto-waters the 8 surrounding tiles each morning.
             ingredients: vec![
-                ("iron_bar".into(), 1),
+                ("iron_bar".into(), 2),
                 ("gold_bar".into(), 1),
-                ("quartz".into(), 1),
             ],
             result: "quality_sprinkler".into(),
             result_quantity: 1,
@@ -129,10 +129,11 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
         Recipe {
             id: "recipe_cheese_press".into(),
             name: "Cheese Press".into(),
+            // Converts milk → cheese, large milk → gold cheese.
             ingredients: vec![
                 ("wood".into(), 45),
                 ("stone".into(), 45),
-                ("copper_bar".into(), 1),
+                ("hardwood".into(), 10),
             ],
             result: "cheese_press".into(),
             result_quantity: 1,
@@ -152,6 +153,39 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
             result_quantity: 1,
             is_cooking: false,
             unlocked_by_default: false, // Learned from Animal shop keeper
+        },
+
+        Recipe {
+            id: "recipe_keg".into(),
+            name: "Keg".into(),
+            // Turns fruit into wine, wheat into beer, hops into pale ale.
+            ingredients: vec![
+                ("wood".into(), 30),
+                ("copper_bar".into(), 1),
+                ("iron_bar".into(), 1),
+                ("oak_resin".into(), 1),
+            ],
+            result: "keg".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: false, // Learned from NPC Kai at hearts 3
+        },
+
+        // ── Farm Protection ───────────────────────────────────────────
+
+        Recipe {
+            id: "recipe_lightning_rod".into(),
+            name: "Lightning Rod".into(),
+            // Protects the farm from lightning strikes during storms; also
+            // converts lightning strikes into battery packs.
+            ingredients: vec![
+                ("iron_bar".into(), 5),
+                ("bat_wing".into(), 5),
+            ],
+            result: "lightning_rod".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: false, // Learned from Mining level 6
         },
 
         Recipe {
