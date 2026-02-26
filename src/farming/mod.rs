@@ -18,6 +18,7 @@ mod harvest;
 mod render;
 pub mod events_handler;
 mod sprinkler;
+pub mod sprinklers;
 
 // Internal re-exports used by Bevy queries from outside the module (not currently needed).
 

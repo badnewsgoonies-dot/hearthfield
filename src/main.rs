@@ -52,6 +52,14 @@ fn main() {
         .init_resource::<RecipeRegistry>()
         .init_resource::<NpcRegistry>()
         .init_resource::<ShopData>()
+        // Phase 4 resources
+        .init_resource::<HouseState>()
+        .init_resource::<MarriageState>()
+        .init_resource::<QuestLog>()
+        .init_resource::<SprinklerState>()
+        .init_resource::<ActiveBuffs>()
+        .init_resource::<EvaluationScore>()
+        .init_resource::<RelationshipStages>()
         // Events
         .add_event::<DayEndEvent>()
         .add_event::<SeasonChangeEvent>()
@@ -69,6 +77,17 @@ fn main() {
         .add_event::<AnimalProductEvent>()
         .add_event::<PlaySfxEvent>()
         .add_event::<PlayMusicEvent>()
+        // Phase 4 events
+        .add_event::<BouquetGivenEvent>()
+        .add_event::<ProposalEvent>()
+        .add_event::<WeddingEvent>()
+        .add_event::<SpouseActionEvent>()
+        .add_event::<QuestPostedEvent>()
+        .add_event::<QuestAcceptedEvent>()
+        .add_event::<QuestCompletedEvent>()
+        .add_event::<PlaceSprinklerEvent>()
+        .add_event::<EatFoodEvent>()
+        .add_event::<EvaluationTriggerEvent>()
         // Domain plugins
         .add_plugins(calendar::CalendarPlugin)
         .add_plugins(player::PlayerPlugin)

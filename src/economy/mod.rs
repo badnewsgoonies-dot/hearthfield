@@ -11,6 +11,8 @@ pub mod shop;
 pub mod shipping;
 pub mod blacksmith;
 pub mod stats;
+pub mod tool_upgrades;
+pub mod evaluation;
 
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{

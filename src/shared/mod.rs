@@ -198,6 +198,50 @@ impl ToolTier {
             ToolTier::Iridium => None,
         }
     }
+
+    /// Gold cost to upgrade FROM this tier to the next.
+    pub fn upgrade_cost_gold(&self) -> u32 {
+        match self {
+            ToolTier::Basic => 2000,
+            ToolTier::Copper => 5000,
+            ToolTier::Iron => 10000,
+            ToolTier::Gold => 25000,
+            ToolTier::Iridium => 0,
+        }
+    }
+
+    /// Number of bars required to upgrade FROM this tier.
+    pub fn upgrade_bars_needed(&self) -> u8 {
+        match self {
+            ToolTier::Basic | ToolTier::Copper | ToolTier::Iron | ToolTier::Gold => 5,
+            ToolTier::Iridium => 0,
+        }
+    }
+
+    /// The bar item needed to upgrade FROM this tier.
+    pub fn upgrade_bar_item(&self) -> Option<&'static str> {
+        match self {
+            ToolTier::Basic => Some("copper_bar"),
+            ToolTier::Copper => Some("iron_bar"),
+            ToolTier::Iron => Some("gold_bar"),
+            ToolTier::Gold => Some("iridium_bar"),
+            ToolTier::Iridium => None,
+        }
+    }
+
+    /// Stamina cost multiplier. Better tools use less stamina.
+    pub fn stamina_multiplier(&self) -> f32 {
+        match self {
+            ToolTier::Basic => 1.0,
+            ToolTier::Copper => 0.85,
+            ToolTier::Iron => 0.7,
+            ToolTier::Gold => 0.55,
+            ToolTier::Iridium => 0.4,
+        }
+    }
+
+    /// Days the blacksmith takes for any upgrade.
+    pub fn upgrade_days(&self) -> u8 { 2 }
 }
 
 #[derive(Component, Debug, Clone, Default)]
@@ -1036,4 +1080,227 @@ impl Default for DayNightTint {
             tint: (1.0, 1.0, 1.0),
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PHASE 4 ADDITIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// House upgrade tier. Determines available features.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+pub enum HouseTier {
+    #[default]
+    Basic,
+    Big,
+    Deluxe,
+}
+
+/// Tracks house upgrade state.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HouseState {
+    pub tier: HouseTier,
+    pub has_kitchen: bool,     // Big+ house
+    pub has_nursery: bool,     // Deluxe house
+}
+
+/// Romance/relationship stage with marriage candidates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+pub enum RelationshipStage {
+    #[default]
+    Stranger,
+    Acquaintance,
+    Friend,
+    CloseFriend,
+    Dating,
+    Engaged,
+    Married,
+}
+
+/// Marriage state tracking.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MarriageState {
+    pub spouse: Option<String>,
+    pub wedding_date: Option<(u8, u8, u16)>, // (day, season_idx, year)
+    pub days_married: u32,
+    pub spouse_happiness: i16, // -100 to 100
+}
+
+/// Give bouquet to begin dating (requires 8+ hearts).
+#[derive(Event, Debug, Clone)]
+pub struct BouquetGivenEvent {
+    pub npc_name: String,
+}
+
+/// Give mermaid pendant to propose (requires 10 hearts + dating + big house).
+#[derive(Event, Debug, Clone)]
+pub struct ProposalEvent {
+    pub npc_name: String,
+}
+
+/// Wedding happens 3 days after accepted proposal.
+#[derive(Event, Debug, Clone)]
+pub struct WeddingEvent {
+    pub npc_name: String,
+}
+
+/// Spouse daily action (fires at 8:00 AM game time).
+#[derive(Event, Debug, Clone)]
+pub struct SpouseActionEvent {
+    pub action: SpouseAction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SpouseAction {
+    WaterCrops(u8),
+    FeedAnimals,
+    RepairFence,
+    GiveBreakfast(ItemId),
+    StandOnPorch,
+}
+
+/// Quest/bulletin board system.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct QuestLog {
+    pub active: Vec<Quest>,
+    pub completed: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Quest {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub giver: String,
+    pub objective: QuestObjective,
+    pub reward_gold: u32,
+    pub reward_items: Vec<(ItemId, u8)>,
+    pub reward_friendship: i16,
+    pub days_remaining: Option<u8>,
+    pub accepted_day: (u8, u8, u16), // (day, season_idx, year)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum QuestObjective {
+    Deliver { item_id: ItemId, quantity: u8, delivered: u8 },
+    Catch { fish_id: String, delivered: bool },
+    Harvest { crop_id: String, quantity: u8, harvested: u8 },
+    Mine { item_id: ItemId, quantity: u8, collected: u8 },
+    Talk { npc_name: String, talked: bool },
+    Slay { monster_kind: String, quantity: u8, slain: u8 },
+}
+
+/// New quest posted on bulletin board.
+#[derive(Event, Debug, Clone)]
+pub struct QuestPostedEvent {
+    pub quest: Quest,
+}
+
+/// Quest accepted by player.
+#[derive(Event, Debug, Clone)]
+pub struct QuestAcceptedEvent {
+    pub quest_id: String,
+}
+
+/// Quest completed.
+#[derive(Event, Debug, Clone)]
+pub struct QuestCompletedEvent {
+    pub quest_id: String,
+    pub reward_gold: u32,
+}
+
+/// Sprinkler types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SprinklerKind {
+    Basic,
+    Quality,
+    Iridium,
+}
+
+impl SprinklerKind {
+    pub fn range(&self) -> u8 {
+        match self {
+            SprinklerKind::Basic => 1,
+            SprinklerKind::Quality => 1,
+            SprinklerKind::Iridium => 2,
+        }
+    }
+    pub fn includes_diagonals(&self) -> bool {
+        !matches!(self, SprinklerKind::Basic)
+    }
+}
+
+/// Placed sprinkler on the farm.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlacedSprinkler {
+    pub kind: SprinklerKind,
+    pub tile_x: i32,
+    pub tile_y: i32,
+}
+
+/// All placed sprinklers.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SprinklerState {
+    pub sprinklers: Vec<PlacedSprinkler>,
+}
+
+/// Sprinkler placement event.
+#[derive(Event, Debug, Clone)]
+pub struct PlaceSprinklerEvent {
+    pub kind: SprinklerKind,
+    pub tile_x: i32,
+    pub tile_y: i32,
+}
+
+/// Cooking buff applied to player after eating.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FoodBuff {
+    pub buff_type: BuffType,
+    pub magnitude: f32,
+    pub minutes_remaining: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum BuffType {
+    Speed,
+    Mining,
+    Fishing,
+    Farming,
+    Defense,
+    Attack,
+    Luck,
+    MaxStamina,
+}
+
+/// Active buffs on the player.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ActiveBuffs {
+    pub buffs: Vec<FoodBuff>,
+}
+
+/// Eat food event (consumes item, applies buff + stamina restore).
+#[derive(Event, Debug, Clone)]
+pub struct EatFoodEvent {
+    pub item_id: ItemId,
+    pub stamina_restore: f32,
+    pub buff: Option<FoodBuff>,
+}
+
+/// Year-end evaluation score (grandpa's shrine).
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EvaluationScore {
+    pub total_points: u32,
+    pub categories: HashMap<String, u32>,
+    pub evaluated: bool,
+    pub candles_lit: u8,
+}
+
+/// Trigger year-end evaluation.
+#[derive(Event, Debug, Clone)]
+pub struct EvaluationTriggerEvent;
+
+/// Relationship stage tracking per NPC (stored in Relationships resource).
+/// Maps NPC id → RelationshipStage.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RelationshipStages {
+    pub stages: HashMap<NpcId, RelationshipStage>,
 }

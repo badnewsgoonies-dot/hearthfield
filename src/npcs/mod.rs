@@ -10,6 +10,8 @@ mod definitions;
 mod dialogue;
 mod gifts;
 mod map_events;
+pub mod romance;
+pub mod quests;
 mod schedule;
 mod spawning;
 
