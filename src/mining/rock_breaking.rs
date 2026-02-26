@@ -59,12 +59,12 @@ pub fn handle_rock_breaking(
                 let effective_dmg = damage.min(rock.health);
                 rock.health = rock.health.saturating_sub(damage);
 
-                sfx_events.write(PlaySfxEvent {
+                sfx_events.send(PlaySfxEvent {
                     sfx_id: "mine_rock_hit".to_string(),
                 });
 
                 // Drain stamina
-                stamina_events.write(StaminaDrainEvent {
+                stamina_events.send(StaminaDrainEvent {
                     amount: stamina_cost,
                 });
 
@@ -83,12 +83,12 @@ pub fn handle_rock_breaking(
             commands.entity(entity).despawn();
 
             // Drop loot
-            pickup_events.write(ItemPickupEvent {
+            pickup_events.send(ItemPickupEvent {
                 item_id: drop_item,
                 quantity: drop_qty,
             });
 
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_rock_break".to_string(),
             });
 

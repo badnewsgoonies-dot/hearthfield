@@ -27,11 +27,11 @@ pub fn handle_mine_entry(
             // Entering the mine!
             in_mine.0 = true;
 
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_enter".to_string(),
             });
 
-            music_events.write(PlayMusicEvent {
+            music_events.send(PlayMusicEvent {
                 track_id: "mine_ambient".to_string(),
                 fade_in: true,
             });
@@ -74,7 +74,7 @@ pub fn handle_day_end_in_mine(
             // Player passed out in the mine — penalty
             let gold_loss = (player_state.gold as f32 * 0.10) as i32;
             if gold_loss > 0 {
-                gold_events.write(GoldChangeEvent {
+                gold_events.send(GoldChangeEvent {
                     amount: -gold_loss,
                     reason: "Passed out in the mine".to_string(),
                 });
@@ -88,7 +88,7 @@ pub fn handle_day_end_in_mine(
             in_mine.0 = false;
             active_floor.spawned = false;
 
-            map_events.write(MapTransitionEvent {
+            map_events.send(MapTransitionEvent {
                 to_map: MapId::PlayerHouse,
                 to_x: 5,
                 to_y: 5,

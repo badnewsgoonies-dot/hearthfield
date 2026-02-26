@@ -41,7 +41,7 @@ pub fn handle_ladder_interaction(
                 return;
             }
 
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_descend".to_string(),
             });
 
@@ -93,7 +93,7 @@ pub fn handle_mine_exit(
     for grid_pos in exits.iter() {
         let dist = (grid_pos.x - px).abs() + (grid_pos.y - py).abs();
         if dist <= 1 {
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_exit".to_string(),
             });
 
@@ -103,7 +103,7 @@ pub fn handle_mine_exit(
             active_floor.spawned = false;
 
             // Transition back to mine entrance
-            map_events.write(MapTransitionEvent {
+            map_events.send(MapTransitionEvent {
                 to_map: MapId::MineEntrance,
                 to_x: 12,
                 to_y: 12,
@@ -157,7 +157,7 @@ pub fn handle_elevator_selection(
     }
 
     if let Some(floor) = selected_floor {
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "mine_elevator".to_string(),
         });
 

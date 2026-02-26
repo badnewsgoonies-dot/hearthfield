@@ -50,7 +50,7 @@ pub fn handle_player_attack(
             if grid_pos.x == event.target_x && grid_pos.y == event.target_y {
                 monster.health -= damage;
 
-                sfx_events.write(PlaySfxEvent {
+                sfx_events.send(PlaySfxEvent {
                     sfx_id: "mine_enemy_hit".to_string(),
                 });
 
@@ -64,13 +64,13 @@ pub fn handle_player_attack(
         if let Some((entity, kind)) = killed {
             commands.entity(entity).despawn();
 
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_enemy_die".to_string(),
             });
 
             // Drop loot based on enemy type
             let (item_id, qty) = enemy_loot(kind);
-            pickup_events.write(ItemPickupEvent {
+            pickup_events.send(ItemPickupEvent {
                 item_id,
                 quantity: qty,
             });
@@ -224,7 +224,7 @@ pub fn enemy_attack_player(
             // Attack!
             player_state.health = (player_state.health - monster.damage).max(0.0);
 
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "player_hurt".to_string(),
             });
 
@@ -254,14 +254,14 @@ pub fn check_player_knockout(
 
     if player_state.health <= 0.0 {
         // Knockout! Player wakes up at mine entrance with reduced health/gold.
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "player_knockout".to_string(),
         });
 
         // Lose 10% of gold (min 0)
         let gold_loss = (player_state.gold as f32 * 0.10) as i32;
         if gold_loss > 0 {
-            gold_events.write(GoldChangeEvent {
+            gold_events.send(GoldChangeEvent {
                 amount: -gold_loss,
                 reason: "Knocked out in the mine".to_string(),
             });
@@ -276,7 +276,7 @@ pub fn check_player_knockout(
         active_floor.spawned = false;
 
         // Transition back to mine entrance
-        map_events.write(MapTransitionEvent {
+        map_events.send(MapTransitionEvent {
             to_map: MapId::MineEntrance,
             to_x: 12,
             to_y: 12,

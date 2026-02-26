@@ -131,7 +131,7 @@ pub fn mine_player_action(
         .copied()
         .unwrap_or(ToolTier::Basic);
 
-    tool_events.write(ToolUseEvent {
+    tool_events.send(ToolUseEvent {
         tool,
         tier,
         target_x,
