@@ -243,7 +243,7 @@ fn generate_town() -> MapDef {
     let h = 48usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;
@@ -381,7 +381,7 @@ fn generate_beach() -> MapDef {
     let h = 32usize;
     let mut tiles = vec![TileKind::Sand; w * h];
 
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;
@@ -464,7 +464,7 @@ fn generate_forest() -> MapDef {
     let h = 40usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;
@@ -590,7 +590,7 @@ fn generate_mine_entrance() -> MapDef {
     let h = 24usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;
@@ -670,7 +670,7 @@ fn generate_mine_floor() -> MapDef {
     let h = 24usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;
@@ -731,7 +731,7 @@ fn generate_player_house() -> MapDef {
     let h = 16usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;

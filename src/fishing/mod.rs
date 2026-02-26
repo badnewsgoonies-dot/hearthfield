@@ -11,12 +11,9 @@ mod minigame;
 mod render;
 mod resolve;
 
-pub use cast::*;
-pub use bite::*;
-pub use fish_select::*;
-pub use minigame::*;
-pub use render::*;
-pub use resolve::*;
+use cast::*;
+use minigame::*;
+use render::*;
 
 // ─── Plugin ─────────────────────────────────────────────────────────────────
 
@@ -226,7 +223,7 @@ impl FishingMinigameState {
 #[derive(Component)]
 pub struct Bobber {
     pub bob_timer: Timer,
-    pub bob_direction: f32,
+    pub _bob_direction: f32,
     pub original_y: f32,
 }
 

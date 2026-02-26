@@ -82,7 +82,7 @@ pub fn handle_tool_use_for_fishing(
             Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, 5.0)),
             Bobber {
                 bob_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
-                bob_direction: 1.0,
+                _bob_direction: 1.0,
                 original_y: bobber_world_y,
             },
         ));
