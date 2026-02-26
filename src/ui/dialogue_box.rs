@@ -229,3 +229,18 @@ pub fn advance_dialogue(
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// DIALOGUE END HANDLER — drains DialogueEndEvent to prevent stale events
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Reads `DialogueEndEvent` to ensure the event bus is drained each frame.
+/// Without this reader, unread events would persist and potentially cause
+/// stale state in subsequent frames.
+pub fn handle_dialogue_end(
+    mut events: EventReader<DialogueEndEvent>,
+) {
+    for _ev in events.read() {
+        info!("[UI/Dialogue] DialogueEndEvent received — dialogue cleanup complete.");
+    }
+}

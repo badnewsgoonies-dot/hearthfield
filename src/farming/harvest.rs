@@ -1,6 +1,7 @@
 //! Harvest system — player interacts with mature crops.
 
 use bevy::prelude::*;
+use rand::Rng;
 use crate::shared::*;
 use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
 
@@ -112,7 +113,8 @@ fn try_harvest_at(
     }
 
     // Harvest!
-    let quantity: u8 = 1; // TODO: quality/luck bonuses could multiply this.
+    let quality = roll_harvest_quality();
+    let quantity: u8 = if def.regrows { 1 } else { 1 }; // base quantity always 1
 
     item_pickup_events.send(ItemPickupEvent {
         item_id: def.harvest_id.clone(),
@@ -125,7 +127,7 @@ fn try_harvest_at(
         quantity,
         x: pos.0,
         y: pos.1,
-        quality: None, // TODO(A2): roll quality based on fertilizer/luck
+        quality: Some(quality),
     });
 
     if def.regrows {
@@ -168,6 +170,21 @@ pub fn despawn_crop(
 
     if let Some(entity) = farm_entities.crop_entities.remove(&pos) {
         commands.entity(entity).despawn();
+    }
+}
+
+/// Roll the quality of a harvested crop.
+/// Distribution: 74% Normal, 20% Silver, 5% Gold, 1% Iridium.
+fn roll_harvest_quality() -> ItemQuality {
+    let roll: f32 = rand::thread_rng().gen_range(0.0..1.0);
+    if roll < 0.01 {
+        ItemQuality::Iridium
+    } else if roll < 0.06 {
+        ItemQuality::Gold
+    } else if roll < 0.26 {
+        ItemQuality::Silver
+    } else {
+        ItemQuality::Normal
     }
 }
 

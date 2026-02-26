@@ -23,6 +23,7 @@ pub fn detect_seed_use(
     crop_registry: Res<CropRegistry>,
     player_query: Query<(&Transform, &PlayerMovement), With<Player>>,
     mut plant_events: EventWriter<PlantSeedEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
 ) {
     // Interact key: F
     if !keys.just_pressed(KeyCode::KeyF) {
@@ -47,8 +48,12 @@ pub fn detect_seed_use(
         return; // Not a seed
     };
 
-    // Check season validity.
+    // Check season validity — notify the player if the seed can't grow this season.
     if !crop_can_grow_in_season(crop_def, calendar.season) {
+        toast_writer.send(ToastEvent {
+            message: format!("{} can't grow in {:?}.", crop_def.name, calendar.season),
+            duration_secs: 3.0,
+        });
         return;
     }
 
@@ -102,6 +107,7 @@ pub fn handle_plant_seed(
     mut commands: Commands,
     mut item_removed_events: EventWriter<ItemRemovedEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
     crop_registry: Res<CropRegistry>,
     calendar: Res<Calendar>,
 ) {
@@ -129,8 +135,12 @@ pub fn handle_plant_seed(
             continue;
         };
 
-        // Check season validity.
+        // Check season validity — notify the player if the seed can't grow this season.
         if !crop_can_grow_in_season(&crop_def, calendar.season) {
+            toast_writer.send(ToastEvent {
+                message: format!("{} can't grow in {:?}.", crop_def.name, calendar.season),
+                duration_secs: 3.0,
+            });
             continue;
         }
 

@@ -23,8 +23,9 @@ pub fn handle_tool_use_for_fishing(
     mut fishing_state: ResMut<FishingState>,
     mut commands: Commands,
     player_state: Res<PlayerState>,
-    inventory: Res<Inventory>,
+    mut inventory: ResMut<Inventory>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut item_removed_events: EventWriter<ItemRemovedEvent>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {
@@ -91,7 +92,16 @@ pub fn handle_tool_use_for_fishing(
             sfx_id: "fishing_cast".to_string(),
         });
 
-        // TODO: consume bait item (ItemRemovedEvent via player domain)
+        // Consume bait if equipped
+        if bait_equipped {
+            let removed = inventory.try_remove("bait", 1);
+            if removed > 0 {
+                item_removed_events.send(ItemRemovedEvent {
+                    item_id: "bait".to_string(),
+                    quantity: removed,
+                });
+            }
+        }
     }
 }
 

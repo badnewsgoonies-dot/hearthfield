@@ -54,7 +54,11 @@ impl Plugin for UiPlugin {
         // ─── DIALOGUE LISTENER — runs in Playing to catch events ───
         app.add_systems(
             Update,
-            dialogue_box::listen_for_dialogue_start.run_if(in_state(GameState::Playing)),
+            (
+                dialogue_box::listen_for_dialogue_start,
+                dialogue_box::handle_dialogue_end,
+            )
+                .run_if(in_state(GameState::Playing)),
         );
 
         // ─── MAIN MENU ───

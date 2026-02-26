@@ -35,6 +35,9 @@ impl Plugin for PlayerPlugin {
                 interaction::add_items_to_inventory,
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
+                interaction::handle_stamina_restore,
+                interaction::handle_consume_item,
+                interaction::check_stamina_consequences,
                 camera::camera_follow_player,
             )
                 .run_if(in_state(GameState::Playing)),
