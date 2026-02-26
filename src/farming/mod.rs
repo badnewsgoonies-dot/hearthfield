@@ -13,10 +13,10 @@ use bevy::prelude::*;
 use crate::shared::*;
 
 mod soil;
-mod crops;
+pub mod crops;
 mod harvest;
 mod render;
-mod events_handler;
+pub mod events_handler;
 mod sprinkler;
 
 // Internal re-exports used by Bevy queries from outside the module (not currently needed).
