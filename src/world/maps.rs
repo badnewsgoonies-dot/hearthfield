@@ -86,7 +86,7 @@ fn generate_farm() -> MapDef {
     let mut tiles = vec![TileKind::Grass; w * h];
 
     // Helper closure to set a rectangular region
-    let mut fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;

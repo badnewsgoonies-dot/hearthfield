@@ -11,7 +11,6 @@ pub fn handle_map_transition(
     mut spawned: ResMut<SpawnedNpcs>,
     npc_map_tags: Query<(Entity, &NpcMapTag)>,
     calendar: Res<Calendar>,
-    player_state: Res<PlayerState>,
     npc_registry: Res<NpcRegistry>,
 ) {
     for event in transition_reader.read() {

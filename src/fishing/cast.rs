@@ -17,7 +17,7 @@ const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
 // ─── Systems ─────────────────────────────────────────────────────────────────
 
 /// Listen for ToolUseEvent with FishingRod.
-/// If the target tile is water, enter fishing state.
+/// When the player uses the fishing rod, start the fishing sequence.
 pub fn handle_tool_use_for_fishing(
     mut tool_events: EventReader<ToolUseEvent>,
     mut fishing_state: ResMut<FishingState>,
@@ -25,10 +25,6 @@ pub fn handle_tool_use_for_fishing(
     player_state: Res<PlayerState>,
     inventory: Res<Inventory>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
-    // Query the world map tile kinds to check if target is water
-    // Since we don't have a direct tile query API, we approximate by checking
-    // if the cast position is reasonable (water detection via map bounds/known areas).
-    // In a full implementation, the World plugin would expose a tile query resource.
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {
@@ -40,10 +36,6 @@ pub fn handle_tool_use_for_fishing(
             continue;
         }
 
-        // Determine if target is water based on current map context.
-        // The full world tile query is owned by the world domain; here we cast
-        // optimistically and trust the player/world domain to only send FishingRod
-        // events on valid water tiles.
         let target_x = event.target_x;
         let target_y = event.target_y;
 
@@ -77,12 +69,13 @@ pub fn handle_tool_use_for_fishing(
         fishing_state.tackle_equipped = tackle_equipped;
         fishing_state.rod_tier = rod_tier;
 
-        // Spawn bobber sprite
+        // Spawn bobber sprite in world space
+        // Camera scale is 1/PIXEL_SCALE, so world_pos = tile_pos * TILE_SIZE * PIXEL_SCALE
         let bobber_world_x = target_x as f32 * TILE_SIZE * PIXEL_SCALE;
         let bobber_world_y = target_y as f32 * TILE_SIZE * PIXEL_SCALE;
         commands.spawn((
             Sprite {
-                color: Color::srgb(0.9, 0.2, 0.2), // Red bobber placeholder
+                color: Color::srgb(0.9, 0.2, 0.2), // Red bobber (placeholder)
                 custom_size: Some(Vec2::new(6.0, 8.0)),
                 ..default()
             },
@@ -98,11 +91,7 @@ pub fn handle_tool_use_for_fishing(
             sfx_id: "fishing_cast".to_string(),
         });
 
-        // Consume bait if equipped
-        // (ItemRemovedEvent is not in shared, so we do it via the fishing domain's
-        // consume logic — we don't have cross-domain item removal here, so we
-        // note this with a TODO for the player domain to handle)
-        // TODO: send ItemRemovedEvent for bait consumption
+        // TODO: consume bait item (ItemRemovedEvent via player domain)
     }
 }
 
@@ -127,26 +116,23 @@ pub fn update_bite_timer(
     };
 
     if timer_finished {
-        // Select a fish to bite
-        let fish_id = select_fish(
-            &fish_registry,
-            &player_state,
-            &calendar,
-        );
+        // Select a fish to bite based on location, season, time, weather
+        let fish_id = select_fish(&fish_registry, &player_state, &calendar);
 
         fishing_state.selected_fish_id = fish_id;
         fishing_state.phase = FishingPhase::BitePending;
         fishing_state.bite_timer = None;
         fishing_state.reaction_timer = Some(Timer::from_seconds(REACTION_WINDOW, TimerMode::Once));
 
-        // Play bite sound — bobber dip signal
+        // Play bite sound — bobber dips visually
         sfx_events.send(PlaySfxEvent {
             sfx_id: "fish_bite".to_string(),
         });
     }
 }
 
-/// Handle the reaction window: player must press Space to start minigame.
+/// Handle the reaction window: player must press Space to start the minigame.
+/// If the reaction window expires, the fish escapes.
 pub fn handle_bite_reaction_window(
     mut fishing_state: ResMut<FishingState>,
     mut minigame_state: ResMut<FishingMinigameState>,
@@ -176,7 +162,7 @@ pub fn handle_bite_reaction_window(
         fishing_state.phase = FishingPhase::Minigame;
         fishing_state.reaction_timer = None;
 
-        // Look up difficulty for the selected fish
+        // Look up fish difficulty
         let difficulty = if let Some(ref fish_id) = fishing_state.selected_fish_id.clone() {
             fish_registry
                 .fish
@@ -187,30 +173,28 @@ pub fn handle_bite_reaction_window(
             0.5
         };
 
-        // Setup minigame state
+        // Initialize minigame state
         minigame_state.setup(
             difficulty,
             fishing_state.rod_tier,
             fishing_state.tackle_equipped,
         );
 
-        // Transition to Fishing game state (minigame UI will be spawned by OnEnter)
+        // Transition to Fishing game state; OnEnter will spawn the minigame UI
         next_state.set(GameState::Fishing);
     } else if reaction_expired {
-        // Fish got away — the player was too slow
+        // Fish got away — too slow
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
-        end_fishing_escape(
-            &mut fishing_state,
-            &mut next_state,
-            &mut stamina_events,
-            &mut commands,
-            bobber_entities,
-            false, // not transitioning from Fishing state, still in Playing
-        );
+        // Deref ResMut<FishingState> → &mut FishingState
+        let fs: &mut FishingState = &mut fishing_state;
+        let ns: &mut NextState<GameState> = &mut next_state;
+        let se: &mut EventWriter<StaminaDrainEvent> = &mut stamina_events;
+        let cmd: &mut Commands = &mut commands;
+        end_fishing_escape(fs, ns, se, cmd, bobber_entities, false);
     }
 }
 
-/// Allow the player to cancel fishing by pressing Escape while waiting.
+/// Allow the player to cancel fishing by pressing Escape while waiting for a bite.
 pub fn handle_cancel_fishing(
     mut fishing_state: ResMut<FishingState>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -223,19 +207,16 @@ pub fn handle_cancel_fishing(
         return;
     }
     if fishing_state.phase == FishingPhase::Minigame {
-        // Escape in minigame is handled by the minigame module
+        // Escape during minigame is handled in check_minigame_result
         return;
     }
 
     if keyboard.just_pressed(KeyCode::Escape) {
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
-        end_fishing_escape(
-            &mut fishing_state,
-            &mut next_state,
-            &mut stamina_events,
-            &mut commands,
-            bobber_entities,
-            false,
-        );
+        let fs: &mut FishingState = &mut fishing_state;
+        let ns: &mut NextState<GameState> = &mut next_state;
+        let se: &mut EventWriter<StaminaDrainEvent> = &mut stamina_events;
+        let cmd: &mut Commands = &mut commands;
+        end_fishing_escape(fs, ns, se, cmd, bobber_entities, false);
     }
 }

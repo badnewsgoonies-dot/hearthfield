@@ -11,93 +11,97 @@ use super::{
 use super::minigame::{
     zone_to_screen_y,
     MINIGAME_BAR_HEIGHT, MINIGAME_BAR_WIDTH,
-    MINIGAME_BAR_X, PROGRESS_BAR_Y, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT,
+    PROGRESS_BAR_Y, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT,
 };
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
-const COLOR_BG_BAR: Color = Color::srgba(0.15, 0.15, 0.15, 0.85);
-const COLOR_FISH_ZONE: Color = Color::srgb(0.9, 0.35, 0.1);
-const COLOR_CATCH_BAR: Color = Color::srgb(0.2, 0.85, 0.3);
-const COLOR_PROGRESS_BG: Color = Color::srgb(0.25, 0.25, 0.25);
-const COLOR_PROGRESS_FILL: Color = Color::srgb(0.1, 0.7, 0.95);
-const COLOR_PROGRESS_FILL_NEAR: Color = Color::srgb(0.95, 0.85, 0.1); // yellow when near 100%
+fn color_bg_bar() -> Color {
+    Color::srgba(0.15, 0.15, 0.15, 0.85)
+}
+
+fn color_fish_zone() -> Color {
+    Color::srgb(0.9, 0.35, 0.1)
+}
+
+fn color_catch_bar() -> Color {
+    Color::srgb(0.2, 0.85, 0.3)
+}
+
+fn color_progress_bg() -> Color {
+    Color::srgb(0.25, 0.25, 0.25)
+}
+
+fn color_progress_fill() -> Color {
+    Color::srgb(0.1, 0.7, 0.95)
+}
+
+fn color_progress_fill_near() -> Color {
+    Color::srgb(0.95, 0.85, 0.1)
+}
 
 // ─── Z-layers ─────────────────────────────────────────────────────────────────
 
 const Z_UI_BG: f32 = 50.0;
-const Z_UI_ELEMENTS: f32 = 51.0;
-const Z_UI_PROGRESS: f32 = 52.0;
 
 // ─── OnEnter(GameState::Fishing) — spawn minigame UI ─────────────────────────
 
+/// Spawn the fishing minigame UI when entering the Fishing game state.
+///
+/// The minigame bar is positioned in the right portion of the visible screen.
+/// Since the camera uses a scale of 1/PIXEL_SCALE, we need to account for that
+/// when converting screen pixel coordinates to world coordinates. With the camera
+/// at 1/PIXEL_SCALE scale, 1 screen pixel = PIXEL_SCALE world units. However,
+/// the camera projection already handles this — sprites placed at world coords
+/// appear at their world position divided by the camera scale factor on screen.
+/// In practice, we position UI relative to screen center (world origin).
 pub fn spawn_minigame_ui(
     mut commands: Commands,
     minigame_state: Res<FishingMinigameState>,
-    fishing_state: Res<FishingState>,
 ) {
-    // Convert to "screen-space" by placing the UI in world coords at a fixed
-    // position that the camera always sees. Since the camera is scaled by
-    // 1/PIXEL_SCALE, world units map directly to screen pixels at 1:1 when
-    // we account for the scale. We place the UI relative to the camera by
-    // using a very high Z so it renders on top, and position based on known
-    // screen dimensions.
-    //
-    // The minigame bar sits in the right portion of the screen.
-    // Screen is SCREEN_WIDTH × SCREEN_HEIGHT = 960 × 540.
-    // In world space (accounting for camera scale = 1/PIXEL_SCALE = 1/3):
-    //   screen center = (0, 0) in view;
-    //   world coords: multiply screen pixels by PIXEL_SCALE.
-    //   But our camera is at scale 1/3, meaning 1 world unit = 1/3 screen pixel.
-    //   So 1 screen pixel = 3 world units.
-    //   To place at screen x=380 (right side), world_x = 380 * ...
-    //   Actually with Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)),
-    //   the camera maps 1 screen pixel to PIXEL_SCALE world units.
-    //   So world_x for screen_x=400: world_x = 400 (camera handles the rest).
-    //   We just need to place sprites in unscaled screen coordinates since
-    //   we'll parent them to a root node at the right position.
-    //
-    // Simpler: place the minigame in world coords at SCREEN_WIDTH/2 - margin.
-    // We use PIXEL_SCALE to convert screen positions → world positions.
+    // The camera scale is 1/PIXEL_SCALE. With a 960x540 screen:
+    // The camera shows a region of 960*PIXEL_SCALE × 540*PIXEL_SCALE world units.
+    // Screen right edge ≈ SCREEN_WIDTH/2 * PIXEL_SCALE world units from center.
+    // We place the minigame bar near the right edge.
+    let screen_to_world = PIXEL_SCALE;
 
-    let screen_to_world = PIXEL_SCALE; // 3.0: multiply screen coords by this
-
-    // Bar center position in world space
-    let bar_world_x = (SCREEN_WIDTH / 2.0 - 80.0) * screen_to_world;
+    // Bar position: right side, vertically centered
+    let bar_world_x = (SCREEN_WIDTH / 2.0 - 90.0) * screen_to_world;
     let bar_world_y = 0.0_f32;
 
-    // Fish and catch zone heights in world units (the bar is MINIGAME_BAR_HEIGHT screen px tall)
+    // Convert bar dimensions from screen-pixels to world units
     let bar_h_world = MINIGAME_BAR_HEIGHT * screen_to_world;
     let bar_w_world = MINIGAME_BAR_WIDTH * screen_to_world;
 
     let fish_zone_h_world = minigame_state.fish_zone_half * 2.0 * (bar_h_world / 100.0);
     let catch_bar_h_world = minigame_state.catch_bar_half * 2.0 * (bar_h_world / 100.0);
 
-    let progress_bar_y_world = (PROGRESS_BAR_Y) * screen_to_world;
+    let progress_bar_y_world = PROGRESS_BAR_Y * screen_to_world;
     let progress_w_world = PROGRESS_BAR_WIDTH * screen_to_world;
     let progress_h_world = PROGRESS_BAR_HEIGHT * screen_to_world;
 
-    // Scale factor to convert zone_to_screen_y → world
+    // Scale factor: zone 0-100 maps to bar height
     let y_scale = bar_h_world / MINIGAME_BAR_HEIGHT;
 
     let fish_y = zone_to_screen_y(minigame_state.fish_zone_center) * y_scale;
     let catch_y = zone_to_screen_y(minigame_state.catch_bar_center) * y_scale;
 
-    // Spawn root entity
+    // Spawn root entity (transparent container)
     commands
         .spawn((
             Sprite {
-                color: Color::NONE, // transparent root
+                color: Color::srgba(0.0, 0.0, 0.0, 0.0),
+                custom_size: Some(Vec2::new(1.0, 1.0)),
                 ..default()
             },
             Transform::from_translation(Vec3::new(bar_world_x, bar_world_y, Z_UI_BG)),
             MinigameRoot,
         ))
         .with_children(|parent| {
-            // Background bar
+            // Background bar (dark, semi-transparent)
             parent.spawn((
                 Sprite {
-                    color: COLOR_BG_BAR,
+                    color: color_bg_bar(),
                     custom_size: Some(Vec2::new(bar_w_world, bar_h_world)),
                     ..default()
                 },
@@ -105,10 +109,10 @@ pub fn spawn_minigame_ui(
                 MinigameBgBar,
             ));
 
-            // Fish zone (red/orange block)
+            // Fish zone (red/orange — target to overlap)
             parent.spawn((
                 Sprite {
-                    color: COLOR_FISH_ZONE,
+                    color: color_fish_zone(),
                     custom_size: Some(Vec2::new(bar_w_world * 0.85, fish_zone_h_world)),
                     ..default()
                 },
@@ -116,10 +120,10 @@ pub fn spawn_minigame_ui(
                 MinigameFishZone,
             ));
 
-            // Catch bar (green block)
+            // Catch bar (green — controlled by player)
             parent.spawn((
                 Sprite {
-                    color: COLOR_CATCH_BAR,
+                    color: color_catch_bar(),
                     custom_size: Some(Vec2::new(bar_w_world, catch_bar_h_world)),
                     ..default()
                 },
@@ -130,7 +134,7 @@ pub fn spawn_minigame_ui(
             // Progress bar background
             parent.spawn((
                 Sprite {
-                    color: COLOR_PROGRESS_BG,
+                    color: color_progress_bg(),
                     custom_size: Some(Vec2::new(progress_w_world, progress_h_world)),
                     ..default()
                 },
@@ -138,11 +142,11 @@ pub fn spawn_minigame_ui(
                 MinigameProgressBg,
             ));
 
-            // Progress bar fill (anchored left; scale x to represent fill fraction)
-            // We offset by -half_width so it grows rightward from the left edge.
+            // Progress bar fill
+            // Anchored to the left edge; x-scale = 0.001 to 1.0 representing 0-100%
             parent.spawn((
                 Sprite {
-                    color: COLOR_PROGRESS_FILL,
+                    color: color_progress_fill(),
                     custom_size: Some(Vec2::new(progress_w_world, progress_h_world)),
                     anchor: bevy::sprite::Anchor::CenterLeft,
                     ..default()
@@ -158,7 +162,7 @@ pub fn spawn_minigame_ui(
         });
 }
 
-/// Clean up minigame UI when leaving GameState::Fishing.
+/// Clean up all minigame UI entities when leaving GameState::Fishing.
 pub fn despawn_minigame_ui(
     mut commands: Commands,
     root_query: Query<Entity, With<MinigameRoot>>,
@@ -170,16 +174,14 @@ pub fn despawn_minigame_ui(
 
 // ─── Bobber animation ─────────────────────────────────────────────────────────
 
-/// Animate the bobber with a gentle bobbing motion.
-/// When a bite is pending, make it bob more aggressively (the "dip").
+/// Animate the bobber with gentle sinusoidal bobbing.
+/// When a bite is pending, the bobber dips more aggressively to signal the player.
 pub fn animate_bobber(
     mut bobber_query: Query<(&mut Transform, &mut Bobber)>,
     fishing_state: Res<FishingState>,
     time: Res<Time>,
 ) {
     use super::FishingPhase;
-
-    let dt = time.delta_secs();
 
     for (mut transform, mut bobber) in bobber_query.iter_mut() {
         let is_bite = fishing_state.phase == FishingPhase::BitePending;
@@ -190,7 +192,6 @@ pub fn animate_bobber(
 
         bobber.bob_timer.tick(time.delta());
 
-        // Use sinusoidal bobbing
         let elapsed = time.elapsed_secs();
         let bob_y = (elapsed * bob_speed).sin() * bob_amplitude;
 
@@ -201,24 +202,23 @@ pub fn animate_bobber(
 // ─── Progress fill color update ───────────────────────────────────────────────
 
 /// Update the progress fill color to give visual feedback as it nears 100%.
-/// This runs as part of update_progress in minigame.rs via the render pass.
+/// Called every frame during the Fishing state.
 pub fn update_progress_fill_color(
     minigame_state: Res<FishingMinigameState>,
     mut fill_query: Query<&mut Sprite, With<MinigameProgressFill>>,
 ) {
     for mut sprite in fill_query.iter_mut() {
         if minigame_state.progress > 75.0 {
-            // Lerp toward yellow as progress approaches 100%
+            // Lerp from blue toward yellow as progress approaches 100%
             let t = (minigame_state.progress - 75.0) / 25.0;
-            let r = COLOR_PROGRESS_FILL.to_srgba().red * (1.0 - t)
-                + COLOR_PROGRESS_FILL_NEAR.to_srgba().red * t;
-            let g = COLOR_PROGRESS_FILL.to_srgba().green * (1.0 - t)
-                + COLOR_PROGRESS_FILL_NEAR.to_srgba().green * t;
-            let b = COLOR_PROGRESS_FILL.to_srgba().blue * (1.0 - t)
-                + COLOR_PROGRESS_FILL_NEAR.to_srgba().blue * t;
+            let base = color_progress_fill().to_srgba();
+            let near = color_progress_fill_near().to_srgba();
+            let r = base.red * (1.0 - t) + near.red * t;
+            let g = base.green * (1.0 - t) + near.green * t;
+            let b = base.blue * (1.0 - t) + near.blue * t;
             sprite.color = Color::srgb(r, g, b);
         } else {
-            sprite.color = COLOR_PROGRESS_FILL;
+            sprite.color = color_progress_fill();
         }
     }
 }

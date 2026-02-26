@@ -217,7 +217,7 @@ pub fn handle_day_end_processing(
             // (safety net in case real-time ticking missed the boundary)
             if machine.is_processing() && machine.processing_time_remaining <= 0.0 {
                 machine.is_ready = true;
-                sfx_events.write(PlaySfxEvent {
+                sfx_events.send(PlaySfxEvent {
                     sfx_id: "machine_ready".to_string(),
                 });
             }
@@ -297,7 +297,7 @@ pub fn handle_insert_machine_input(
             processing_hours
         );
 
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "machine_insert".to_string(),
         });
     }
@@ -341,7 +341,7 @@ pub fn handle_collect_machine_output(
         let leftover = inventory.try_add(output_id, 1, max_stack);
         if leftover == 0 {
             // Successfully added to inventory
-            pickup_events.write(ItemPickupEvent {
+            pickup_events.send(ItemPickupEvent {
                 item_id: output_id.clone(),
                 quantity: 1,
             });
@@ -358,7 +358,7 @@ pub fn handle_collect_machine_output(
             machine.processing_time_remaining = 0.0;
             machine.is_ready = false;
 
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "item_pickup".to_string(),
             });
         } else {

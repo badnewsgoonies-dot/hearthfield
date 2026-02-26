@@ -3,7 +3,6 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use super::spawning::SpawnedNpcs;
 
 /// Component marking an NPC that the player is adjacent to and can interact with.
 #[derive(Component, Debug)]
@@ -156,7 +155,7 @@ fn friendship_tier(hearts: u8) -> u8 {
 /// Build gift-response dialogue lines based on the NPC and gift preference.
 pub fn build_gift_response_lines(
     npc_id: &str,
-    npc_name: &str,
+    _npc_name: &str,
     preference: GiftPreference,
     item_name: &str,
     is_birthday: bool,

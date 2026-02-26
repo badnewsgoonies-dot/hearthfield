@@ -174,7 +174,7 @@ pub fn handle_craft_item(
             let missing = missing_ingredients_description(&inventory, recipe);
             warn!("Cannot craft '{}' — missing: {}", recipe.name, missing);
             ui_state.set_feedback(format!("Missing materials: {}", missing));
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
             continue;
@@ -199,7 +199,7 @@ pub fn handle_craft_item(
         }
 
         // Emit pickup event so other systems (UI, etc.) know an item was gained
-        pickup_events.write(ItemPickupEvent {
+        pickup_events.send(ItemPickupEvent {
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
@@ -212,7 +212,7 @@ pub fn handle_craft_item(
         info!("{}", feedback);
         ui_state.set_feedback(feedback);
 
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "craft_success".to_string(),
         });
     }

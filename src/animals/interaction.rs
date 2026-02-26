@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{FloatingFeedback, spawn_floating_text};
+use super::spawn_floating_text;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Petting system
@@ -32,7 +32,7 @@ pub fn handle_animal_interact(
 
     let player_pos = player_transform.translation.truncate();
 
-    for (entity, mut animal, animal_transform) in animal_query.iter_mut() {
+    for (_entity, mut animal, animal_transform) in animal_query.iter_mut() {
         let animal_pos = animal_transform.translation.truncate();
         let dist = player_pos.distance(animal_pos);
 

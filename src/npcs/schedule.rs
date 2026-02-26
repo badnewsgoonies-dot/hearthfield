@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use super::spawning::{NpcMovement, SpawnedNpcs};
+use super::spawning::NpcMovement;
 
 /// Given the current calendar state, return the active schedule entry for an NPC.
 pub fn current_schedule_entry(calendar: &Calendar, schedule: &NpcSchedule) -> ScheduleEntry {

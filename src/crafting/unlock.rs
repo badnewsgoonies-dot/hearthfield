@@ -177,7 +177,7 @@ pub fn check_milestone_recipe_unlocks(
                         "Milestone unlock: picking up '{}' unlocks recipe '{}'",
                         event.item_id, recipe_id
                     );
-                    unlock_events.write(UnlockRecipeEvent { recipe_id });
+                    unlock_events.send(UnlockRecipeEvent { recipe_id });
                 }
             }
         }
@@ -207,7 +207,7 @@ pub fn check_friendship_recipe_unlocks(
                     "Friendship unlock: {} at {} hearts unlocks recipe '{}'",
                     entry.npc_id, entry.hearts, recipe_id
                 );
-                unlock_events.write(UnlockRecipeEvent { recipe_id });
+                unlock_events.send(UnlockRecipeEvent { recipe_id });
             }
         }
     }

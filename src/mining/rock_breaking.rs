@@ -56,7 +56,7 @@ pub fn handle_rock_breaking(
         for (entity, grid_pos, mut rock) in rocks.iter_mut() {
             if grid_pos.x == event.target_x && grid_pos.y == event.target_y {
                 // Apply damage
-                let effective_dmg = damage.min(rock.health);
+                let _effective_dmg = damage.min(rock.health);
                 rock.health = rock.health.saturating_sub(damage);
 
                 sfx_events.send(PlaySfxEvent {

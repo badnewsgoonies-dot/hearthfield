@@ -22,7 +22,7 @@ pub fn handle_day_end_for_animals(
     mut commands: Commands,
     mut day_end_events: EventReader<DayEndEvent>,
     mut animal_query: Query<(Entity, &mut Animal, Option<&SheepWoolCooldown>)>,
-    mut animal_state: ResMut<AnimalState>,
+    _animal_state: Res<AnimalState>,
 ) {
     for _event in day_end_events.read() {
         for (entity, mut animal, wool_cd) in animal_query.iter_mut() {

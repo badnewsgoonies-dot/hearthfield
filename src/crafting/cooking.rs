@@ -69,7 +69,7 @@ pub fn handle_cook_item(
             let missing = missing_non_wildcard_description(&inventory, recipe);
             warn!("Cannot cook '{}' — missing: {}", recipe.name, missing);
             ui_state.set_feedback(format!("Missing ingredients: {}", missing));
-            sfx_events.write(PlaySfxEvent {
+            sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
             continue;
@@ -85,7 +85,7 @@ pub fn handle_cook_item(
             if fish_item.is_none() {
                 warn!("Cannot cook '{}' — no fish in inventory", recipe.name);
                 ui_state.set_feedback("Need fish to cook this recipe!".to_string());
-                sfx_events.write(PlaySfxEvent {
+                sfx_events.send(PlaySfxEvent {
                     sfx_id: "craft_fail".to_string(),
                 });
                 continue;
@@ -129,7 +129,7 @@ pub fn handle_cook_item(
         }
 
         // Emit pickup event
-        pickup_events.write(ItemPickupEvent {
+        pickup_events.send(ItemPickupEvent {
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
@@ -155,12 +155,12 @@ pub fn handle_cook_item(
         info!("{}", feedback);
         ui_state.set_feedback(feedback);
 
-        sfx_events.write(PlaySfxEvent {
+        sfx_events.send(PlaySfxEvent {
             sfx_id: "cook_success".to_string(),
         });
 
         // Cooking also costs a small amount of stamina (fire-tending effort)
-        stamina_events.write(StaminaDrainEvent { amount: 2.0 });
+        stamina_events.send(StaminaDrainEvent { amount: 2.0 });
     }
 }
 

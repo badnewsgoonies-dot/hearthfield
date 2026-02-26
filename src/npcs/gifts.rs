@@ -21,7 +21,7 @@ pub fn handle_gifts(
         // Check if NPC has already received a gift today
         if relationships.gifted_today.get(npc_id).copied().unwrap_or(false) {
             // Send polite decline dialogue
-            let npc_name = npc_registry.npcs.get(npc_id)
+            let _npc_name = npc_registry.npcs.get(npc_id)
                 .map(|d| d.name.as_str())
                 .unwrap_or("them");
             let decline_lines = vec![

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{FeedTrough, FloatingFeedback, spawn_floating_text};
+use super::{FeedTrough, spawn_floating_text};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Feed-trough interaction
@@ -18,7 +18,7 @@ pub fn handle_feed_trough_interact(
     mut commands: Commands,
     mut removed_events: EventReader<ItemRemovedEvent>,
     mut animal_query: Query<(Entity, &mut Animal, &Transform)>,
-    trough_query: Query<&FeedTrough>,
+    _trough_query: Query<&FeedTrough>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
 ) {
     for ev in removed_events.read() {
@@ -28,7 +28,7 @@ pub fn handle_feed_trough_interact(
 
         // Hay was consumed — feed all barn/coop animals.
         let mut fed_count = 0u32;
-        for (entity, mut animal, transform) in animal_query.iter_mut() {
+        for (_entity, mut animal, transform) in animal_query.iter_mut() {
             if matches!(
                 animal.kind,
                 AnimalKind::Chicken | AnimalKind::Cow | AnimalKind::Sheep

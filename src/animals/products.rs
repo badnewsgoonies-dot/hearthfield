@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{ProductReadyIndicator, FloatingFeedback, spawn_floating_text};
+use super::{ProductReadyIndicator, spawn_floating_text};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Product collection

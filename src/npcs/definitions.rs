@@ -1,6 +1,7 @@
 //! NPC definitions: all 10 NPCs with their personalities, gift preferences,
 //! dialogue lines at every friendship tier, and birthday information.
 
+use bevy::prelude::*;
 use crate::shared::*;
 use std::collections::HashMap;
 

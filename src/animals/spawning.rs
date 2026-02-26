@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 use crate::shared::*;
-use super::{WanderAi, ProductReadyIndicator};
+use super::WanderAi;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animal visual configuration
