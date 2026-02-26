@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -24,14 +25,47 @@ pub struct MainMenuState {
     pub cursor: usize,
 }
 
+/// Stores the play button atlas layout for button backgrounds
+#[derive(Resource)]
+pub struct PlayButtonAtlas {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
 const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Quit"];
+
+// Play button atlas: 192x64px image, 2 columns x 2 rows of 96x32 button states
+// Index 0 = normal, 1 = hovered/selected, 2 = pressed, 3 = disabled
+const PLAY_BUTTON_NORMAL: usize = 0;
+const PLAY_BUTTON_SELECTED: usize = 1;
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_main_menu(mut commands: Commands) {
+pub fn spawn_main_menu(
+    mut commands: Commands,
+    font_handle: Res<UiFontHandle>,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
     commands.insert_resource(MainMenuState { cursor: 0 });
+
+    // Load the play button sprite sheet (192x64, 2x2 grid of 96x32 buttons)
+    let button_image = asset_server.load("ui/play_button.png");
+    let button_layout = texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(96, 32),
+        2,
+        2,
+        None,
+        None,
+    ));
+    commands.insert_resource(PlayButtonAtlas {
+        image: button_image.clone(),
+        layout: button_layout.clone(),
+    });
+
+    let font = font_handle.0.clone();
 
     commands
         .spawn((
@@ -52,6 +86,7 @@ pub fn spawn_main_menu(mut commands: Commands) {
             parent.spawn((
                 Text::new("HEARTHFIELD"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 52.0,
                     ..default()
                 },
@@ -62,6 +97,7 @@ pub fn spawn_main_menu(mut commands: Commands) {
             parent.spawn((
                 Text::new("A Farming & Life Simulator"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 16.0,
                     ..default()
                 },
@@ -80,6 +116,7 @@ pub fn spawn_main_menu(mut commands: Commands) {
                 ))
                 .with_children(|menu| {
                     for (i, label) in MAIN_MENU_OPTIONS.iter().enumerate() {
+                        // Each menu item uses the play button sprite as background
                         menu.spawn((
                                 MainMenuItem { index: i },
                                 Node {
@@ -87,17 +124,23 @@ pub fn spawn_main_menu(mut commands: Commands) {
                                     height: Val::Px(42.0),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
-                                    border: UiRect::all(Val::Px(2.0)),
                                     ..default()
                                 },
-                                BackgroundColor(Color::srgba(0.15, 0.12, 0.08, 0.9)),
-                                BorderColor(Color::srgba(0.4, 0.35, 0.25, 0.7)),
+                                ImageNode {
+                                    image: button_image.clone(),
+                                    texture_atlas: Some(TextureAtlas {
+                                        layout: button_layout.clone(),
+                                        index: PLAY_BUTTON_NORMAL,
+                                    }),
+                                    ..default()
+                                },
                             ))
                             .with_children(|item| {
                                 item.spawn((
                                     MainMenuItemText { index: i },
                                     Text::new(*label),
                                     TextFont {
+                                        font: font.clone(),
                                         font_size: 20.0,
                                         ..default()
                                     },
@@ -111,6 +154,7 @@ pub fn spawn_main_menu(mut commands: Commands) {
             parent.spawn((
                 Text::new("v0.1.0 - Early Development"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 11.0,
                     ..default()
                 },
@@ -127,6 +171,7 @@ pub fn despawn_main_menu(
         commands.entity(entity).despawn();
     }
     commands.remove_resource::<MainMenuState>();
+    commands.remove_resource::<PlayButtonAtlas>();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -135,16 +180,16 @@ pub fn despawn_main_menu(
 
 pub fn update_main_menu_visuals(
     state: Option<Res<MainMenuState>>,
-    mut query: Query<(&MainMenuItem, &mut BackgroundColor, &mut BorderColor)>,
+    mut query: Query<(&MainMenuItem, &mut ImageNode)>,
 ) {
     let Some(state) = state else { return };
-    for (item, mut bg, mut border) in &mut query {
-        if item.index == state.cursor {
-            *bg = BackgroundColor(Color::srgba(0.25, 0.22, 0.12, 0.95));
-            *border = BorderColor(Color::srgb(1.0, 0.84, 0.0));
-        } else {
-            *bg = BackgroundColor(Color::srgba(0.15, 0.12, 0.08, 0.9));
-            *border = BorderColor(Color::srgba(0.4, 0.35, 0.25, 0.7));
+    for (item, mut image_node) in &mut query {
+        if let Some(ref mut atlas) = image_node.texture_atlas {
+            if item.index == state.cursor {
+                atlas.index = PLAY_BUTTON_SELECTED;
+            } else {
+                atlas.index = PLAY_BUTTON_NORMAL;
+            }
         }
     }
 }
