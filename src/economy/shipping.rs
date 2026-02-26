@@ -91,7 +91,6 @@ pub fn place_in_shipping_bin(
 pub fn process_shipping_bin_on_day_end(
     mut day_end_events: EventReader<DayEndEvent>,
     mut shipping_bin: ResMut<ShippingBin>,
-    mut player_state: ResMut<PlayerState>,
     item_registry: Res<ItemRegistry>,
     mut gold_writer: EventWriter<GoldChangeEvent>,
     mut stats: ResMut<EconomyStats>,
@@ -122,12 +121,9 @@ pub fn process_shipping_bin_on_day_end(
             ));
         }
 
-        // Apply the gold directly.
-        player_state.gold = player_state.gold.saturating_add(total_value);
-        stats.total_gold_earned = stats.total_gold_earned.saturating_add(total_value as u64);
         stats.total_items_shipped = stats.total_items_shipped.saturating_add(items_shipped);
 
-        // Emit a single GoldChangeEvent for tracking/UI (gold already applied above).
+        // Emit GoldChangeEvent — apply_gold_changes will add the gold to PlayerState.
         gold_writer.send(GoldChangeEvent {
             amount: total_value as i32,
             reason: format!("Shipping bin sold ({} items)", shipping_bin.items.len()),

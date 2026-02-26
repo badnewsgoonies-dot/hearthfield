@@ -1,6 +1,13 @@
 //! Farming domain — soil tilling, watering, planting, crop growth, harvest.
 //!
 //! Communicates with other domains exclusively through crate::shared events/resources.
+//!
+//! ## Integration fix log
+//! - Added `TrackedDayWeather` resource: snapshots the calendar weather each frame
+//!   during Playing state so that `on_day_end` can check whether it rained on the
+//!   ENDED day (not the new day whose weather was already rolled).
+//! - Added `track_day_weather` system that runs BEFORE `on_day_end` each frame to
+//!   keep the snapshot current.  This avoids a cross-domain import.
 
 use bevy::prelude::*;
 use crate::shared::*;
@@ -32,10 +39,21 @@ pub struct CropTileEntity {
 /// This lets systems find ECS entities for a given tile quickly.
 #[derive(Resource, Default, Debug)]
 pub struct FarmEntities {
-    /// (x, y) → soil entity
+    /// (x, y) -> soil entity
     pub soil_entities: std::collections::HashMap<(i32, i32), Entity>,
-    /// (x, y) → crop entity
+    /// (x, y) -> crop entity
     pub crop_entities: std::collections::HashMap<(i32, i32), Entity>,
+}
+
+/// Holds the texture atlas handles for farming sprites (soil tiles and plant stages).
+/// Loaded once on entering Playing state; render systems use the handles once loaded.
+#[derive(Resource, Default)]
+pub struct FarmingAtlases {
+    pub loaded: bool,
+    pub plants_image: Handle<Image>,
+    pub plants_layout: Handle<TextureAtlasLayout>,
+    pub dirt_image: Handle<Image>,
+    pub dirt_layout: Handle<TextureAtlasLayout>,
 }
 
 /// A pending harvest interaction from the player pressing Space.
@@ -58,6 +76,35 @@ pub struct PlantSeedEvent {
 #[derive(Event, Debug, Clone)]
 pub struct MorningSprinklerEvent;
 
+/// Tracks the current day's weather for use in day-end processing.
+///
+/// The problem: when the calendar's `tick_time` triggers a day end at 2 AM, it
+/// sends DayEndEvent and then immediately rolls new weather for the next day —
+/// all within the same system call.  By the time `on_day_end` runs (later in the
+/// same frame), `calendar.weather` is already the NEW day's weather, not the day
+/// that just ended.
+///
+/// This resource snapshots the weather each frame BEFORE the day-end trigger can
+/// overwrite it, ensuring `on_day_end` always reads the correct (ended) day's weather.
+#[derive(Resource, Debug, Clone)]
+pub struct TrackedDayWeather {
+    pub weather: Weather,
+    pub day: u8,
+    pub season: Season,
+    pub year: u32,
+}
+
+impl Default for TrackedDayWeather {
+    fn default() -> Self {
+        Self {
+            weather: Weather::Sunny,
+            day: 1,
+            season: Season::Spring,
+            year: 1,
+        }
+    }
+}
+
 pub struct FarmingPlugin;
 
 impl Plugin for FarmingPlugin {
@@ -65,10 +112,27 @@ impl Plugin for FarmingPlugin {
         app
             // Internal resources
             .init_resource::<FarmEntities>()
+            .init_resource::<FarmingAtlases>()
+            .init_resource::<TrackedDayWeather>()
             // Internal events
             .add_event::<HarvestAttemptEvent>()
             .add_event::<PlantSeedEvent>()
             .add_event::<MorningSprinklerEvent>()
+            // ------------------------------------------------------------------
+            // Atlas loading — runs once on first Playing frame
+            // ------------------------------------------------------------------
+            .add_systems(
+                OnEnter(GameState::Playing),
+                load_farming_atlases,
+            )
+            // ------------------------------------------------------------------
+            // Weather tracking — must run BEFORE day-end processing
+            // ------------------------------------------------------------------
+            .add_systems(
+                First,
+                events_handler::track_day_weather
+                    .run_if(in_state(GameState::Playing)),
+            )
             // ------------------------------------------------------------------
             // Systems that run during Playing
             // ------------------------------------------------------------------
@@ -82,7 +146,7 @@ impl Plugin for FarmingPlugin {
                     crops::handle_plant_seed,
                     // Harvest (player presses Space near mature crop)
                     harvest::handle_harvest_attempt,
-                    // Keyboard shortcut: Space bar → try harvest at player position
+                    // Keyboard shortcut: Space bar -> try harvest at player position
                     harvest::detect_harvest_input,
                     // Seed placement detection (player uses seed item)
                     crops::detect_seed_use,
@@ -113,6 +177,48 @@ impl Plugin for FarmingPlugin {
                     .run_if(in_state(GameState::Playing)),
             );
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Atlas loading system
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Loads the farming texture atlases once when the Playing state is entered.
+/// After this runs, `FarmingAtlases::loaded` is true and render systems can use
+/// `plants_image`/`plants_layout` for crop sprites and `dirt_image`/`dirt_layout`
+/// for soil sprites.
+///
+/// Assets:
+///   assets/sprites/plants.png       — 96×32, 16×16 tiles, 6 cols × 2 rows (12 sprites)
+///   assets/tilesets/tilled_dirt.png — 176×112, 16×16 tiles, 11 cols × 7 rows (77 sprites)
+fn load_farming_atlases(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlases: ResMut<FarmingAtlases>,
+) {
+    if atlases.loaded {
+        return;
+    }
+
+    atlases.plants_image = asset_server.load("sprites/plants.png");
+    atlases.plants_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        6,
+        2,
+        None,
+        None,
+    ));
+
+    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt.png");
+    atlases.dirt_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        11,
+        7,
+        None,
+        None,
+    ));
+
+    atlases.loaded = true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

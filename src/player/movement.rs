@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{CollisionMap, world_to_grid};
+use super::{AnimationTimer, CollisionMap, world_to_grid};
 
 /// Core movement system — reads WASD / arrow keys, applies velocity,
 /// updates facing direction, snaps grid position, and checks collisions.
@@ -79,6 +79,47 @@ pub fn player_movement(
         grid_pos.y = gy;
     } else {
         movement.is_moving = false;
+    }
+}
+
+/// Drive the walk-cycle animation on the player sprite.
+///
+/// - When `is_moving` is true the timer ticks and advances through the four
+///   frames of the current facing row in the atlas.
+/// - When `is_moving` is false the frame resets to the first frame of the row
+///   (the idle/rest pose for that direction).
+///
+/// Atlas layout (character_spritesheet.png, 4×4 grid of 48×48 frames):
+///   Row 0 → Walk Down  (base index  0)
+///   Row 1 → Walk Up    (base index  4)
+///   Row 2 → Walk Right (base index  8)
+///   Row 3 → Walk Left  (base index 12)
+pub fn animate_player_sprite(
+    time: Res<Time>,
+    mut query: Query<(&PlayerMovement, &mut Sprite, &mut AnimationTimer), With<Player>>,
+) {
+    for (movement, mut sprite, mut anim) in query.iter_mut() {
+        // Map the current facing to the first atlas index for that row.
+        let base: usize = match movement.facing {
+            Facing::Down  =>  0,
+            Facing::Up    =>  4,
+            Facing::Right =>  8,
+            Facing::Left  => 12,
+        };
+
+        if movement.is_moving {
+            anim.timer.tick(time.delta());
+            if anim.timer.just_finished() {
+                anim.current_frame = (anim.current_frame + 1) % anim.frame_count;
+            }
+        } else {
+            // Snap back to the idle (first) frame of the current direction.
+            anim.current_frame = 0;
+        }
+
+        if let Some(atlas) = &mut sprite.texture_atlas {
+            atlas.index = base + anim.current_frame;
+        }
     }
 }
 

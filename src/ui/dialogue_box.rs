@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -60,7 +61,12 @@ pub fn listen_for_dialogue_start(
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueUiState>>) {
+pub fn spawn_dialogue_box(
+    mut commands: Commands,
+    ui_state: Option<Res<DialogueUiState>>,
+    font_handle: Res<UiFontHandle>,
+    asset_server: Res<AssetServer>,
+) {
     let first_line = ui_state
         .as_ref()
         .and_then(|s| s.lines.first())
@@ -71,6 +77,9 @@ pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueU
         .as_ref()
         .map(|s| s.npc_id.clone())
         .unwrap_or_else(|| "???".to_string());
+
+    let font = font_handle.0.clone();
+    let dialog_bg = asset_server.load("ui/dialog_box_big.png");
 
     commands
         .spawn((
@@ -87,7 +96,7 @@ pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueU
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.3)),
         ))
         .with_children(|parent| {
-            // Dialogue panel at bottom
+            // Dialogue panel at bottom — uses dialog_box_big.png as background
             parent
                 .spawn((
                     Node {
@@ -96,11 +105,13 @@ pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueU
                         flex_direction: FlexDirection::Row,
                         padding: UiRect::all(Val::Px(16.0)),
                         column_gap: Val::Px(16.0),
-                        border: UiRect::all(Val::Px(3.0)),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.08, 0.06, 0.04, 0.95)),
-                    BorderColor(Color::srgb(0.5, 0.4, 0.25)),
+                    ImageNode {
+                        image: dialog_bg,
+                        // The image will be stretched to fill the node dimensions
+                        ..default()
+                    },
                 ))
                 .with_children(|panel| {
                     // Left: Portrait placeholder
@@ -130,6 +141,7 @@ pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueU
                                 DialogueNpcName,
                                 Text::new(npc_name),
                                 TextFont {
+                                    font: font.clone(),
                                     font_size: 18.0,
                                     ..default()
                                 },
@@ -141,6 +153,7 @@ pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueU
                                 DialogueText,
                                 Text::new(first_line),
                                 TextFont {
+                                    font: font.clone(),
                                     font_size: 16.0,
                                     ..default()
                                 },
@@ -152,6 +165,7 @@ pub fn spawn_dialogue_box(mut commands: Commands, ui_state: Option<Res<DialogueU
                                 DialoguePrompt,
                                 Text::new("[Space] Continue"),
                                 TextFont {
+                                    font: font.clone(),
                                     font_size: 12.0,
                                     ..default()
                                 },

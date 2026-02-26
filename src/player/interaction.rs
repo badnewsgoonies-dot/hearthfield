@@ -219,15 +219,52 @@ pub fn item_pickup_check(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Item Pickup → Inventory
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Reads ItemPickupEvent (fired by farming harvest, world object drops, etc.)
+/// and adds items to the player's inventory.
+pub fn add_items_to_inventory(
+    mut pickup_events: EventReader<ItemPickupEvent>,
+    mut inventory: ResMut<Inventory>,
+    item_registry: Res<ItemRegistry>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
+) {
+    for ev in pickup_events.read() {
+        let max_stack = item_registry
+            .get(&ev.item_id)
+            .map(|def| def.stack_size)
+            .unwrap_or(99);
+        let remaining = inventory.try_add(&ev.item_id, ev.quantity, max_stack);
+        if remaining == 0 {
+            sfx_events.send(PlaySfxEvent {
+                sfx_id: "item_pickup".to_string(),
+            });
+            info!(
+                "[Player] Picked up {} × '{}'",
+                ev.quantity, ev.item_id
+            );
+        } else {
+            info!(
+                "[Player] Inventory full — could not pick up {} × '{}' ({} dropped)",
+                ev.quantity, ev.item_id, remaining
+            );
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Day End Handling
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// When a day ends (player sleeps), restore stamina to maximum and
 /// reposition the player to their bed in the farmhouse.
+/// Sends a MapTransitionEvent so the world domain loads the PlayerHouse map.
 pub fn handle_day_end(
     mut events: EventReader<DayEndEvent>,
     mut player_state: ResMut<PlayerState>,
     mut query: Query<(&mut Transform, &mut GridPosition), With<Player>>,
+    mut map_events: EventWriter<MapTransitionEvent>,
 ) {
     for _ev in events.read() {
         // Restore stamina fully.
@@ -236,12 +273,22 @@ pub fn handle_day_end(
         // Restore health fully.
         player_state.health = player_state.max_health;
 
+        let bed_gx = 5;
+        let bed_gy = 8;
+
+        // Send MapTransitionEvent so the world domain loads PlayerHouse tiles.
+        if player_state.current_map != MapId::PlayerHouse {
+            map_events.send(MapTransitionEvent {
+                to_map: MapId::PlayerHouse,
+                to_x: bed_gx,
+                to_y: bed_gy,
+            });
+        }
+
         // Move player back to farmhouse bed position.
         player_state.current_map = MapId::PlayerHouse;
 
         if let Ok((mut transform, mut grid_pos)) = query.get_single_mut() {
-            let bed_gx = 5;
-            let bed_gy = 8;
             let (wx, wy) = grid_to_world(bed_gx, bed_gy);
             transform.translation.x = wx;
             transform.translation.y = wy;

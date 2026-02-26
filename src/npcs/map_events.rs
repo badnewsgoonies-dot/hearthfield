@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use super::spawning::{SpawnedNpcs, NpcMapTag, spawn_npcs_for_map};
+use super::spawning::{SpawnedNpcs, NpcMapTag, NpcSpriteData, spawn_npcs_for_map};
 
 /// System: handle MapTransitionEvent — despawn old map NPCs, spawn new map NPCs.
 pub fn handle_map_transition(
@@ -12,6 +12,9 @@ pub fn handle_map_transition(
     npc_map_tags: Query<(Entity, &NpcMapTag)>,
     calendar: Res<Calendar>,
     npc_registry: Res<NpcRegistry>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut npc_sprites: ResMut<NpcSpriteData>,
 ) {
     for event in transition_reader.read() {
         // Despawn all currently loaded NPC entities
@@ -30,6 +33,9 @@ pub fn handle_map_transition(
             event.to_map,
             &npc_registry,
             &mut spawned,
+            &asset_server,
+            &mut layouts,
+            &mut npc_sprites,
         );
     }
 }
