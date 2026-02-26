@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -30,8 +31,10 @@ const PAUSE_OPTIONS: &[&str] = &["Resume", "Save Game", "Quit to Menu"];
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_pause_menu(mut commands: Commands) {
+pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) {
     commands.insert_resource(PauseMenuState { cursor: 0 });
+
+    let font = font_handle.0.clone();
 
     commands
         .spawn((
@@ -67,6 +70,7 @@ pub fn spawn_pause_menu(mut commands: Commands) {
                     panel.spawn((
                         Text::new("PAUSED"),
                         TextFont {
+                            font: font.clone(),
                             font_size: 28.0,
                             ..default()
                         },
@@ -94,6 +98,7 @@ pub fn spawn_pause_menu(mut commands: Commands) {
                                     PauseMenuItemText { index: i },
                                     Text::new(*label),
                                     TextFont {
+                                        font: font.clone(),
                                         font_size: 18.0,
                                         ..default()
                                     },
@@ -106,6 +111,7 @@ pub fn spawn_pause_menu(mut commands: Commands) {
                     panel.spawn((
                         Text::new("Up/Down: Select | Enter: Confirm | Esc: Resume"),
                         TextFont {
+                            font: font.clone(),
                             font_size: 10.0,
                             ..default()
                         },

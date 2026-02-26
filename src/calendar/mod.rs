@@ -146,6 +146,7 @@ fn tick_time(
     time: Res<Time>,
     mut calendar: ResMut<Calendar>,
     mut day_end_writer: EventWriter<DayEndEvent>,
+    mut prev_weather: ResMut<PreviousDayWeather>,
 ) {
     let delta = time.delta_secs();
     calendar.elapsed_real_seconds += delta;
@@ -162,15 +163,16 @@ fn tick_time(
     // Advance as many game-minutes as have accumulated
     while calendar.elapsed_real_seconds >= secs_per_game_minute {
         calendar.elapsed_real_seconds -= secs_per_game_minute;
-        advance_one_minute(&mut calendar, &mut day_end_writer);
+        advance_one_minute(&mut calendar, &mut day_end_writer, &mut prev_weather);
     }
 }
 
 /// Advances the calendar by exactly one game-minute.
-/// Handles minute → hour → day rollovers.
+/// Handles minute -> hour -> day rollovers.
 fn advance_one_minute(
     calendar: &mut Calendar,
     day_end_writer: &mut EventWriter<DayEndEvent>,
+    prev_weather: &mut PreviousDayWeather,
 ) {
     calendar.minute += 1;
 
@@ -178,18 +180,20 @@ fn advance_one_minute(
         calendar.minute = 0;
         calendar.hour += 1;
 
-        // 2:00 AM = hour 26 → force end of day
+        // 2:00 AM = hour 26 -> force end of day
         if calendar.hour >= 26 {
-            trigger_day_end(calendar, day_end_writer);
+            trigger_day_end(calendar, day_end_writer, prev_weather);
         }
     }
 }
 
-/// Called when day ends (either 2 AM or explicit sleep).
-/// Rolls weather, advances day/season/year, resets clock to 6:00 AM.
+/// Called when day ends via the 2 AM auto-rollover.
+/// Stores the ended day's weather in PreviousDayWeather, then rolls new
+/// weather, advances day/season/year, and resets clock to 6:00 AM.
 fn trigger_day_end(
     calendar: &mut Calendar,
     day_end_writer: &mut EventWriter<DayEndEvent>,
+    prev_weather: &mut PreviousDayWeather,
 ) {
     // Emit event with the CURRENT day/season/year (the day that just ended)
     day_end_writer.send(DayEndEvent {
@@ -202,6 +206,10 @@ fn trigger_day_end(
         "[Calendar] Day ended — Day {} {:?} Year {}",
         calendar.day, calendar.season, calendar.year
     );
+
+    // Store the ended day's weather BEFORE rolling new weather.
+    // This lets farming and other domains check if it rained today.
+    prev_weather.weather = calendar.weather;
 
     // Advance to next day
     calendar.day += 1;
@@ -216,7 +224,7 @@ fn trigger_day_end(
         calendar.season = calendar.season.next();
 
         info!(
-            "[Calendar] Season changed: {:?} → {:?} (Year {})",
+            "[Calendar] Season changed: {:?} -> {:?} (Year {})",
             old_season, calendar.season, calendar.year
         );
 
