@@ -32,6 +32,7 @@ impl Plugin for PlayerPlugin {
                 tools::tool_use,
                 tools::stamina_drain_handler,
                 interaction::item_pickup_check,
+                interaction::add_items_to_inventory,
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
                 camera::camera_follow_player,
