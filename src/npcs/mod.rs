@@ -19,6 +19,17 @@ use definitions::build_npc_registry;
 use dialogue::{handle_npc_interaction, ActiveNpcInteraction};
 use gifts::{handle_gifts, handle_gift_input};
 use map_events::{handle_map_transition, handle_day_end, GiftDecayTracker};
+use romance::{
+    WeddingTimer,
+    update_relationship_stages,
+    handle_bouquet,
+    handle_proposal,
+    tick_wedding_timer,
+    handle_wedding,
+    spouse_daily_action,
+    handle_spouse_action,
+    update_spouse_happiness,
+};
 use schedule::{
     update_npc_schedules,
     move_npcs_toward_targets,
@@ -36,7 +47,8 @@ impl Plugin for NpcPlugin {
             .init_resource::<NpcSpriteData>()
             .init_resource::<ActiveNpcInteraction>()
             .init_resource::<ScheduleUpdateTimer>()
-            .init_resource::<GiftDecayTracker>();
+            .init_resource::<GiftDecayTracker>()
+            .init_resource::<WeddingTimer>();
 
         // Populate NPC registry on startup (before Loading completes)
         app.add_systems(Startup, setup_npc_registry);
@@ -65,6 +77,22 @@ impl Plugin for NpcPlugin {
                 handle_map_transition,
                 // Day end: reset gifted_today
                 handle_day_end,
+                // Romance: update relationship stages from heart levels
+                update_relationship_stages,
+                // Romance: handle bouquet gift (start dating)
+                handle_bouquet,
+                // Romance: handle proposal (start engagement)
+                handle_proposal,
+                // Romance: tick wedding countdown on day end
+                tick_wedding_timer,
+                // Romance: process wedding ceremony
+                handle_wedding,
+                // Romance: spouse performs daily action at 8 AM
+                spouse_daily_action,
+                // Romance: apply spouse action effects
+                handle_spouse_action,
+                // Romance: update spouse happiness on day end
+                update_spouse_happiness,
             )
                 .run_if(in_state(GameState::Playing)),
         );

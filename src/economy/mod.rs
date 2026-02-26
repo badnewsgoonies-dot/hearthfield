@@ -28,6 +28,7 @@ use blacksmith::{
     handle_upgrade_request, tick_upgrade_queue,
 };
 use stats::{HarvestStats, AnimalProductStats, track_crop_harvests, track_animal_products};
+use evaluation::{check_evaluation_trigger, handle_evaluation};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
@@ -71,6 +72,9 @@ impl Plugin for EconomyPlugin {
                 // Harvest and animal product stat tracking.
                 track_crop_harvests,
                 track_animal_products,
+                // Year-end evaluation: check trigger condition, then score.
+                check_evaluation_trigger,
+                handle_evaluation,
             )
                 .run_if(in_state(GameState::Playing)),
         );
