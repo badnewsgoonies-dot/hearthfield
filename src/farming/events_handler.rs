@@ -1,7 +1,14 @@
 //! Handlers for cross-domain events: DayEndEvent, SeasonChangeEvent.
+//!
+//! ## Integration fix log
+//! - Fixed `on_day_end` rain check: previously read `calendar.weather` which by the
+//!   time this system runs has already been rolled for the NEW day (not the ended day).
+//!   Now reads `PreviousDayWeather` from the calendar domain, which correctly stores
+//!   the weather of the day that just ended.
 
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::calendar::PreviousDayWeather;
 use super::{
     FarmEntities,
     crops::{advance_crop_growth, reset_soil_watered_state},
@@ -17,7 +24,7 @@ use super::{
 /// 1. Sprinklers auto-water (handled separately in sprinkler.rs, runs first).
 /// 2. Rain auto-waters if today was rainy.
 /// 3. Advance crop growth for all crops.
-/// 4. Reset soil state (Watered → Tilled) for the next day.
+/// 4. Reset soil state (Watered -> Tilled) for the next day.
 /// 5. Kill crops that can't survive in the current season.
 /// 6. Handle crow events (scare away crows via scarecrows).
 pub fn on_day_end(
@@ -26,10 +33,14 @@ pub fn on_day_end(
     mut farm_entities: ResMut<FarmEntities>,
     mut commands: Commands,
     crop_registry: Res<CropRegistry>,
-    calendar: Res<Calendar>,
+    prev_weather: Res<PreviousDayWeather>,
 ) {
     for event in day_end_events.read() {
-        let is_rainy = matches!(calendar.weather, Weather::Rainy | Weather::Stormy);
+        // BUG FIX: Previously read calendar.weather, but by the time this system
+        // runs the calendar has already been advanced and weather re-rolled for the
+        // NEW day.  Now we read PreviousDayWeather which the calendar domain stores
+        // before rolling new weather.
+        let is_rainy = matches!(prev_weather.weather, Weather::Rainy | Weather::Stormy);
 
         // Rain waters all tilled/watered tiles.
         if is_rainy {
