@@ -15,6 +15,7 @@ use crate::shared::*;
 
 pub mod maps;
 pub mod objects;
+pub mod chests;
 
 use maps::{generate_map, MapDef};
 use objects::{
@@ -30,10 +31,12 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<WorldMap>()
+        app.add_event::<ToastEvent>()
+            .init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
+            .init_resource::<chests::ChestInteraction>()
             // Spawn the initial farm map when entering Playing state
             .add_systems(OnEnter(GameState::Playing), spawn_initial_map)
             // Gameplay systems: tool interactions, transitions, forageables
@@ -43,6 +46,9 @@ impl Plugin for WorldPlugin {
                     handle_map_transition,
                     handle_tool_use_on_objects,
                     handle_forageable_pickup,
+                    chests::place_chest,
+                    chests::interact_with_chest,
+                    chests::close_chest_on_escape,
                 )
                     .run_if(in_state(GameState::Playing)),
             )

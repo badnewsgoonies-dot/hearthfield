@@ -8,6 +8,7 @@ mod main_menu;
 mod input;
 mod transitions;
 mod audio;
+mod chest_screen;
 
 use bevy::prelude::*;
 use crate::shared::*;
@@ -166,6 +167,19 @@ impl Plugin for UiPlugin {
                 pause_menu::pause_menu_navigation,
             )
                 .run_if(in_state(GameState::Paused)),
+        );
+
+        // ─── CHEST SCREEN (reactive overlay during Playing state) ───
+        app.add_systems(
+            Update,
+            (
+                chest_screen::update_chest_ui_lifecycle,
+                chest_screen::update_chest_inv_display,
+                chest_screen::update_chest_storage_display,
+                chest_screen::update_chest_cursor,
+                chest_screen::handle_chest_input,
+            )
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }
