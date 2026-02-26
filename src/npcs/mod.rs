@@ -22,7 +22,7 @@ use schedule::{
     move_npcs_toward_targets,
     ScheduleUpdateTimer,
 };
-use spawning::{spawn_initial_npcs, SpawnedNpcs};
+use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
 
 pub struct NpcPlugin;
 
@@ -31,6 +31,7 @@ impl Plugin for NpcPlugin {
         // Initialize NPC-domain resources
         app
             .init_resource::<SpawnedNpcs>()
+            .init_resource::<NpcSpriteData>()
             .init_resource::<ActiveNpcInteraction>()
             .init_resource::<ScheduleUpdateTimer>();
 

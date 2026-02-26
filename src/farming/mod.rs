@@ -38,6 +38,17 @@ pub struct FarmEntities {
     pub crop_entities: std::collections::HashMap<(i32, i32), Entity>,
 }
 
+/// Holds the texture atlas handles for farming sprites (soil tiles and plant stages).
+/// Loaded once on entering Playing state; render systems use the handles once loaded.
+#[derive(Resource, Default)]
+pub struct FarmingAtlases {
+    pub loaded: bool,
+    pub plants_image: Handle<Image>,
+    pub plants_layout: Handle<TextureAtlasLayout>,
+    pub dirt_image: Handle<Image>,
+    pub dirt_layout: Handle<TextureAtlasLayout>,
+}
+
 /// A pending harvest interaction from the player pressing Space.
 #[derive(Event, Debug, Clone)]
 pub struct HarvestAttemptEvent {
@@ -65,10 +76,18 @@ impl Plugin for FarmingPlugin {
         app
             // Internal resources
             .init_resource::<FarmEntities>()
+            .init_resource::<FarmingAtlases>()
             // Internal events
             .add_event::<HarvestAttemptEvent>()
             .add_event::<PlantSeedEvent>()
             .add_event::<MorningSprinklerEvent>()
+            // ------------------------------------------------------------------
+            // Atlas loading — runs once on first Playing frame
+            // ------------------------------------------------------------------
+            .add_systems(
+                OnEnter(GameState::Playing),
+                load_farming_atlases,
+            )
             // ------------------------------------------------------------------
             // Systems that run during Playing
             // ------------------------------------------------------------------
@@ -113,6 +132,48 @@ impl Plugin for FarmingPlugin {
                     .run_if(in_state(GameState::Playing)),
             );
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Atlas loading system
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Loads the farming texture atlases once when the Playing state is entered.
+/// After this runs, `FarmingAtlases::loaded` is true and render systems can use
+/// `plants_image`/`plants_layout` for crop sprites and `dirt_image`/`dirt_layout`
+/// for soil sprites.
+///
+/// Assets:
+///   assets/sprites/plants.png       — 96×32, 16×16 tiles, 6 cols × 2 rows (12 sprites)
+///   assets/tilesets/tilled_dirt.png — 176×112, 16×16 tiles, 11 cols × 7 rows (77 sprites)
+fn load_farming_atlases(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlases: ResMut<FarmingAtlases>,
+) {
+    if atlases.loaded {
+        return;
+    }
+
+    atlases.plants_image = asset_server.load("sprites/plants.png");
+    atlases.plants_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        6,
+        2,
+        None,
+        None,
+    ));
+
+    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt.png");
+    atlases.dirt_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        11,
+        7,
+        None,
+        None,
+    ));
+
+    atlases.loaded = true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

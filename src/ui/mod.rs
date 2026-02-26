@@ -7,14 +7,39 @@ mod pause_menu;
 mod main_menu;
 mod input;
 mod transitions;
+mod audio;
 
 use bevy::prelude::*;
 use crate::shared::*;
+
+// ═══════════════════════════════════════════════════════════════════════
+// SHARED FONT HANDLE — used by all UI text across every screen
+// ═══════════════════════════════════════════════════════════════════════
+
+#[derive(Resource)]
+pub struct UiFontHandle(pub Handle<Font>);
+
+fn load_ui_font(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font = asset_server.load("fonts/sprout_lands.ttf");
+    commands.insert_resource(UiFontHandle(font));
+}
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
+        // ─── FONT LOADING — runs at Startup so it's available everywhere ───
+        app.add_systems(Startup, load_ui_font);
+
+        // ─── AUDIO — music state resource + event handlers ───
+        app.init_resource::<audio::MusicState>();
+        app.add_systems(
+            Update,
+            (audio::handle_play_sfx, audio::handle_play_music),
+        );
+        app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
+        app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
+
         // ─── FADE OVERLAY — always present ───
         app.add_systems(Startup, transitions::spawn_fade_overlay);
         app.add_systems(

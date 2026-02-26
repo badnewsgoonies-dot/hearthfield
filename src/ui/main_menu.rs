@@ -171,13 +171,12 @@ pub fn main_menu_navigation(
     if keyboard.just_pressed(KeyCode::Enter) {
         match state.cursor {
             0 => {
-                // New Game — go to Loading (which transitions to Playing)
-                next_state.set(GameState::Loading);
+                // New Game — data is already loaded, go straight to Playing
+                next_state.set(GameState::Playing);
             }
             1 => {
                 // Load Game — for now, same as New Game
-                // The save domain would handle actual loading
-                next_state.set(GameState::Loading);
+                next_state.set(GameState::Playing);
             }
             2 => {
                 // Quit

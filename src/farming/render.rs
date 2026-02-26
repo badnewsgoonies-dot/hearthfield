@@ -1,34 +1,78 @@
-//! Visual synchronisation systems — keep sprite colours in sync with game state.
+//! Visual synchronisation systems — keep sprite appearances in sync with game state.
+//!
+//! When `FarmingAtlases` are loaded, soil and crop sprites are rendered using
+//! texture atlas slices from `tilled_dirt.png` and `plants.png` respectively.
+//! If the atlases are not yet available (e.g. first frame before OnEnter fires),
+//! coloured placeholder sprites are used as a fallback.
 
 use bevy::prelude::*;
 use crate::shared::*;
 use super::{
-    FarmEntities, SoilTileEntity, CropTileEntity,
+    FarmEntities, FarmingAtlases, SoilTileEntity, CropTileEntity,
     grid_to_world, crop_stage_color,
     soil::soil_color,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Atlas index helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Map SoilState to an atlas index in tilled_dirt.png (11 cols × 7 rows).
+///
+/// Index 5  — plain tilled dirt tile (row 0, col 5)
+/// Index 16 — darker / wetter dirt tile (row 1, col 5)
+fn soil_atlas_index(state: SoilState) -> usize {
+    match state {
+        SoilState::Untilled => 0,  // shouldn't normally be rendered
+        SoilState::Tilled   => 5,
+        SoilState::Watered  => 16,
+    }
+}
+
+/// Map a crop growth stage to a plants.png atlas index (row 0: indices 0-5).
+///
+/// Uses the formula:
+///   `let atlas_idx = (stage * 5 / total_stages.max(1)).min(5)`
+/// so every crop maps smoothly onto the 6 available growth frames regardless
+/// of how many growth days are defined.
+fn crop_atlas_index(stage: u8, total_stages: u8) -> usize {
+    let total = total_stages.max(1) as usize;
+    ((stage as usize * 5) / total).min(5)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Soil sprite sync
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Update the colour of every soil sprite to match the current SoilState in
+/// Update the appearance of every soil sprite to match the current SoilState in
 /// FarmState.  Also spawns missing entities and despawns stale ones.
+///
+/// When `FarmingAtlases` are loaded, newly spawned soil entities use a texture
+/// atlas slice from `tilled_dirt.png`.  For sprites that were already spawned
+/// (either with an atlas or as a colour placeholder) the atlas index / colour is
+/// updated in-place.
 pub fn sync_soil_sprites(
     mut commands: Commands,
     mut farm_entities: ResMut<FarmEntities>,
     farm_state: Res<FarmState>,
+    atlases: Res<FarmingAtlases>,
     mut soil_query: Query<(&SoilTileEntity, &mut Sprite)>,
 ) {
-    // Update existing entities.
+    // ── Update existing entities ──────────────────────────────────────────────
     for (tile, mut sprite) in soil_query.iter_mut() {
         let pos = (tile.grid_x, tile.grid_y);
         if let Some(&state) = farm_state.soil.get(&pos) {
-            sprite.color = soil_color(state);
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                // Atlas sprite: update the slice index.
+                atlas.index = soil_atlas_index(state);
+            } else {
+                // Fallback colour sprite (spawned before atlases were ready).
+                sprite.color = soil_color(state);
+            }
         }
     }
 
-    // Spawn entities for soil tiles that don't have an entity yet.
+    // ── Spawn missing entities ────────────────────────────────────────────────
     let missing: Vec<((i32, i32), SoilState)> = farm_state
         .soil
         .iter()
@@ -37,22 +81,40 @@ pub fn sync_soil_sprites(
         .collect();
 
     for (pos, state) in missing {
-        let color = soil_color(state);
         let translation = grid_to_world(pos.0, pos.1);
-        let entity = commands.spawn((
-            Sprite {
-                color,
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
-                ..default()
-            },
-            Transform::from_translation(translation),
-            SoilTileEntity { grid_x: pos.0, grid_y: pos.1 },
-            SoilTile { state, grid_x: pos.0, grid_y: pos.1 },
-        )).id();
+
+        let entity = if atlases.loaded {
+            // Preferred path: use a texture atlas sprite.
+            commands.spawn((
+                Sprite::from_atlas_image(
+                    atlases.dirt_image.clone(),
+                    TextureAtlas {
+                        layout: atlases.dirt_layout.clone(),
+                        index: soil_atlas_index(state),
+                    },
+                ),
+                Transform::from_translation(translation),
+                SoilTileEntity { grid_x: pos.0, grid_y: pos.1 },
+                SoilTile { state, grid_x: pos.0, grid_y: pos.1 },
+            )).id()
+        } else {
+            // Fallback path: coloured rectangle until atlases are ready.
+            commands.spawn((
+                Sprite {
+                    color: soil_color(state),
+                    custom_size: Some(Vec2::splat(TILE_SIZE)),
+                    ..default()
+                },
+                Transform::from_translation(translation),
+                SoilTileEntity { grid_x: pos.0, grid_y: pos.1 },
+                SoilTile { state, grid_x: pos.0, grid_y: pos.1 },
+            )).id()
+        };
+
         farm_entities.soil_entities.insert(pos, entity);
     }
 
-    // Despawn soil entities whose tiles were removed from FarmState.
+    // ── Despawn stale entities ────────────────────────────────────────────────
     let stale: Vec<(i32, i32)> = farm_entities
         .soil_entities
         .keys()
@@ -71,19 +133,25 @@ pub fn sync_soil_sprites(
 // Crop sprite sync
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Update crop sprite colours to reflect current stage / wilting / dead state.
+/// Update crop sprite appearances to reflect current stage / wilting / dead state.
+///
+/// When `FarmingAtlases` are loaded, newly spawned crop entities use a texture
+/// atlas slice from `plants.png`.  Dead crops always use a brown-tinted colour
+/// sprite regardless of atlas availability.  For existing sprites with an atlas,
+/// the slice index is updated based on `current_stage`.
 pub fn sync_crop_sprites(
     mut commands: Commands,
     mut farm_entities: ResMut<FarmEntities>,
     farm_state: Res<FarmState>,
     crop_registry: Res<CropRegistry>,
+    atlases: Res<FarmingAtlases>,
     mut crop_query: Query<(&CropTileEntity, &mut Sprite, &mut CropTile)>,
 ) {
-    // Update colours and sync CropTile component data for existing entities.
+    // ── Update existing entities ──────────────────────────────────────────────
     for (tile, mut sprite, mut crop_component) in crop_query.iter_mut() {
         let pos = (tile.grid_x, tile.grid_y);
         if let Some(crop) = farm_state.crops.get(&pos) {
-            // Sync the component.
+            // Sync the component data.
             *crop_component = crop.clone();
 
             let total_stages = crop_registry
@@ -92,18 +160,28 @@ pub fn sync_crop_sprites(
                 .map(|d| d.growth_days.len() as u8)
                 .unwrap_or(4);
 
-            let color = if crop.dead {
-                Color::srgb(0.35, 0.28, 0.20)
-            } else if crop.days_without_water >= 2 {
-                // Wilting — desaturated yellowish green.
-                Color::srgb(0.65, 0.62, 0.25)
+            if crop.dead {
+                // Dead crops always rendered as a brown-tinted colour sprite.
+                // Remove any atlas reference so the colour shows through.
+                sprite.texture_atlas = None;
+                sprite.color = Color::srgb(0.35, 0.28, 0.20);
+                sprite.custom_size = Some(Vec2::splat(TILE_SIZE * 0.8));
+            } else if let Some(atlas) = &mut sprite.texture_atlas {
+                // Atlas sprite: update slice index for current stage.
+                atlas.index = crop_atlas_index(crop.current_stage, total_stages);
+                // Reset colour to opaque white so the atlas image shows correctly.
+                sprite.color = Color::WHITE;
             } else {
-                crop_stage_color(crop.current_stage, total_stages, crop.dead)
-            };
+                // Fallback: colour placeholder, update tint.
+                let color = if crop.days_without_water >= 2 {
+                    Color::srgb(0.65, 0.62, 0.25) // wilting — desaturated yellowish
+                } else {
+                    crop_stage_color(crop.current_stage, total_stages, crop.dead)
+                };
+                sprite.color = color;
+            }
 
-            sprite.color = color;
-
-            // Scale up slightly when mature to make it more visible.
+            // Scale: slightly larger when mature.
             let is_mature = crop_registry
                 .crops
                 .get(&crop.crop_id)
@@ -118,7 +196,7 @@ pub fn sync_crop_sprites(
         }
     }
 
-    // Spawn entities for crops that don't have an entity yet.
+    // ── Spawn missing entities ────────────────────────────────────────────────
     let missing: Vec<((i32, i32), CropTile)> = farm_state
         .crops
         .iter()
@@ -133,24 +211,46 @@ pub fn sync_crop_sprites(
             .map(|d| d.growth_days.len() as u8)
             .unwrap_or(4);
 
-        let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
         let translation = grid_to_world(pos.0, pos.1).with_z(2.0);
 
-        let entity = commands.spawn((
-            Sprite {
-                color,
-                custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-                ..default()
-            },
-            Transform::from_translation(translation),
-            CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-            crop,
-        )).id();
+        let entity = if atlases.loaded && !crop.dead {
+            // Preferred path: texture atlas sprite.
+            let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
+            commands.spawn((
+                Sprite::from_atlas_image(
+                    atlases.plants_image.clone(),
+                    TextureAtlas {
+                        layout: atlases.plants_layout.clone(),
+                        index: atlas_index,
+                    },
+                ),
+                Transform::from_translation(translation),
+                CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
+                crop,
+            )).id()
+        } else {
+            // Fallback: coloured rectangle (also used for dead crops).
+            let color = if crop.dead {
+                Color::srgb(0.35, 0.28, 0.20)
+            } else {
+                crop_stage_color(crop.current_stage, total_stages, crop.dead)
+            };
+            commands.spawn((
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
+                    ..default()
+                },
+                Transform::from_translation(translation),
+                CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
+                crop,
+            )).id()
+        };
 
         farm_entities.crop_entities.insert(pos, entity);
     }
 
-    // Despawn crop entities whose crops were removed from FarmState.
+    // ── Despawn stale entities ────────────────────────────────────────────────
     let stale: Vec<(i32, i32)> = farm_entities
         .crop_entities
         .keys()

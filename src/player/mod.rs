@@ -14,6 +14,7 @@ impl Plugin for PlayerPlugin {
         // -- Local resources --
         app.init_resource::<ToolCooldown>();
         app.init_resource::<CollisionMap>();
+        app.init_resource::<PlayerSpriteData>();
 
         // -- Spawn player when we enter Playing --
         app.add_systems(
@@ -26,6 +27,7 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 movement::player_movement,
+                movement::animate_player_sprite,
                 tools::tool_cycle,
                 tools::tool_use,
                 tools::stamina_drain_handler,
@@ -48,6 +50,23 @@ impl Plugin for PlayerPlugin {
 // ═══════════════════════════════════════════════════════════════════════════
 // Local resources (player-domain only)
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// Holds the loaded character spritesheet handles so spawn_player can
+/// reference them without reloading on every call.
+#[derive(Resource, Default)]
+pub struct PlayerSpriteData {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Per-entity walk animation state.
+#[derive(Component)]
+pub struct AnimationTimer {
+    pub timer: Timer,
+    pub frame_count: usize,
+    pub current_frame: usize,
+}
 
 /// Cooldown timer to prevent tool spam.
 #[derive(Resource)]

@@ -38,6 +38,22 @@ pub struct SpawnedNpcs {
     pub entities: std::collections::HashMap<String, Entity>,
 }
 
+/// Resource holding the loaded NPC character spritesheet atlas.
+///
+/// All NPCs share the same 192×192 spritesheet (4×4 grid of 48×48 frames):
+///   Row 0 (indices 0-3):  Walk down
+///   Row 1 (indices 4-7):  Walk up
+///   Row 2 (indices 8-11): Walk right
+///   Row 3 (indices 12-15): Walk left
+///
+/// Each NPC is tinted via npc_color() to visually differentiate them.
+#[derive(Resource, Default)]
+pub struct NpcSpriteData {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
 /// System: on entering Playing state, spawn NPCs for the current map.
 pub fn spawn_initial_npcs(
     mut commands: Commands,
@@ -45,6 +61,9 @@ pub fn spawn_initial_npcs(
     player_state: Res<PlayerState>,
     npc_registry: Res<NpcRegistry>,
     mut spawned: ResMut<SpawnedNpcs>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut npc_sprites: ResMut<NpcSpriteData>,
 ) {
     let current_map = player_state.current_map;
     spawn_npcs_for_map(
@@ -53,6 +72,9 @@ pub fn spawn_initial_npcs(
         current_map,
         &npc_registry,
         &mut spawned,
+        &asset_server,
+        &mut layouts,
+        &mut npc_sprites,
     );
 }
 
@@ -63,7 +85,23 @@ pub fn spawn_npcs_for_map(
     map: MapId,
     npc_registry: &NpcRegistry,
     spawned: &mut SpawnedNpcs,
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+    npc_sprites: &mut NpcSpriteData,
 ) {
+    // Load the character spritesheet atlas on first use.
+    if !npc_sprites.loaded {
+        npc_sprites.image = asset_server.load("sprites/character_spritesheet.png");
+        npc_sprites.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(48, 48),
+            4,
+            4,
+            None,
+            None,
+        ));
+        npc_sprites.loaded = true;
+    }
+
     for &npc_id in ALL_NPC_IDS {
         // Skip if already spawned
         if spawned.entities.contains_key(npc_id) {
@@ -88,6 +126,17 @@ pub fn spawn_npcs_for_map(
         let world_y = -(entry.y as f32 * TILE_SIZE);
         let color = npc_color(npc_id);
 
+        // Use atlas sprite with tint color to differentiate NPCs visually.
+        // Index 0 = first frame of Walk-down row, used as the default idle pose.
+        let mut sprite = Sprite::from_atlas_image(
+            npc_sprites.image.clone(),
+            TextureAtlas {
+                layout: npc_sprites.layout.clone(),
+                index: 0,
+            },
+        );
+        sprite.color = color;
+
         let entity = commands.spawn((
             Npc {
                 id: npc_id.to_string(),
@@ -100,16 +149,9 @@ pub fn spawn_npcs_for_map(
                 is_moving: false,
             },
             NpcMapTag(map),
-            Sprite {
-                color,
-                custom_size: Some(Vec2::new(14.0, 16.0)),
-                ..default()
-            },
+            sprite,
             Transform::from_xyz(world_x, world_y, 1.0),
-            GlobalTransform::default(),
             Visibility::default(),
-            InheritedVisibility::default(),
-            ViewVisibility::default(),
         )).id();
 
         spawned.entities.insert(npc_id.to_string(), entity);

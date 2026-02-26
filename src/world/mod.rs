@@ -32,6 +32,8 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
+            .init_resource::<TerrainAtlases>()
+            .init_resource::<objects::ObjectAtlases>()
             // Spawn the initial farm map when entering Playing state
             .add_systems(OnEnter(GameState::Playing), spawn_initial_map)
             // Gameplay systems: tool interactions, transitions, forageables
@@ -49,6 +51,176 @@ impl Plugin for WorldPlugin {
             .add_systems(Update, handle_day_end_forageables)
             // Listen for season changes for visual updates
             .add_systems(Update, handle_season_change);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TERRAIN ATLAS RESOURCE
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Caches loaded texture atlas handles for terrain tiles.
+/// Loaded lazily on first map spawn.
+#[derive(Resource, Default)]
+pub struct TerrainAtlases {
+    pub loaded: bool,
+    pub grass_image: Handle<Image>,
+    pub grass_layout: Handle<TextureAtlasLayout>,
+    pub dirt_image: Handle<Image>,
+    pub dirt_layout: Handle<TextureAtlasLayout>,
+    pub water_image: Handle<Image>,
+    pub water_layout: Handle<TextureAtlasLayout>,
+    pub paths_image: Handle<Image>,
+    pub paths_layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads all terrain atlas assets on first use. Subsequent calls are no-ops.
+fn ensure_atlases_loaded(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+    atlases: &mut TerrainAtlases,
+) {
+    if atlases.loaded {
+        return;
+    }
+
+    // grass.png: 176x112px -> 16x16 tiles, 11 columns x 7 rows
+    atlases.grass_image = asset_server.load("tilesets/grass.png");
+    atlases.grass_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        11,
+        7,
+        None,
+        None,
+    ));
+
+    // tilled_dirt.png: 176x112px -> 16x16 tiles, 11 columns x 7 rows
+    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt.png");
+    atlases.dirt_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        11,
+        7,
+        None,
+        None,
+    ));
+
+    // water.png: 64x16px -> 16x16 tiles, 4 columns x 1 row
+    atlases.water_image = asset_server.load("tilesets/water.png");
+    atlases.water_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        1,
+        None,
+        None,
+    ));
+
+    // paths.png: 64x64px -> 16x16 tiles, 4 columns x 4 rows
+    atlases.paths_image = asset_server.load("sprites/paths.png");
+    atlases.paths_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        4,
+        None,
+        None,
+    ));
+
+    atlases.loaded = true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TILE ATLAS MAPPING
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Maps a TileKind (and optionally season) to (image_handle, layout_handle, atlas_index).
+/// Returns None for Void tiles, which use a plain colored sprite instead.
+fn tile_atlas_info(
+    kind: TileKind,
+    _season: Season,
+    atlases: &TerrainAtlases,
+) -> Option<(Handle<Image>, Handle<TextureAtlasLayout>, usize)> {
+    match kind {
+        // Grass: use grass.png atlas. Index 5 is a nice center grass tile.
+        // Different rows could represent seasonal variants; for now we pick
+        // a reasonable base index per season.
+        TileKind::Grass => {
+            // Row 0 = basic grass. Index 5 is middle of the first row.
+            let index = match _season {
+                Season::Spring => 5,  // lush green center
+                Season::Summer => 16, // row 1, col 5 — slightly different shade
+                Season::Fall => 27,   // row 2, col 5
+                Season::Winter => 38, // row 3, col 5
+            };
+            Some((
+                atlases.grass_image.clone(),
+                atlases.grass_layout.clone(),
+                index,
+            ))
+        }
+
+        // Dirt: use tilled_dirt.png atlas. Index 5 = plain dirt tile.
+        TileKind::Dirt => Some((
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            5,
+        )),
+
+        // Tilled soil: tilled_dirt.png with a hoed-looking tile (index 12, row 1 col 1).
+        TileKind::TilledSoil => Some((
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            12,
+        )),
+
+        // Watered soil: tilled_dirt.png with a darker index (index 16, row 1 col 5).
+        TileKind::WateredSoil => Some((
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            16,
+        )),
+
+        // Water: water.png atlas, index 0.
+        TileKind::Water => Some((
+            atlases.water_image.clone(),
+            atlases.water_layout.clone(),
+            0,
+        )),
+
+        // Sand: use grass.png atlas with a sandy tile (row 4, col 2 = index 46).
+        TileKind::Sand => Some((
+            atlases.grass_image.clone(),
+            atlases.grass_layout.clone(),
+            46,
+        )),
+
+        // Stone: use tilled_dirt.png with a stone-looking tile (index 22, row 2 col 0).
+        TileKind::Stone => Some((
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            22,
+        )),
+
+        // Wood floor: tilled_dirt.png with a wood-colored tile (index 33, row 3 col 0).
+        TileKind::WoodFloor => Some((
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            33,
+        )),
+
+        // Path: paths.png atlas, index 0.
+        TileKind::Path => Some((
+            atlases.paths_image.clone(),
+            atlases.paths_layout.clone(),
+            5, // center path tile (row 1, col 1)
+        )),
+
+        // Bridge: paths.png atlas, wood bridge tile (index 12, row 3 col 0).
+        TileKind::Bridge => Some((
+            atlases.paths_image.clone(),
+            atlases.paths_layout.clone(),
+            12,
+        )),
+
+        // Void: no atlas — use plain colored sprite.
+        TileKind::Void => None,
     }
 }
 
@@ -179,10 +351,11 @@ pub struct TransitionZone {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// TILE COLORS
+// TILE COLORS (fallback for Void tiles and season change)
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Get the color for a tile kind, optionally adjusted for season.
+/// Kept as a fallback for Void tiles and the season change system.
 fn tile_color(kind: TileKind, season: Season) -> Color {
     match kind {
         TileKind::Grass => match season {
@@ -232,6 +405,8 @@ fn load_map(
     current_map_id: &mut CurrentMapId,
     season: Season,
     day: u8,
+    atlases: &TerrainAtlases,
+    object_atlases: &objects::ObjectAtlases,
 ) {
     let map_def = generate_map(map_id);
 
@@ -251,8 +426,8 @@ fn load_map(
         }
     }
 
-    // Spawn tile sprites
-    spawn_tile_sprites(commands, &map_def, season);
+    // Spawn tile sprites using texture atlases
+    spawn_tile_sprites(commands, &map_def, season, atlases);
 
     // Spawn transition zone markers
     for transition in &map_def.transitions {
@@ -270,9 +445,9 @@ fn load_map(
         ));
     }
 
-    // Spawn world objects
+    // Spawn world objects with atlas sprites
     let object_placements = map_def.objects.clone();
-    spawn_world_objects(commands, &object_placements, world_map);
+    spawn_world_objects(commands, &object_placements, world_map, object_atlases);
 
     // Spawn forageables for today
     let forage_points = map_def.forage_points.clone();
@@ -282,26 +457,53 @@ fn load_map(
     world_map.map_def = Some(map_def);
 }
 
-/// Spawn individual tile sprites for the map.
-fn spawn_tile_sprites(commands: &mut Commands, map_def: &MapDef, season: Season) {
+/// Spawn individual tile sprites for the map using texture atlases.
+fn spawn_tile_sprites(
+    commands: &mut Commands,
+    map_def: &MapDef,
+    season: Season,
+    atlases: &TerrainAtlases,
+) {
     for y in 0..map_def.height {
         for x in 0..map_def.width {
             let tile = map_def.tiles[y * map_def.width + x];
-            let color = tile_color(tile, season);
 
-            commands.spawn((
-                Sprite {
-                    color,
-                    custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
-                    ..default()
-                },
-                Transform::from_translation(Vec3::new(
-                    x as f32 * TILE_SIZE,
-                    y as f32 * TILE_SIZE,
-                    0.0,
-                )),
-                MapTile,
-            ));
+            match tile_atlas_info(tile, season, atlases) {
+                Some((image, layout, index)) => {
+                    // Use texture atlas sprite
+                    commands.spawn((
+                        Sprite::from_atlas_image(
+                            image,
+                            TextureAtlas {
+                                layout,
+                                index,
+                            },
+                        ),
+                        Transform::from_translation(Vec3::new(
+                            x as f32 * TILE_SIZE,
+                            y as f32 * TILE_SIZE,
+                            0.0,
+                        )),
+                        MapTile,
+                    ));
+                }
+                None => {
+                    // Void tile: use plain colored sprite (no texture needed)
+                    commands.spawn((
+                        Sprite {
+                            color: tile_color(tile, season),
+                            custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+                            ..default()
+                        },
+                        Transform::from_translation(Vec3::new(
+                            x as f32 * TILE_SIZE,
+                            y as f32 * TILE_SIZE,
+                            0.0,
+                        )),
+                        MapTile,
+                    ));
+                }
+            }
         }
     }
 }
@@ -330,7 +532,16 @@ fn spawn_initial_map(
     mut world_map: ResMut<WorldMap>,
     mut current_map_id: ResMut<CurrentMapId>,
     calendar: Res<Calendar>,
+    asset_server: Res<AssetServer>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut terrain_atlases: ResMut<TerrainAtlases>,
+    mut object_atlases: ResMut<objects::ObjectAtlases>,
 ) {
+    // Ensure terrain atlases are loaded
+    ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);
+    // Ensure object atlases are loaded
+    objects::ensure_object_atlases_loaded(&asset_server, &mut atlas_layouts, &mut object_atlases);
+
     load_map(
         &mut commands,
         MapId::Farm,
@@ -338,6 +549,8 @@ fn spawn_initial_map(
         &mut current_map_id,
         calendar.season,
         calendar.day,
+        &terrain_atlases,
+        &object_atlases,
     );
 }
 
@@ -351,6 +564,10 @@ fn handle_map_transition(
     mut current_map_id: ResMut<CurrentMapId>,
     mut player_state: ResMut<PlayerState>,
     calendar: Res<Calendar>,
+    asset_server: Res<AssetServer>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut terrain_atlases: ResMut<TerrainAtlases>,
+    mut object_atlases: ResMut<objects::ObjectAtlases>,
 ) {
     for event in events.read() {
         // Don't transition to the same map
@@ -364,6 +581,14 @@ fn handle_map_transition(
         // Update player's current map
         player_state.current_map = event.to_map;
 
+        // Ensure atlases are loaded (in case they weren't yet)
+        ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);
+        objects::ensure_object_atlases_loaded(
+            &asset_server,
+            &mut atlas_layouts,
+            &mut object_atlases,
+        );
+
         // Load the new map
         load_map(
             &mut commands,
@@ -372,6 +597,8 @@ fn handle_map_transition(
             &mut current_map_id,
             calendar.season,
             calendar.day,
+            &terrain_atlases,
+            &object_atlases,
         );
     }
 }
@@ -403,11 +630,14 @@ fn handle_day_end_forageables(
     }
 }
 
-/// Handle SeasonChangeEvent: update tile colors for the new season.
+/// Handle SeasonChangeEvent: update tile sprites for the new season.
+/// For atlas-based tiles, we swap the atlas index to the seasonal variant.
+/// For Void tiles (plain colored), we leave them as-is.
 fn handle_season_change(
     mut season_events: EventReader<SeasonChangeEvent>,
     mut tile_query: Query<(&Transform, &mut Sprite), With<MapTile>>,
     world_map: Res<WorldMap>,
+    terrain_atlases: Res<TerrainAtlases>,
 ) {
     for event in season_events.read() {
         let new_season = event.new_season;
@@ -419,7 +649,20 @@ fn handle_season_change(
                 let gy = (transform.translation.y / TILE_SIZE).round() as i32;
 
                 let tile = map_def.get_tile(gx, gy);
-                sprite.color = tile_color(tile, new_season);
+
+                match tile_atlas_info(tile, new_season, &terrain_atlases) {
+                    Some((image, layout, index)) => {
+                        // Update the sprite to use the new seasonal atlas image and index
+                        *sprite = Sprite::from_atlas_image(
+                            image,
+                            TextureAtlas { layout, index },
+                        );
+                    }
+                    None => {
+                        // Void tile: update color fallback
+                        sprite.color = tile_color(tile, new_season);
+                    }
+                }
             }
         }
     }
