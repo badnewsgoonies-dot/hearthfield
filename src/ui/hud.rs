@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS — used to query and update HUD elements
@@ -53,7 +54,9 @@ pub struct HotbarQuantityText {
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_hud(mut commands: Commands) {
+pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
+    let font = font_handle.0.clone();
+
     // Root container — full screen overlay, no interaction blocking
     commands
         .spawn((
@@ -101,6 +104,7 @@ pub fn spawn_hud(mut commands: Commands) {
                                 HudTimeText,
                                 Text::new("Spring 1, Year 1 - 6:00 AM"),
                                 TextFont {
+                                    font: font.clone(),
                                     font_size: 18.0,
                                     ..default()
                                 },
@@ -112,6 +116,7 @@ pub fn spawn_hud(mut commands: Commands) {
                                 HudWeatherText,
                                 Text::new("Sunny"),
                                 TextFont {
+                                    font: font.clone(),
                                     font_size: 16.0,
                                     ..default()
                                 },
@@ -125,6 +130,7 @@ pub fn spawn_hud(mut commands: Commands) {
                         HudToolText,
                         Text::new("Hoe"),
                         TextFont {
+                            font: font.clone(),
                             font_size: 16.0,
                             ..default()
                         },
@@ -149,6 +155,7 @@ pub fn spawn_hud(mut commands: Commands) {
                                 HudGoldText,
                                 Text::new("500 G"),
                                 TextFont {
+                                    font: font.clone(),
                                     font_size: 18.0,
                                     ..default()
                                 },
@@ -186,11 +193,11 @@ pub fn spawn_hud(mut commands: Commands) {
                 });
 
             // ─── BOTTOM: HOTBAR ───
-            spawn_hotbar(parent);
+            spawn_hotbar(parent, &font);
         });
 }
 
-fn spawn_hotbar(parent: &mut ChildBuilder) {
+fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
     parent
         .spawn((
             HotbarRoot,
@@ -230,6 +237,7 @@ fn spawn_hotbar(parent: &mut ChildBuilder) {
                             HotbarItemText { index: i },
                             Text::new(""),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 10.0,
                                 ..default()
                             },
@@ -241,6 +249,7 @@ fn spawn_hotbar(parent: &mut ChildBuilder) {
                             HotbarQuantityText { index: i },
                             Text::new(""),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 9.0,
                                 ..default()
                             },

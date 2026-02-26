@@ -10,6 +10,54 @@ use super::maps::{WorldObjectKind, ObjectPlacement};
 use super::WorldMap;
 
 // ═══════════════════════════════════════════════════════════════════════
+// OBJECT ATLAS RESOURCE
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Caches loaded texture atlas handles for world objects.
+/// Loaded lazily on first map spawn.
+#[derive(Resource, Default)]
+pub struct ObjectAtlases {
+    pub loaded: bool,
+    pub grass_biome_image: Handle<Image>,
+    pub grass_biome_layout: Handle<TextureAtlasLayout>,
+    pub fences_image: Handle<Image>,
+    pub fences_layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads object atlas assets on first use. Subsequent calls are no-ops.
+pub fn ensure_object_atlases_loaded(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+    atlases: &mut ObjectAtlases,
+) {
+    if atlases.loaded {
+        return;
+    }
+
+    // grass_biome.png: 144x80px -> 16x16 tiles, 9 columns x 5 rows
+    atlases.grass_biome_image = asset_server.load("sprites/grass_biome.png");
+    atlases.grass_biome_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        9,
+        5,
+        None,
+        None,
+    ));
+
+    // fences.png: 64x64px -> 16x16 tiles, 4 columns x 4 rows
+    atlases.fences_image = asset_server.load("tilesets/fences.png");
+    atlases.fences_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        4,
+        None,
+        None,
+    ));
+
+    atlases.loaded = true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -93,7 +141,7 @@ impl WorldObjectKind {
         }
     }
 
-    /// Color used for placeholder sprite.
+    /// Color used for placeholder sprite (fallback).
     pub fn color(self) -> Color {
         match self {
             WorldObjectKind::Tree => Color::srgb(0.15, 0.5, 0.15),
@@ -118,17 +166,37 @@ impl WorldObjectKind {
     pub fn is_solid(self) -> bool {
         true
     }
+
+    /// Atlas index in grass_biome.png for this object kind.
+    /// grass_biome.png is 9 columns x 5 rows of 16x16 tiles.
+    /// Typical layout:
+    ///   Row 0: grass decorations / small plants
+    ///   Row 1: bushes, small tree tops
+    ///   Row 2: tree trunk / mid sections
+    ///   Row 3: rocks, stumps
+    ///   Row 4: logs, large rocks
+    pub fn atlas_index(self) -> usize {
+        match self {
+            WorldObjectKind::Tree => 10,    // row 1, col 1 — tree/bush top
+            WorldObjectKind::Bush => 1,     // row 0, col 1 — small bush/grass
+            WorldObjectKind::Stump => 27,   // row 3, col 0 — stump/rock-like
+            WorldObjectKind::Rock => 29,    // row 3, col 2 — rock
+            WorldObjectKind::LargeRock => 38, // row 4, col 2 — large rock
+            WorldObjectKind::Log => 36,     // row 4, col 0 — log
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWNING
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Spawn world objects from a list of placements.
+/// Spawn world objects from a list of placements, using texture atlas sprites.
 pub fn spawn_world_objects(
     commands: &mut Commands,
     placements: &[ObjectPlacement],
     world_map: &mut WorldMap,
+    object_atlases: &ObjectAtlases,
 ) {
     for placement in placements {
         let kind = placement.kind;
@@ -148,20 +216,45 @@ pub fn spawn_world_objects(
             0.0
         };
 
-        commands.spawn((
-            Sprite {
-                color: kind.color(),
-                custom_size: Some(size),
-                ..default()
-            },
-            Transform::from_translation(Vec3::new(
-                placement.x as f32 * TILE_SIZE,
-                placement.y as f32 * TILE_SIZE + y_offset,
-                5.0, // Above tiles, below UI
-            )),
-            WorldObject,
-            data,
-        ));
+        if object_atlases.loaded {
+            // Use atlas sprite from grass_biome.png
+            let atlas_index = kind.atlas_index();
+            let mut sprite = Sprite::from_atlas_image(
+                object_atlases.grass_biome_image.clone(),
+                TextureAtlas {
+                    layout: object_atlases.grass_biome_layout.clone(),
+                    index: atlas_index,
+                },
+            );
+            sprite.custom_size = Some(size);
+
+            commands.spawn((
+                sprite,
+                Transform::from_translation(Vec3::new(
+                    placement.x as f32 * TILE_SIZE,
+                    placement.y as f32 * TILE_SIZE + y_offset,
+                    5.0, // Above tiles, below UI
+                )),
+                WorldObject,
+                data,
+            ));
+        } else {
+            // Fallback: colored rectangle if atlases failed to load
+            commands.spawn((
+                Sprite {
+                    color: kind.color(),
+                    custom_size: Some(size),
+                    ..default()
+                },
+                Transform::from_translation(Vec3::new(
+                    placement.x as f32 * TILE_SIZE,
+                    placement.y as f32 * TILE_SIZE + y_offset,
+                    5.0,
+                )),
+                WorldObject,
+                data,
+            ));
+        }
 
         // Mark the tile as solid in the collision map
         world_map.set_solid(placement.x, placement.y, true);
@@ -180,6 +273,7 @@ pub fn handle_tool_use_on_objects(
     mut pickup_writer: EventWriter<ItemPickupEvent>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     mut world_map: ResMut<WorldMap>,
+    object_atlases: Res<ObjectAtlases>,
 ) {
     for event in tool_events.read() {
         for (entity, mut obj_data, mut sprite) in objects.iter_mut() {
@@ -190,18 +284,10 @@ pub fn handle_tool_use_on_objects(
                     let new_health = obj_data.health.saturating_sub(damage);
                     obj_data.health = new_health;
 
-                    // Visual feedback: lighten color as health decreases
+                    // Visual feedback: tint the sprite as health decreases
                     let health_ratio = obj_data.health as f32 / obj_data.max_health as f32;
-                    let base_color = obj_data.kind.color();
-                    let linear = base_color.to_linear();
-                    let r = linear.red;
-                    let g = linear.green;
-                    let b = linear.blue;
-                    sprite.color = Color::srgb(
-                        r + (1.0 - r) * (1.0 - health_ratio) * 0.3,
-                        g + (1.0 - g) * (1.0 - health_ratio) * 0.3,
-                        b + (1.0 - b) * (1.0 - health_ratio) * 0.3,
-                    );
+                    let tint = 0.7 + 0.3 * health_ratio; // from 1.0 (full) to 0.7 (nearly dead)
+                    sprite.color = Color::srgb(tint, tint, tint);
 
                     // Play hit sound
                     sfx_writer.send(PlaySfxEvent {
@@ -232,20 +318,46 @@ pub fn handle_tool_use_on_objects(
                                 grid_x: obj_data.grid_x,
                                 grid_y: obj_data.grid_y,
                             };
-                            commands.spawn((
-                                Sprite {
-                                    color: WorldObjectKind::Stump.color(),
-                                    custom_size: Some(WorldObjectKind::Stump.sprite_size()),
-                                    ..default()
-                                },
-                                Transform::from_translation(Vec3::new(
-                                    obj_data.grid_x as f32 * TILE_SIZE,
-                                    obj_data.grid_y as f32 * TILE_SIZE,
-                                    5.0,
-                                )),
-                                WorldObject,
-                                stump_data,
-                            ));
+
+                            if object_atlases.loaded {
+                                let stump_index = WorldObjectKind::Stump.atlas_index();
+                                let mut stump_sprite = Sprite::from_atlas_image(
+                                    object_atlases.grass_biome_image.clone(),
+                                    TextureAtlas {
+                                        layout: object_atlases.grass_biome_layout.clone(),
+                                        index: stump_index,
+                                    },
+                                );
+                                stump_sprite.custom_size =
+                                    Some(WorldObjectKind::Stump.sprite_size());
+
+                                commands.spawn((
+                                    stump_sprite,
+                                    Transform::from_translation(Vec3::new(
+                                        obj_data.grid_x as f32 * TILE_SIZE,
+                                        obj_data.grid_y as f32 * TILE_SIZE,
+                                        5.0,
+                                    )),
+                                    WorldObject,
+                                    stump_data,
+                                ));
+                            } else {
+                                // Fallback: colored rectangle
+                                commands.spawn((
+                                    Sprite {
+                                        color: WorldObjectKind::Stump.color(),
+                                        custom_size: Some(WorldObjectKind::Stump.sprite_size()),
+                                        ..default()
+                                    },
+                                    Transform::from_translation(Vec3::new(
+                                        obj_data.grid_x as f32 * TILE_SIZE,
+                                        obj_data.grid_y as f32 * TILE_SIZE,
+                                        5.0,
+                                    )),
+                                    WorldObject,
+                                    stump_data,
+                                ));
+                            }
                             // Tile stays solid (stump)
                         } else {
                             // Clear solid flag

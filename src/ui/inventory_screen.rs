@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -38,8 +39,10 @@ pub struct InventoryUiState {
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_inventory_screen(mut commands: Commands) {
+pub fn spawn_inventory_screen(mut commands: Commands, font_handle: Res<UiFontHandle>) {
     commands.insert_resource(InventoryUiState { cursor_slot: 0 });
+
+    let font = font_handle.0.clone();
 
     commands
         .spawn((
@@ -75,6 +78,7 @@ pub fn spawn_inventory_screen(mut commands: Commands) {
                     panel.spawn((
                         Text::new("INVENTORY"),
                         TextFont {
+                            font: font.clone(),
                             font_size: 22.0,
                             ..default()
                         },
@@ -85,6 +89,7 @@ pub fn spawn_inventory_screen(mut commands: Commands) {
                     panel.spawn((
                         Text::new("Arrow keys to move | Esc to close"),
                         TextFont {
+                            font: font.clone(),
                             font_size: 12.0,
                             ..default()
                         },
@@ -129,6 +134,7 @@ pub fn spawn_inventory_screen(mut commands: Commands) {
                                                 InventorySlotItemName { index },
                                                 Text::new(""),
                                                 TextFont {
+                                                    font: font.clone(),
                                                     font_size: 9.0,
                                                     ..default()
                                                 },
@@ -139,6 +145,7 @@ pub fn spawn_inventory_screen(mut commands: Commands) {
                                                 InventorySlotQuantity { index },
                                                 Text::new(""),
                                                 TextFont {
+                                                    font: font.clone(),
                                                     font_size: 8.0,
                                                     ..default()
                                                 },
