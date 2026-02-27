@@ -381,7 +381,7 @@ pub fn update_chest_cursor(
 
 /// Handles navigation and item transfer within the chest screen.
 pub fn handle_chest_input(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     interaction: Res<ChestInteraction>,
     mut ui_state: Option<ResMut<ChestUiState>>,
     mut inventory: ResMut<Inventory>,
@@ -399,22 +399,22 @@ pub fn handle_chest_input(
         return;
     };
 
-    // Tab: switch panels
-    if keyboard.just_pressed(KeyCode::Tab) {
+    // Tab: switch panels (Tab is mapped to ui_left in Gameplay context)
+    if player_input.ui_left {
         ui_state.on_chest_side = !ui_state.on_chest_side;
         ui_state.cursor = 0;
     }
 
     // Up/Down navigation
-    if keyboard.just_pressed(KeyCode::ArrowUp) && ui_state.cursor > 0 {
+    if player_input.ui_up && ui_state.cursor > 0 {
         ui_state.cursor -= 1;
     }
-    if keyboard.just_pressed(KeyCode::ArrowDown) && ui_state.cursor < VISIBLE_SLOTS - 1 {
+    if player_input.ui_down && ui_state.cursor < VISIBLE_SLOTS - 1 {
         ui_state.cursor += 1;
     }
 
     // Enter: transfer item
-    if keyboard.just_pressed(KeyCode::Enter) {
+    if player_input.ui_confirm {
         let Ok(mut chest) = chest_query.get_mut(entity) else {
             return;
         };

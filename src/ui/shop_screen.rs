@@ -356,7 +356,8 @@ pub fn update_shop_display(
 }
 
 pub fn shop_navigation(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    action: Res<MenuAction>,
+    player_input: Res<PlayerInput>,
     mut ui_state: Option<ResMut<ShopUiState>>,
     mut player: ResMut<PlayerState>,
     mut inventory: ResMut<Inventory>,
@@ -372,19 +373,19 @@ pub fn shop_navigation(
     };
 
     // Navigation
-    if keyboard.just_pressed(KeyCode::ArrowDown) {
+    if action.move_down {
         if max_items > 0 && ui_state.cursor < max_items - 1 {
             ui_state.cursor += 1;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowUp) {
+    if action.move_up {
         if ui_state.cursor > 0 {
             ui_state.cursor -= 1;
         }
     }
 
-    // Toggle buy/sell
-    if keyboard.just_pressed(KeyCode::Tab) {
+    // Toggle buy/sell (Tab is mapped to open_inventory in menu context)
+    if player_input.open_inventory {
         ui_state.is_buy_mode = !ui_state.is_buy_mode;
         ui_state.cursor = 0;
         // Refresh sell list
@@ -394,7 +395,7 @@ pub fn shop_navigation(
     }
 
     // Execute transaction
-    if keyboard.just_pressed(KeyCode::Enter) {
+    if action.activate {
         if ui_state.is_buy_mode {
             // Buy
             if ui_state.cursor < ui_state.buy_items.len() {

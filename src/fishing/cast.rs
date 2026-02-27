@@ -223,7 +223,7 @@ pub fn handle_bite_reaction_window(
     mut minigame_state: ResMut<FishingMinigameState>,
     mut next_state: ResMut<NextState<GameState>>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     time: Res<Time>,
     fish_registry: Res<FishRegistry>,
@@ -239,7 +239,7 @@ pub fn handle_bite_reaction_window(
         return;
     }
 
-    let space_pressed = keyboard.just_pressed(KeyCode::Space);
+    let space_pressed = player_input.tool_use;
 
     let reaction_expired = if let Some(ref mut timer) = fishing_state.reaction_timer {
         timer.tick(time.delta());
@@ -302,7 +302,7 @@ pub fn handle_cancel_fishing(
     mut fishing_state: ResMut<FishingState>,
     mut next_state: ResMut<NextState<GameState>>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
@@ -319,7 +319,7 @@ pub fn handle_cancel_fishing(
         return;
     }
 
-    if keyboard.just_pressed(KeyCode::Escape) {
+    if player_input.ui_cancel {
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         let fs: &mut FishingState = &mut fishing_state;
         let ns: &mut NextState<GameState> = &mut next_state;

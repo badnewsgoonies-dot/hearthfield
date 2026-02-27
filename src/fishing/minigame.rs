@@ -115,12 +115,12 @@ pub fn update_fish_zone(
 /// Update catch bar based on Space key input.
 pub fn update_catch_bar(
     mut minigame_state: ResMut<FishingMinigameState>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     time: Res<Time>,
     mut catch_bar_query: Query<&mut Transform, With<MinigameCatchBar>>,
 ) {
     let dt = time.delta_secs();
-    let space_held = keyboard.pressed(KeyCode::Space);
+    let space_held = player_input.fishing_reel;
     minigame_state.space_held = space_held;
 
     let catch_half = minigame_state.catch_bar_half;
@@ -207,7 +207,7 @@ pub fn check_minigame_result(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
     mut gold_events: EventWriter<GoldChangeEvent>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     fish_registry: Res<FishRegistry>,
     calendar: Res<Calendar>,
     mut encyclopedia: ResMut<FishEncyclopedia>,
@@ -293,7 +293,7 @@ pub fn check_minigame_result(
     }
 
     // Cancel with Escape key
-    if keyboard.just_pressed(KeyCode::Escape) {
+    if player_input.ui_cancel {
         sfx_events.send(PlaySfxEvent {
             sfx_id: "fish_escape".to_string(),
         });

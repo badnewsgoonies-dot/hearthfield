@@ -192,14 +192,14 @@ pub fn despawn_dialogue_box(
 // ═══════════════════════════════════════════════════════════════════════
 
 pub fn advance_dialogue(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut ui_state: Option<ResMut<DialogueUiState>>,
     mut text_query: Query<&mut Text, With<DialogueText>>,
     mut prompt_query: Query<&mut Text, (With<DialoguePrompt>, Without<DialogueText>)>,
     mut next_state: ResMut<NextState<GameState>>,
     mut end_event: EventWriter<DialogueEndEvent>,
 ) {
-    if !keyboard.just_pressed(KeyCode::Space) {
+    if !player_input.interact {
         return;
     }
 

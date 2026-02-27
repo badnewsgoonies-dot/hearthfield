@@ -104,7 +104,7 @@ fn preference_to_points(preference: GiftPreference) -> i32 {
 /// This system checks: player is adjacent to an NPC, presses G, has selected item.
 /// If so, it emits a GiftGivenEvent and removes one of the item from inventory.
 pub fn handle_gift_input(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     npc_query: Query<(&Npc, &Transform)>,
@@ -124,7 +124,7 @@ pub fn handle_gift_input(
         return;
     }
 
-    if !keyboard.just_pressed(KeyCode::KeyG) {
+    if !player_input.interact {
         return;
     }
 

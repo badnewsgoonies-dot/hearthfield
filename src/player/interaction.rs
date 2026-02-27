@@ -183,7 +183,7 @@ pub fn handle_map_transition(
 /// Check for interactable / pickup items on the tile the player is
 /// standing on or the tile they face when pressing F.
 pub fn item_pickup_check(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     query: Query<(&GridPosition, &PlayerMovement), With<Player>>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     farm_state: Res<FarmState>,
@@ -195,7 +195,7 @@ pub fn item_pickup_check(
     }
 
     // Manual interaction pickup on F key
-    if !keyboard.just_pressed(KeyCode::KeyF) {
+    if !player_input.interact {
         return;
     }
 

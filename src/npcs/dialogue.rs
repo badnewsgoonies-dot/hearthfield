@@ -17,7 +17,7 @@ pub struct ActiveNpcInteraction {
 
 /// System: detect player pressing Space near an NPC and start dialogue.
 pub fn handle_npc_interaction(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     npc_query: Query<(&Npc, &Transform)>,
@@ -38,7 +38,7 @@ pub fn handle_npc_interaction(
         return;
     }
 
-    if !keyboard.just_pressed(KeyCode::Space) {
+    if !player_input.tool_use {
         return;
     }
 

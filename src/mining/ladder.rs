@@ -16,7 +16,7 @@ pub fn handle_ladder_interaction(
     mut floor_req: ResMut<FloorSpawnRequest>,
     ladders: Query<(&MineGridPos, &MineLadder)>,
     in_mine: Res<InMine>,
-    input: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
@@ -29,7 +29,7 @@ pub fn handle_ladder_interaction(
     }
 
     // Player must press Space/Enter to interact with ladder
-    if !input.just_pressed(KeyCode::Space) && !input.just_pressed(KeyCode::Enter) {
+    if !player_input.tool_use && !player_input.ui_confirm {
         return;
     }
 
@@ -79,7 +79,7 @@ pub fn handle_mine_exit(
     mut active_floor: ResMut<ActiveFloor>,
     mut in_mine: ResMut<InMine>,
     exits: Query<&MineGridPos, With<MineExit>>,
-    input: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut map_events: EventWriter<MapTransitionEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
@@ -93,7 +93,7 @@ pub fn handle_mine_exit(
     }
 
     // Player must press Space/Enter near exit, or be standing on it
-    if !input.just_pressed(KeyCode::Space) && !input.just_pressed(KeyCode::Enter) {
+    if !player_input.tool_use && !player_input.ui_confirm {
         return;
     }
 
@@ -135,7 +135,7 @@ pub fn handle_elevator_selection(
     mut floor_req: ResMut<FloorSpawnRequest>,
     mut elevator_ui: ResMut<ElevatorUiOpen>,
     mut active_floor: ResMut<ActiveFloor>,
-    input: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     in_mine: Res<InMine>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
@@ -148,25 +148,37 @@ pub fn handle_elevator_selection(
         return;
     }
 
-    // Floor 0 (ground) is always available — mapped to key 1
+    // Floor 0 (ground) is always available — mapped to key 1 (tool_slot Some(0))
     // Elevator floors are mapped to keys 2, 3, 4, etc.
     let mut selected_floor: Option<u8> = None;
 
-    if input.just_pressed(KeyCode::Digit1) || input.just_pressed(KeyCode::Numpad1) {
-        selected_floor = Some(1);
-    } else if input.just_pressed(KeyCode::Digit2) || input.just_pressed(KeyCode::Numpad2) {
-        if let Some(&floor) = mine_state.elevator_floors.get(0) {
-            selected_floor = Some(floor);
+    match player_input.tool_slot {
+        Some(0) => {
+            // Key 1 → floor 1 (ground)
+            selected_floor = Some(1);
         }
-    } else if input.just_pressed(KeyCode::Digit3) || input.just_pressed(KeyCode::Numpad3) {
-        if let Some(&floor) = mine_state.elevator_floors.get(1) {
-            selected_floor = Some(floor);
+        Some(1) => {
+            // Key 2 → first elevator stop
+            if let Some(&floor) = mine_state.elevator_floors.get(0) {
+                selected_floor = Some(floor);
+            }
         }
-    } else if input.just_pressed(KeyCode::Digit4) || input.just_pressed(KeyCode::Numpad4) {
-        if let Some(&floor) = mine_state.elevator_floors.get(2) {
-            selected_floor = Some(floor);
+        Some(2) => {
+            // Key 3 → second elevator stop
+            if let Some(&floor) = mine_state.elevator_floors.get(1) {
+                selected_floor = Some(floor);
+            }
         }
-    } else if input.just_pressed(KeyCode::Escape) {
+        Some(3) => {
+            // Key 4 → third elevator stop
+            if let Some(&floor) = mine_state.elevator_floors.get(2) {
+                selected_floor = Some(floor);
+            }
+        }
+        _ => {}
+    }
+
+    if selected_floor.is_none() && player_input.ui_cancel {
         // Cancel elevator, go to floor 1
         selected_floor = Some(1);
     }

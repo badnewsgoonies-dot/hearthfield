@@ -585,18 +585,18 @@ fn autosave_on_day_end(
 
 /// F5 = quicksave to active slot, F9 = quickload from active slot.
 fn quicksave_keybind(
-    keys: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     active_slot: Res<ActiveSaveSlot>,
     mut save_writer: EventWriter<SaveRequestEvent>,
     mut load_writer: EventWriter<LoadRequestEvent>,
 ) {
-    if keys.just_pressed(KeyCode::F5) {
+    if player_input.quicksave {
         info!("F5 quicksave to slot {}", active_slot.slot);
         save_writer.send(SaveRequestEvent {
             slot: active_slot.slot,
         });
     }
-    if keys.just_pressed(KeyCode::F9) {
+    if player_input.quickload {
         info!("F9 quickload from slot {}", active_slot.slot);
         load_writer.send(LoadRequestEvent {
             slot: active_slot.slot,
