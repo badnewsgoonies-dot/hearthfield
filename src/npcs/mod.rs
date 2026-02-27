@@ -36,6 +36,13 @@ use schedule::{
     ScheduleUpdateTimer,
 };
 use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
+use quests::{
+    post_daily_quests,
+    handle_quest_accepted,
+    track_quest_progress,
+    handle_quest_completed,
+    expire_quests,
+};
 
 pub struct NpcPlugin;
 
@@ -93,6 +100,16 @@ impl Plugin for NpcPlugin {
                 handle_spouse_action,
                 // Romance: update spouse happiness on day end
                 update_spouse_happiness,
+                // Quests: post new quests at day end
+                post_daily_quests,
+                // Quests: handle player accepting a quest
+                handle_quest_accepted,
+                // Quests: track progress from game events
+                track_quest_progress,
+                // Quests: award rewards on completion
+                handle_quest_completed,
+                // Quests: expire timed-out quests at day end
+                expire_quests,
             )
                 .run_if(in_state(GameState::Playing)),
         );
