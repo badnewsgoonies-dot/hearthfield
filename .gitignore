@@ -1,4 +1,7 @@
 /target
+/web
+/dist
+*.zip
 *.log
 logs/
 *.db
