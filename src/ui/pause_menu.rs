@@ -1,6 +1,7 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::save::{ActiveSaveSlot, SaveCompleteEvent, SaveRequestEvent};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -23,7 +24,11 @@ pub struct PauseMenuItemText {
 #[derive(Resource)]
 pub struct PauseMenuState {
     pub cursor: usize,
+    pub status_message: String,
 }
+
+#[derive(Component)]
+pub struct PauseMenuStatusText;
 
 const PAUSE_OPTIONS: &[&str] = &["Resume", "Save Game", "Quit to Menu"];
 
@@ -32,7 +37,10 @@ const PAUSE_OPTIONS: &[&str] = &["Resume", "Save Game", "Quit to Menu"];
 // ═══════════════════════════════════════════════════════════════════════
 
 pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) {
-    commands.insert_resource(PauseMenuState { cursor: 0 });
+    commands.insert_resource(PauseMenuState {
+        cursor: 0,
+        status_message: String::new(),
+    });
 
     let font = font_handle.0.clone();
 
@@ -109,6 +117,17 @@ pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) 
 
                     // Hint
                     panel.spawn((
+                        PauseMenuStatusText,
+                        Text::new(""),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.95, 0.75, 0.45)),
+                    ));
+
+                    panel.spawn((
                         Text::new("Up/Down: Select | Enter: Confirm | Esc: Resume"),
                         TextFont {
                             font: font.clone(),
@@ -121,10 +140,7 @@ pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) 
         });
 }
 
-pub fn despawn_pause_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<PauseMenuRoot>>,
-) {
+pub fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn();
     }
@@ -138,6 +154,7 @@ pub fn despawn_pause_menu(
 pub fn update_pause_menu_visuals(
     state: Option<Res<PauseMenuState>>,
     mut query: Query<(&PauseMenuItem, &mut BackgroundColor, &mut BorderColor)>,
+    mut status_query: Query<&mut Text, With<PauseMenuStatusText>>,
 ) {
     let Some(state) = state else { return };
     for (item, mut bg, mut border) in &mut query {
@@ -149,13 +166,17 @@ pub fn update_pause_menu_visuals(
             *border = BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.6));
         }
     }
+
+    let mut text = status_query.single_mut();
+    text.0 = state.status_message.clone();
 }
 
 pub fn pause_menu_navigation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut state: Option<ResMut<PauseMenuState>>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut app_exit: EventWriter<AppExit>,
+    active_slot: Res<ActiveSaveSlot>,
+    mut save_writer: EventWriter<SaveRequestEvent>,
 ) {
     let Some(ref mut state) = state else { return };
 
@@ -177,11 +198,9 @@ pub fn pause_menu_navigation(
                 next_state.set(GameState::Playing);
             }
             1 => {
-                // Save — we don't directly call save logic here; the save domain
-                // should listen for a save trigger. For now, resume after "saving".
-                // In a full implementation, we'd emit a SaveGameEvent.
-                // For now, just resume.
-                next_state.set(GameState::Playing);
+                let slot = active_slot.slot;
+                state.status_message = format!("Saving Slot {}...", slot + 1);
+                save_writer.send(SaveRequestEvent { slot });
             }
             2 => {
                 // Quit to menu
@@ -194,5 +213,23 @@ pub fn pause_menu_navigation(
     // Escape also resumes
     if keyboard.just_pressed(KeyCode::Escape) {
         next_state.set(GameState::Playing);
+    }
+}
+
+pub fn handle_save_complete_in_pause_menu(
+    mut complete_events: EventReader<SaveCompleteEvent>,
+    mut state: Option<ResMut<PauseMenuState>>,
+) {
+    let Some(ref mut state) = state else { return };
+
+    for ev in complete_events.read() {
+        if ev.success {
+            state.status_message = format!("Saved to Slot {}.", ev.slot + 1);
+        } else {
+            state.status_message = ev
+                .error_message
+                .clone()
+                .unwrap_or_else(|| "Save failed.".to_string());
+        }
     }
 }

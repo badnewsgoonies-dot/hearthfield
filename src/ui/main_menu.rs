@@ -1,6 +1,9 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::save::{
+    LoadCompleteEvent, LoadRequestEvent, NewGameEvent, SaveSlotInfoCache, NUM_SAVE_SLOTS,
+};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -22,7 +25,16 @@ pub struct MainMenuItemText {
 /// Tracks main menu selection
 #[derive(Resource)]
 pub struct MainMenuState {
+    pub mode: MainMenuMode,
     pub cursor: usize,
+    pub status_message: String,
+    pub pending_load_slot: Option<u8>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MainMenuMode {
+    Root,
+    LoadSlots,
 }
 
 /// Stores the play button atlas layout for button backgrounds
@@ -33,6 +45,8 @@ pub struct PlayButtonAtlas {
 }
 
 const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Quit"];
+const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
+const MAIN_MENU_MAX_ITEMS: usize = NUM_SAVE_SLOTS + 1;
 
 // Play button atlas: 192x64px image, 2 columns x 2 rows of 96x32 button states
 // Index 0 = normal, 1 = hovered/selected, 2 = pressed, 3 = disabled
@@ -49,7 +63,12 @@ pub fn spawn_main_menu(
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    commands.insert_resource(MainMenuState { cursor: 0 });
+    commands.insert_resource(MainMenuState {
+        mode: MainMenuMode::Root,
+        cursor: 0,
+        status_message: String::new(),
+        pending_load_slot: None,
+    });
 
     // Load the play button sprite sheet (192x64, 2x2 grid of 96x32 buttons)
     let button_image = asset_server.load("ui/play_button.png");
@@ -106,49 +125,59 @@ pub fn spawn_main_menu(
 
             // Menu options container
             parent
-                .spawn((
-                    Node {
-                        flex_direction: FlexDirection::Column,
-                        align_items: AlignItems::Center,
-                        row_gap: Val::Px(8.0),
-                        ..default()
-                    },
-                ))
+                .spawn((Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    row_gap: Val::Px(8.0),
+                    ..default()
+                },))
                 .with_children(|menu| {
-                    for (i, label) in MAIN_MENU_OPTIONS.iter().enumerate() {
+                    for i in 0..MAIN_MENU_MAX_ITEMS {
                         // Each menu item uses the play button sprite as background
                         menu.spawn((
-                                MainMenuItem { index: i },
-                                Node {
-                                    width: Val::Px(240.0),
-                                    height: Val::Px(42.0),
-                                    justify_content: JustifyContent::Center,
-                                    align_items: AlignItems::Center,
+                            MainMenuItem { index: i },
+                            Node {
+                                width: Val::Px(240.0),
+                                height: Val::Px(42.0),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                            ImageNode {
+                                image: button_image.clone(),
+                                texture_atlas: Some(TextureAtlas {
+                                    layout: button_layout.clone(),
+                                    index: PLAY_BUTTON_NORMAL,
+                                }),
+                                ..default()
+                            },
+                        ))
+                        .with_children(|item| {
+                            item.spawn((
+                                MainMenuItemText { index: i },
+                                Text::new(""),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 20.0,
                                     ..default()
                                 },
-                                ImageNode {
-                                    image: button_image.clone(),
-                                    texture_atlas: Some(TextureAtlas {
-                                        layout: button_layout.clone(),
-                                        index: PLAY_BUTTON_NORMAL,
-                                    }),
-                                    ..default()
-                                },
-                            ))
-                            .with_children(|item| {
-                                item.spawn((
-                                    MainMenuItemText { index: i },
-                                    Text::new(*label),
-                                    TextFont {
-                                        font: font.clone(),
-                                        font_size: 20.0,
-                                        ..default()
-                                    },
-                                    TextColor(Color::WHITE),
-                                ));
-                            });
+                                TextColor(Color::WHITE),
+                            ));
+                        });
                     }
                 });
+
+            // Status line (used for load failures, etc.)
+            parent.spawn((
+                MainMenuStatusText,
+                Text::new(""),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.95, 0.75, 0.45)),
+            ));
 
             // Version text
             parent.spawn((
@@ -163,10 +192,36 @@ pub fn spawn_main_menu(
         });
 }
 
-pub fn despawn_main_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<MainMenuRoot>>,
-) {
+#[derive(Component)]
+pub struct MainMenuStatusText;
+
+fn current_option_count(mode: MainMenuMode) -> usize {
+    match mode {
+        MainMenuMode::Root => MAIN_MENU_OPTIONS.len(),
+        MainMenuMode::LoadSlots => MAIN_MENU_MAX_ITEMS,
+    }
+}
+
+fn load_slot_label(slot_info: Option<&crate::save::SaveSlotInfo>) -> String {
+    if let Some(info) = slot_info {
+        if info.exists {
+            format!(
+                "Slot {}  Day {} {:?} Y{}  {}g",
+                info.slot + 1,
+                info.day,
+                info.season,
+                info.year,
+                info.gold
+            )
+        } else {
+            format!("Slot {}  (Empty)", info.slot + 1)
+        }
+    } else {
+        "Slot ?  (Unavailable)".to_string()
+    }
+}
+
+pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn();
     }
@@ -180,10 +235,21 @@ pub fn despawn_main_menu(
 
 pub fn update_main_menu_visuals(
     state: Option<Res<MainMenuState>>,
-    mut query: Query<(&MainMenuItem, &mut ImageNode)>,
+    cache: Option<Res<SaveSlotInfoCache>>,
+    mut item_query: Query<(&MainMenuItem, &mut ImageNode, &mut Visibility)>,
+    mut text_query: Query<(&MainMenuItemText, &mut Text, &mut TextColor)>,
+    mut status_query: Query<&mut Text, With<MainMenuStatusText>>,
 ) {
     let Some(state) = state else { return };
-    for (item, mut image_node) in &mut query {
+    let option_count = current_option_count(state.mode);
+
+    for (item, mut image_node, mut visibility) in &mut item_query {
+        if item.index >= option_count {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+        *visibility = Visibility::Visible;
+
         if let Some(ref mut atlas) = image_node.texture_atlas {
             if item.index == state.cursor {
                 atlas.index = PLAY_BUTTON_SELECTED;
@@ -192,18 +258,54 @@ pub fn update_main_menu_visuals(
             }
         }
     }
+
+    for (item_text, mut text, mut color) in &mut text_query {
+        if item_text.index >= option_count {
+            text.0.clear();
+            continue;
+        }
+
+        match state.mode {
+            MainMenuMode::Root => {
+                text.0 = MAIN_MENU_OPTIONS[item_text.index].to_string();
+                color.0 = Color::WHITE;
+            }
+            MainMenuMode::LoadSlots => {
+                if item_text.index == LOAD_MENU_BACK_INDEX {
+                    text.0 = "Back".to_string();
+                    color.0 = Color::WHITE;
+                } else {
+                    let slot_info = cache.as_ref().and_then(|c| c.slots.get(item_text.index));
+                    let slot_exists = slot_info.map(|s| s.exists).unwrap_or(false);
+                    text.0 = load_slot_label(slot_info);
+                    color.0 = if slot_exists {
+                        Color::WHITE
+                    } else {
+                        Color::srgb(0.6, 0.6, 0.6)
+                    };
+                }
+            }
+        }
+    }
+
+    let mut status = status_query.single_mut();
+    status.0 = state.status_message.clone();
 }
 
 pub fn main_menu_navigation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut state: Option<ResMut<MainMenuState>>,
+    cache: Option<Res<SaveSlotInfoCache>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut new_game_events: EventWriter<NewGameEvent>,
+    mut load_events: EventWriter<LoadRequestEvent>,
     mut app_exit: EventWriter<AppExit>,
 ) {
     let Some(ref mut state) = state else { return };
+    let option_count = current_option_count(state.mode);
 
     if keyboard.just_pressed(KeyCode::ArrowDown) {
-        if state.cursor < MAIN_MENU_OPTIONS.len() - 1 {
+        if state.cursor + 1 < option_count {
             state.cursor += 1;
         }
     }
@@ -214,20 +316,84 @@ pub fn main_menu_navigation(
     }
 
     if keyboard.just_pressed(KeyCode::Enter) {
-        match state.cursor {
-            0 => {
-                // New Game — data is already loaded, go straight to Playing
-                next_state.set(GameState::Playing);
+        // Guard: don't spam requests while load is in-flight
+        if state.pending_load_slot.is_some() {
+            return;
+        }
+        match state.mode {
+            MainMenuMode::Root => match state.cursor {
+                0 => {
+                    new_game_events.send(NewGameEvent {
+                        farm_name: "Hearthfield Farm".to_string(),
+                        active_slot: 0,
+                    });
+                    next_state.set(GameState::Playing);
+                }
+                1 => {
+                    state.mode = MainMenuMode::LoadSlots;
+                    state.cursor = 0;
+                    state.status_message.clear();
+                }
+                2 => {
+                    app_exit.send(AppExit::Success);
+                }
+                _ => {}
+            },
+            MainMenuMode::LoadSlots => {
+                if state.cursor == LOAD_MENU_BACK_INDEX {
+                    state.mode = MainMenuMode::Root;
+                    state.cursor = 0;
+                    state.status_message.clear();
+                    state.pending_load_slot = None;
+                } else {
+                    let slot = state.cursor as u8;
+                    let slot_exists = cache
+                        .as_ref()
+                        .and_then(|c| c.slots.get(state.cursor))
+                        .map(|s| s.exists)
+                        .unwrap_or(false);
+
+                    if slot_exists {
+                        state.pending_load_slot = Some(slot);
+                        state.status_message = format!("Loading Slot {}...", slot + 1);
+                        load_events.send(LoadRequestEvent { slot });
+                    } else {
+                        state.status_message = format!("Slot {} is empty.", slot + 1);
+                    }
+                }
             }
-            1 => {
-                // Load Game — for now, same as New Game
-                next_state.set(GameState::Playing);
-            }
-            2 => {
-                // Quit
-                app_exit.send(AppExit::Success);
-            }
-            _ => {}
+        }
+    }
+
+    if keyboard.just_pressed(KeyCode::Escape) && state.mode == MainMenuMode::LoadSlots {
+        state.mode = MainMenuMode::Root;
+        state.cursor = 0;
+        state.status_message.clear();
+        state.pending_load_slot = None;
+    }
+}
+
+pub fn handle_load_complete_in_main_menu(
+    mut load_complete_events: EventReader<LoadCompleteEvent>,
+    mut state: Option<ResMut<MainMenuState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    let Some(ref mut state) = state else { return };
+
+    for ev in load_complete_events.read() {
+        if state.pending_load_slot != Some(ev.slot) {
+            continue;
+        }
+
+        state.pending_load_slot = None;
+        if ev.success {
+            state.status_message.clear();
+            next_state.set(GameState::Playing);
+        } else {
+            state.status_message = ev
+                .error_message
+                .clone()
+                .unwrap_or_else(|| "Failed to load save slot.".to_string());
         }
     }
 }
