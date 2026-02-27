@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+mod buffs;
 mod machines;
 mod recipes;
 mod bench;
@@ -58,6 +59,10 @@ impl Plugin for CraftingPlugin {
                     unlock::check_milestone_recipe_unlocks,
                     unlock::check_friendship_recipe_unlocks,
                     unlock::handle_unlock_recipe,
+                    // Food buff systems
+                    buffs::handle_eat_food,
+                    buffs::tick_buff_durations,
+                    buffs::apply_buff_effects,
                 )
                     .run_if(in_state(GameState::Playing)),
             )

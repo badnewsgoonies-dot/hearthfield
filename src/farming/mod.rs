@@ -19,6 +19,7 @@ mod render;
 pub mod events_handler;
 mod sprinkler;
 pub mod sprinklers;
+use sprinklers::{handle_place_sprinkler, auto_water_sprinklers, remove_sprinkler};
 
 // Internal re-exports used by Bevy queries from outside the module (not currently needed).
 
@@ -151,6 +152,10 @@ impl Plugin for FarmingPlugin {
                     harvest::detect_harvest_input,
                     // Seed placement detection (player uses seed item)
                     crops::detect_seed_use,
+                    // Sprinkler placement (player places sprinkler from inventory)
+                    handle_place_sprinkler,
+                    // Sprinkler removal (pickaxe on a sprinkler tile)
+                    remove_sprinkler,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -160,7 +165,10 @@ impl Plugin for FarmingPlugin {
             .add_systems(
                 Update,
                 (
+                    // Legacy FarmObject::Sprinkler — basic 3×3 watering
                     sprinkler::apply_sprinklers,
+                    // Phase 4 kind-aware sprinkler auto-watering
+                    auto_water_sprinklers,
                     events_handler::on_day_end,
                     events_handler::on_season_change,
                 )
