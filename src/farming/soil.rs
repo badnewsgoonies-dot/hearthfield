@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use crate::economy::tool_upgrades::{watering_can_area, tool_stamina_cost};
 use super::{FarmEntities, SoilTileEntity, grid_to_world};
 
 // ─────────────────────────────────────────────────────────────────────────────

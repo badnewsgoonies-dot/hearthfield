@@ -1724,6 +1724,88 @@ pub struct MenuAction {
     pub move_right: bool,
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// TOOL UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Returns all tile positions that a watering-can action covers, based on tier
+/// and the direction the player is facing.
+///
+/// | Tier     | Pattern                                  |
+/// |----------|------------------------------------------|
+/// | Basic    | 1 tile — the target tile itself           |
+/// | Copper   | 3 tiles in a line along `facing`          |
+/// | Iron     | 5 tiles in a line along `facing`          |
+/// | Gold     | 3 × 3 area (9 tiles) centred on target    |
+/// | Iridium  | 6 × 6 area (36 tiles) centred on target   |
+pub fn watering_can_area(
+    tier: ToolTier,
+    target_x: i32,
+    target_y: i32,
+    facing: Facing,
+) -> Vec<(i32, i32)> {
+    match tier {
+        ToolTier::Basic => {
+            vec![(target_x, target_y)]
+        }
+        ToolTier::Copper => {
+            line_tiles(target_x, target_y, facing, 3)
+        }
+        ToolTier::Iron => {
+            line_tiles(target_x, target_y, facing, 5)
+        }
+        ToolTier::Gold => {
+            square_area(target_x, target_y, 1)
+        }
+        ToolTier::Iridium => {
+            let half = 3_i32;
+            let mut tiles = Vec::with_capacity(36);
+            for dy in -(half - 1)..=half {
+                for dx in -(half - 1)..=half {
+                    tiles.push((target_x + dx, target_y + dy));
+                }
+            }
+            tiles
+        }
+    }
+}
+
+/// Returns the stamina cost for a single tool-use action at the given tier.
+pub fn tool_stamina_cost(base_cost: f32, tier: ToolTier) -> f32 {
+    base_cost * tier.stamina_multiplier()
+}
+
+/// Build a straight line of `length` tiles starting at `(sx, sy)` and walking
+/// one step per tile in the direction of `facing`.
+fn line_tiles(sx: i32, sy: i32, facing: Facing, length: u8) -> Vec<(i32, i32)> {
+    let (dx, dy) = facing_delta(facing);
+    (0..length as i32)
+        .map(|i| (sx + dx * i, sy + dy * i))
+        .collect()
+}
+
+/// Build a square area of side `2 * radius + 1` centred on `(cx, cy)`.
+fn square_area(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
+    let side = 2 * radius + 1;
+    let mut tiles = Vec::with_capacity((side * side) as usize);
+    for dy in -radius..=radius {
+        for dx in -radius..=radius {
+            tiles.push((cx + dx, cy + dy));
+        }
+    }
+    tiles
+}
+
+/// Returns the (dx, dy) unit step for each facing direction.
+fn facing_delta(facing: Facing) -> (i32, i32) {
+    match facing {
+        Facing::Up    => (0,  1),
+        Facing::Down  => (0, -1),
+        Facing::Left  => (-1, 0),
+        Facing::Right => (1,  0),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
