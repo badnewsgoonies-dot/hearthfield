@@ -15,6 +15,7 @@ pub mod tool_upgrades;
 pub mod evaluation;
 pub mod play_stats;
 pub mod achievements;
+pub mod buildings;
 
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{
@@ -36,6 +37,7 @@ use play_stats::{
     track_crops_harvested, track_fish_caught, track_day_end,
     track_gifts_given, track_animals_petted, track_gold_earned, track_recipes_cooked,
 };
+use buildings::{BuildingLevels, handle_building_upgrade_request, tick_building_upgrade};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
@@ -51,7 +53,8 @@ impl Plugin for EconomyPlugin {
             .init_resource::<ShippingBinPreview>()
             .init_resource::<ToolUpgradeQueue>()
             .init_resource::<HarvestStats>()
-            .init_resource::<AnimalProductStats>();
+            .init_resource::<AnimalProductStats>()
+            .init_resource::<BuildingLevels>();
 
         // ── Internal Events ────────────────────────────────────────────────
         app.add_event::<BuyRequestEvent>()
@@ -94,6 +97,16 @@ impl Plugin for EconomyPlugin {
                 track_achievement_progress,
                 // Achievement condition checks — fires AchievementUnlockedEvent when earned.
                 check_achievements,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ── Systems: Building upgrades (Playing state) ─────────────────────
+        app.add_systems(
+            Update,
+            (
+                handle_building_upgrade_request,
+                tick_building_upgrade,
             )
                 .run_if(in_state(GameState::Playing)),
         );
