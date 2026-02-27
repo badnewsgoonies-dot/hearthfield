@@ -1501,6 +1501,229 @@ pub struct CutsceneQueue {
     pub step_timer: f32,
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// INPUT & MENU ABSTRACTION
+// ═══════════════════════════════════════════════════════════════════════
+
+/// All player actions as a single-frame snapshot.
+/// Written by input reader systems. Consumed by all domains.
+/// Reset to defaults at the start of each frame.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct PlayerInput {
+    // Movement (continuous — pressed, not just_pressed)
+    pub move_axis: Vec2,
+
+    // Actions (just_pressed this frame)
+    pub interact: bool,           // F — talk, pick up, open chest, shipping bin
+    pub tool_use: bool,           // Space / LMB — swing tool
+    pub tool_secondary: bool,     // R / RMB — eat food, place item
+
+    // Menu toggles (just_pressed)
+    pub open_inventory: bool,     // E
+    pub open_crafting: bool,      // C
+    pub open_map: bool,           // M
+    pub open_journal: bool,       // J — quests/achievements
+    pub pause: bool,              // Escape
+
+    // Tool selection
+    pub tool_next: bool,          // ] / scroll up
+    pub tool_prev: bool,          // [ / scroll down
+    pub tool_slot: Option<u8>,    // 1-9 → Some(0..8)
+
+    // Fishing
+    pub fishing_reel: bool,       // held (pressed, not just_pressed)
+
+    // Mining combat (same as tool_use, context determines meaning)
+    pub attack: bool,
+
+    // UI navigation (menus, dialogue)
+    pub ui_confirm: bool,         // Enter / E
+    pub ui_cancel: bool,          // Escape
+    pub ui_up: bool,
+    pub ui_down: bool,
+    pub ui_left: bool,
+    pub ui_right: bool,
+
+    // Meta
+    pub any_key: bool,            // splash/title "press any key"
+    pub skip_cutscene: bool,      // Space during cutscene
+    pub quicksave: bool,          // F5
+    pub quickload: bool,          // F9
+}
+
+/// Which input context is active. Determines which PlayerInput fields get written.
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InputContext {
+    #[default]
+    Gameplay,
+    Menu,           // inventory, shop, crafting, chest, pause
+    Dialogue,       // interact to advance, ui_up/down for choices
+    Fishing,        // fishing_reel only
+    Cutscene,       // skip_cutscene only
+    Disabled,       // loading, transitions — nothing written
+}
+
+/// Keyboard binding table. Hardcoded defaults now, remappable later.
+#[derive(Resource, Debug, Clone)]
+pub struct KeyBindings {
+    pub move_up: KeyCode,
+    pub move_down: KeyCode,
+    pub move_left: KeyCode,
+    pub move_right: KeyCode,
+    pub interact: KeyCode,
+    pub tool_use: KeyCode,
+    pub tool_secondary: KeyCode,
+    pub open_inventory: KeyCode,
+    pub open_crafting: KeyCode,
+    pub open_map: KeyCode,
+    pub open_journal: KeyCode,
+    pub pause: KeyCode,
+    pub tool_next: KeyCode,
+    pub tool_prev: KeyCode,
+    pub ui_confirm: KeyCode,
+    pub ui_cancel: KeyCode,
+    pub skip_cutscene: KeyCode,
+}
+
+impl Default for KeyBindings {
+    fn default() -> Self {
+        Self {
+            move_up: KeyCode::KeyW,
+            move_down: KeyCode::KeyS,
+            move_left: KeyCode::KeyA,
+            move_right: KeyCode::KeyD,
+            interact: KeyCode::KeyF,
+            tool_use: KeyCode::Space,
+            tool_secondary: KeyCode::KeyR,
+            open_inventory: KeyCode::KeyE,
+            open_crafting: KeyCode::KeyC,
+            open_map: KeyCode::KeyM,
+            open_journal: KeyCode::KeyJ,
+            pause: KeyCode::Escape,
+            tool_next: KeyCode::BracketRight,
+            tool_prev: KeyCode::BracketLeft,
+            ui_confirm: KeyCode::Enter,
+            ui_cancel: KeyCode::Escape,
+            skip_cutscene: KeyCode::Space,
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MENU THEME & BUILDER TYPES
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Centralized menu styling. All menus read from this.
+#[derive(Resource, Debug, Clone)]
+pub struct MenuTheme {
+    pub bg_overlay: Color,
+    pub panel_bg: Color,
+    pub panel_border: Color,
+    pub panel_border_width: f32,
+    pub panel_padding: f32,
+    pub panel_gap: f32,
+    pub panel_width: f32,
+
+    pub button_bg_normal: Color,
+    pub button_bg_selected: Color,
+    pub button_bg_pressed: Color,
+    pub button_border_normal: Color,
+    pub button_border_selected: Color,
+    pub button_height: f32,
+    pub button_width: f32,
+    pub button_border_width: f32,
+
+    pub text_color: Color,
+    pub text_color_selected: Color,
+    pub text_color_disabled: Color,
+    pub title_font_size: f32,
+    pub button_font_size: f32,
+    pub hint_font_size: f32,
+}
+
+impl Default for MenuTheme {
+    fn default() -> Self {
+        Self {
+            bg_overlay: Color::srgba(0.0, 0.0, 0.0, 0.6),
+            panel_bg: Color::srgba(0.1, 0.08, 0.06, 0.95),
+            panel_border: Color::srgba(0.4, 0.35, 0.25, 0.8),
+            panel_border_width: 3.0,
+            panel_padding: 24.0,
+            panel_gap: 12.0,
+            panel_width: 320.0,
+
+            button_bg_normal: Color::srgba(0.2, 0.17, 0.14, 0.8),
+            button_bg_selected: Color::srgba(0.35, 0.3, 0.2, 0.95),
+            button_bg_pressed: Color::srgba(0.45, 0.38, 0.25, 1.0),
+            button_border_normal: Color::srgba(0.3, 0.25, 0.18, 0.6),
+            button_border_selected: Color::srgb(1.0, 0.9, 0.5),
+            button_height: 48.0,
+            button_width: 260.0,
+            button_border_width: 2.0,
+
+            text_color: Color::srgba(0.9, 0.85, 0.7, 1.0),
+            text_color_selected: Color::srgb(1.0, 0.95, 0.7),
+            text_color_disabled: Color::srgba(0.5, 0.45, 0.4, 0.6),
+            title_font_size: 42.0,
+            button_font_size: 18.0,
+            hint_font_size: 13.0,
+        }
+    }
+}
+
+/// Marker for any menu item that can be selected via keyboard or pointer.
+#[derive(Component, Debug, Clone)]
+pub struct MenuItem {
+    pub index: usize,
+}
+
+/// Tracks which item is selected. Each menu manages its own cursor.
+#[derive(Debug, Clone, Default)]
+pub struct MenuCursor {
+    pub index: usize,
+    pub count: usize,
+}
+
+impl MenuCursor {
+    pub fn new(count: usize) -> Self {
+        Self { index: 0, count }
+    }
+    pub fn up(&mut self) {
+        if self.count == 0 {
+            return;
+        }
+        self.index = if self.index == 0 {
+            self.count - 1
+        } else {
+            self.index - 1
+        };
+    }
+    pub fn down(&mut self) {
+        if self.count == 0 {
+            return;
+        }
+        self.index = (self.index + 1) % self.count;
+    }
+    pub fn set(&mut self, idx: usize) {
+        if idx < self.count {
+            self.index = idx;
+        }
+    }
+}
+
+/// Frame-scoped menu actions from either keyboard or pointer.
+/// Each menu's update system reads this to know what happened.
+#[derive(Resource, Debug, Default)]
+pub struct MenuAction {
+    pub set_cursor: Option<usize>,
+    pub activate: bool,
+    pub cancel: bool,
+    pub move_up: bool,
+    pub move_down: bool,
+    pub move_left: bool,
+    pub move_right: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

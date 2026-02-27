@@ -71,7 +71,7 @@ pub fn load_chest_sprites(
 /// selected hotbar slot. Places a chest entity on the target tile
 /// (player position + facing direction) if the tile is valid.
 pub fn place_chest(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut commands: Commands,
     mut inventory: ResMut<Inventory>,
@@ -93,7 +93,7 @@ pub fn place_chest(
         return;
     }
 
-    if !keyboard.just_pressed(KeyCode::KeyC) {
+    if !player_input.open_crafting {
         return;
     }
 
@@ -199,7 +199,7 @@ pub fn place_chest(
 /// When the player presses F near a chest entity (within 2 tiles),
 /// open the chest by setting ChestInteraction.entity.
 pub fn interact_with_chest(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut chest_interaction: ResMut<ChestInteraction>,
     player_query: Query<&Transform, With<Player>>,
@@ -216,7 +216,7 @@ pub fn interact_with_chest(
     }
 
     // F key to interact (same as item pickup in the player domain).
-    if !keyboard.just_pressed(KeyCode::KeyF) {
+    if !player_input.interact {
         return;
     }
 
@@ -253,14 +253,14 @@ pub fn interact_with_chest(
 /// When the chest UI is open and the player presses Escape, close it
 /// by clearing the `ChestInteraction` resource.
 pub fn close_chest_on_escape(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut chest_interaction: ResMut<ChestInteraction>,
 ) {
     if !chest_interaction.is_open() {
         return;
     }
 
-    if keyboard.just_pressed(KeyCode::Escape) {
+    if player_input.ui_cancel {
         info!("[Chest] Closed chest {:?}", chest_interaction.entity);
         chest_interaction.entity = None;
     }

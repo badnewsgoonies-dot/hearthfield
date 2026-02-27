@@ -6,6 +6,7 @@ mod hud;
 mod input;
 mod inventory_screen;
 mod main_menu;
+pub mod menu_input;
 mod pause_menu;
 mod shop_screen;
 mod toast;
@@ -117,20 +118,24 @@ impl Plugin for UiPlugin {
                 .run_if(in_state(GameState::Playing)),
         );
 
-        // ─── GLOBAL INPUT — runs during Playing ───
+        // ─── MENU ACTION RESET (PreUpdate, after input reader) ───
+        app.add_systems(PreUpdate, menu_input::reset_menu_action);
+
+        // ─── GLOBAL INPUT — unified via PlayerInput / MenuAction ───
         app.add_systems(
             Update,
-            (input::global_input_handler, input::hotbar_input_handler)
-                .run_if(in_state(GameState::Playing)),
-        );
-        // Also run global_input_handler in overlay states for Escape to close
-        app.add_systems(
-            Update,
-            input::global_input_handler.run_if(
-                in_state(GameState::Inventory)
-                    .or(in_state(GameState::Shop))
-                    .or(in_state(GameState::Crafting))
-                    .or(in_state(GameState::Dialogue)),
+            (
+                menu_input::merge_keyboard_to_menu_action,
+                menu_input::gameplay_state_transitions
+                    .run_if(in_state(GameState::Playing)),
+                menu_input::hotbar_input_handler
+                    .run_if(in_state(GameState::Playing)),
+                menu_input::menu_cancel_transitions.run_if(
+                    in_state(GameState::Inventory)
+                        .or(in_state(GameState::Shop))
+                        .or(in_state(GameState::Crafting))
+                        .or(in_state(GameState::Dialogue)),
+                ),
             ),
         );
 

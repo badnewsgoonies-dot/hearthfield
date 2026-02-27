@@ -125,12 +125,12 @@ fn pause_time(mut calendar: ResMut<Calendar>) {
 /// advance the calendar, and all other domains (farming, economy, etc.) will
 /// process their end-of-day logic.
 fn trigger_sleep(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
     mut day_end_events: EventWriter<DayEndEvent>,
 ) {
-    if !keyboard.just_pressed(KeyCode::KeyB) {
+    if !player_input.interact {
         return;
     }
 

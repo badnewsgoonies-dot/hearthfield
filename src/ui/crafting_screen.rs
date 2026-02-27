@@ -259,7 +259,7 @@ fn can_craft_recipe(recipe: &Recipe, inventory: &Inventory) -> bool {
 }
 
 pub fn crafting_navigation(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    action: Res<MenuAction>,
     mut ui_state: Option<ResMut<CraftingUiState>>,
     recipe_registry: Res<RecipeRegistry>,
     mut inventory: ResMut<Inventory>,
@@ -269,18 +269,18 @@ pub fn crafting_navigation(
 
     let max = ui_state.visible_recipes.len();
 
-    if keyboard.just_pressed(KeyCode::ArrowDown) {
+    if action.move_down {
         if max > 0 && ui_state.cursor < max - 1 {
             ui_state.cursor += 1;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowUp) {
+    if action.move_up {
         if ui_state.cursor > 0 {
             ui_state.cursor -= 1;
         }
     }
 
-    if keyboard.just_pressed(KeyCode::Enter) {
+    if action.activate {
         if ui_state.cursor < ui_state.visible_recipes.len() {
             let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
             if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {

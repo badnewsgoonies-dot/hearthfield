@@ -294,7 +294,7 @@ pub fn update_main_menu_visuals(
 }
 
 pub fn main_menu_navigation(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    action: Res<MenuAction>,
     mut state: Option<ResMut<MainMenuState>>,
     cache: Option<Res<SaveSlotInfoCache>>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -305,18 +305,18 @@ pub fn main_menu_navigation(
     let Some(ref mut state) = state else { return };
     let option_count = current_option_count(state.mode);
 
-    if keyboard.just_pressed(KeyCode::ArrowDown) {
+    if action.move_down {
         if state.cursor + 1 < option_count {
             state.cursor += 1;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowUp) {
+    if action.move_up {
         if state.cursor > 0 {
             state.cursor -= 1;
         }
     }
 
-    if keyboard.just_pressed(KeyCode::Enter) {
+    if action.activate {
         // Guard: don't spam requests while load is in-flight
         if state.pending_load_slot.is_some() {
             return;
@@ -366,7 +366,7 @@ pub fn main_menu_navigation(
         }
     }
 
-    if keyboard.just_pressed(KeyCode::Escape) && state.mode == MainMenuMode::LoadSlots {
+    if action.cancel && state.mode == MainMenuMode::LoadSlots {
         state.mode = MainMenuMode::Root;
         state.cursor = 0;
         state.status_message.clear();

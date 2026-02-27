@@ -173,7 +173,7 @@ pub fn update_pause_menu_visuals(
 }
 
 pub fn pause_menu_navigation(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    action: Res<MenuAction>,
     mut state: Option<ResMut<PauseMenuState>>,
     mut next_state: ResMut<NextState<GameState>>,
     active_slot: Res<ActiveSaveSlot>,
@@ -181,18 +181,18 @@ pub fn pause_menu_navigation(
 ) {
     let Some(ref mut state) = state else { return };
 
-    if keyboard.just_pressed(KeyCode::ArrowDown) {
+    if action.move_down {
         if state.cursor < PAUSE_OPTIONS.len() - 1 {
             state.cursor += 1;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowUp) {
+    if action.move_up {
         if state.cursor > 0 {
             state.cursor -= 1;
         }
     }
 
-    if keyboard.just_pressed(KeyCode::Enter) {
+    if action.activate {
         match state.cursor {
             0 => {
                 // Resume
@@ -212,7 +212,7 @@ pub fn pause_menu_navigation(
     }
 
     // Escape also resumes
-    if keyboard.just_pressed(KeyCode::Escape) {
+    if action.cancel {
         next_state.set(GameState::Playing);
     }
 }

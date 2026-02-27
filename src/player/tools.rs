@@ -4,7 +4,7 @@ use super::{ToolCooldown, stamina_cost, facing_offset, TOOL_ORDER};
 
 /// Cycle the equipped tool forward (E) or backward (Q).
 pub fn tool_cycle(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut player_state: ResMut<PlayerState>,
     input_blocks: Res<InputBlocks>,
 ) {
@@ -16,12 +16,12 @@ pub fn tool_cycle(
         .position(|t| *t == player_state.equipped_tool)
         .unwrap_or(0);
 
-    if keyboard.just_pressed(KeyCode::KeyE) {
+    if player_input.tool_next {
         let next = (current_idx + 1) % TOOL_ORDER.len();
         player_state.equipped_tool = TOOL_ORDER[next];
     }
 
-    if keyboard.just_pressed(KeyCode::KeyQ) {
+    if player_input.tool_prev {
         let prev = if current_idx == 0 {
             TOOL_ORDER.len() - 1
         } else {
@@ -35,7 +35,7 @@ pub fn tool_cycle(
 /// Sends a `ToolUseEvent` and a `StaminaDrainEvent` when successful.
 pub fn tool_use(
     time: Res<Time>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     player_state: Res<PlayerState>,
     input_blocks: Res<InputBlocks>,
     mut cooldown: ResMut<ToolCooldown>,
@@ -51,8 +51,7 @@ pub fn tool_use(
     // Tick the cooldown.
     cooldown.timer.tick(time.delta());
 
-    let use_pressed = keyboard.just_pressed(KeyCode::Space)
-        || keyboard.just_pressed(KeyCode::Enter);
+    let use_pressed = player_input.tool_use;
 
     if !use_pressed {
         return;

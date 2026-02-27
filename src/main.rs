@@ -1,4 +1,5 @@
 mod shared;
+mod input;
 mod calendar;
 mod player;
 mod farming;
@@ -67,6 +68,12 @@ fn main() {
         .init_resource::<PlayStats>()
         .init_resource::<InputBlocks>()
         .init_resource::<CutsceneQueue>()
+        // Input & menu abstraction
+        .init_resource::<PlayerInput>()
+        .init_resource::<InputContext>()
+        .init_resource::<KeyBindings>()
+        .init_resource::<MenuTheme>()
+        .init_resource::<MenuAction>()
         // Events
         .add_event::<DayEndEvent>()
         .add_event::<SeasonChangeEvent>()
@@ -100,6 +107,8 @@ fn main() {
         .add_event::<AchievementUnlockedEvent>()
         .add_event::<BuildingUpgradeEvent>()
         .add_event::<ScreenTransitionEvent>()
+        // Input plugin (before all domain plugins)
+        .add_plugins(input::InputPlugin)
         // Domain plugins
         .add_plugins(calendar::CalendarPlugin)
         .add_plugins(player::PlayerPlugin)

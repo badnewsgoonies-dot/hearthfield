@@ -1055,3 +1055,64 @@ fn test_farming_day_end_system() {
     );
     assert!(!crop.dead, "Turnip should still be alive");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 12: MenuCursor wrapping (pure function tests)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_menu_cursor_wraps_up() {
+    let mut cursor = MenuCursor::new(4);
+    assert_eq!(cursor.index, 0);
+    cursor.up(); // 0 → wraps to 3
+    assert_eq!(cursor.index, 3, "Cursor at 0 should wrap to count-1 on up()");
+}
+
+#[test]
+fn test_menu_cursor_wraps_down() {
+    let mut cursor = MenuCursor::new(4);
+    cursor.index = 3;
+    cursor.down(); // 3 → wraps to 0
+    assert_eq!(cursor.index, 0, "Cursor at count-1 should wrap to 0 on down()");
+}
+
+#[test]
+fn test_menu_cursor_set_ignores_out_of_bounds() {
+    let mut cursor = MenuCursor::new(3);
+    cursor.set(2);
+    assert_eq!(cursor.index, 2, "set(2) should work for count=3");
+    cursor.set(5);
+    assert_eq!(cursor.index, 2, "set(5) should be ignored for count=3");
+    cursor.set(3);
+    assert_eq!(cursor.index, 2, "set(3) should be ignored for count=3");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 13: Default keybindings (pure function test)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_default_keybindings_wasd() {
+    let bindings = KeyBindings::default();
+    assert_eq!(bindings.move_up, KeyCode::KeyW);
+    assert_eq!(bindings.move_down, KeyCode::KeyS);
+    assert_eq!(bindings.move_left, KeyCode::KeyA);
+    assert_eq!(bindings.move_right, KeyCode::KeyD);
+    assert_eq!(bindings.interact, KeyCode::KeyF);
+    assert_eq!(bindings.tool_use, KeyCode::Space);
+    assert_eq!(bindings.pause, KeyCode::Escape);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 14: MenuTheme touch-friendly button height
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_menu_theme_touch_friendly_button_height() {
+    let theme = MenuTheme::default();
+    assert!(
+        theme.button_height >= 44.0,
+        "Button height should be >= 44px for touch targets, got {}",
+        theme.button_height
+    );
+}

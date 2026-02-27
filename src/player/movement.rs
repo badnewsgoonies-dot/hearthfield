@@ -9,7 +9,7 @@ use super::{AnimationTimer, CollisionMap, world_to_grid};
 /// `GridPosition` component is always kept in sync for tile lookups.
 pub fn player_movement(
     time: Res<Time>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     collision_map: Res<CollisionMap>,
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
@@ -28,20 +28,7 @@ pub fn player_movement(
     movement.move_cooldown.tick(time.delta());
 
     // Determine desired direction from input
-    let mut dir = Vec2::ZERO;
-
-    if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
-        dir.y += 1.0;
-    }
-    if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
-        dir.y -= 1.0;
-    }
-    if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
-        dir.x -= 1.0;
-    }
-    if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
-        dir.x += 1.0;
-    }
+    let dir = player_input.move_axis;
 
     // Update facing — prioritise vertical if both pressed, since that feels
     // more natural for a top-down farming game (approaching plots).

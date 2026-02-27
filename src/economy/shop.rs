@@ -303,7 +303,7 @@ pub fn handle_sell(
 /// Called when the player exits the shop (e.g., walks out, presses Escape).
 /// Returns game state to Playing and clears the active shop.
 pub fn on_exit_shop(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut active_shop: ResMut<ActiveShop>,
@@ -311,7 +311,7 @@ pub fn on_exit_shop(
     if *state.get() != GameState::Shop {
         return;
     }
-    if keyboard.just_pressed(KeyCode::Escape) {
+    if player_input.ui_cancel {
         next_state.set(GameState::Playing);
         active_shop.shop_id = None;
         active_shop.listings.clear();

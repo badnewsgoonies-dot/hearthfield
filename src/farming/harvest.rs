@@ -13,7 +13,7 @@ use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
 /// the player.  Because we cannot import the player domain, we approximate by
 /// reading from a query on the Player component (defined in shared).
 pub fn detect_harvest_input(
-    keys: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     player_state: Res<PlayerState>,
@@ -23,7 +23,7 @@ pub fn detect_harvest_input(
         return;
     }
 
-    if !keys.just_pressed(KeyCode::Space) {
+    if !player_input.tool_use {
         return;
     }
 

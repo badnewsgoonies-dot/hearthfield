@@ -6,6 +6,7 @@
 //! window or GPU.
 
 pub mod shared;
+pub mod input;
 pub mod calendar;
 pub mod player;
 pub mod farming;

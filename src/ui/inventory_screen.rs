@@ -234,7 +234,7 @@ pub fn update_inventory_cursor(
 }
 
 pub fn inventory_navigation(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    action: Res<MenuAction>,
     mut ui_state: Option<ResMut<InventoryUiState>>,
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
@@ -242,22 +242,22 @@ pub fn inventory_navigation(
     let col = cur % 12;
     let row = cur / 12;
 
-    if keyboard.just_pressed(KeyCode::ArrowRight) {
+    if action.move_right {
         if col < 11 {
             ui_state.cursor_slot = row * 12 + col + 1;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowLeft) {
+    if action.move_left {
         if col > 0 {
             ui_state.cursor_slot = row * 12 + col - 1;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowDown) {
+    if action.move_down {
         if row < 2 {
             ui_state.cursor_slot = (row + 1) * 12 + col;
         }
     }
-    if keyboard.just_pressed(KeyCode::ArrowUp) {
+    if action.move_up {
         if row > 0 {
             ui_state.cursor_slot = (row - 1) * 12 + col;
         }

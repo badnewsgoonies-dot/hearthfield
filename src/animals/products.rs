@@ -24,7 +24,7 @@ const INTERACT_RANGE: f32 = 32.0;
 
 pub fn handle_product_collection(
     mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     mut animal_query: Query<(Entity, &mut Animal, &Transform, Option<&PendingProductQuality>)>,
@@ -37,7 +37,7 @@ pub fn handle_product_collection(
         return;
     }
 
-    if !keyboard.just_pressed(KeyCode::Space) {
+    if !player_input.tool_use {
         return;
     }
 

@@ -125,7 +125,7 @@ pub fn check_festival_day(
 /// the hunt hasn't started yet, spawn 20 collectible eggs and start a
 /// 30-second timer.
 pub fn start_egg_hunt(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
     player_state: Res<PlayerState>,
     mut commands: Commands,
@@ -141,7 +141,7 @@ pub fn start_egg_hunt(
     if player_state.current_map != MapId::Farm {
         return;
     }
-    if !keyboard.just_pressed(KeyCode::KeyE) {
+    if !player_input.interact {
         return;
     }
 
@@ -268,7 +268,7 @@ pub fn collect_eggs(
 /// The player contributes their currently selected hotbar item to the
 /// communal luau soup.  Quality determines NPC friendship gain.
 pub fn start_luau(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
     player_state: Res<PlayerState>,
     mut inventory: ResMut<Inventory>,
@@ -287,7 +287,7 @@ pub fn start_luau(
     if player_state.current_map != MapId::Beach {
         return;
     }
-    if !keyboard.just_pressed(KeyCode::KeyE) {
+    if !player_input.interact {
         return;
     }
 
@@ -366,7 +366,7 @@ pub fn start_luau(
 /// the crop's sell price.  If the score beats a threshold the player
 /// wins a gold prize.
 pub fn start_harvest_festival(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
     player_state: Res<PlayerState>,
     mut inventory: ResMut<Inventory>,
@@ -384,7 +384,7 @@ pub fn start_harvest_festival(
     if player_state.current_map != MapId::Town {
         return;
     }
-    if !keyboard.just_pressed(KeyCode::KeyE) {
+    if !player_input.interact {
         return;
     }
 
@@ -538,7 +538,7 @@ pub fn setup_winter_star(
 /// given to the assigned NPC.  The player then receives a random gift
 /// from their assigned giver NPC.
 pub fn winter_star_give_gift(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
     player_state: Res<PlayerState>,
     mut inventory: ResMut<Inventory>,
@@ -557,7 +557,7 @@ pub fn winter_star_give_gift(
     if player_state.current_map != MapId::Town {
         return;
     }
-    if !keyboard.just_pressed(KeyCode::KeyE) {
+    if !player_input.interact {
         return;
     }
 

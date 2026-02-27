@@ -27,7 +27,7 @@ impl Default for MineMoveCooldown {
 /// System: handle player movement on the mine grid.
 pub fn mine_player_movement(
     time: Res<Time>,
-    input: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut active_floor: ResMut<ActiveFloor>,
     mut cooldown: ResMut<MineMoveCooldown>,
@@ -53,13 +53,13 @@ pub fn mine_player_movement(
     let mut dx = 0i32;
     let mut dy = 0i32;
 
-    if input.pressed(KeyCode::KeyW) || input.pressed(KeyCode::ArrowUp) {
+    if player_input.move_axis.y > 0.0 {
         dy = 1;
-    } else if input.pressed(KeyCode::KeyS) || input.pressed(KeyCode::ArrowDown) {
+    } else if player_input.move_axis.y < 0.0 {
         dy = -1;
-    } else if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
+    } else if player_input.move_axis.x < 0.0 {
         dx = -1;
-    } else if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
+    } else if player_input.move_axis.x > 0.0 {
         dx = 1;
     }
 
@@ -97,7 +97,7 @@ pub fn mine_player_movement(
 /// System: when the player presses the action key (Space or E), generate a ToolUseEvent
 /// targeting the tile the player is facing. Uses the currently equipped tool.
 pub fn mine_player_action(
-    input: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     active_floor: Res<ActiveFloor>,
     player_state: Res<PlayerState>,
@@ -115,7 +115,7 @@ pub fn mine_player_action(
     }
 
     // Only fire on press, not hold
-    if !input.just_pressed(KeyCode::Space) && !input.just_pressed(KeyCode::KeyE) {
+    if !player_input.tool_use && !player_input.interact {
         return;
     }
 

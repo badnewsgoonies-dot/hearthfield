@@ -15,7 +15,7 @@ use super::{
 /// item in their selected hotbar slot, then emit a PlantSeedEvent at the player's
 /// current grid tile (or the tile the player is facing).
 pub fn detect_seed_use(
-    keys: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_state: Res<PlayerState>,
     inventory: Res<Inventory>,
@@ -31,7 +31,7 @@ pub fn detect_seed_use(
     }
 
     // Interact key: F
-    if !keys.just_pressed(KeyCode::KeyF) {
+    if !player_input.interact {
         return;
     }
 

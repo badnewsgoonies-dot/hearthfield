@@ -122,10 +122,10 @@ pub fn handle_open_crafting(
 pub fn handle_close_crafting(
     mut events: EventReader<CloseCraftingEvent>,
     mut next_state: ResMut<NextState<GameState>>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    player_input: Res<PlayerInput>,
 ) {
     // Close on explicit event OR on Escape key
-    let esc_pressed = keyboard.just_pressed(KeyCode::Escape);
+    let esc_pressed = player_input.ui_cancel;
     let has_event = events.read().next().is_some();
 
     if esc_pressed || has_event {
