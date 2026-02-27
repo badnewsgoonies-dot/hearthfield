@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::Rng;
 use crate::shared::*;
-use super::WanderAi;
+use super::{WanderAi, AnimalSpriteData};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animal visual configuration
@@ -99,6 +99,7 @@ pub fn handle_animal_purchase(
     mut shop_events: EventReader<ShopTransactionEvent>,
     animal_state: Res<AnimalState>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
+    sprite_data: Res<AnimalSpriteData>,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -150,14 +151,50 @@ pub fn handle_animal_purchase(
             product_ready: false,
         };
 
-        let entity = commands
-            .spawn((
-                animal_data,
-                Sprite {
+        // Build the sprite: use real atlas for chickens/cows when loaded,
+        // fall back to colored rectangle for sheep/cat/dog or if not loaded.
+        let animal_sprite = if sprite_data.loaded {
+            match kind {
+                AnimalKind::Chicken => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.chicken_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.chicken_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(16.0, 16.0));
+                    s
+                }
+                AnimalKind::Cow => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.cow_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.cow_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(32.0, 32.0));
+                    s
+                }
+                _ => Sprite {
                     color: vis.color,
                     custom_size: Some(Vec2::new(vis.width, vis.height)),
                     ..default()
                 },
+            }
+        } else {
+            Sprite {
+                color: vis.color,
+                custom_size: Some(Vec2::new(vis.width, vis.height)),
+                ..default()
+            }
+        };
+
+        let entity = commands
+            .spawn((
+                animal_data,
+                animal_sprite,
                 Transform::from_xyz(spawn_x, spawn_y, 1.0),
                 GlobalTransform::default(),
                 Visibility::default(),

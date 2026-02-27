@@ -23,6 +23,7 @@ pub mod weather_fx;
 use maps::{generate_map, MapDef};
 use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
+    handle_weed_scythe, spawn_daily_weeds, regrow_trees_on_season_change,
     WorldObject,
 };
 use seasonal::{
@@ -54,6 +55,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
             .init_resource::<chests::ChestInteraction>()
+            .init_resource::<chests::ChestSpriteData>()
             .init_resource::<SeasonalTintApplied>()
             .init_resource::<LeafSpawnAccumulator>()
             // Day/night + weather resources
@@ -63,7 +65,7 @@ impl Plugin for WorldPlugin {
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
-                (spawn_initial_map, spawn_day_night_overlay),
+                (spawn_initial_map, spawn_day_night_overlay, chests::load_chest_sprites),
             )
             // Despawn overlay + weather particles when leaving Playing state
             .add_systems(
@@ -91,16 +93,18 @@ impl Plugin for WorldPlugin {
                     spawn_weather_particles,
                     update_weather_particles,
                     cleanup_weather_on_change,
+                    // Weed scythe clearing
+                    handle_weed_scythe,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
-            // Listen for day-end events (forageable respawn) in any state
+            // Listen for day-end events (forageable respawn + weed spawning) in any state
             // so we don't miss the event
-            .add_systems(Update, handle_day_end_forageables)
-            // Listen for season changes for visual updates.
+            .add_systems(Update, (handle_day_end_forageables, spawn_daily_weeds))
+            // Listen for season changes for visual updates + tree regrowth.
             // This handles season-switch atlas swaps (index-based).
             // apply_seasonal_tint handles multiplicative colour tinting.
-            .add_systems(Update, handle_season_change);
+            .add_systems(Update, (handle_season_change, regrow_trees_on_season_change));
     }
 }
 
@@ -339,6 +343,7 @@ impl WorldMap {
     }
 
     /// Check if a tile is water.
+    #[allow(dead_code)]
     pub fn is_water(&self, x: i32, y: i32) -> bool {
         if let Some(ref map_def) = self.map_def {
             matches!(map_def.get_tile(x, y), TileKind::Water)
@@ -348,6 +353,7 @@ impl WorldMap {
     }
 
     /// Get the tile kind at a position.
+    #[allow(dead_code)]
     pub fn get_tile(&self, x: i32, y: i32) -> TileKind {
         if let Some(ref map_def) = self.map_def {
             map_def.get_tile(x, y)
@@ -357,6 +363,7 @@ impl WorldMap {
     }
 
     /// Get the list of map transitions for the current map.
+    #[allow(dead_code)]
     pub fn transitions(&self) -> &[MapTransition] {
         if let Some(ref map_def) = self.map_def {
             &map_def.transitions
@@ -390,6 +397,7 @@ pub struct MapTile;
 
 /// Marker component for transition zone entities.
 #[derive(Component, Debug)]
+#[allow(dead_code)]
 pub struct TransitionZone {
     pub to_map: MapId,
     pub to_x: i32,

@@ -6,6 +6,7 @@ use crate::shared::*;
 
 /// Component marking an NPC that the player is adjacent to and can interact with.
 #[derive(Component, Debug)]
+#[allow(dead_code)]
 pub struct NpcInteractable;
 
 /// Resource tracking the last-interacted NPC (for gift-giving context).

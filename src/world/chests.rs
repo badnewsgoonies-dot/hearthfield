@@ -14,6 +14,14 @@ use crate::shared::*;
 #[derive(Component, Debug)]
 pub struct ChestMarker;
 
+/// Cached sprite atlas handles for chest entities.
+#[derive(Resource, Default)]
+pub struct ChestSpriteData {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
 /// Resource that tracks whether a chest is currently open and which entity.
 /// When `entity` is `Some(e)`, the chest UI overlay is shown and player
 /// movement is blocked.
@@ -26,6 +34,33 @@ impl ChestInteraction {
     pub fn is_open(&self) -> bool {
         self.entity.is_some()
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CHEST SPRITE LOADING
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Loads the chest sprite atlas on first entry into Playing state.
+pub fn load_chest_sprites(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut sprite_data: ResMut<ChestSpriteData>,
+) {
+    if sprite_data.loaded {
+        return;
+    }
+
+    // chest.png: 240x96, 5 cols x 2 rows of 48x48 frames
+    sprite_data.image = asset_server.load("sprites/chest.png");
+    sprite_data.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(48, 48),
+        5,
+        2,
+        None,
+        None,
+    ));
+
+    sprite_data.loaded = true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -46,6 +81,7 @@ pub fn place_chest(
     player_query: Query<(&Transform, &PlayerMovement), With<Player>>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
+    chest_sprites: Res<ChestSpriteData>,
 ) {
     // Don't allow placement while a chest is open.
     if chest_interaction.is_open() {
@@ -114,14 +150,28 @@ pub fn place_chest(
     let world_x = target_x as f32 * TILE_SIZE + TILE_SIZE * 0.5;
     let world_y = target_y as f32 * TILE_SIZE + TILE_SIZE * 0.5;
 
-    commands.spawn((
-        ChestMarker,
-        StorageChest::new(36, target_x, target_y),
+    let chest_sprite = if chest_sprites.loaded {
+        let mut s = Sprite::from_atlas_image(
+            chest_sprites.image.clone(),
+            TextureAtlas {
+                layout: chest_sprites.layout.clone(),
+                index: 0,
+            },
+        );
+        s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+        s
+    } else {
         Sprite {
             color: Color::srgb(0.55, 0.35, 0.15),
             custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
             ..default()
-        },
+        }
+    };
+
+    commands.spawn((
+        ChestMarker,
+        StorageChest::new(36, target_x, target_y),
+        chest_sprite,
         Transform::from_translation(Vec3::new(world_x, world_y, 5.0)),
     ));
 

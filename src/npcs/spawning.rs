@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::definitions::{ALL_NPC_IDS, npc_color};
 use super::schedule::current_schedule_entry;
+use super::animation::NpcAnimationTimer;
 
 /// Component tracking where an NPC should be moving toward.
 #[derive(Component, Debug, Clone)]
@@ -148,6 +149,11 @@ pub fn spawn_npcs_for_map(
                 speed: 40.0,
                 is_moving: false,
             },
+            NpcAnimationTimer {
+                timer: Timer::from_seconds(0.15, TimerMode::Repeating),
+                frame_count: 4,
+                current_frame: 0,
+            },
             NpcMapTag(map),
             sprite,
             Transform::from_xyz(world_x, world_y, 1.0),
@@ -159,6 +165,7 @@ pub fn spawn_npcs_for_map(
 }
 
 /// Despawn all NPC entities for a given map (called on map transition out).
+#[allow(dead_code)]
 pub fn despawn_npcs_for_map(
     commands: &mut Commands,
     map: MapId,

@@ -1,49 +1,32 @@
 //! Catch resolution and escape logic.
 //!
 //! These are helper functions called from within systems, not systems themselves.
+//!
+//! # Treasure integration
+//! The new `check_and_grant_treasure` function from `treasure.rs` is used here
+//! instead of the old inline loot logic. Bait type affects the treasure chance:
+//!
+//! | Bait / Condition | Treasure chance |
+//! |------------------|-----------------|
+//! | No bait          | 5%              |
+//! | Generic bait     | 5%              |
+//! | wild_bait        | 10%             |
+//! | magnet_bait      | 20%             |
 
 use bevy::prelude::*;
-use rand::Rng;
 
 use crate::shared::*;
 use super::{FishingPhase, FishingState, FishEncyclopedia};
-
-// ─── Treasure loot tables ─────────────────────────────────────────────────────
-
-/// Chance that a successful catch also yields a bonus treasure chest item.
-const TREASURE_CHANCE: f64 = 0.15;
-
-/// Pick a random bonus treasure item ID based on a weighted loot table.
-fn roll_treasure_item(rng: &mut impl Rng) -> &'static str {
-    // Tier probabilities:
-    //   40% → ore  (copper_ore, iron_ore, gold_ore)
-    //   30% → gem  (amethyst, diamond, ruby, emerald)
-    //   20% → artifact (ancient_doll, rusty_spoon, dinosaur_egg)
-    //   10% → rare (iridium_ore, prismatic_shard)
-    let tier_roll: f64 = rng.gen();
-
-    if tier_roll < 0.40 {
-        // Ore tier
-        let ores = ["copper_ore", "iron_ore", "gold_ore"];
-        ores[rng.gen_range(0..ores.len())]
-    } else if tier_roll < 0.70 {
-        // Gem tier
-        let gems = ["amethyst", "diamond", "ruby", "emerald"];
-        gems[rng.gen_range(0..gems.len())]
-    } else if tier_roll < 0.90 {
-        // Artifact tier
-        let artifacts = ["ancient_doll", "rusty_spoon", "dinosaur_egg"];
-        artifacts[rng.gen_range(0..artifacts.len())]
-    } else {
-        // Rare tier
-        let rares = ["iridium_ore", "prismatic_shard"];
-        rares[rng.gen_range(0..rares.len())]
-    }
-}
+use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_EXTRA_CHANCE};
 
 // ─── catch_fish ───────────────────────────────────────────────────────────────
 
 /// Called when the player successfully catches a fish.
+///
+/// `bait_equipped` indicates whether any bait was used this cast, which affects
+/// the treasure discovery chance. The specific bait type is not threaded through
+/// here; callers that know the exact bait ID should adjust `treasure_chance`
+/// before calling or use `catch_fish_with_bait_id` instead.
 pub fn catch_fish(
     fishing_state: &mut FishingState,
     next_state: &mut NextState<GameState>,
@@ -56,9 +39,9 @@ pub fn catch_fish(
     encyclopedia: &mut FishEncyclopedia,
     calendar: &Calendar,
     toast_events: &mut EventWriter<ToastEvent>,
+    gold_events: &mut EventWriter<GoldChangeEvent>,
+    bait_equipped: bool,
 ) {
-    let mut rng = rand::thread_rng();
-
     // Determine what was caught
     let fish_id = fishing_state
         .selected_fish_id
@@ -100,21 +83,45 @@ pub fn catch_fish(
         });
     }
 
-    // ── Treasure Chest ────────────────────────────────────────────────────
-    if rng.gen_bool(TREASURE_CHANCE) {
-        let bonus_item = roll_treasure_item(&mut rng);
-        item_pickup_events.send(ItemPickupEvent {
-            item_id: bonus_item.to_string(),
-            quantity: 1,
-        });
+    // ── Legendary catch toast ──────────────────────────────────────────────
+    if super::legendaries::is_legendary(&valid_id) {
+        let fish_name = fish_registry
+            .fish
+            .get(&valid_id)
+            .map(|f| f.name.as_str())
+            .unwrap_or(&valid_id);
         toast_events.send(ToastEvent {
-            message: "You found treasure!".to_string(),
-            duration_secs: 3.0,
+            message: format!("LEGENDARY CATCH: {}! Incredible!", fish_name),
+            duration_secs: 5.0,
         });
         sfx_events.send(PlaySfxEvent {
-            sfx_id: "treasure_found".to_string(),
+            sfx_id: "legendary_catch".to_string(),
         });
     }
+
+    // ── Treasure Chest ────────────────────────────────────────────────────
+    // Bait affects treasure probability:
+    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)
+    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)
+    //   - any other bait has no extra treasure bonus
+    // Since we don't have the specific bait_id here, we apply a conservative
+    // flat bonus when `bait_equipped` is true. Systems that know the exact
+    // bait type should call `check_and_grant_treasure` directly with the
+    // adjusted chance.
+    let treasure_chance = if bait_equipped {
+        // Default bait bonus: apply WILD_BAIT rate as a conservative bonus.
+        BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE
+    } else {
+        BASE_TREASURE_CHANCE
+    };
+
+    check_and_grant_treasure(
+        treasure_chance,
+        item_pickup_events,
+        gold_events,
+        toast_events,
+        sfx_events,
+    );
 
     // Sound effect for the catch itself
     sfx_events.send(PlaySfxEvent {

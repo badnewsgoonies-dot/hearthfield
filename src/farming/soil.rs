@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::economy::tool_upgrades::{watering_can_area, tool_stamina_cost};
 use super::{FarmEntities, SoilTileEntity, grid_to_world};
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,95 +67,57 @@ pub fn handle_watering_can_tool_use(
     mut commands: Commands,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
-    calendar: Res<Calendar>,
+    player_query: Query<&PlayerMovement, With<Player>>,
 ) {
+    // Determine the direction the player is currently facing.
+    // Fall back to Down if the query returns nothing (shouldn't happen in normal play).
+    let facing = player_query
+        .get_single()
+        .map(|pm| pm.facing)
+        .unwrap_or(Facing::Down);
+
     for event in tool_events.read() {
         if event.tool != ToolKind::WateringCan {
             continue;
         }
 
-        // Can't water if it's snowing (winter freeze) – but allow during rain.
-        // Actually in Stardew / Harvest Moon you can still water, rain just does it for you.
-        // We handle rain auto-watering in the DayEndEvent handler.
+        // Compute the full set of tiles to water for this tier and facing direction.
+        let tiles = watering_can_area(event.tier, event.target_x, event.target_y, facing);
 
-        let pos = (event.target_x, event.target_y);
-        let current = farm_state.soil.get(&pos).copied();
-
-        // Can only water Tilled soil (Untilled dirt has no point).
-        if current != Some(SoilState::Tilled) {
+        // Check that at least one of the target tiles is actually Tilled.
+        // We still apply the full area, but require a valid tile in the set so the
+        // player doesn't waste stamina swinging into empty air.
+        let any_tillable = tiles.iter().any(|pos| {
+            farm_state.soil.get(pos).copied() == Some(SoilState::Tilled)
+        });
+        if !any_tillable {
             continue;
         }
 
-        // Mark as watered.
-        farm_state.soil.insert(pos, SoilState::Watered);
-
-        // Also update the crop's watered_today flag.
-        if let Some(crop) = farm_state.crops.get_mut(&pos) {
-            crop.watered_today = true;
-            crop.days_without_water = 0;
-        }
-
-        let stamina_cost = match event.tier {
-            ToolTier::Basic => 2.0,
-            ToolTier::Copper => 1.8,
-            ToolTier::Iron => 1.5,
-            ToolTier::Gold => 1.2,
-            ToolTier::Iridium => 1.0,
-        };
-        stamina_events.send(StaminaDrainEvent { amount: stamina_cost });
-        sfx_events.send(PlaySfxEvent { sfx_id: "water".to_string() });
-
-        // Higher-tier cans water adjacent tiles too.
-        let extra_radius: i32 = match event.tier {
-            ToolTier::Basic | ToolTier::Copper => 0,
-            ToolTier::Iron => 1,
-            ToolTier::Gold | ToolTier::Iridium => 2,
-        };
-        if extra_radius > 0 {
-            water_radius(
-                &mut farm_state,
-                &mut farm_entities,
-                &mut commands,
-                event.target_x,
-                event.target_y,
-                extra_radius,
-            );
-        } else {
-            // Ensure the entity exists / is updated.
-            spawn_or_update_soil_entity(
-                &mut commands,
-                &mut farm_entities,
-                pos,
-                SoilState::Watered,
-            );
-        }
-
-        // Suppress unused variable warning
-        let _ = calendar.day;
-    }
-}
-
-/// Water all tilled tiles in a square radius around (cx, cy).
-fn water_radius(
-    farm_state: &mut FarmState,
-    farm_entities: &mut FarmEntities,
-    commands: &mut Commands,
-    cx: i32,
-    cy: i32,
-    radius: i32,
-) {
-    for dy in -radius..=radius {
-        for dx in -radius..=radius {
-            let pos = (cx + dx, cy + dy);
-            if let Some(SoilState::Tilled) = farm_state.soil.get(&pos).copied() {
+        // Water all Tilled tiles in the area.
+        for &pos in &tiles {
+            if farm_state.soil.get(&pos).copied() == Some(SoilState::Tilled) {
                 farm_state.soil.insert(pos, SoilState::Watered);
+
+                // Mark any crop on this tile as watered.
                 if let Some(crop) = farm_state.crops.get_mut(&pos) {
                     crop.watered_today = true;
                     crop.days_without_water = 0;
                 }
-                spawn_or_update_soil_entity(commands, farm_entities, pos, SoilState::Watered);
+
+                spawn_or_update_soil_entity(
+                    &mut commands,
+                    &mut farm_entities,
+                    pos,
+                    SoilState::Watered,
+                );
             }
         }
+
+        // Single stamina drain for the whole action (not per tile).
+        let stamina_cost = tool_stamina_cost(2.0, event.tier);
+        stamina_events.send(StaminaDrainEvent { amount: stamina_cost });
+        sfx_events.send(PlaySfxEvent { sfx_id: "water".to_string() });
     }
 }
 

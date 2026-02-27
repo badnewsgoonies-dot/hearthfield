@@ -11,6 +11,11 @@ pub mod shop;
 pub mod shipping;
 pub mod blacksmith;
 pub mod stats;
+pub mod tool_upgrades;
+pub mod evaluation;
+pub mod play_stats;
+pub mod achievements;
+pub mod buildings;
 
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{
@@ -26,6 +31,13 @@ use blacksmith::{
     handle_upgrade_request, tick_upgrade_queue,
 };
 use stats::{HarvestStats, AnimalProductStats, track_crop_harvests, track_animal_products};
+use evaluation::{check_evaluation_trigger, handle_evaluation};
+use achievements::{check_achievements, track_achievement_progress};
+use play_stats::{
+    track_crops_harvested, track_fish_caught, track_day_end,
+    track_gifts_given, track_animals_petted, track_gold_earned, track_recipes_cooked,
+};
+use buildings::{BuildingLevels, handle_building_upgrade_request, tick_building_upgrade};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
@@ -41,7 +53,8 @@ impl Plugin for EconomyPlugin {
             .init_resource::<ShippingBinPreview>()
             .init_resource::<ToolUpgradeQueue>()
             .init_resource::<HarvestStats>()
-            .init_resource::<AnimalProductStats>();
+            .init_resource::<AnimalProductStats>()
+            .init_resource::<BuildingLevels>();
 
         // ── Internal Events ────────────────────────────────────────────────
         app.add_event::<BuyRequestEvent>()
@@ -69,6 +82,31 @@ impl Plugin for EconomyPlugin {
                 // Harvest and animal product stat tracking.
                 track_crop_harvests,
                 track_animal_products,
+                // Year-end evaluation: check trigger condition, then score.
+                check_evaluation_trigger,
+                handle_evaluation,
+                // PlayStats counters — passive listeners for global play statistics.
+                track_crops_harvested,
+                track_fish_caught,
+                track_day_end,
+                track_gifts_given,
+                track_animals_petted,
+                track_gold_earned,
+                track_recipes_cooked,
+                // Achievement progress counters (rocks broken, crops planted, gold-quality crops).
+                track_achievement_progress,
+                // Achievement condition checks — fires AchievementUnlockedEvent when earned.
+                check_achievements,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ── Systems: Building upgrades (Playing state) ─────────────────────
+        app.add_systems(
+            Update,
+            (
+                handle_building_upgrade_request,
+                tick_building_upgrade,
             )
                 .run_if(in_state(GameState::Playing)),
         );

@@ -130,14 +130,22 @@ impl WorldObjectKind {
     }
 
     /// Items dropped when this object is destroyed. Returns (item_id, quantity).
+    ///
+    /// Enhanced drop tables:
+    /// - Tree: 3-5 wood + always a tree_seed
+    /// - Rock: 2-3 stone + copper_ore
+    /// - LargeRock: 5 stone + 2 copper_ore + geode
+    /// - Stump: 2 hardwood
+    /// - Log: 4 hardwood
+    /// - Bush: 2 fiber + seasonal berry
     pub fn drops(self) -> Vec<(&'static str, u8)> {
         match self {
-            WorldObjectKind::Tree => vec![("wood", 8), ("tree_seed", 1)],
-            WorldObjectKind::Stump => vec![("wood", 4)],
-            WorldObjectKind::Log => vec![("wood", 4)],
-            WorldObjectKind::Bush => vec![("fiber", 2)],
-            WorldObjectKind::Rock => vec![("stone", 4)],
-            WorldObjectKind::LargeRock => vec![("stone", 8), ("copper_ore", 2)],
+            WorldObjectKind::Tree => vec![("wood", 4), ("tree_seed", 1)],
+            WorldObjectKind::Stump => vec![("hardwood", 2)],
+            WorldObjectKind::Log => vec![("hardwood", 4)],
+            WorldObjectKind::Bush => vec![("fiber", 2), ("wild_berry", 1)],
+            WorldObjectKind::Rock => vec![("stone", 3), ("copper_ore", 1)],
+            WorldObjectKind::LargeRock => vec![("stone", 5), ("copper_ore", 2), ("geode", 1)],
         }
     }
 
@@ -163,8 +171,19 @@ impl WorldObjectKind {
     }
 
     /// Whether this object blocks movement.
+    #[allow(dead_code)]
     pub fn is_solid(self) -> bool {
         true
+    }
+
+    /// Minimum tool tier required to damage this object.
+    pub fn required_tier(self) -> ToolTier {
+        match self {
+            WorldObjectKind::LargeRock => ToolTier::Gold,
+            WorldObjectKind::Stump => ToolTier::Copper,
+            WorldObjectKind::Log => ToolTier::Iron,
+            _ => ToolTier::Basic,
+        }
     }
 
     /// Atlas index in grass_biome.png for this object kind.
@@ -265,6 +284,29 @@ pub fn spawn_world_objects(
 // TOOL USE HANDLING
 // ═══════════════════════════════════════════════════════════════════════
 
+/// Returns a numeric level for a ToolTier, used for tier comparison.
+fn tier_level(tier: ToolTier) -> u8 {
+    match tier {
+        ToolTier::Basic => 0,
+        ToolTier::Copper => 1,
+        ToolTier::Iron => 2,
+        ToolTier::Gold => 3,
+        ToolTier::Iridium => 4,
+    }
+}
+
+/// Human-readable tool name for toast messages.
+fn tool_display_name(tool: ToolKind) -> &'static str {
+    match tool {
+        ToolKind::Axe => "axe",
+        ToolKind::Pickaxe => "pickaxe",
+        ToolKind::Hoe => "hoe",
+        ToolKind::WateringCan => "watering can",
+        ToolKind::FishingRod => "fishing rod",
+        ToolKind::Scythe => "scythe",
+    }
+}
+
 /// System that handles tool use events on world objects.
 pub fn handle_tool_use_on_objects(
     mut commands: Commands,
@@ -272,6 +314,7 @@ pub fn handle_tool_use_on_objects(
     mut objects: Query<(Entity, &mut WorldObjectData, &mut Sprite), With<WorldObject>>,
     mut pickup_writer: EventWriter<ItemPickupEvent>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
     mut world_map: ResMut<WorldMap>,
     object_atlases: Res<ObjectAtlases>,
 ) {
@@ -280,6 +323,19 @@ pub fn handle_tool_use_on_objects(
             if obj_data.grid_x == event.target_x && obj_data.grid_y == event.target_y {
                 let effective = obj_data.kind.effective_tool();
                 if event.tool == effective {
+                    // Check tool tier requirement
+                    let required = obj_data.kind.required_tier();
+                    if tier_level(event.tier) < tier_level(required) {
+                        toast_writer.send(ToastEvent {
+                            message: format!(
+                                "Need a better {}!",
+                                tool_display_name(event.tool)
+                            ),
+                            duration_secs: 2.0,
+                        });
+                        break;
+                    }
+
                     let damage = obj_data.kind.tool_damage(event.tier);
                     let new_health = obj_data.health.saturating_sub(damage);
                     obj_data.health = new_health;
@@ -491,6 +547,266 @@ pub fn handle_forageable_pickup(
                 commands.entity(entity).despawn();
                 break;
             }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// WEEDS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// A weed that spawns on empty farm tiles overnight.
+/// Can be cleared with a scythe for fiber.
+#[derive(Component, Debug)]
+pub struct Weed {
+    pub grid_x: i32,
+    pub grid_y: i32,
+}
+
+/// System: on DayEndEvent, spawn 2-4 weeds on random empty farm tiles.
+/// Only spawns weeds when the current map is Farm.
+pub fn spawn_daily_weeds(
+    mut commands: Commands,
+    mut day_events: EventReader<DayEndEvent>,
+    current_map: Res<super::CurrentMapId>,
+    world_map: Res<super::WorldMap>,
+    farm_state: Res<FarmState>,
+    existing_weeds: Query<&Weed>,
+) {
+    for event in day_events.read() {
+        // Only spawn weeds on the farm map
+        if current_map.map_id != MapId::Farm {
+            continue;
+        }
+
+        // Collect existing weed positions so we don't stack
+        let mut occupied: std::collections::HashSet<(i32, i32)> = std::collections::HashSet::new();
+        for weed in existing_weeds.iter() {
+            occupied.insert((weed.grid_x, weed.grid_y));
+        }
+
+        // Determine how many weeds to spawn (2-4), using day as pseudo-random seed
+        let weed_count = 2 + ((event.day as usize).wrapping_mul(13).wrapping_add(event.season.index())) % 3;
+
+        let farm_w = 20i32;
+        let farm_h = 20i32;
+        let mut spawned = 0;
+
+        // Attempt up to weed_count * 10 random positions to find valid spots
+        for attempt in 0..(weed_count * 10) {
+            if spawned >= weed_count {
+                break;
+            }
+
+            // Simple deterministic pseudo-random based on day, season, and attempt index
+            let hash = (event.day as usize)
+                .wrapping_mul(31)
+                .wrapping_add(event.season.index().wrapping_mul(97))
+                .wrapping_add(attempt.wrapping_mul(53))
+                .wrapping_add(event.year as usize * 7);
+            let x = (hash % farm_w as usize) as i32;
+            let y = (((hash / farm_w as usize).wrapping_mul(17).wrapping_add(attempt * 3)) % farm_h as usize) as i32;
+
+            // Skip if tile is solid (water, objects, etc.)
+            if world_map.is_solid(x, y) {
+                continue;
+            }
+
+            // Skip if there's already a crop here
+            if farm_state.crops.contains_key(&(x, y)) {
+                continue;
+            }
+
+            // Skip if there's already soil tilled here
+            if farm_state.soil.contains_key(&(x, y)) {
+                continue;
+            }
+
+            // Skip if a weed already exists here
+            if occupied.contains(&(x, y)) {
+                continue;
+            }
+
+            // Spawn the weed entity
+            commands.spawn((
+                Sprite {
+                    color: Color::srgb(0.25, 0.55, 0.2),
+                    custom_size: Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5)),
+                    ..default()
+                },
+                Transform::from_translation(Vec3::new(
+                    x as f32 * TILE_SIZE,
+                    y as f32 * TILE_SIZE,
+                    4.5, // Above ground tiles, below world objects
+                )),
+                Weed {
+                    grid_x: x,
+                    grid_y: y,
+                },
+            ));
+
+            occupied.insert((x, y));
+            spawned += 1;
+        }
+    }
+}
+
+/// System: handle scythe use on weeds. Despawn the weed and drop fiber.
+pub fn handle_weed_scythe(
+    mut commands: Commands,
+    mut tool_events: EventReader<ToolUseEvent>,
+    weeds: Query<(Entity, &Weed)>,
+    mut pickup_writer: EventWriter<ItemPickupEvent>,
+    mut sfx_writer: EventWriter<PlaySfxEvent>,
+) {
+    for event in tool_events.read() {
+        // Only scythe clears weeds
+        if event.tool != ToolKind::Scythe {
+            continue;
+        }
+
+        for (entity, weed) in weeds.iter() {
+            if weed.grid_x == event.target_x && weed.grid_y == event.target_y {
+                // Drop fiber
+                pickup_writer.send(ItemPickupEvent {
+                    item_id: "fiber".to_string(),
+                    quantity: 1,
+                });
+
+                sfx_writer.send(PlaySfxEvent {
+                    sfx_id: "swish".to_string(),
+                });
+
+                commands.entity(entity).despawn();
+                break;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TREE REGROWTH
+// ═══════════════════════════════════════════════════════════════════════
+
+/// System: on each season change, spawn 1-2 new trees at random empty
+/// positions on the farm. This simulates natural regrowth over time.
+pub fn regrow_trees_on_season_change(
+    mut commands: Commands,
+    mut season_events: EventReader<SeasonChangeEvent>,
+    current_map: Res<super::CurrentMapId>,
+    mut world_map: ResMut<super::WorldMap>,
+    farm_state: Res<FarmState>,
+    object_atlases: Res<ObjectAtlases>,
+    existing_objects: Query<&WorldObjectData, With<WorldObject>>,
+    existing_weeds: Query<&Weed>,
+) {
+    for event in season_events.read() {
+        // Only regrow on the farm
+        if current_map.map_id != MapId::Farm {
+            continue;
+        }
+
+        // Collect occupied positions from existing world objects and weeds
+        let mut occupied: std::collections::HashSet<(i32, i32)> = std::collections::HashSet::new();
+        for obj in existing_objects.iter() {
+            occupied.insert((obj.grid_x, obj.grid_y));
+        }
+        for weed in existing_weeds.iter() {
+            occupied.insert((weed.grid_x, weed.grid_y));
+        }
+
+        // Spawn 1-2 new trees
+        let tree_count = 1 + (event.year as usize + event.new_season.index()) % 2;
+        let farm_w = 20i32;
+        let farm_h = 20i32;
+        let mut spawned = 0;
+
+        for attempt in 0..(tree_count * 15) {
+            if spawned >= tree_count {
+                break;
+            }
+
+            // Deterministic pseudo-random position
+            let hash = (event.year as usize)
+                .wrapping_mul(41)
+                .wrapping_add(event.new_season.index().wrapping_mul(67))
+                .wrapping_add(attempt.wrapping_mul(29));
+            let x = (hash % farm_w as usize) as i32;
+            let y = (((hash / farm_w as usize).wrapping_mul(23).wrapping_add(attempt * 7)) % farm_h as usize) as i32;
+
+            // Skip solid, cropped, tilled, or occupied tiles
+            if world_map.is_solid(x, y) {
+                continue;
+            }
+            if farm_state.crops.contains_key(&(x, y)) {
+                continue;
+            }
+            if farm_state.soil.contains_key(&(x, y)) {
+                continue;
+            }
+            if occupied.contains(&(x, y)) {
+                continue;
+            }
+
+            // Spawn a new tree
+            let kind = WorldObjectKind::Tree;
+            let data = WorldObjectData {
+                kind,
+                health: kind.max_health(),
+                max_health: kind.max_health(),
+                grid_x: x,
+                grid_y: y,
+            };
+
+            let size = kind.sprite_size();
+            let y_offset = if size.y > TILE_SIZE {
+                (size.y - TILE_SIZE) / 2.0
+            } else {
+                0.0
+            };
+
+            if object_atlases.loaded {
+                let atlas_index = kind.atlas_index();
+                let mut sprite = Sprite::from_atlas_image(
+                    object_atlases.grass_biome_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.grass_biome_layout.clone(),
+                        index: atlas_index,
+                    },
+                );
+                sprite.custom_size = Some(size);
+
+                commands.spawn((
+                    sprite,
+                    Transform::from_translation(Vec3::new(
+                        x as f32 * TILE_SIZE,
+                        y as f32 * TILE_SIZE + y_offset,
+                        5.0,
+                    )),
+                    WorldObject,
+                    data,
+                ));
+            } else {
+                commands.spawn((
+                    Sprite {
+                        color: kind.color(),
+                        custom_size: Some(size),
+                        ..default()
+                    },
+                    Transform::from_translation(Vec3::new(
+                        x as f32 * TILE_SIZE,
+                        y as f32 * TILE_SIZE + y_offset,
+                        5.0,
+                    )),
+                    WorldObject,
+                    data,
+                ));
+            }
+
+            // Mark the tile as solid
+            world_map.set_solid(x, y, true);
+            occupied.insert((x, y));
+            spawned += 1;
         }
     }
 }

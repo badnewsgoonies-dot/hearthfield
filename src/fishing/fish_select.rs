@@ -1,8 +1,12 @@
 //! Fish selection logic based on location, season, time, weather, and rarity.
+//!
+//! Legendary fish are checked first via a per-cast probability roll. If no
+//! legendary triggers, the normal weighted pool is used.
 
 use rand::Rng;
 
 use crate::shared::*;
+use super::legendaries::try_roll_legendary;
 
 // ─── Rarity weights ──────────────────────────────────────────────────────────
 
@@ -11,7 +15,9 @@ fn rarity_weight(rarity: Rarity) -> u32 {
         Rarity::Common => 60,
         Rarity::Uncommon => 25,
         Rarity::Rare => 12,
-        Rarity::Legendary => 3,
+        // Legendary fish in the normal pool (registered via data) have very low
+        // weight; they are primarily obtained through try_roll_legendary().
+        Rarity::Legendary => 1,
     }
 }
 
@@ -31,18 +37,31 @@ fn map_to_fish_location(map_id: MapId) -> FishLocation {
 // ─── Selection ───────────────────────────────────────────────────────────────
 
 /// Select a fish from the registry appropriate for current game state.
+///
+/// Legendary fish are given a first-priority independent roll. If no legendary
+/// triggers, the normal weighted pool of eligible fish is used.
+///
 /// Returns `None` if no fish qualify (very unlikely with a full registry).
 pub fn select_fish(
     fish_registry: &FishRegistry,
     player_state: &PlayerState,
     calendar: &Calendar,
 ) -> Option<ItemId> {
-    let location = map_to_fish_location(player_state.current_map);
+    let map_id = player_state.current_map;
+    let location = map_to_fish_location(map_id);
     let season = calendar.season;
     let time = calendar.time_float();
     let weather = calendar.weather;
 
-    // Collect eligible fish
+    // ── Step 1: Legendary check ───────────────────────────────────────────
+    // Each legendary has a small independent spawn-chance per cast.
+    if let Some((legendary_id, _difficulty)) = try_roll_legendary(map_id, season) {
+        // Legendary triggered — verify it exists in registry (or return it
+        // anyway; catch_fish will fall back to a default if it's missing).
+        return Some(legendary_id.to_string());
+    }
+
+    // ── Step 2: Normal weighted pool ─────────────────────────────────────
     let eligible: Vec<(&FishDef, u32)> = fish_registry
         .fish
         .values()
@@ -133,3 +152,10 @@ fn weighted_pick(items: &[(&FishDef, u32)]) -> Option<ItemId> {
 //          pufferfish(uncommon), squid(rare), octopus(rare), glacier_fish(legendary)
 //   Pond:  carp(common), perch(common), catfish(uncommon), sturgeon(rare), crimson_fish(legendary)
 //   Mine:  anglerfish(rare)
+//
+// Legendary fish added in the fishing skill expansion:
+//   Ocean/Summer:  crimson_king      (difficulty 0.95, 2% spawn)
+//   River/Winter:  glacier_pike      (difficulty 0.90, 1.5% spawn)
+//   Mine/Fall:     phantom_eel       (difficulty 0.85, 1.5% spawn)
+//   River/Spring:  golden_walleye    (difficulty 0.80, 2% spawn)
+//   Ocean/Winter:  ancient_coelacanth (difficulty 0.99, 1% spawn)
