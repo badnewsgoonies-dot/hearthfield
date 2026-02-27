@@ -6,6 +6,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+mod animation;
 mod definitions;
 mod dialogue;
 mod gifts;
@@ -35,6 +36,7 @@ use schedule::{
     move_npcs_toward_targets,
     ScheduleUpdateTimer,
 };
+use animation::animate_npc_sprites;
 use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
 use quests::{
     post_daily_quests,
@@ -66,49 +68,38 @@ impl Plugin for NpcPlugin {
             spawn_initial_npcs,
         );
 
-        // Playing-state systems
+        // Playing-state systems: core NPC behaviour
         app.add_systems(
             Update,
             (
-                // Schedule: update targets periodically
                 update_npc_schedules,
-                // Movement: smooth walk toward target every frame
                 move_npcs_toward_targets,
-                // Interaction: Space key triggers dialogue
+                animate_npc_sprites,
                 handle_npc_interaction,
-                // Gift input: G key gives selected item
                 handle_gift_input,
-                // Gift resolution: process GiftGivenEvent
                 handle_gifts,
-                // Map transition: despawn/spawn NPCs for new map
                 handle_map_transition,
-                // Day end: reset gifted_today
                 handle_day_end,
-                // Romance: update relationship stages from heart levels
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // Playing-state systems: romance + quests
+        app.add_systems(
+            Update,
+            (
                 update_relationship_stages,
-                // Romance: handle bouquet gift (start dating)
                 handle_bouquet,
-                // Romance: handle proposal (start engagement)
                 handle_proposal,
-                // Romance: tick wedding countdown on day end
                 tick_wedding_timer,
-                // Romance: process wedding ceremony
                 handle_wedding,
-                // Romance: spouse performs daily action at 8 AM
                 spouse_daily_action,
-                // Romance: apply spouse action effects
                 handle_spouse_action,
-                // Romance: update spouse happiness on day end
                 update_spouse_happiness,
-                // Quests: post new quests at day end
                 post_daily_quests,
-                // Quests: handle player accepting a quest
                 handle_quest_accepted,
-                // Quests: track progress from game events
                 track_quest_progress,
-                // Quests: award rewards on completion
                 handle_quest_completed,
-                // Quests: expire timed-out quests at day end
                 expire_quests,
             )
                 .run_if(in_state(GameState::Playing)),

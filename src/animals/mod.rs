@@ -66,6 +66,49 @@ pub struct UnfedDays {
     pub count: u8,
 }
 
+/// Cached sprite atlas handles for animals with real sprite assets.
+#[derive(Resource, Default)]
+pub struct AnimalSpriteData {
+    pub loaded: bool,
+    pub chicken_image: Handle<Image>,
+    pub chicken_layout: Handle<TextureAtlasLayout>,
+    pub cow_image: Handle<Image>,
+    pub cow_layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads chicken and cow sprite atlases on first entry into Playing state.
+pub fn load_animal_sprites(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut sprite_data: ResMut<AnimalSpriteData>,
+) {
+    if sprite_data.loaded {
+        return;
+    }
+
+    // chicken.png: 64x32, 4 cols x 2 rows of 16x16 frames
+    sprite_data.chicken_image = asset_server.load("sprites/chicken.png");
+    sprite_data.chicken_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        2,
+        None,
+        None,
+    ));
+
+    // cow.png: 96x64, 3 cols x 2 rows of 32x32 frames
+    sprite_data.cow_image = asset_server.load("sprites/cow.png");
+    sprite_data.cow_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        3,
+        2,
+        None,
+        None,
+    ));
+
+    sprite_data.loaded = true;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,8 +118,9 @@ pub struct AnimalPlugin;
 impl Plugin for AnimalPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<AnimalSpriteData>()
             // ── startup / loading ────────────────────────────────────────────
-            .add_systems(OnEnter(GameState::Playing), setup_feed_trough)
+            .add_systems(OnEnter(GameState::Playing), (load_animal_sprites, setup_feed_trough))
 
             // ── purchase detection ───────────────────────────────────────────
             .add_systems(

@@ -99,12 +99,14 @@ impl FishEncyclopedia {
     }
 
     /// How many unique species have been caught.
+    #[allow(dead_code)]
     pub fn unique_species(&self) -> usize {
         self.entries.len()
     }
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CaughtFishEntry {
     pub fish_id: String,
     pub times_caught: u32,
@@ -130,6 +132,7 @@ pub enum TackleKind {
 
 impl TackleKind {
     /// Derive tackle kind from an inventory item ID.
+    #[allow(dead_code)]
     pub fn from_item_id(id: &str) -> Self {
         match id {
             "spinner" => TackleKind::Spinner,
@@ -140,6 +143,7 @@ impl TackleKind {
     }
 
     /// User-facing description of the tackle effect.
+    #[allow(dead_code)]
     pub fn effect_description(self) -> Option<&'static str> {
         match self {
             TackleKind::None => None,

@@ -54,6 +54,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
             .init_resource::<chests::ChestInteraction>()
+            .init_resource::<chests::ChestSpriteData>()
             .init_resource::<SeasonalTintApplied>()
             .init_resource::<LeafSpawnAccumulator>()
             // Day/night + weather resources
@@ -63,7 +64,7 @@ impl Plugin for WorldPlugin {
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
-                (spawn_initial_map, spawn_day_night_overlay),
+                (spawn_initial_map, spawn_day_night_overlay, chests::load_chest_sprites),
             )
             // Despawn overlay + weather particles when leaving Playing state
             .add_systems(
@@ -339,6 +340,7 @@ impl WorldMap {
     }
 
     /// Check if a tile is water.
+    #[allow(dead_code)]
     pub fn is_water(&self, x: i32, y: i32) -> bool {
         if let Some(ref map_def) = self.map_def {
             matches!(map_def.get_tile(x, y), TileKind::Water)
@@ -348,6 +350,7 @@ impl WorldMap {
     }
 
     /// Get the tile kind at a position.
+    #[allow(dead_code)]
     pub fn get_tile(&self, x: i32, y: i32) -> TileKind {
         if let Some(ref map_def) = self.map_def {
             map_def.get_tile(x, y)
@@ -357,6 +360,7 @@ impl WorldMap {
     }
 
     /// Get the list of map transitions for the current map.
+    #[allow(dead_code)]
     pub fn transitions(&self) -> &[MapTransition] {
         if let Some(ref map_def) = self.map_def {
             &map_def.transitions
@@ -390,6 +394,7 @@ pub struct MapTile;
 
 /// Marker component for transition zone entities.
 #[derive(Component, Debug)]
+#[allow(dead_code)]
 pub struct TransitionZone {
     pub to_map: MapId,
     pub to_x: i32,

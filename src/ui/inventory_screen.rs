@@ -10,6 +10,7 @@ use super::UiFontHandle;
 pub struct InventoryScreenRoot;
 
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct InventoryGridSlot {
     pub index: usize,
 }

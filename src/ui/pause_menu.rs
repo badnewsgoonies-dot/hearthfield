@@ -16,6 +16,7 @@ pub struct PauseMenuItem {
 }
 
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct PauseMenuItemText {
     pub index: usize,
 }

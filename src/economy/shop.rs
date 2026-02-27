@@ -15,6 +15,7 @@ pub struct ActiveShop {
 
 /// A single entry in the current shop, enriched with item info for the UI.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ActiveListing {
     pub item_id: ItemId,
     pub display_name: String,

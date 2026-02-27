@@ -7,6 +7,7 @@ use crate::shared::*;
 
 /// Complete definition of a game map.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MapDef {
     pub id: MapId,
     pub width: usize,
@@ -30,6 +31,7 @@ impl MapDef {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_tile(&mut self, x: i32, y: i32, kind: TileKind) {
         if x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32 {
             self.tiles[y as usize * self.width + x as usize] = kind;

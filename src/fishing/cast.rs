@@ -26,7 +26,7 @@ pub fn handle_tool_use_for_fishing(
     mut inventory: ResMut<Inventory>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut item_removed_events: EventWriter<ItemRemovedEvent>,
-    mut toast_events: EventWriter<ToastEvent>,
+    _toast_events: EventWriter<ToastEvent>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {

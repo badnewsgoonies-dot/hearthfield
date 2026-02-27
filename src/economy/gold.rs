@@ -53,6 +53,7 @@ pub fn apply_gold_changes(
 }
 
 /// Format a gold amount as a display string (e.g. "1,234g").
+#[allow(dead_code)]
 pub fn format_gold(amount: u32) -> String {
     let s = amount.to_string();
     let mut result = String::new();

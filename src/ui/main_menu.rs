@@ -39,6 +39,7 @@ pub enum MainMenuMode {
 
 /// Stores the play button atlas layout for button backgrounds
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct PlayButtonAtlas {
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,

@@ -42,6 +42,7 @@ impl ToolUpgradeQueue {
     }
 
     /// Returns a human-readable status for a tool (used by UI).
+    #[allow(dead_code)]
     pub fn upgrade_status(&self, tool: ToolKind) -> Option<String> {
         self.pending
             .iter()
@@ -68,6 +69,7 @@ pub struct ToolUpgradeRequestEvent {
 
 /// Fired when an upgrade completes (for UI notification).
 #[derive(Event, Debug, Clone)]
+#[allow(dead_code)]
 pub struct ToolUpgradeCompleteEvent {
     pub tool: ToolKind,
     pub new_tier: ToolTier,
@@ -242,6 +244,7 @@ pub fn tick_upgrade_queue(
 
 /// Builds the list of possible upgrades for the UI to display in the Blacksmith.
 /// Returns `(tool, current_tier, target_tier, gold_cost, bar_id, bar_qty, can_afford, has_bars, is_upgrading)`.
+#[allow(dead_code)]
 pub type UpgradeEntry = (
     ToolKind,
     ToolTier,
@@ -254,6 +257,7 @@ pub type UpgradeEntry = (
     bool,  // is_upgrading
 );
 
+#[allow(dead_code)]
 pub fn list_available_upgrades(
     player_state: &PlayerState,
     inventory: &Inventory,

@@ -23,6 +23,7 @@ pub struct DialoguePrompt;
 
 /// Tracks dialogue state within the UI
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct DialogueUiState {
     pub npc_id: NpcId,
     pub lines: Vec<String>,

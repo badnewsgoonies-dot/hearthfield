@@ -133,6 +133,7 @@ pub fn move_npcs_toward_targets(
 /// System: periodically re-check schedule (runs every few seconds, not every frame).
 /// Uses a timer resource to avoid checking every tick.
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct ScheduleUpdateTimer(pub Timer);
 
 impl Default for ScheduleUpdateTimer {
@@ -142,6 +143,7 @@ impl Default for ScheduleUpdateTimer {
     }
 }
 
+#[allow(dead_code)]
 pub fn tick_schedule_timer(
     time: Res<Time>,
     mut timer: ResMut<ScheduleUpdateTimer>,

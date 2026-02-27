@@ -163,6 +163,7 @@ impl WorldObjectKind {
     }
 
     /// Whether this object blocks movement.
+    #[allow(dead_code)]
     pub fn is_solid(self) -> bool {
         true
     }
