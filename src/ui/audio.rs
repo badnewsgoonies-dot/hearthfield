@@ -19,26 +19,26 @@ pub struct MusicState {
 fn sfx_path(sfx_id: &str) -> Option<&'static str> {
     match sfx_id {
         "sfx_hoe" | "sfx_axe" | "sfx_pickaxe" | "sfx_scythe" => {
-            Some("audio/sfx/sfx_sounds_impact1.wav")
+            Some("audio/sfx/sfx_sounds_impact1.ogg")
         }
-        "sfx_water" => Some("audio/sfx/sfx_sounds_interaction5.wav"),
-        "sfx_cast" => Some("audio/sfx/sfx_movement_jump1.wav"),
-        "chop" => Some("audio/sfx/sfx_sounds_impact2.wav"),
-        "rock_hit" => Some("audio/sfx/sfx_sounds_impact3.wav"),
-        "swish" => Some("audio/sfx/sfx_wpn_sword1.wav"),
-        "hit" => Some("audio/sfx/sfx_damage_hit1.wav"),
-        "object_break" => Some("audio/sfx/sfx_sounds_impact5.wav"),
-        "pickup" => Some("audio/sfx/sfx_coin_single1.wav"),
-        "menu_move" => Some("audio/sfx/sfx_menu_move1.wav"),
-        "menu_select" => Some("audio/sfx/sfx_menu_select1.wav"),
-        "purchase" => Some("audio/sfx/sfx_coin_cluster1.wav"),
-        "sell" => Some("audio/sfx/sfx_coin_double1.wav"),
-        "door" => Some("audio/sfx/sfx_movement_dooropen1.wav"),
-        "footstep" => Some("audio/sfx/sfx_movement_footsteps1a.wav"),
-        "error" => Some("audio/sfx/sfx_sounds_error1.wav"),
-        "fanfare" => Some("audio/sfx/sfx_sounds_fanfare1.wav"),
-        "powerup" => Some("audio/sfx/sfx_sounds_powerup1.wav"),
-        "damage" => Some("audio/sfx/sfx_sounds_damage1.wav"),
+        "sfx_water" => Some("audio/sfx/sfx_sounds_interaction5.ogg"),
+        "sfx_cast" => Some("audio/sfx/sfx_movement_jump1.ogg"),
+        "chop" => Some("audio/sfx/sfx_sounds_impact2.ogg"),
+        "rock_hit" => Some("audio/sfx/sfx_sounds_impact3.ogg"),
+        "swish" => Some("audio/sfx/sfx_wpn_sword1.ogg"),
+        "hit" => Some("audio/sfx/sfx_damage_hit1.ogg"),
+        "object_break" => Some("audio/sfx/sfx_sounds_impact5.ogg"),
+        "pickup" => Some("audio/sfx/sfx_coin_single1.ogg"),
+        "menu_move" => Some("audio/sfx/sfx_menu_move1.ogg"),
+        "menu_select" => Some("audio/sfx/sfx_menu_select1.ogg"),
+        "purchase" => Some("audio/sfx/sfx_coin_cluster1.ogg"),
+        "sell" => Some("audio/sfx/sfx_coin_double1.ogg"),
+        "door" => Some("audio/sfx/sfx_movement_dooropen1.ogg"),
+        "footstep" => Some("audio/sfx/sfx_movement_footsteps1a.ogg"),
+        "error" => Some("audio/sfx/sfx_sounds_error1.ogg"),
+        "fanfare" => Some("audio/sfx/sfx_sounds_fanfare1.ogg"),
+        "powerup" => Some("audio/sfx/sfx_sounds_powerup1.ogg"),
+        "damage" => Some("audio/sfx/sfx_sounds_damage1.ogg"),
         _ => None,
     }
 }
