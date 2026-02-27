@@ -19,6 +19,7 @@ pub mod chests;
 pub mod seasonal;
 pub mod lighting;
 pub mod weather_fx;
+pub mod ysort;
 
 use maps::{generate_map, MapDef};
 use objects::{
@@ -104,7 +105,9 @@ impl Plugin for WorldPlugin {
             // Listen for season changes for visual updates + tree regrowth.
             // This handles season-switch atlas swaps (index-based).
             // apply_seasonal_tint handles multiplicative colour tinting.
-            .add_systems(Update, (handle_season_change, regrow_trees_on_season_change));
+            .add_systems(Update, (handle_season_change, regrow_trees_on_season_change))
+            // Y-sort + pixel-snap: runs after all movement, writes Transform
+            .add_systems(PostUpdate, ysort::sync_position_and_ysort);
     }
 }
 
@@ -540,7 +543,7 @@ fn spawn_tile_sprites(
                         Transform::from_translation(Vec3::new(
                             x as f32 * TILE_SIZE,
                             y as f32 * TILE_SIZE,
-                            0.0,
+                            Z_GROUND,
                         )),
                         MapTile,
                     ));
@@ -556,7 +559,7 @@ fn spawn_tile_sprites(
                         Transform::from_translation(Vec3::new(
                             x as f32 * TILE_SIZE,
                             y as f32 * TILE_SIZE,
-                            0.0,
+                            Z_GROUND,
                         )),
                         MapTile,
                     ));

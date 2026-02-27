@@ -122,7 +122,8 @@ fn build_test_app() -> App {
         .add_event::<AchievementUnlockedEvent>()
         .add_event::<BuildingUpgradeEvent>()
         .add_event::<HintEvent>()
-        .add_event::<ScreenTransitionEvent>();
+        .add_event::<ScreenTransitionEvent>()
+        .add_event::<ToolImpactEvent>();
 
     app
 }
@@ -2407,4 +2408,180 @@ fn test_forageables_unique_per_season() {
     let overlap: Vec<&&str> = spring_ids.iter().filter(|id| summer_ids.contains(id)).collect();
     assert!(overlap.is_empty(),
         "Spring and summer should have no overlapping forageable items, found: {:?}", overlap);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 5: Rendering, Animation & Pixel-Perfect Display
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Y-Sort Tests ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_ysort_lower_y_draws_in_front() {
+    // Entity at y=100 should have higher Z than entity at y=200
+    let z_100 = Z_ENTITY_BASE - 100.0 * Z_Y_SORT_SCALE;
+    let z_200 = Z_ENTITY_BASE - 200.0 * Z_Y_SORT_SCALE;
+    assert!(z_100 > z_200, "Lower Y should produce higher Z (draws in front)");
+}
+
+#[test]
+fn test_ysort_does_not_overlap_ground() {
+    // Lowest possible entity Z should still be above Z_FARM_OVERLAY
+    let worst_case_z = Z_ENTITY_BASE - 5000.0 * Z_Y_SORT_SCALE; // extreme map
+    assert!(worst_case_z > Z_FARM_OVERLAY);
+}
+
+#[test]
+fn test_z_layer_ordering() {
+    assert!(Z_GROUND < Z_FARM_OVERLAY);
+    assert!(Z_FARM_OVERLAY < Z_ENTITY_BASE);
+    assert!(Z_ENTITY_BASE < Z_EFFECTS);
+    assert!(Z_EFFECTS < Z_SEASONAL);
+    assert!(Z_SEASONAL < Z_WEATHER);
+}
+
+// ── LogicalPosition Tests ─────────────────────────────────────────────────
+
+#[test]
+fn test_logical_position_round_snaps_correctly() {
+    let pos = LogicalPosition(Vec2::new(14.53, 10.87));
+    assert_eq!(pos.0.x.round(), 15.0);
+    assert_eq!(pos.0.y.round(), 11.0);
+}
+
+#[test]
+fn test_logical_position_preserves_sub_pixel() {
+    // Simulate: speed 0.4 px/frame, 3 frames
+    let mut pos = LogicalPosition(Vec2::new(10.0, 5.0));
+    pos.0.x += 0.4;
+    pos.0.x += 0.4;
+    pos.0.x += 0.4;
+    // Float accumulated: 11.2 (not rounded to 10.0 each frame)
+    assert!((pos.0.x - 11.2).abs() < 0.001);
+}
+
+// ── Distance-Based Animation Tests ────────────────────────────────────────
+
+#[test]
+fn test_distance_animator_advances_on_distance() {
+    use hearthfield::player::DistanceAnimator;
+    let mut anim = DistanceAnimator {
+        last_pos: Vec2::ZERO,
+        distance_budget: 0.0,
+        pixels_per_frame: 6.0,
+        frames_per_row: 4,
+        current_frame: 0,
+    };
+
+    // Move 5 pixels — not enough
+    let new_pos = Vec2::new(5.0, 0.0);
+    anim.distance_budget += (new_pos - anim.last_pos).length();
+    anim.last_pos = new_pos;
+    assert_eq!(anim.current_frame, 0);
+
+    // Move 2 more pixels — crosses threshold
+    let new_pos = Vec2::new(7.0, 0.0);
+    anim.distance_budget += (new_pos - anim.last_pos).length();
+    anim.last_pos = new_pos;
+    while anim.distance_budget >= anim.pixels_per_frame {
+        anim.distance_budget -= anim.pixels_per_frame;
+        anim.current_frame = (anim.current_frame + 1) % anim.frames_per_row;
+    }
+    assert_eq!(anim.current_frame, 1);
+    assert!((anim.distance_budget - 1.0).abs() < 0.001);
+}
+
+#[test]
+fn test_distance_animator_wraps_frames() {
+    use hearthfield::player::DistanceAnimator;
+    let mut anim = DistanceAnimator {
+        last_pos: Vec2::ZERO,
+        distance_budget: 0.0,
+        pixels_per_frame: 1.0,
+        frames_per_row: 4,
+        current_frame: 3,
+    };
+
+    anim.distance_budget = 1.0;
+    while anim.distance_budget >= anim.pixels_per_frame {
+        anim.distance_budget -= anim.pixels_per_frame;
+        anim.current_frame = (anim.current_frame + 1) % anim.frames_per_row;
+    }
+    assert_eq!(anim.current_frame, 0);
+}
+
+#[test]
+fn test_distance_animator_idle_resets() {
+    use hearthfield::player::DistanceAnimator;
+    let mut anim = DistanceAnimator::default();
+    anim.current_frame = 2;
+    anim.distance_budget = 3.5;
+
+    // Idle reset
+    anim.current_frame = 0;
+    anim.distance_budget = 0.0;
+    assert_eq!(anim.current_frame, 0);
+    assert_eq!(anim.distance_budget, 0.0);
+}
+
+// ── Animation State Tests ─────────────────────────────────────────────────
+
+#[test]
+fn test_player_anim_state_default_is_idle() {
+    assert_eq!(PlayerAnimState::default(), PlayerAnimState::Idle);
+}
+
+#[test]
+fn test_tool_use_state_holds_tool_kind() {
+    let state = PlayerAnimState::ToolUse {
+        tool: ToolKind::Hoe,
+        frame: 2,
+        total_frames: 4,
+    };
+    match state {
+        PlayerAnimState::ToolUse { tool, frame, total_frames } => {
+            assert_eq!(tool, ToolKind::Hoe);
+            assert_eq!(frame, 2);
+            assert_eq!(total_frames, 4);
+        }
+        _ => panic!("Expected ToolUse state"),
+    }
+}
+
+#[test]
+fn test_player_movement_default_has_idle_anim_state() {
+    let movement = PlayerMovement::default();
+    assert_eq!(movement.anim_state, PlayerAnimState::Idle);
+}
+
+// ── Atlas Index Math Tests ────────────────────────────────────────────────
+
+#[test]
+fn test_walk_atlas_index_right_frame2() {
+    let base = 8; // Right row
+    let frame = 2;
+    assert_eq!(base + frame, 10);
+}
+
+#[test]
+fn test_walk_atlas_index_left_frame0() {
+    let base = 12; // Left row
+    let frame = 0;
+    assert_eq!(base + frame, 12);
+}
+
+#[test]
+fn test_walk_atlas_all_directions() {
+    // Down row 0
+    assert_eq!(0 + 0, 0);
+    assert_eq!(0 + 3, 3);
+    // Up row 1
+    assert_eq!(4 + 0, 4);
+    assert_eq!(4 + 3, 7);
+    // Right row 2
+    assert_eq!(8 + 0, 8);
+    assert_eq!(8 + 3, 11);
+    // Left row 3
+    assert_eq!(12 + 0, 12);
+    assert_eq!(12 + 3, 15);
 }

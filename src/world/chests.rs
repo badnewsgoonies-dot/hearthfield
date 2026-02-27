@@ -177,7 +177,8 @@ pub fn place_chest(
         ChestMarker,
         StorageChest::new(36, target_x, target_y),
         chest_sprite,
-        Transform::from_translation(Vec3::new(world_x, world_y, 5.0)),
+        Transform::from_translation(Vec3::new(world_x, world_y, Z_ENTITY_BASE)),
+        YSorted,
     ));
 
     sfx_events.send(PlaySfxEvent {

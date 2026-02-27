@@ -259,6 +259,7 @@ pub struct PlayerMovement {
     pub is_moving: bool,
     pub speed: f32,
     pub move_cooldown: Timer,
+    pub anim_state: PlayerAnimState,
 }
 
 impl Default for PlayerMovement {
@@ -268,6 +269,7 @@ impl Default for PlayerMovement {
             is_moving: false,
             speed: 80.0,
             move_cooldown: Timer::from_seconds(0.0, TimerMode::Once),
+            anim_state: PlayerAnimState::Idle,
         }
     }
 }
@@ -993,6 +995,73 @@ pub const FRIENDSHIP_PER_HEART: u32 = 100;
 pub const MAX_HEARTS: u32 = 10;
 #[allow(dead_code)]
 pub const MAX_FRIENDSHIP: u32 = MAX_HEARTS * FRIENDSHIP_PER_HEART;
+
+// ═══════════════════════════════════════════════════════════════════════
+// Z-LAYER CONSTANTS (2D depth ordering)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Ground tiles (grass, dirt, water, paths). Never overlaps with entities.
+pub const Z_GROUND: f32 = 0.0;
+
+/// Farm overlays (tilled soil, watered state). Just above ground.
+pub const Z_FARM_OVERLAY: f32 = 10.0;
+
+/// Y-sorted entity layer. Player, NPCs, animals, trees, rocks, machines,
+/// chests — everything that can visually overlap shares this base.
+/// Actual Z = Z_ENTITY_BASE - world_y * Z_Y_SORT_SCALE
+pub const Z_ENTITY_BASE: f32 = 100.0;
+
+/// Scale factor for Y-sort offset. With a max map of ~100 tiles = 1600px,
+/// max offset = 1600 * 0.01 = 16.0. Entity range: 84.0 to 100.0.
+pub const Z_Y_SORT_SCALE: f32 = 0.01;
+
+/// Effects above entities (fishing bobber, festival items).
+pub const Z_EFFECTS: f32 = 200.0;
+
+/// Seasonal overlays (falling leaves, flower petals).
+pub const Z_SEASONAL: f32 = 300.0;
+
+/// Weather particles (rain, snow, fog). Always on top of world.
+pub const Z_WEATHER: f32 = 400.0;
+
+// ═══════════════════════════════════════════════════════════════════════
+// RENDERING COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Marker: this entity participates in Y-sort depth ordering.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub struct YSorted;
+
+/// Lossless position for physics/gameplay. Transform is derived from this.
+/// Movement systems write LogicalPosition. A PostUpdate system rounds it
+/// to integer pixels and writes Transform.translation.xy.
+#[derive(Component, Debug, Clone, Default)]
+pub struct LogicalPosition(pub Vec2);
+
+/// Player animation state. Determines which atlas region and frame-advance
+/// logic to use. Only one state active at a time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PlayerAnimState {
+    #[default]
+    Idle,
+    Walk,
+    ToolUse {
+        tool: ToolKind,
+        /// Which frame of the tool animation we're on (0-based).
+        frame: u8,
+        /// Total frames in this tool animation.
+        total_frames: u8,
+    },
+}
+
+/// Fired when a tool animation reaches its "impact" frame.
+#[derive(Event, Debug, Clone)]
+pub struct ToolImpactEvent {
+    pub tool: ToolKind,
+    pub grid_x: i32,
+    pub grid_y: i32,
+    pub player: Entity,
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // PHASE 3 ADDITIONS

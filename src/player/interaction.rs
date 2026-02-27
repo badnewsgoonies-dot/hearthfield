@@ -144,14 +144,14 @@ pub fn handle_map_transition(
     mut events: EventReader<MapTransitionEvent>,
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
-    mut query: Query<(&mut Transform, &mut GridPosition), With<Player>>,
+    mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
 ) {
     // Process only the most recent transition (in case multiple fire).
     let Some(ev) = events.read().last() else {
         return;
     };
 
-    let Ok((mut transform, mut grid_pos)) = query.get_single_mut() else {
+    let Ok((mut logical_pos, mut grid_pos)) = query.get_single_mut() else {
         return;
     };
 
@@ -160,8 +160,8 @@ pub fn handle_map_transition(
 
     // Reposition player to the target tile.
     let (wx, wy) = grid_to_world(ev.to_x, ev.to_y);
-    transform.translation.x = wx;
-    transform.translation.y = wy;
+    logical_pos.0.x = wx;
+    logical_pos.0.y = wy;
     grid_pos.x = ev.to_x;
     grid_pos.y = ev.to_y;
 
@@ -271,7 +271,7 @@ pub fn add_items_to_inventory(
 pub fn handle_day_end(
     mut events: EventReader<DayEndEvent>,
     mut player_state: ResMut<PlayerState>,
-    mut query: Query<(&mut Transform, &mut GridPosition), With<Player>>,
+    mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
     mut map_events: EventWriter<MapTransitionEvent>,
 ) {
     for _ev in events.read() {
@@ -296,10 +296,10 @@ pub fn handle_day_end(
         // Move player back to farmhouse bed position.
         player_state.current_map = MapId::PlayerHouse;
 
-        if let Ok((mut transform, mut grid_pos)) = query.get_single_mut() {
+        if let Ok((mut logical_pos, mut grid_pos)) = query.get_single_mut() {
             let (wx, wy) = grid_to_world(bed_gx, bed_gy);
-            transform.translation.x = wx;
-            transform.translation.y = wy;
+            logical_pos.0.x = wx;
+            logical_pos.0.y = wy;
             grid_pos.x = bed_gx;
             grid_pos.y = bed_gy;
         }

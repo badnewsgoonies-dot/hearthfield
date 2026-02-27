@@ -112,7 +112,7 @@ pub fn spawn_daily_weeds(
                 Transform::from_translation(Vec3::new(
                     x as f32 * TILE_SIZE,
                     y as f32 * TILE_SIZE,
-                    4.5, // Above tiles, below full objects
+                    Z_ENTITY_BASE,
                 )),
                 Weed { grid_x: x, grid_y: y },
             ));

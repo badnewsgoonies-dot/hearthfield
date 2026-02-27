@@ -156,7 +156,9 @@ pub fn spawn_npcs_for_map(
             },
             NpcMapTag(map),
             sprite,
-            Transform::from_xyz(world_x, world_y, 1.0),
+            LogicalPosition(Vec2::new(world_x, world_y)),
+            Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+            YSorted,
             Visibility::default(),
         )).id();
 

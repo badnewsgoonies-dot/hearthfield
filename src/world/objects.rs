@@ -252,9 +252,10 @@ pub fn spawn_world_objects(
                 Transform::from_translation(Vec3::new(
                     placement.x as f32 * TILE_SIZE,
                     placement.y as f32 * TILE_SIZE + y_offset,
-                    5.0, // Above tiles, below UI
+                    Z_ENTITY_BASE,
                 )),
                 WorldObject,
+                YSorted,
                 data,
             ));
         } else {
@@ -268,9 +269,10 @@ pub fn spawn_world_objects(
                 Transform::from_translation(Vec3::new(
                     placement.x as f32 * TILE_SIZE,
                     placement.y as f32 * TILE_SIZE + y_offset,
-                    5.0,
+                    Z_ENTITY_BASE,
                 )),
                 WorldObject,
+                YSorted,
                 data,
             ));
         }
@@ -392,9 +394,10 @@ pub fn handle_tool_use_on_objects(
                                     Transform::from_translation(Vec3::new(
                                         obj_data.grid_x as f32 * TILE_SIZE,
                                         obj_data.grid_y as f32 * TILE_SIZE,
-                                        5.0,
+                                        Z_ENTITY_BASE,
                                     )),
                                     WorldObject,
+                                    YSorted,
                                     stump_data,
                                 ));
                             } else {
@@ -408,9 +411,10 @@ pub fn handle_tool_use_on_objects(
                                     Transform::from_translation(Vec3::new(
                                         obj_data.grid_x as f32 * TILE_SIZE,
                                         obj_data.grid_y as f32 * TILE_SIZE,
-                                        5.0,
+                                        Z_ENTITY_BASE,
                                     )),
                                     WorldObject,
+                                    YSorted,
                                     stump_data,
                                 ));
                             }
@@ -512,9 +516,10 @@ pub fn spawn_forageables(
             Transform::from_translation(Vec3::new(
                 gx as f32 * TILE_SIZE,
                 gy as f32 * TILE_SIZE,
-                4.0,
+                Z_ENTITY_BASE,
             )),
             WorldObject,
+            YSorted,
             Forageable {
                 item_id: item_id.to_string(),
                 grid_x: gx,
@@ -637,7 +642,7 @@ pub fn spawn_daily_weeds(
                 Transform::from_translation(Vec3::new(
                     x as f32 * TILE_SIZE,
                     y as f32 * TILE_SIZE,
-                    4.5, // Above ground tiles, below world objects
+                    Z_ENTITY_BASE,
                 )),
                 Weed {
                     grid_x: x,
@@ -781,9 +786,10 @@ pub fn regrow_trees_on_season_change(
                     Transform::from_translation(Vec3::new(
                         x as f32 * TILE_SIZE,
                         y as f32 * TILE_SIZE + y_offset,
-                        5.0,
+                        Z_ENTITY_BASE,
                     )),
                     WorldObject,
+                    YSorted,
                     data,
                 ));
             } else {
@@ -796,9 +802,10 @@ pub fn regrow_trees_on_season_change(
                     Transform::from_translation(Vec3::new(
                         x as f32 * TILE_SIZE,
                         y as f32 * TILE_SIZE + y_offset,
-                        5.0,
+                        Z_ENTITY_BASE,
                     )),
                     WorldObject,
+                    YSorted,
                     data,
                 ));
             }

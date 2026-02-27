@@ -142,7 +142,7 @@ pub fn handle_tool_use_for_fishing(
                 custom_size: Some(Vec2::new(6.0, 8.0)),
                 ..default()
             },
-            Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, 5.0)),
+            Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, Z_EFFECTS)),
             Bobber {
                 bob_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
                 _bob_direction: 1.0,

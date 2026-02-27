@@ -195,7 +195,9 @@ pub fn handle_animal_purchase(
             .spawn((
                 animal_data,
                 animal_sprite,
-                Transform::from_xyz(spawn_x, spawn_y, 1.0),
+                LogicalPosition(Vec2::new(spawn_x, spawn_y)),
+                Transform::from_xyz(spawn_x, spawn_y, Z_ENTITY_BASE),
+                YSorted,
                 GlobalTransform::default(),
                 Visibility::default(),
                 WanderAi {

@@ -107,6 +107,7 @@ fn main() {
         .add_event::<AchievementUnlockedEvent>()
         .add_event::<BuildingUpgradeEvent>()
         .add_event::<ScreenTransitionEvent>()
+        .add_event::<ToolImpactEvent>()
         // Input plugin (before all domain plugins)
         .add_plugins(input::InputPlugin)
         // Domain plugins
@@ -132,6 +133,7 @@ fn main() {
 fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera2d,
+        Msaa::Off,
         Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)),
     ));
 }

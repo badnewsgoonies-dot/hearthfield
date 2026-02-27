@@ -239,8 +239,7 @@ pub fn grid_to_world(x: i32, y: i32) -> Vec3 {
     Vec3::new(
         x as f32 * TILE_SIZE,
         y as f32 * TILE_SIZE,
-        // Soil tiles at z=1, crop sprites at z=2
-        1.0,
+        Z_FARM_OVERLAY,
     )
 }
 

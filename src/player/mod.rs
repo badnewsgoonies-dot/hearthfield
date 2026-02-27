@@ -3,6 +3,7 @@ mod tools;
 mod camera;
 mod interaction;
 mod spawn;
+pub mod tool_anim;
 
 use bevy::prelude::*;
 use crate::shared::*;
@@ -15,6 +16,7 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<ToolCooldown>();
         app.init_resource::<CollisionMap>();
         app.init_resource::<PlayerSpriteData>();
+        app.init_resource::<ActionSpriteData>();
 
         // -- Spawn player when we enter Playing --
         app.add_systems(
@@ -28,6 +30,7 @@ impl Plugin for PlayerPlugin {
             (
                 movement::player_movement,
                 movement::animate_player_sprite,
+                tool_anim::animate_tool_use,
                 tools::tool_cycle,
                 tools::tool_use,
                 tools::stamina_drain_handler,
@@ -64,7 +67,43 @@ pub struct PlayerSpriteData {
     pub layout: Handle<TextureAtlasLayout>,
 }
 
-/// Per-entity walk animation state.
+/// Holds the loaded character_actions.png atlas handles for tool animations.
+#[derive(Resource, Default)]
+pub struct ActionSpriteData {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Drives walk-cycle frames based on distance traveled, not time.
+/// Prevents "ice skating" when speed changes from buffs.
+#[derive(Component, Debug)]
+pub struct DistanceAnimator {
+    /// Position at last frame advance. Compared against LogicalPosition.
+    pub last_pos: Vec2,
+    /// Accumulated distance since last frame change.
+    pub distance_budget: f32,
+    /// World-space pixels of movement needed to advance one frame.
+    pub pixels_per_frame: f32,
+    /// Number of frames per animation row.
+    pub frames_per_row: usize,
+    /// Current frame within the row (0-based).
+    pub current_frame: usize,
+}
+
+impl Default for DistanceAnimator {
+    fn default() -> Self {
+        Self {
+            last_pos: Vec2::ZERO,
+            distance_budget: 0.0,
+            pixels_per_frame: 6.0,
+            frames_per_row: 4,
+            current_frame: 0,
+        }
+    }
+}
+
+/// Per-entity walk animation state (kept for NPC compat, no longer used for player).
 #[derive(Component)]
 pub struct AnimationTimer {
     pub timer: Timer,
@@ -86,16 +125,11 @@ impl Default for ToolCooldown {
     }
 }
 
-/// Collision map for the current area. Populated by the world domain
-/// via the shared FarmState / MapId. The player domain builds a local
-/// lookup each time the map changes so movement checks are O(1).
+/// Collision map for the current area.
 #[derive(Resource, Default)]
 pub struct CollisionMap {
-    /// Set of (grid_x, grid_y) positions that are solid / impassable.
     pub solid_tiles: std::collections::HashSet<(i32, i32)>,
-    /// Map boundaries (min_x, max_x, min_y, max_y) in grid coordinates.
     pub bounds: (i32, i32, i32, i32),
-    /// Whether the collision map has been initialised for the current map.
     pub initialised: bool,
 }
 

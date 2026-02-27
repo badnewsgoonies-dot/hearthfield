@@ -22,7 +22,7 @@ pub fn detect_seed_use(
     farm_state: Res<FarmState>,
     calendar: Res<Calendar>,
     crop_registry: Res<CropRegistry>,
-    player_query: Query<(&Transform, &PlayerMovement), With<Player>>,
+    player_query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
     mut plant_events: EventWriter<PlantSeedEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
@@ -63,12 +63,12 @@ pub fn detect_seed_use(
     }
 
     // Get the player's grid position and facing direction.
-    let Ok((transform, movement)) = player_query.get_single() else {
+    let Ok((logical_pos, movement)) = player_query.get_single() else {
         return;
     };
 
-    let player_gx = (transform.translation.x / TILE_SIZE).round() as i32;
-    let player_gy = (transform.translation.y / TILE_SIZE).round() as i32;
+    let player_gx = (logical_pos.0.x / TILE_SIZE).round() as i32;
+    let player_gy = (logical_pos.0.y / TILE_SIZE).round() as i32;
 
     // Target tile is the tile the player is facing.
     let (offset_x, offset_y) = match movement.facing {
@@ -207,7 +207,7 @@ pub fn spawn_crop_entity(
 ) {
     let total_stages = crop_def.growth_days.len() as u8;
     let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
-    let translation = grid_to_world(pos.0, pos.1).with_z(2.0); // above soil
+    let translation = grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
 
     let entity = commands.spawn((
         Sprite {

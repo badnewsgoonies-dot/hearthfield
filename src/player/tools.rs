@@ -39,7 +39,7 @@ pub fn tool_use(
     player_state: Res<PlayerState>,
     input_blocks: Res<InputBlocks>,
     mut cooldown: ResMut<ToolCooldown>,
-    query: Query<(&Transform, &PlayerMovement), With<Player>>,
+    mut query: Query<(&LogicalPosition, &mut PlayerMovement), With<Player>>,
     mut tool_events: EventWriter<ToolUseEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
@@ -62,7 +62,7 @@ pub fn tool_use(
         return;
     }
 
-    let Ok((transform, movement)) = query.get_single() else {
+    let Ok((logical_pos, mut movement)) = query.get_single_mut() else {
         return;
     };
 
@@ -71,12 +71,11 @@ pub fn tool_use(
 
     // Check stamina — disallow if insufficient.
     if player_state.stamina < cost {
-        // Could send a UI notification event here.
         return;
     }
 
     // Calculate target tile: player's current grid + facing offset.
-    let (px, py) = super::world_to_grid(transform.translation.x, transform.translation.y);
+    let (px, py) = super::world_to_grid(logical_pos.0.x, logical_pos.0.y);
     let (dx, dy) = facing_offset(&movement.facing);
     let target_x = px + dx;
     let target_y = py + dy;
@@ -111,6 +110,13 @@ pub fn tool_use(
     sfx_events.send(PlaySfxEvent {
         sfx_id: sfx_id.to_string(),
     });
+
+    // Set tool-use animation state
+    movement.anim_state = PlayerAnimState::ToolUse {
+        tool,
+        frame: 0,
+        total_frames: 4,
+    };
 
     // Reset cooldown.
     cooldown.timer.reset();

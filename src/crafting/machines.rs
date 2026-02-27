@@ -529,7 +529,8 @@ pub fn handle_place_machine(
                     Color::srgb(0.6, 0.4, 0.2),
                     Vec2::new(TILE_SIZE * PIXEL_SCALE, TILE_SIZE * PIXEL_SCALE),
                 ),
-                Transform::from_xyz(world_x, world_y, 1.0),
+                Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+                YSorted,
                 GlobalTransform::default(),
             ))
             .id();

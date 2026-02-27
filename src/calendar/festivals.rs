@@ -163,7 +163,7 @@ pub fn start_egg_hunt(
                 custom_size: Some(Vec2::new(6.0, 6.0)),
                 ..default()
             },
-            Transform::from_translation(Vec3::new(x, y, 5.0)),
+            Transform::from_translation(Vec3::new(x, y, Z_EFFECTS)),
         ));
     }
 
