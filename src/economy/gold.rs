@@ -80,4 +80,25 @@ mod tests {
         assert_eq!(format_gold(25000), "25,000g");
         assert_eq!(format_gold(1000000), "1,000,000g");
     }
+
+    #[test]
+    fn test_format_gold_single_digit() {
+        assert_eq!(format_gold(1), "1g");
+        assert_eq!(format_gold(9), "9g");
+    }
+
+    #[test]
+    fn test_format_gold_exact_thousands() {
+        assert_eq!(format_gold(1000), "1,000g");
+        assert_eq!(format_gold(100000), "100,000g");
+    }
+
+    #[test]
+    fn test_economy_stats_default() {
+        let stats = EconomyStats::default();
+        assert_eq!(stats.total_gold_earned, 0);
+        assert_eq!(stats.total_gold_spent, 0);
+        assert_eq!(stats.total_items_shipped, 0);
+        assert_eq!(stats.total_transactions, 0);
+    }
 }

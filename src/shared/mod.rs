@@ -21,9 +21,11 @@ pub enum GameState {
     Dialogue,
     Shop,
     Fishing,
+    #[allow(dead_code)]
     Mining,
     Crafting,
     Inventory,
+    #[allow(dead_code)]
     Cutscene,
 }
 
@@ -200,6 +202,7 @@ impl ToolTier {
     }
 
     /// Gold cost to upgrade FROM this tier to the next.
+    #[allow(dead_code)]
     pub fn upgrade_cost_gold(&self) -> u32 {
         match self {
             ToolTier::Basic => 2000,
@@ -211,6 +214,7 @@ impl ToolTier {
     }
 
     /// Number of bars required to upgrade FROM this tier.
+    #[allow(dead_code)]
     pub fn upgrade_bars_needed(&self) -> u8 {
         match self {
             ToolTier::Basic | ToolTier::Copper | ToolTier::Iron | ToolTier::Gold => 5,
@@ -219,6 +223,7 @@ impl ToolTier {
     }
 
     /// The bar item needed to upgrade FROM this tier.
+    #[allow(dead_code)]
     pub fn upgrade_bar_item(&self) -> Option<&'static str> {
         match self {
             ToolTier::Basic => Some("copper_bar"),
@@ -241,6 +246,7 @@ impl ToolTier {
     }
 
     /// Days the blacksmith takes for any upgrade.
+    #[allow(dead_code)]
     pub fn upgrade_days(&self) -> u8 { 2 }
 }
 
@@ -606,6 +612,7 @@ impl GridPosition {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MapTransition {
     pub from_map: MapId,
     pub from_rect: (i32, i32, i32, i32), // x, y, w, h trigger area
@@ -683,6 +690,7 @@ impl Relationships {
 #[derive(Component, Debug, Clone)]
 pub struct Npc {
     pub id: NpcId,
+    #[allow(dead_code)]
     pub name: String,
 }
 
@@ -813,8 +821,10 @@ pub struct MineRock {
 pub struct MineMonster {
     pub kind: MineEnemy,
     pub health: f32,
+    #[allow(dead_code)]
     pub max_health: f32,
     pub damage: f32,
+    #[allow(dead_code)]
     pub speed: f32,
 }
 
@@ -844,6 +854,7 @@ pub struct ItemPickupEvent {
 #[derive(Event, Debug, Clone)]
 pub struct ItemRemovedEvent {
     pub item_id: ItemId,
+    #[allow(dead_code)]
     pub quantity: u8,
 }
 
@@ -859,9 +870,11 @@ pub struct DialogueEndEvent;
 
 #[derive(Event, Debug, Clone)]
 pub struct ShopTransactionEvent {
+    #[allow(dead_code)]
     pub shop_id: ShopId,
     pub item_id: ItemId,
     pub quantity: u8,
+    #[allow(dead_code)]
     pub total_cost: u32,
     pub is_purchase: bool, // true = buy, false = sell
 }
@@ -896,6 +909,7 @@ pub struct GoldChangeEvent {
 pub struct GiftGivenEvent {
     pub npc_id: NpcId,
     pub item_id: ItemId,
+    #[allow(dead_code)]
     pub preference: GiftPreference,
 }
 
@@ -924,6 +938,7 @@ pub struct PlaySfxEvent {
 #[derive(Event, Debug, Clone)]
 pub struct PlayMusicEvent {
     pub track_id: String,
+    #[allow(dead_code)]
     pub fade_in: bool,
 }
 
@@ -932,6 +947,7 @@ pub struct PlayMusicEvent {
 // ═══════════════════════════════════════════════════════════════════════
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SaveData {
     pub version: u32,
     pub calendar: Calendar,
@@ -957,17 +973,25 @@ pub const SCREEN_WIDTH: f32 = 960.0;
 pub const SCREEN_HEIGHT: f32 = 540.0;
 
 pub const DAYS_PER_SEASON: u8 = 28;
+#[allow(dead_code)]
 pub const SEASONS_PER_YEAR: u8 = 4;
 
+#[allow(dead_code)]
 pub const MAX_STAMINA: f32 = 100.0;
+#[allow(dead_code)]
 pub const MAX_HEALTH: f32 = 100.0;
 
 pub const HOTBAR_SLOTS: usize = 12;
+#[allow(dead_code)]
 pub const BACKPACK_SLOTS: usize = 24;
+#[allow(dead_code)]
 pub const TOTAL_INVENTORY_SLOTS: usize = HOTBAR_SLOTS + BACKPACK_SLOTS;
 
+#[allow(dead_code)]
 pub const FRIENDSHIP_PER_HEART: u32 = 100;
+#[allow(dead_code)]
 pub const MAX_HEARTS: u32 = 10;
+#[allow(dead_code)]
 pub const MAX_FRIENDSHIP: u32 = MAX_HEARTS * FRIENDSHIP_PER_HEART;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -994,6 +1018,7 @@ impl ItemQuality {
         }
     }
 
+    #[allow(dead_code)]
     pub fn next(&self) -> Option<ItemQuality> {
         match self {
             ItemQuality::Normal => Some(ItemQuality::Silver),
@@ -1016,6 +1041,7 @@ pub struct QualityStack {
 #[derive(Event, Debug, Clone)]
 pub struct ConsumeItemEvent {
     pub item_id: String,
+    #[allow(dead_code)]
     pub quality: ItemQuality,
 }
 
@@ -1027,6 +1053,7 @@ pub struct StaminaRestoreEvent {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum StaminaSource {
     Food(String),
     Sleep,
@@ -1035,6 +1062,7 @@ pub enum StaminaSource {
 
 /// Animal purchase request from shop.
 #[derive(Event, Debug, Clone)]
+#[allow(dead_code)]
 pub struct AnimalPurchaseEvent {
     pub animal_type: AnimalKind,
     pub cost: u32,
@@ -1192,6 +1220,7 @@ pub enum QuestObjective {
 /// New quest posted on bulletin board.
 #[derive(Event, Debug, Clone)]
 pub struct QuestPostedEvent {
+    #[allow(dead_code)]
     pub quest: Quest,
 }
 
@@ -1205,6 +1234,7 @@ pub struct QuestAcceptedEvent {
 #[derive(Event, Debug, Clone)]
 pub struct QuestCompletedEvent {
     pub quest_id: String,
+    #[allow(dead_code)]
     pub reward_gold: u32,
 }
 
@@ -1363,12 +1393,14 @@ pub struct TutorialState {
 /// Contextual hint event — shows a non-intrusive tip when the player does something new.
 #[derive(Event, Debug, Clone)]
 pub struct HintEvent {
+    #[allow(dead_code)]
     pub hint_id: String,
     pub message: String,
 }
 
 /// Achievement unlocked event.
 #[derive(Event, Debug, Clone)]
+#[allow(dead_code)]
 pub struct AchievementUnlockedEvent {
     pub achievement_id: String,
     pub name: String,
@@ -1379,9 +1411,12 @@ pub struct AchievementUnlockedEvent {
 #[derive(Event, Debug, Clone)]
 pub struct BuildingUpgradeEvent {
     pub building: BuildingKind,
+    #[allow(dead_code)]
     pub from_tier: BuildingTier,
     pub to_tier: BuildingTier,
+    #[allow(dead_code)]
     pub cost_gold: u32,
+    #[allow(dead_code)]
     pub cost_materials: Vec<(ItemId, u8)>,
 }
 
@@ -1435,6 +1470,7 @@ pub enum TransitionStyle {
 
 /// Request a screen transition with visual effect.
 #[derive(Event, Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScreenTransitionEvent {
     pub to: GameState,
     pub style: TransitionStyle,
@@ -1458,8 +1494,284 @@ pub enum CutsceneStep {
 
 /// Cutscene queue resource — runner pops front, executes, advances.
 #[derive(Resource, Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct CutsceneQueue {
     pub steps: std::collections::VecDeque<CutsceneStep>,
     pub active: bool,
     pub step_timer: f32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── InputBlocks lifecycle ────────────────────────────────────────
+
+    struct BlockerA;
+    struct BlockerB;
+
+    #[test]
+    fn test_input_blocks_default_not_blocked() {
+        let blocks = InputBlocks::default();
+        assert!(!blocks.is_blocked());
+    }
+
+    #[test]
+    fn test_input_blocks_block_unblock_lifecycle() {
+        let mut blocks = InputBlocks::default();
+        blocks.block::<BlockerA>();
+        assert!(blocks.is_blocked());
+        blocks.unblock::<BlockerA>();
+        assert!(!blocks.is_blocked());
+    }
+
+    #[test]
+    fn test_input_blocks_multiple_blockers() {
+        let mut blocks = InputBlocks::default();
+        blocks.block::<BlockerA>();
+        blocks.block::<BlockerB>();
+        assert!(blocks.is_blocked());
+        blocks.unblock::<BlockerA>();
+        assert!(blocks.is_blocked(), "Still blocked by BlockerB");
+        blocks.unblock::<BlockerB>();
+        assert!(!blocks.is_blocked());
+    }
+
+    #[test]
+    fn test_input_blocks_double_block_same_type() {
+        let mut blocks = InputBlocks::default();
+        blocks.block::<BlockerA>();
+        blocks.block::<BlockerA>(); // should be idempotent (HashSet)
+        assert!(blocks.is_blocked());
+        blocks.unblock::<BlockerA>();
+        assert!(!blocks.is_blocked());
+    }
+
+    // ── BuildingTier ────────────────────────────────────────────────
+
+    #[test]
+    fn test_building_tier_next_full_chain() {
+        let mut tier = BuildingTier::None;
+        tier = tier.next().unwrap(); // Basic
+        assert_eq!(tier, BuildingTier::Basic);
+        tier = tier.next().unwrap(); // Big
+        assert_eq!(tier, BuildingTier::Big);
+        tier = tier.next().unwrap(); // Deluxe
+        assert_eq!(tier, BuildingTier::Deluxe);
+        assert_eq!(tier.next(), None);
+    }
+
+    #[test]
+    fn test_building_tier_capacity_increases() {
+        let none_cap = BuildingTier::None.capacity();
+        let basic_cap = BuildingTier::Basic.capacity();
+        let big_cap = BuildingTier::Big.capacity();
+        let deluxe_cap = BuildingTier::Deluxe.capacity();
+        assert!(none_cap < basic_cap);
+        assert!(basic_cap < big_cap);
+        assert!(big_cap < deluxe_cap);
+    }
+
+    // ── Season ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_season_next_wraps_winter_to_spring() {
+        assert_eq!(Season::Winter.next(), Season::Spring);
+    }
+
+    #[test]
+    fn test_season_full_cycle() {
+        let mut season = Season::Spring;
+        season = season.next(); // Summer
+        assert_eq!(season, Season::Summer);
+        season = season.next(); // Fall
+        assert_eq!(season, Season::Fall);
+        season = season.next(); // Winter
+        assert_eq!(season, Season::Winter);
+        season = season.next(); // Spring (wrap)
+        assert_eq!(season, Season::Spring);
+    }
+
+    #[test]
+    fn test_season_index_ordering() {
+        assert_eq!(Season::Spring.index(), 0);
+        assert_eq!(Season::Summer.index(), 1);
+        assert_eq!(Season::Fall.index(), 2);
+        assert_eq!(Season::Winter.index(), 3);
+    }
+
+    // ── ToolTier ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_tool_tier_next_chain() {
+        assert_eq!(ToolTier::Basic.next(), Some(ToolTier::Copper));
+        assert_eq!(ToolTier::Copper.next(), Some(ToolTier::Iron));
+        assert_eq!(ToolTier::Iron.next(), Some(ToolTier::Gold));
+        assert_eq!(ToolTier::Gold.next(), Some(ToolTier::Iridium));
+        assert_eq!(ToolTier::Iridium.next(), None);
+    }
+
+    #[test]
+    fn test_tool_tier_upgrade_cost_increases() {
+        let basic = ToolTier::Basic.upgrade_cost_gold();
+        let copper = ToolTier::Copper.upgrade_cost_gold();
+        let iron = ToolTier::Iron.upgrade_cost_gold();
+        let gold = ToolTier::Gold.upgrade_cost_gold();
+        assert!(basic < copper);
+        assert!(copper < iron);
+        assert!(iron < gold);
+    }
+
+    #[test]
+    fn test_tool_tier_iridium_no_upgrade() {
+        assert_eq!(ToolTier::Iridium.next(), None);
+        assert_eq!(ToolTier::Iridium.upgrade_cost_gold(), 0);
+        assert_eq!(ToolTier::Iridium.upgrade_bars_needed(), 0);
+        assert_eq!(ToolTier::Iridium.upgrade_bar_item(), None);
+    }
+
+    #[test]
+    fn test_tool_tier_stamina_multiplier_decreases() {
+        assert!(ToolTier::Basic.stamina_multiplier() > ToolTier::Copper.stamina_multiplier());
+        assert!(ToolTier::Copper.stamina_multiplier() > ToolTier::Iron.stamina_multiplier());
+        assert!(ToolTier::Iron.stamina_multiplier() > ToolTier::Gold.stamina_multiplier());
+        assert!(ToolTier::Gold.stamina_multiplier() > ToolTier::Iridium.stamina_multiplier());
+    }
+
+    // ── Inventory ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_inventory_has_empty() {
+        let inv = Inventory::default();
+        assert!(!inv.has("turnip", 1));
+        assert_eq!(inv.count("turnip"), 0);
+    }
+
+    #[test]
+    fn test_inventory_try_add_and_has() {
+        let mut inv = Inventory::default();
+        let leftover = inv.try_add("turnip", 5, 99);
+        assert_eq!(leftover, 0);
+        assert!(inv.has("turnip", 5));
+        assert!(inv.has("turnip", 1));
+        assert!(!inv.has("turnip", 6));
+    }
+
+    #[test]
+    fn test_inventory_try_remove() {
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 10, 99);
+        let removed = inv.try_remove("turnip", 3);
+        assert_eq!(removed, 3);
+        assert_eq!(inv.count("turnip"), 7);
+    }
+
+    #[test]
+    fn test_inventory_try_remove_more_than_available() {
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 2, 99);
+        let removed = inv.try_remove("turnip", 5);
+        assert_eq!(removed, 2);
+        assert_eq!(inv.count("turnip"), 0);
+        assert!(!inv.has("turnip", 1));
+    }
+
+    #[test]
+    fn test_inventory_try_remove_nonexistent() {
+        let mut inv = Inventory::default();
+        let removed = inv.try_remove("turnip", 1);
+        assert_eq!(removed, 0);
+    }
+
+    #[test]
+    fn test_inventory_slot_cleared_when_empty() {
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 1, 99);
+        assert!(inv.slots.iter().any(|s| s.is_some()));
+        inv.try_remove("turnip", 1);
+        // After removing all, the slot should be None
+        let turnip_slots: Vec<_> = inv.slots.iter()
+            .filter(|s| s.as_ref().map_or(false, |s| s.item_id == "turnip"))
+            .collect();
+        assert!(turnip_slots.is_empty());
+    }
+
+    // ── ItemQuality ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_item_quality_sell_multiplier() {
+        assert!((ItemQuality::Normal.sell_multiplier() - 1.0).abs() < f32::EPSILON);
+        assert!((ItemQuality::Silver.sell_multiplier() - 1.25).abs() < f32::EPSILON);
+        assert!((ItemQuality::Gold.sell_multiplier() - 1.5).abs() < f32::EPSILON);
+        assert!((ItemQuality::Iridium.sell_multiplier() - 2.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_item_quality_next() {
+        assert_eq!(ItemQuality::Normal.next(), Some(ItemQuality::Silver));
+        assert_eq!(ItemQuality::Silver.next(), Some(ItemQuality::Gold));
+        assert_eq!(ItemQuality::Gold.next(), Some(ItemQuality::Iridium));
+        assert_eq!(ItemQuality::Iridium.next(), None);
+    }
+
+    // ── Relationships ───────────────────────────────────────────────
+
+    #[test]
+    fn test_relationships_hearts_calculation() {
+        let mut rel = Relationships::default();
+        rel.friendship.insert("elena".to_string(), 500);
+        assert_eq!(rel.hearts("elena"), 5);
+    }
+
+    #[test]
+    fn test_relationships_add_friendship_clamps() {
+        let mut rel = Relationships::default();
+        rel.add_friendship("elena", 2000);
+        // Should clamp to 1000
+        assert_eq!(*rel.friendship.get("elena").unwrap(), 1000);
+    }
+
+    #[test]
+    fn test_relationships_add_friendship_negative_clamps_to_zero() {
+        let mut rel = Relationships::default();
+        rel.add_friendship("elena", 50);
+        rel.add_friendship("elena", -100);
+        assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
+    }
+
+    // ── SprinklerKind ───────────────────────────────────────────────
+
+    #[test]
+    fn test_sprinkler_kind_range() {
+        assert_eq!(SprinklerKind::Basic.range(), 1);
+        assert_eq!(SprinklerKind::Quality.range(), 1);
+        assert_eq!(SprinklerKind::Iridium.range(), 2);
+    }
+
+    #[test]
+    fn test_sprinkler_kind_diagonals() {
+        assert!(!SprinklerKind::Basic.includes_diagonals());
+        assert!(SprinklerKind::Quality.includes_diagonals());
+        assert!(SprinklerKind::Iridium.includes_diagonals());
+    }
+
+    // ── Calendar ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_calendar_default() {
+        let cal = Calendar::default();
+        assert_eq!(cal.year, 1);
+        assert_eq!(cal.season, Season::Spring);
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.hour, 6);
+        assert_eq!(cal.minute, 0);
+    }
+
+    #[test]
+    fn test_calendar_time_float_midnight() {
+        let mut cal = Calendar::default();
+        cal.hour = 24;
+        cal.minute = 0;
+        assert!((cal.time_float() - 24.0).abs() < f32::EPSILON);
+    }
 }

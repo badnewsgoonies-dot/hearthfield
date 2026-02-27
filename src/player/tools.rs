@@ -6,7 +6,11 @@ use super::{ToolCooldown, stamina_cost, facing_offset, TOOL_ORDER};
 pub fn tool_cycle(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut player_state: ResMut<PlayerState>,
+    input_blocks: Res<InputBlocks>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
     let current_idx = TOOL_ORDER
         .iter()
         .position(|t| *t == player_state.equipped_tool)
@@ -33,12 +37,17 @@ pub fn tool_use(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     player_state: Res<PlayerState>,
+    input_blocks: Res<InputBlocks>,
     mut cooldown: ResMut<ToolCooldown>,
     query: Query<(&Transform, &PlayerMovement), With<Player>>,
     mut tool_events: EventWriter<ToolUseEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     // Tick the cooldown.
     cooldown.timer.tick(time.delta());
 

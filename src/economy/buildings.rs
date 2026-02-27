@@ -122,8 +122,8 @@ pub fn handle_building_upgrade_request(
 
         // ── All checks passed ──────────────────────────────────────────────
 
-        // Deduct gold.
-        player_state.gold -= gold_cost;
+        // Deduct gold (saturating_sub guards against underflow).
+        player_state.gold = player_state.gold.saturating_sub(gold_cost);
         gold_writer.send(GoldChangeEvent {
             amount: -(gold_cost as i32),
             reason: format!("{:?} upgrade to {:?}", ev.building, ev.to_tier),
@@ -232,5 +232,95 @@ pub fn tick_building_upgrade(
                 building, target_tier
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_upgrade_cost_coop_basic() {
+        let (gold, materials) = upgrade_cost(BuildingKind::Coop, BuildingTier::Basic);
+        assert_eq!(gold, 4_000);
+        assert_eq!(materials.len(), 2);
+        assert_eq!(materials[0], ("wood", 150));
+        assert_eq!(materials[1], ("stone", 50));
+    }
+
+    #[test]
+    fn test_upgrade_cost_coop_big() {
+        let (gold, _materials) = upgrade_cost(BuildingKind::Coop, BuildingTier::Big);
+        assert_eq!(gold, 10_000);
+    }
+
+    #[test]
+    fn test_upgrade_cost_coop_deluxe() {
+        let (gold, _materials) = upgrade_cost(BuildingKind::Coop, BuildingTier::Deluxe);
+        assert_eq!(gold, 20_000);
+    }
+
+    #[test]
+    fn test_upgrade_cost_barn_progression() {
+        let (basic_gold, _) = upgrade_cost(BuildingKind::Barn, BuildingTier::Basic);
+        let (big_gold, _) = upgrade_cost(BuildingKind::Barn, BuildingTier::Big);
+        let (deluxe_gold, _) = upgrade_cost(BuildingKind::Barn, BuildingTier::Deluxe);
+        assert!(basic_gold < big_gold, "Big should cost more than Basic");
+        assert!(big_gold < deluxe_gold, "Deluxe should cost more than Big");
+    }
+
+    #[test]
+    fn test_upgrade_cost_house_big() {
+        let (gold, materials) = upgrade_cost(BuildingKind::House, BuildingTier::Big);
+        assert_eq!(gold, 10_000);
+        assert_eq!(materials, vec![("wood", 200)]);
+    }
+
+    #[test]
+    fn test_upgrade_cost_house_deluxe() {
+        let (gold, materials) = upgrade_cost(BuildingKind::House, BuildingTier::Deluxe);
+        assert_eq!(gold, 50_000);
+        assert_eq!(materials, vec![("hardwood", 100)]);
+    }
+
+    #[test]
+    fn test_upgrade_cost_silo_basic() {
+        let (gold, materials) = upgrade_cost(BuildingKind::Silo, BuildingTier::Basic);
+        assert_eq!(gold, 100);
+        assert!(materials.iter().any(|&(id, _)| id == "stone"));
+        assert!(materials.iter().any(|&(id, _)| id == "copper_bar"));
+    }
+
+    #[test]
+    fn test_upgrade_cost_invalid_returns_zero() {
+        // Silo only has Basic tier; Big should return 0
+        let (gold, materials) = upgrade_cost(BuildingKind::Silo, BuildingTier::Big);
+        assert_eq!(gold, 0);
+        assert!(materials.is_empty());
+    }
+
+    #[test]
+    fn test_building_tier_next_progression() {
+        assert_eq!(BuildingTier::None.next(), Some(BuildingTier::Basic));
+        assert_eq!(BuildingTier::Basic.next(), Some(BuildingTier::Big));
+        assert_eq!(BuildingTier::Big.next(), Some(BuildingTier::Deluxe));
+        assert_eq!(BuildingTier::Deluxe.next(), None);
+    }
+
+    #[test]
+    fn test_building_tier_capacity() {
+        assert_eq!(BuildingTier::None.capacity(), 0);
+        assert_eq!(BuildingTier::Basic.capacity(), 4);
+        assert_eq!(BuildingTier::Big.capacity(), 8);
+        assert_eq!(BuildingTier::Deluxe.capacity(), 12);
+    }
+
+    #[test]
+    fn test_building_levels_default() {
+        let levels = BuildingLevels::default();
+        assert_eq!(levels.coop_tier, BuildingTier::default());
+        assert_eq!(levels.barn_tier, BuildingTier::default());
+        assert!(!levels.silo_built);
+        assert!(levels.upgrade_in_progress.is_none());
     }
 }

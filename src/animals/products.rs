@@ -25,6 +25,7 @@ const INTERACT_RANGE: f32 = 32.0;
 pub fn handle_product_collection(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     mut animal_query: Query<(Entity, &mut Animal, &Transform, Option<&PendingProductQuality>)>,
     mut product_writer: EventWriter<AnimalProductEvent>,
@@ -32,6 +33,10 @@ pub fn handle_product_collection(
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     if !keyboard.just_pressed(KeyCode::Space) {
         return;
     }

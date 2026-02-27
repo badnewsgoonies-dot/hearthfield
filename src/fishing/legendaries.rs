@@ -130,3 +130,92 @@ fn legendary_sell_price(fish_id: &str) -> u32 {
         _ => 500,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_legendary_fish_table_has_five_entries() {
+        assert_eq!(LEGENDARY_FISH.len(), 5);
+    }
+
+    #[test]
+    fn test_is_legendary_known_fish() {
+        assert!(is_legendary("crimson_king"));
+        assert!(is_legendary("glacier_pike"));
+        assert!(is_legendary("phantom_eel"));
+        assert!(is_legendary("golden_walleye"));
+        assert!(is_legendary("ancient_coelacanth"));
+    }
+
+    #[test]
+    fn test_is_legendary_unknown_fish() {
+        assert!(!is_legendary("bass"));
+        assert!(!is_legendary("trout"));
+        assert!(!is_legendary(""));
+        assert!(!is_legendary("legendary_fish"));
+    }
+
+    #[test]
+    fn test_legendary_difficulty_values_are_high() {
+        for &(_id, _map, _season, difficulty, _chance) in LEGENDARY_FISH {
+            assert!(
+                difficulty >= 0.80,
+                "Legendary fish should have high difficulty, got {}",
+                difficulty
+            );
+        }
+    }
+
+    #[test]
+    fn test_legendary_spawn_chances_are_low() {
+        for &(id, _map, _season, _difficulty, spawn_chance) in LEGENDARY_FISH {
+            assert!(
+                spawn_chance <= 0.05,
+                "Legendary {} should have low spawn chance, got {}",
+                id,
+                spawn_chance
+            );
+            assert!(
+                spawn_chance > 0.0,
+                "Legendary {} should have positive spawn chance",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_legendary_fish_defs_count() {
+        let defs = legendary_fish_defs();
+        assert_eq!(defs.len(), 5);
+    }
+
+    #[test]
+    fn test_legendary_fish_defs_all_legendary_rarity() {
+        let defs = legendary_fish_defs();
+        for def in &defs {
+            assert_eq!(def.rarity, Rarity::Legendary);
+        }
+    }
+
+    #[test]
+    fn test_legendary_sell_prices_are_positive() {
+        for &(id, _, _, _, _) in LEGENDARY_FISH {
+            let price = legendary_sell_price(id);
+            assert!(price > 0, "Legendary {} should have a positive sell price", id);
+        }
+    }
+
+    #[test]
+    fn test_try_roll_legendary_wrong_conditions_returns_none() {
+        // Crimson King requires Beach + Summer. Try with Farm + Winter.
+        // Over many rolls, should never return crimson_king.
+        for _ in 0..1000 {
+            let result = try_roll_legendary(MapId::Farm, Season::Winter);
+            if let Some((id, _)) = result {
+                assert_ne!(id, "crimson_king", "Should not roll crimson_king on Farm/Winter");
+            }
+        }
+    }
+}

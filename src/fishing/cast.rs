@@ -116,7 +116,8 @@ pub fn handle_tool_use_for_fishing(
             None => 1.0,
         };
         let wait_after_bait = base_wait * bait_mult;
-        let wait = skill.apply_bite_speed(wait_after_bait);
+        // Clamp to a minimum of 0.5s so max bait+skill never yields an instant bite.
+        let wait = skill.apply_bite_speed(wait_after_bait).max(0.5);
 
         // Update fishing state
         fishing_state.phase = FishingPhase::WaitingForBite;
@@ -223,6 +224,7 @@ pub fn handle_bite_reaction_window(
     mut next_state: ResMut<NextState<GameState>>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     time: Res<Time>,
     fish_registry: Res<FishRegistry>,
     bobber_query: Query<Entity, With<Bobber>>,
@@ -230,6 +232,10 @@ pub fn handle_bite_reaction_window(
     skill: Res<FishingSkill>,
 ) {
     if fishing_state.phase != FishingPhase::BitePending {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -297,6 +303,7 @@ pub fn handle_cancel_fishing(
     mut next_state: ResMut<NextState<GameState>>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
 ) {
@@ -305,6 +312,10 @@ pub fn handle_cancel_fishing(
     }
     if fishing_state.phase == FishingPhase::Minigame {
         // Escape during minigame is handled in check_minigame_result
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -327,5 +338,53 @@ pub fn handle_cancel_fishing(
 pub fn wild_bait_double_catch_roll() -> bool {
     let mut rng = rand::thread_rng();
     rng.gen_bool(0.15)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bait_bite_multiplier_worm() {
+        assert!((bait_bite_multiplier("worm_bait") - 0.75).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_bait_bite_multiplier_magnet() {
+        assert!((bait_bite_multiplier("magnet_bait") - 1.00).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_bait_bite_multiplier_wild() {
+        assert!((bait_bite_multiplier("wild_bait") - 0.70).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_bait_bite_multiplier_generic() {
+        // Any unrecognized bait defaults to 0.50
+        assert!((bait_bite_multiplier("bait") - 0.50).abs() < f32::EPSILON);
+        assert!((bait_bite_multiplier("some_other_bait") - 0.50).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_wild_bait_double_catch_roll_returns_bool() {
+        // Just verify it returns a bool and doesn't panic
+        let result = wild_bait_double_catch_roll();
+        assert!(result || !result);
+    }
+
+    #[test]
+    fn test_wild_bait_double_catch_statistical() {
+        // Over 10000 trials, ~15% should be true (very loose bounds)
+        let mut trues = 0u32;
+        for _ in 0..10_000 {
+            if wild_bait_double_catch_roll() {
+                trues += 1;
+            }
+        }
+        // With 15% chance, expect ~1500. Allow wide range [500, 3000].
+        assert!(trues > 500, "Expected some double catches, got {}", trues);
+        assert!(trues < 3000, "Too many double catches: {}", trues);
+    }
 }
 

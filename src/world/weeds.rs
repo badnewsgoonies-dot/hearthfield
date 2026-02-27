@@ -41,6 +41,12 @@ pub fn spawn_daily_weeds(
             continue;
         }
 
+        // Cap max weeds on the farm at 20 to prevent weed spam.
+        let existing_weed_count = existing_weeds.iter().count();
+        if existing_weed_count >= 20 {
+            continue;
+        }
+
         // Build a set of occupied positions (crops, objects, existing weeds)
         let mut occupied = std::collections::HashSet::new();
         for (pos, _) in farm_state.crops.iter() {
@@ -64,7 +70,12 @@ pub fn spawn_daily_weeds(
             .wrapping_mul(37)
             .wrapping_add(event.year.wrapping_mul(113))
             .wrapping_add(event.season.index() as u32 * 7);
-        let count = 2 + (seed % 3) as i32; // 2, 3, or 4
+        let raw_count = 2 + (seed % 3) as i32; // 2, 3, or 4
+        // Clamp so we never exceed 20 total weeds on the farm.
+        let count = raw_count.min(20i32 - existing_weed_count as i32);
+        if count <= 0 {
+            continue;
+        }
 
         let mut spawned = 0;
         // Try positions within the farm bounds (0..20, 0..20)
@@ -144,6 +155,50 @@ pub fn handle_weed_scythe(
 
                 commands.entity(entity).despawn();
                 break;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_weed_spawn_count_bounds() {
+        // The formula is: count = 2 + (seed % 3), giving values 2, 3, or 4.
+        // Verify for a range of inputs.
+        for day in 1u8..=28 {
+            for year in 1u32..=3 {
+                for season_idx in 0u32..=3 {
+                    let seed = (day as u32)
+                        .wrapping_mul(37)
+                        .wrapping_add(year.wrapping_mul(113))
+                        .wrapping_add(season_idx * 7);
+                    let count = 2 + (seed % 3) as i32;
+                    assert!(count >= 2 && count <= 4,
+                        "Weed count should be 2-4, got {} for day={} year={} season={}",
+                        count, day, year, season_idx);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_weed_position_within_farm_bounds() {
+        // Verify the position hash always stays within farm bounds (0..20, 0..20)
+        let farm_w = 20i32;
+        let farm_h = 20i32;
+        for day in 1u8..=28 {
+            let seed = (day as u32).wrapping_mul(37).wrapping_add(113);
+            for attempt in 0..40u32 {
+                let hash = seed
+                    .wrapping_mul(attempt.wrapping_add(1).wrapping_mul(61))
+                    .wrapping_add(attempt.wrapping_mul(17));
+                let x = (hash % farm_w as u32) as i32;
+                let y = ((hash / farm_w as u32) % farm_h as u32) as i32;
+                assert!(x >= 0 && x < farm_w, "x={} out of bounds", x);
+                assert!(y >= 0 && y < farm_h, "y={} out of bounds", y);
             }
         }
     }

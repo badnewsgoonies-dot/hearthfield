@@ -182,3 +182,79 @@ pub fn update_shipping_bin_preview(
             .sum();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_registry_with(items: Vec<(&str, u32)>) -> ItemRegistry {
+        let mut registry = ItemRegistry::default();
+        for (id, price) in items {
+            registry.items.insert(id.to_string(), ItemDef {
+                id: id.to_string(),
+                name: id.to_string(),
+                description: String::new(),
+                category: ItemCategory::Crop,
+                sell_price: price,
+                buy_price: None,
+                stack_size: 99,
+                edible: false,
+                energy_restore: 0.0,
+                sprite_index: 0,
+            });
+        }
+        registry
+    }
+
+    #[test]
+    fn test_calculate_bin_value_empty() {
+        let bin = ShippingBin::default();
+        let registry = ItemRegistry::default();
+        assert_eq!(calculate_bin_value(&bin, &registry), 0);
+    }
+
+    #[test]
+    fn test_calculate_bin_value_single_item() {
+        let registry = make_registry_with(vec![("turnip", 60)]);
+        let bin = ShippingBin {
+            items: vec![InventorySlot {
+                item_id: "turnip".to_string(),
+                quantity: 5,
+            }],
+        };
+        assert_eq!(calculate_bin_value(&bin, &registry), 300); // 60 * 5
+    }
+
+    #[test]
+    fn test_calculate_bin_value_multiple_items() {
+        let registry = make_registry_with(vec![("turnip", 60), ("potato", 80)]);
+        let bin = ShippingBin {
+            items: vec![
+                InventorySlot { item_id: "turnip".to_string(), quantity: 3 },
+                InventorySlot { item_id: "potato".to_string(), quantity: 2 },
+            ],
+        };
+        // turnip: 60*3=180, potato: 80*2=160 => 340
+        assert_eq!(calculate_bin_value(&bin, &registry), 340);
+    }
+
+    #[test]
+    fn test_calculate_bin_value_unknown_item_defaults_to_1g() {
+        let registry = ItemRegistry::default(); // empty
+        let bin = ShippingBin {
+            items: vec![InventorySlot {
+                item_id: "mystery_item".to_string(),
+                quantity: 10,
+            }],
+        };
+        // Unknown items fallback to 1g each
+        assert_eq!(calculate_bin_value(&bin, &registry), 10);
+    }
+
+    #[test]
+    fn test_shipping_bin_preview_default() {
+        let preview = ShippingBinPreview::default();
+        assert_eq!(preview.pending_value, 0);
+        assert_eq!(preview.item_count, 0);
+    }
+}

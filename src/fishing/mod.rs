@@ -293,6 +293,7 @@ impl Default for FishingMinigameState {
 
 impl FishingMinigameState {
     /// Set up the minigame without skill bonuses applied (kept for compatibility).
+    #[allow(dead_code)]
     pub fn setup(&mut self, difficulty: f32, rod_tier: ToolTier, tackle_kind: TackleKind) {
         self.setup_with_skill(difficulty, rod_tier, tackle_kind, &skill::FishingSkill::default());
     }

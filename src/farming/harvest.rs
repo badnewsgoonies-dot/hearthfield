@@ -14,10 +14,15 @@ use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
 /// reading from a query on the Player component (defined in shared).
 pub fn detect_harvest_input(
     keys: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     player_state: Res<PlayerState>,
     mut harvest_events: EventWriter<HarvestAttemptEvent>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     if !keys.just_pressed(KeyCode::Space) {
         return;
     }

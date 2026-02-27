@@ -17,9 +17,14 @@ pub fn handle_ladder_interaction(
     ladders: Query<(&MineGridPos, &MineLadder)>,
     in_mine: Res<InMine>,
     input: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -75,10 +80,15 @@ pub fn handle_mine_exit(
     mut in_mine: ResMut<InMine>,
     exits: Query<&MineGridPos, With<MineExit>>,
     input: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     mut map_events: EventWriter<MapTransitionEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -126,10 +136,15 @@ pub fn handle_elevator_selection(
     mut elevator_ui: ResMut<ElevatorUiOpen>,
     mut active_floor: ResMut<ActiveFloor>,
     input: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     in_mine: Res<InMine>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
     if !elevator_ui.0 || !in_mine.0 {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 

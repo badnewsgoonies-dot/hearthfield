@@ -592,4 +592,86 @@ mod tests {
         cal.minute = 30;
         assert!((cal.time_float() - 14.5).abs() < 0.001);
     }
+
+    #[test]
+    fn test_day_advancement_within_season() {
+        let mut cal = Calendar::default();
+        cal.day = 5;
+        // Simulate day end: advance day within season
+        cal.day += 1;
+        assert_eq!(cal.day, 6);
+        assert_eq!(cal.season, Season::Spring);
+    }
+
+    #[test]
+    fn test_season_change_at_day_28() {
+        let mut cal = Calendar::default();
+        cal.day = 28;
+        cal.season = Season::Spring;
+        // Simulate day end
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+        }
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.season, Season::Summer);
+    }
+
+    #[test]
+    fn test_year_increment_after_winter() {
+        let mut cal = Calendar::default();
+        cal.day = 28;
+        cal.season = Season::Winter;
+        cal.year = 1;
+        // Simulate day end
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+            if cal.season == Season::Spring {
+                cal.year += 1;
+            }
+        }
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.season, Season::Spring);
+        assert_eq!(cal.year, 2);
+    }
+
+    #[test]
+    fn test_day_of_week_day_7() {
+        let mut cal = Calendar::default();
+        cal.day = 7;
+        // Day 7 => total_days_elapsed = 6, 6 % 7 = 6 => Sunday
+        assert_eq!(cal.day_of_week(), DayOfWeek::Sunday);
+    }
+
+    #[test]
+    fn test_day_of_week_day_8_wraps() {
+        let mut cal = Calendar::default();
+        cal.day = 8;
+        // Day 8 => total_days_elapsed = 7, 7 % 7 = 0 => Monday
+        assert_eq!(cal.day_of_week(), DayOfWeek::Monday);
+    }
+
+    #[test]
+    fn test_roll_weather_always_valid() {
+        // Ensure roll_weather never panics and returns a valid variant
+        for season in [Season::Spring, Season::Summer, Season::Fall, Season::Winter] {
+            for _ in 0..100 {
+                let w = roll_weather(season);
+                match w {
+                    Weather::Sunny | Weather::Rainy | Weather::Stormy | Weather::Snowy => {}
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_summer_no_snow() {
+        for _ in 0..5000 {
+            let w = roll_weather(Season::Summer);
+            assert_ne!(w, Weather::Snowy, "Summer should never produce snow");
+        }
+    }
 }

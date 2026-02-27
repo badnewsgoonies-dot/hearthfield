@@ -18,6 +18,7 @@ pub struct ActiveNpcInteraction {
 /// System: detect player pressing Space near an NPC and start dialogue.
 pub fn handle_npc_interaction(
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     npc_query: Query<(&Npc, &Transform)>,
     relationships: Res<Relationships>,
@@ -30,6 +31,10 @@ pub fn handle_npc_interaction(
 ) {
     // Only check interaction during Playing state
     if *current_state.get() != GameState::Playing {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -349,5 +354,83 @@ fn hated_response(npc_id: &str, item_name: &str) -> String {
         "farmer_dale" => format!("A {}? Hmph. Been farming sixty years and never needed one of those.", item_name),
         "child_lily" => format!("Ewwww! A {}! I don't want THAT! ...but okay fine I'll keep it.", item_name),
         _ => format!("Oh. A {}. I... see. Thank you for thinking of me.", item_name),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_friendship_tier_low_hearts() {
+        assert_eq!(friendship_tier(0), 0);
+        assert_eq!(friendship_tier(1), 0);
+        assert_eq!(friendship_tier(2), 0);
+    }
+
+    #[test]
+    fn test_friendship_tier_mid_hearts() {
+        assert_eq!(friendship_tier(3), 3);
+        assert_eq!(friendship_tier(5), 3);
+    }
+
+    #[test]
+    fn test_friendship_tier_high_hearts() {
+        assert_eq!(friendship_tier(6), 6);
+        assert_eq!(friendship_tier(8), 6);
+    }
+
+    #[test]
+    fn test_friendship_tier_max_hearts() {
+        assert_eq!(friendship_tier(9), 9);
+        assert_eq!(friendship_tier(10), 9);
+    }
+
+    #[test]
+    fn test_gift_response_loved_contains_item_name() {
+        let lines = build_gift_response_lines(
+            "elena", "Elena", GiftPreference::Loved, "Sunflower", false,
+        );
+        assert!(!lines.is_empty());
+        assert!(lines[0].contains("Sunflower"),
+            "Loved response should mention item name");
+    }
+
+    #[test]
+    fn test_gift_response_hated_contains_item_name() {
+        let lines = build_gift_response_lines(
+            "marcus", "Marcus", GiftPreference::Hated, "Trash", false,
+        );
+        assert!(!lines.is_empty());
+        assert!(lines[0].contains("Trash"),
+            "Hated response should mention item name");
+    }
+
+    #[test]
+    fn test_gift_response_birthday_prefix() {
+        let lines = build_gift_response_lines(
+            "elena", "Elena", GiftPreference::Neutral, "Stone", true,
+        );
+        assert!(!lines.is_empty());
+        assert!(lines[0].contains("birthday"),
+            "Birthday gift should mention birthday");
+    }
+
+    #[test]
+    fn test_npc_weather_comment_sunny_returns_none() {
+        // Sunny weather should produce no special comment
+        assert!(npc_weather_comment("elena", Weather::Sunny).is_none());
+        assert!(npc_weather_comment("marcus", Weather::Sunny).is_none());
+    }
+
+    #[test]
+    fn test_npc_weather_comment_rainy_returns_some() {
+        assert!(npc_weather_comment("elena", Weather::Rainy).is_some());
+        assert!(npc_weather_comment("old_pete", Weather::Rainy).is_some());
+    }
+
+    #[test]
+    fn test_npc_weather_comment_snowy_returns_some() {
+        assert!(npc_weather_comment("child_lily", Weather::Snowy).is_some());
     }
 }

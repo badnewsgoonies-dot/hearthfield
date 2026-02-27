@@ -23,10 +23,15 @@ const INTERACT_RANGE: f32 = 32.0;
 pub fn handle_animal_interact(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     mut animal_query: Query<(Entity, &mut Animal, &Transform)>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     if !keyboard.just_pressed(KeyCode::Space) {
         return;
     }
