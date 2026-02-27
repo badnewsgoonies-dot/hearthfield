@@ -1,18 +1,18 @@
-mod hud;
-mod toast;
-mod inventory_screen;
-mod dialogue_box;
-mod shop_screen;
-mod crafting_screen;
-mod pause_menu;
-mod main_menu;
-mod input;
-mod transitions;
 mod audio;
 mod chest_screen;
+mod crafting_screen;
+mod dialogue_box;
+mod hud;
+mod input;
+mod inventory_screen;
+mod main_menu;
+mod pause_menu;
+mod shop_screen;
+mod toast;
+mod transitions;
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // SHARED FONT HANDLE — used by all UI text across every screen
@@ -35,10 +35,7 @@ impl Plugin for UiPlugin {
 
         // ─── AUDIO — music state resource + event handlers ───
         app.init_resource::<audio::MusicState>();
-        app.add_systems(
-            Update,
-            (audio::handle_play_sfx, audio::handle_play_music),
-        );
+        app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music));
         app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
         app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
 
@@ -71,6 +68,7 @@ impl Plugin for UiPlugin {
             (
                 main_menu::update_main_menu_visuals,
                 main_menu::main_menu_navigation,
+                main_menu::handle_load_complete_in_main_menu,
             )
                 .run_if(in_state(GameState::MainMenu)),
         );
@@ -110,27 +108,29 @@ impl Plugin for UiPlugin {
         // ─── GLOBAL INPUT — runs during Playing ───
         app.add_systems(
             Update,
-            (
-                input::global_input_handler,
-                input::hotbar_input_handler,
-            )
+            (input::global_input_handler, input::hotbar_input_handler)
                 .run_if(in_state(GameState::Playing)),
         );
         // Also run global_input_handler in overlay states for Escape to close
         app.add_systems(
             Update,
-            input::global_input_handler
-                .run_if(
-                    in_state(GameState::Inventory)
-                        .or(in_state(GameState::Shop))
-                        .or(in_state(GameState::Crafting))
-                        .or(in_state(GameState::Dialogue))
-                ),
+            input::global_input_handler.run_if(
+                in_state(GameState::Inventory)
+                    .or(in_state(GameState::Shop))
+                    .or(in_state(GameState::Crafting))
+                    .or(in_state(GameState::Dialogue)),
+            ),
         );
 
         // ─── INVENTORY SCREEN ───
-        app.add_systems(OnEnter(GameState::Inventory), inventory_screen::spawn_inventory_screen);
-        app.add_systems(OnExit(GameState::Inventory), inventory_screen::despawn_inventory_screen);
+        app.add_systems(
+            OnEnter(GameState::Inventory),
+            inventory_screen::spawn_inventory_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::Inventory),
+            inventory_screen::despawn_inventory_screen,
+        );
         app.add_systems(
             Update,
             (
@@ -142,8 +142,14 @@ impl Plugin for UiPlugin {
         );
 
         // ─── DIALOGUE BOX ───
-        app.add_systems(OnEnter(GameState::Dialogue), dialogue_box::spawn_dialogue_box);
-        app.add_systems(OnExit(GameState::Dialogue), dialogue_box::despawn_dialogue_box);
+        app.add_systems(
+            OnEnter(GameState::Dialogue),
+            dialogue_box::spawn_dialogue_box,
+        );
+        app.add_systems(
+            OnExit(GameState::Dialogue),
+            dialogue_box::despawn_dialogue_box,
+        );
         app.add_systems(
             Update,
             dialogue_box::advance_dialogue.run_if(in_state(GameState::Dialogue)),
@@ -162,8 +168,14 @@ impl Plugin for UiPlugin {
         );
 
         // ─── CRAFTING SCREEN ───
-        app.add_systems(OnEnter(GameState::Crafting), crafting_screen::spawn_crafting_screen);
-        app.add_systems(OnExit(GameState::Crafting), crafting_screen::despawn_crafting_screen);
+        app.add_systems(
+            OnEnter(GameState::Crafting),
+            crafting_screen::spawn_crafting_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::Crafting),
+            crafting_screen::despawn_crafting_screen,
+        );
         app.add_systems(
             Update,
             (
@@ -182,6 +194,7 @@ impl Plugin for UiPlugin {
             (
                 pause_menu::update_pause_menu_visuals,
                 pause_menu::pause_menu_navigation,
+                pause_menu::handle_save_complete_in_pause_menu,
             )
                 .run_if(in_state(GameState::Paused)),
         );

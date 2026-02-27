@@ -180,12 +180,18 @@ impl Plugin for SavePlugin {
                 (handle_save_request, handle_load_request, handle_new_game)
                     .run_if(in_state(GameState::Paused)),
             )
+            // Allow Main Menu to initialize new game and request save-slot load.
+            .add_systems(
+                Update,
+                (handle_load_request, handle_new_game).run_if(in_state(GameState::MainMenu)),
+            )
+            // Refresh slot metadata whenever menu is entered.
+            .add_systems(OnEnter(GameState::MainMenu), scan_save_slots)
             // Quick-save keybind: F5 in Playing or Paused
             .add_systems(
                 Update,
-                quicksave_keybind.run_if(
-                    in_state(GameState::Playing).or(in_state(GameState::Paused)),
-                ),
+                quicksave_keybind
+                    .run_if(in_state(GameState::Playing).or(in_state(GameState::Paused))),
             );
     }
 }
@@ -301,16 +307,15 @@ fn write_save(
         total_items_shipped: statistics.total_items_shipped,
     };
 
-    let json = serde_json::to_string_pretty(&file)
-        .map_err(|e| format!("Serialization failed: {}", e))?;
+    let json =
+        serde_json::to_string_pretty(&file).map_err(|e| format!("Serialization failed: {}", e))?;
 
     let path = slot_path(slot);
     // Write to a temp file first, then rename for atomicity
     let tmp_path = path.with_extension("json.tmp");
     fs::write(&tmp_path, &json)
         .map_err(|e| format!("Write failed for {}: {}", tmp_path.display(), e))?;
-    fs::rename(&tmp_path, &path)
-        .map_err(|e| format!("Rename failed: {}", e))?;
+    fs::rename(&tmp_path, &path).map_err(|e| format!("Rename failed: {}", e))?;
 
     Ok(())
 }
@@ -322,8 +327,8 @@ fn read_save(slot: u8) -> Result<FullSaveFile, String> {
     }
     let json = fs::read_to_string(&path)
         .map_err(|e| format!("Read failed for {}: {}", path.display(), e))?;
-    let file: FullSaveFile = serde_json::from_str(&json)
-        .map_err(|e| format!("Deserialization failed: {}", e))?;
+    let file: FullSaveFile =
+        serde_json::from_str(&json).map_err(|e| format!("Deserialization failed: {}", e))?;
 
     // Version check — future versions can add migration here
     if file.version != SAVE_VERSION {
@@ -364,7 +369,11 @@ fn scan_save_slots(mut cache: ResMut<SaveSlotInfoCache>) {
     info!("Save slot scan complete. Found {} slots.", NUM_SAVE_SLOTS);
 }
 
-fn tick_session_timer(time: Res<Time>, mut session: ResMut<SessionTimer>, mut stats: ResMut<GameStatistics>) {
+fn tick_session_timer(
+    time: Res<Time>,
+    mut session: ResMut<SessionTimer>,
+    mut stats: ResMut<GameStatistics>,
+) {
     session.elapsed += time.delta();
     // Accumulate into statistics every second to keep stats reasonable
     let elapsed_secs = session.elapsed.as_secs();
@@ -392,9 +401,8 @@ fn track_items_shipped(
     for ev in shop_events.read() {
         // Count items placed in the shipping bin (is_purchase = false means selling)
         if !ev.is_purchase {
-            stats.total_items_shipped = stats
-                .total_items_shipped
-                .saturating_add(ev.quantity as u64);
+            stats.total_items_shipped =
+                stats.total_items_shipped.saturating_add(ev.quantity as u64);
         }
     }
 }
