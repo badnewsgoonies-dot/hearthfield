@@ -40,6 +40,8 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
         )
+        // Clear color (dark navy, close to HTML background)
+        .insert_resource(ClearColor(Color::srgb(0.10, 0.10, 0.18)))
         // Game state
         .init_state::<GameState>()
         // Shared resources

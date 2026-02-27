@@ -79,6 +79,41 @@
 
         .hidden { opacity: 0; pointer-events: none; }
 
+        /* Error overlay */
+        #error-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(20, 10, 30, 0.95);
+            color: #ff6b6b;
+            font-family: monospace;
+            font-size: 13px;
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #error-overlay h2 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        #error-overlay .error-msg {
+            background: #1a0a2e;
+            border: 1px solid #ff6b6b44;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            color: #ffaaaa;
+        }
+        #error-overlay .hint {
+            color: #aaa;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
         @supports (-webkit-touch-callout: none) {
             html, body { height: -webkit-fill-available; }
             #game-container { height: -webkit-fill-available; }
@@ -96,6 +131,56 @@
         <canvas id="game-canvas"></canvas>
     </div>
 
+    <div id="error-overlay">
+        <h2>Hearthfield Error</h2>
+        <div id="error-messages"></div>
+        <p class="hint">Screenshot this and share for debugging.<br>
+        Try refreshing or opening on a desktop browser.</p>
+    </div>
+
+    <script>
+        // Error capture (runs before anything else)
+        const errorOverlay = document.getElementById('error-overlay');
+        const errorMessages = document.getElementById('error-messages');
+        let errorCount = 0;
+
+        function showError(msg) {
+            errorCount++;
+            if (errorCount > 20) return;
+            errorOverlay.style.display = 'block';
+            const div = document.createElement('div');
+            div.className = 'error-msg';
+            div.textContent = msg;
+            errorMessages.appendChild(div);
+        }
+
+        const origError = console.error;
+        console.error = function() {
+            origError.apply(console, arguments);
+            const msg = Array.from(arguments).map(a =>
+                typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
+            ).join(' ');
+            showError(msg);
+        };
+
+        window.addEventListener('error', (e) => {
+            showError('JS Error: ' + e.message + '\n  at ' + e.filename + ':' + e.lineno);
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            const reason = e.reason;
+            let msg = 'Unhandled rejection: ';
+            if (reason instanceof Error) {
+                msg += reason.message + '\n' + (reason.stack || '');
+            } else if (typeof reason === 'string') {
+                msg += reason;
+            } else {
+                msg += JSON.stringify(reason);
+            }
+            showError(msg);
+        });
+    </script>
+
     <script type="module">
         const loadingBar = document.getElementById('loading-bar');
         const loadingText = document.getElementById('loading-text');
@@ -105,6 +190,8 @@
         loadingBar.style.width = '10%';
 
         try {
+            loadingText.textContent = 'Importing module...';
+            loadingBar.style.width = '20%';
             const module = await import('./hearthfield.js');
 
             loadingText.textContent = 'Compiling WASM...';
@@ -114,7 +201,7 @@
                 setTimeout(() => reject(new Error('WASM initialization timed out (60s). Your device may not support this game.')), 60000)
             );
 
-            loadingText.textContent = 'Starting engine...';
+            loadingText.textContent = 'Starting Bevy engine...';
             loadingBar.style.width = '50%';
 
             await Promise.race([module.default(), timeout]);

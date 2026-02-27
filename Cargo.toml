@@ -16,6 +16,10 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_sprite",
     "bevy_text",
     "bevy_ui",
+    # Pipeline requirements (needed even with Tonemapping::None)
+    "tonemapping_luts",
+    "ktx2",
+    "zstd",
     # Windowing
     "bevy_winit",
     "x11",
