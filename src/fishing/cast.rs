@@ -132,10 +132,9 @@ pub fn handle_tool_use_for_fishing(
         fishing_state.tackle_kind = tackle_kind;
         fishing_state.rod_tier = rod_tier;
 
-        // Spawn bobber sprite in world space
-        // Camera scale is 1/PIXEL_SCALE, so world_pos = tile_pos * TILE_SIZE * PIXEL_SCALE
-        let bobber_world_x = target_x as f32 * TILE_SIZE * PIXEL_SCALE;
-        let bobber_world_y = target_y as f32 * TILE_SIZE * PIXEL_SCALE;
+        // Spawn bobber sprite in world space (grid * TILE_SIZE)
+        let bobber_world_x = target_x as f32 * TILE_SIZE;
+        let bobber_world_y = target_y as f32 * TILE_SIZE;
         commands.spawn((
             Sprite {
                 color: Color::srgb(0.9, 0.2, 0.2), // Red bobber (placeholder)

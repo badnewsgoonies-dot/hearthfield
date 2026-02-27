@@ -517,8 +517,8 @@ pub fn handle_place_machine(
         }
 
         // Calculate world position from grid position
-        let world_x = event.grid_x as f32 * TILE_SIZE * PIXEL_SCALE;
-        let world_y = event.grid_y as f32 * TILE_SIZE * PIXEL_SCALE;
+        let world_x = event.grid_x as f32 * TILE_SIZE;
+        let world_y = event.grid_y as f32 * TILE_SIZE;
 
         // Spawn machine entity
         let machine_entity = commands
@@ -527,11 +527,11 @@ pub fn handle_place_machine(
                 GridPosition::new(event.grid_x, event.grid_y),
                 Sprite::from_color(
                     Color::srgb(0.6, 0.4, 0.2),
-                    Vec2::new(TILE_SIZE * PIXEL_SCALE, TILE_SIZE * PIXEL_SCALE),
+                    Vec2::new(TILE_SIZE, TILE_SIZE),
                 ),
                 Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+                LogicalPosition(Vec2::new(world_x, world_y)),
                 YSorted,
-                GlobalTransform::default(),
             ))
             .id();
 
