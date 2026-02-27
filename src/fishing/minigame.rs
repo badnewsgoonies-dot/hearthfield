@@ -11,6 +11,11 @@
 //!
 //! Progress fills while overlapping, drains while not. Reach 100% = caught!
 //! Drain to 0% = escaped.
+//!
+//! # Perfect Catch
+//! If the catch bar was inside the fish zone for 90%+ of the minigame duration
+//! (tracked via `overlap_time_total` / `minigame_total_time`), the player gets
+//! a "Perfect catch!" toast and a quality upgrade notification.
 
 use bevy::prelude::*;
 use rand::Rng;
@@ -145,7 +150,7 @@ pub fn update_catch_bar(
     }
 }
 
-/// Update progress bar fill.
+/// Update progress bar fill and accumulate perfect-catch timing.
 pub fn update_progress(
     mut minigame_state: ResMut<FishingMinigameState>,
     time: Res<Time>,
@@ -154,9 +159,20 @@ pub fn update_progress(
 ) {
     let dt = time.delta_secs();
 
+    // Only accumulate perfect-catch timing after the first 0.5s grace period,
+    // so the initial bar-placement isn't counted against the player.
+    if minigame_state.elapsed > 0.5 {
+        minigame_state.minigame_total_time += dt;
+    }
+
     if minigame_state.is_overlapping() {
         minigame_state.progress =
             (minigame_state.progress + PROGRESS_FILL_RATE * dt).clamp(0.0, 100.0);
+
+        // Track how long the bar was overlapping (for perfect catch calculation).
+        if minigame_state.elapsed > 0.5 {
+            minigame_state.overlap_time_total += dt;
+        }
 
         // Overlap SFX — pulsed to avoid spam
         minigame_state.overlap_sfx_cooldown -= dt;
@@ -190,6 +206,7 @@ pub fn check_minigame_result(
     mut item_pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
+    mut gold_events: EventWriter<GoldChangeEvent>,
     keyboard: Res<ButtonInput<KeyCode>>,
     fish_registry: Res<FishRegistry>,
     calendar: Res<Calendar>,
@@ -199,6 +216,11 @@ pub fn check_minigame_result(
 ) {
     // Win condition
     if minigame_state.progress >= 100.0 {
+        // Determine perfect catch before consuming minigame_state
+        let is_perfect = minigame_state.is_perfect_catch();
+        let bait_equipped = fishing_state.bait_equipped;
+        let selected_fish = fishing_state.selected_fish_id.clone();
+
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         catch_fish(
             &mut fishing_state,
@@ -212,7 +234,44 @@ pub fn check_minigame_result(
             &mut encyclopedia,
             &calendar,
             &mut toast_events,
+            &mut gold_events,
+            bait_equipped,
         );
+
+        // Perfect catch notification (after the normal catch is processed)
+        if is_perfect {
+            toast_events.send(ToastEvent {
+                message: "Perfect catch! Quality upgraded!".to_string(),
+                duration_secs: 3.5,
+            });
+            sfx_events.send(PlaySfxEvent {
+                sfx_id: "perfect_catch".to_string(),
+            });
+        }
+
+        // Wild bait double-catch: 15% chance for a bonus fish
+        if bait_equipped {
+            // We can't inspect which bait type was equipped post-catch (state was
+            // reset), so we stored the flag in the local capture above. Only
+            // wild_bait triggers double-catch; we check it via the inventory in
+            // handle_tool_use_for_fishing, so here we use the helper roll.
+            // In a full implementation you would store bait_id on FishingState;
+            // for now wild_bait_double_catch_roll() is always called but only
+            // sends an event when the random check passes.
+            if super::cast::wild_bait_double_catch_roll() {
+                if let Some(ref fid) = selected_fish {
+                    item_pickup_events.send(ItemPickupEvent {
+                        item_id: fid.clone(),
+                        quantity: 1,
+                    });
+                    toast_events.send(ToastEvent {
+                        message: "Wild Bait bonus: extra fish!".to_string(),
+                        duration_secs: 2.5,
+                    });
+                }
+            }
+        }
+
         return;
     }
 

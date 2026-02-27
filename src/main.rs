@@ -65,6 +65,8 @@ fn main() {
         .init_resource::<ShippingLog>()
         .init_resource::<TutorialState>()
         .init_resource::<PlayStats>()
+        .init_resource::<InputBlocks>()
+        .init_resource::<CutsceneQueue>()
         // Events
         .add_event::<DayEndEvent>()
         .add_event::<SeasonChangeEvent>()
@@ -97,6 +99,7 @@ fn main() {
         .add_event::<HintEvent>()
         .add_event::<AchievementUnlockedEvent>()
         .add_event::<BuildingUpgradeEvent>()
+        .add_event::<ScreenTransitionEvent>()
         // Domain plugins
         .add_plugins(calendar::CalendarPlugin)
         .add_plugins(player::PlayerPlugin)

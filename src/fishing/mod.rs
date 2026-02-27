@@ -11,6 +11,9 @@ mod fish_select;
 mod minigame;
 mod render;
 mod resolve;
+pub mod skill;
+pub mod treasure;
+pub mod legendaries;
 
 // ─── Plugin ─────────────────────────────────────────────────────────────────
 
@@ -23,6 +26,9 @@ impl Plugin for FishingPlugin {
             .init_resource::<FishingState>()
             .init_resource::<FishingMinigameState>()
             .init_resource::<FishEncyclopedia>()
+            .init_resource::<skill::FishingSkill>()
+            // Internal events
+            .add_event::<skill::FishingLevelUpEvent>()
             // Systems that run in Playing state (cast detection)
             .add_systems(
                 Update,
@@ -44,6 +50,14 @@ impl Plugin for FishingPlugin {
                 )
                     .chain()
                     .run_if(in_state(GameState::Fishing)),
+            )
+            // Skill update runs after item pickup events fire (PostUpdate ensures
+            // that ItemPickupEvent written this frame are available).
+            .add_systems(
+                PostUpdate,
+                skill::update_fishing_skill.run_if(
+                    in_state(GameState::Playing).or(in_state(GameState::Fishing)),
+                ),
             )
             // Setup/teardown on state transitions
             .add_systems(OnEnter(GameState::Fishing), render::spawn_minigame_ui)
@@ -249,6 +263,10 @@ pub struct FishingMinigameState {
     pub progress_drain_multiplier: f32,
     /// Multiplier on the catch bar fall speed (1.0 = normal; 0.7 = Lead Bobber).
     pub catch_fall_multiplier: f32,
+    /// Total time (seconds) the catch bar was overlapping the fish zone this game.
+    pub overlap_time_total: f32,
+    /// Total time (seconds) the minigame has been running (excluding the ramp-up grace period).
+    pub minigame_total_time: f32,
 }
 
 impl Default for FishingMinigameState {
@@ -267,12 +285,29 @@ impl Default for FishingMinigameState {
             overlap_sfx_cooldown: 0.0,
             progress_drain_multiplier: 1.0,
             catch_fall_multiplier: 1.0,
+            overlap_time_total: 0.0,
+            minigame_total_time: 0.0,
         }
     }
 }
 
 impl FishingMinigameState {
+    /// Set up the minigame without skill bonuses applied (kept for compatibility).
     pub fn setup(&mut self, difficulty: f32, rod_tier: ToolTier, tackle_kind: TackleKind) {
+        self.setup_with_skill(difficulty, rod_tier, tackle_kind, &skill::FishingSkill::default());
+    }
+
+    /// Set up the minigame incorporating the player's fishing skill bonuses.
+    ///
+    /// `FishingSkill::catch_zone_bonus` expands the catch bar so experienced
+    /// anglers have an easier time.
+    pub fn setup_with_skill(
+        &mut self,
+        difficulty: f32,
+        rod_tier: ToolTier,
+        tackle_kind: TackleKind,
+        fishing_skill: &skill::FishingSkill,
+    ) {
         let mut rng = rand::thread_rng();
         self.fish_zone_center = rng.gen_range(20.0..80.0);
         self.fish_zone_velocity = 0.0;
@@ -282,6 +317,8 @@ impl FishingMinigameState {
         self.elapsed = 0.0;
         self.overlap_sfx_cooldown = 0.0;
         self.space_held = false;
+        self.overlap_time_total = 0.0;
+        self.minigame_total_time = 0.0;
 
         // Fish zone size: easier fish have bigger zones (more forgiving).
         // Difficulty 0.0 → fish_zone_half = 22.0
@@ -311,7 +348,9 @@ impl FishingMinigameState {
             TackleKind::TrapBobber => 1.0, // TrapBobber helps via drain rate instead
             TackleKind::LeadBobber => 1.25, // LeadBobber was the old generic +25%
         };
-        self.catch_bar_half = 12.5 * catch_bar_tackle_bonus * tier_bonus;
+        // Apply fishing skill catch_zone_bonus on top of tackle and tier.
+        let skill_bonus = 1.0 + fishing_skill.catch_zone_bonus;
+        self.catch_bar_half = 12.5 * catch_bar_tackle_bonus * tier_bonus * skill_bonus;
 
         // Trap Bobber: slow progress drain rate (stored on minigame state for
         // update_progress to read at runtime).
@@ -338,6 +377,20 @@ impl FishingMinigameState {
         let fish_lo = self.fish_zone_center - self.fish_zone_half;
         let fish_hi = self.fish_zone_center + self.fish_zone_half;
         catch_hi > fish_lo && catch_lo < fish_hi
+    }
+
+    /// Returns `true` if the player achieved a "perfect catch" — they kept the
+    /// catch bar in the fish zone for at least 90% of the total minigame duration.
+    ///
+    /// Uses `minigame_total_time` (accumulated in `update_progress`) to judge
+    /// the denominator, ignoring the initial grace period.
+    pub fn is_perfect_catch(&self) -> bool {
+        if self.minigame_total_time < 0.5 {
+            // Too short to be meaningful — don't award perfect bonus
+            return false;
+        }
+        let ratio = self.overlap_time_total / self.minigame_total_time;
+        ratio >= 0.90
     }
 }
 

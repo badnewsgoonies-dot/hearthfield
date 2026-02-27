@@ -14,6 +14,7 @@ mod map_events;
 pub mod romance;
 pub mod quests;
 mod schedule;
+pub mod schedules;
 mod spawning;
 
 use definitions::build_npc_registry;
@@ -36,6 +37,12 @@ use schedule::{
     move_npcs_toward_targets,
     ScheduleUpdateTimer,
 };
+use schedules::{
+    apply_enhanced_schedules,
+    refresh_schedules_on_season_change,
+    check_farm_visits,
+    FarmVisitTracker,
+};
 use animation::animate_npc_sprites;
 use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
 use quests::{
@@ -57,15 +64,18 @@ impl Plugin for NpcPlugin {
             .init_resource::<ActiveNpcInteraction>()
             .init_resource::<ScheduleUpdateTimer>()
             .init_resource::<GiftDecayTracker>()
-            .init_resource::<WeddingTimer>();
+            .init_resource::<WeddingTimer>()
+            .init_resource::<FarmVisitTracker>();
 
         // Populate NPC registry on startup (before Loading completes)
         app.add_systems(Startup, setup_npc_registry);
 
-        // Spawn initial NPCs when entering Playing
+        // Apply enhanced (seasonally-varied) schedules and spawn NPCs when entering Playing.
+        // apply_enhanced_schedules must run before spawn_initial_npcs so spawning uses the
+        // correct seasonal positions.
         app.add_systems(
             OnEnter(GameState::Playing),
-            spawn_initial_npcs,
+            (apply_enhanced_schedules, spawn_initial_npcs).chain(),
         );
 
         // Playing-state systems: core NPC behaviour
@@ -80,6 +90,8 @@ impl Plugin for NpcPlugin {
                 handle_gifts,
                 handle_map_transition,
                 handle_day_end,
+                refresh_schedules_on_season_change,
+                check_farm_visits,
             )
                 .run_if(in_state(GameState::Playing)),
         );

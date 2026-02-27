@@ -1408,3 +1408,58 @@ pub struct PlayStats {
     pub days_played: u64,
     pub festivals_attended: u64,
 }
+
+/// Unified input blocking resource.
+///
+/// Systems that need exclusive input (dialogue, shops, fishing minigame, menus)
+/// push a block tag; player movement and tool use check `is_blocked()` before
+/// processing.  Uses TypeId so each blocker is a distinct type — no double-free
+/// risk and the block lifetime is tied to the system that owns it.
+#[derive(Resource, Default, Debug)]
+pub struct InputBlocks(pub std::collections::HashSet<std::any::TypeId>);
+
+#[allow(dead_code)]
+impl InputBlocks {
+    pub fn is_blocked(&self) -> bool { !self.0.is_empty() }
+    pub fn block<T: 'static>(&mut self) { self.0.insert(std::any::TypeId::of::<T>()); }
+    pub fn unblock<T: 'static>(&mut self) { self.0.remove(&std::any::TypeId::of::<T>()); }
+}
+
+/// Screen transition style.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub enum TransitionStyle {
+    FadeBlack { duration: f32 },
+    Cut,
+}
+
+/// Request a screen transition with visual effect.
+#[derive(Event, Debug, Clone)]
+pub struct ScreenTransitionEvent {
+    pub to: GameState,
+    pub style: TransitionStyle,
+}
+
+/// Cutscene step for data-driven scripted sequences (festivals, story events).
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub enum CutsceneStep {
+    FadeOut(f32),
+    FadeIn(f32),
+    Wait(f32),
+    ShowText(String, f32),
+    Teleport(MapId),
+    PlayBgm(String),
+    PlaySfx(String),
+    SetFlag(String, bool),
+    StartDialogue(String),
+    WaitForDialogueEnd,
+}
+
+/// Cutscene queue resource — runner pops front, executes, advances.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct CutsceneQueue {
+    pub steps: std::collections::VecDeque<CutsceneStep>,
+    pub active: bool,
+    pub step_timer: f32,
+}
