@@ -188,7 +188,12 @@ pub fn item_pickup_check(
     mut pickup_events: EventWriter<ItemPickupEvent>,
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
+    input_blocks: Res<InputBlocks>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     // Manual interaction pickup on F key
     if !keyboard.just_pressed(KeyCode::KeyF) {
         return;

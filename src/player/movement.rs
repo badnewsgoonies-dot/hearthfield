@@ -13,8 +13,13 @@ pub fn player_movement(
     collision_map: Res<CollisionMap>,
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
+    input_blocks: Res<InputBlocks>,
     mut query: Query<(&mut Transform, &mut PlayerMovement, &mut GridPosition), With<Player>>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     let Ok((mut transform, mut movement, mut grid_pos)) = query.get_single_mut() else {
         return;
     };

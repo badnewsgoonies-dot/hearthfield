@@ -105,6 +105,7 @@ fn preference_to_points(preference: GiftPreference) -> i32 {
 /// If so, it emits a GiftGivenEvent and removes one of the item from inventory.
 pub fn handle_gift_input(
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     npc_query: Query<(&Npc, &Transform)>,
     mut inventory: ResMut<Inventory>,
@@ -116,6 +117,10 @@ pub fn handle_gift_input(
 ) {
     // Only in Playing state
     if *current_state.get() != GameState::Playing {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -185,4 +190,49 @@ pub fn handle_gift_input(
         item_id,
         preference: GiftPreference::Neutral, // will be looked up in handle_gifts
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_preference_to_points_loved() {
+        assert_eq!(preference_to_points(GiftPreference::Loved), 80);
+    }
+
+    #[test]
+    fn test_preference_to_points_liked() {
+        assert_eq!(preference_to_points(GiftPreference::Liked), 45);
+    }
+
+    #[test]
+    fn test_preference_to_points_neutral() {
+        assert_eq!(preference_to_points(GiftPreference::Neutral), 20);
+    }
+
+    #[test]
+    fn test_preference_to_points_disliked() {
+        assert_eq!(preference_to_points(GiftPreference::Disliked), -20);
+    }
+
+    #[test]
+    fn test_preference_to_points_hated() {
+        assert_eq!(preference_to_points(GiftPreference::Hated), -40);
+    }
+
+    #[test]
+    fn test_birthday_multiplier_calculation() {
+        // Simulate birthday logic: base_points * 8
+        let base = preference_to_points(GiftPreference::Loved);
+        let birthday_total = base * 8;
+        assert_eq!(birthday_total, 640);
+    }
+
+    #[test]
+    fn test_non_birthday_multiplier() {
+        let base = preference_to_points(GiftPreference::Liked);
+        let normal_total = base * 1;
+        assert_eq!(normal_total, 45);
+    }
 }

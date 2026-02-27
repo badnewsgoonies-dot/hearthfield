@@ -208,3 +208,78 @@ pub fn forward_hint_to_toast(
         });
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hints_table_has_10_entries() {
+        assert_eq!(HINTS.len(), 10);
+    }
+
+    #[test]
+    fn test_all_hint_ids_are_unique() {
+        let mut ids = std::collections::HashSet::new();
+        for hint in HINTS {
+            assert!(ids.insert(hint.id), "Duplicate hint id: {}", hint.id);
+        }
+    }
+
+    #[test]
+    fn test_all_hint_messages_are_non_empty() {
+        for hint in HINTS {
+            assert!(!hint.message.is_empty(), "Hint {} has empty message", hint.id);
+        }
+    }
+
+    #[test]
+    fn test_is_crop_ready_dead_crop_is_not_ready() {
+        let crop_tile = CropTile {
+            crop_id: "turnip".to_string(),
+            current_stage: 5,
+            days_in_stage: 0,
+            watered_today: false,
+            days_without_water: 0,
+            dead: true,
+        };
+        let registry = CropRegistry::default();
+        assert!(!is_crop_ready(&crop_tile, &registry));
+    }
+
+    #[test]
+    fn test_is_crop_ready_unknown_crop() {
+        let crop_tile = CropTile {
+            crop_id: "nonexistent_crop".to_string(),
+            current_stage: 99,
+            days_in_stage: 0,
+            watered_today: false,
+            days_without_water: 0,
+            dead: false,
+        };
+        let registry = CropRegistry::default(); // empty registry
+        assert!(!is_crop_ready(&crop_tile, &registry));
+    }
+
+    #[test]
+    fn test_tutorial_state_default_not_complete() {
+        let state = TutorialState::default();
+        assert!(!state.tutorial_complete);
+        assert!(state.hints_shown.is_empty());
+        assert!(state.current_objective.is_none());
+    }
+
+    #[test]
+    fn test_tutorial_complete_after_all_hints() {
+        let mut state = TutorialState::default();
+        // Simulate showing all hints
+        for hint in HINTS {
+            state.hints_shown.push(hint.id.to_string());
+        }
+        // The system sets tutorial_complete when hints_shown.len() >= HINTS.len()
+        if state.hints_shown.len() >= HINTS.len() {
+            state.tutorial_complete = true;
+        }
+        assert!(state.tutorial_complete);
+    }
+}

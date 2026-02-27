@@ -275,6 +275,8 @@ pub fn handle_evaluation(
 /// contract described in the task.  A real re-evaluation is started by any system
 /// (typically the UI shrine interaction) that sends `EvaluationTriggerEvent` — the
 /// `handle_evaluation` system handles both first and subsequent evaluations cleanly.
+#[allow(dead_code)]
+#[allow(dead_code)]
 pub fn re_evaluate(
     // No inputs required — the re-eval is driven by sending EvaluationTriggerEvent
     // from outside (e.g., the UI domain when the player interacts with the shrine).

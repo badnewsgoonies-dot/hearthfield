@@ -72,6 +72,7 @@ pub fn load_chest_sprites(
 /// (player position + facing direction) if the tile is valid.
 pub fn place_chest(
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     mut commands: Commands,
     mut inventory: ResMut<Inventory>,
     player_state: Res<PlayerState>,
@@ -85,6 +86,10 @@ pub fn place_chest(
 ) {
     // Don't allow placement while a chest is open.
     if chest_interaction.is_open() {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -195,6 +200,7 @@ pub fn place_chest(
 /// open the chest by setting ChestInteraction.entity.
 pub fn interact_with_chest(
     keyboard: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     mut chest_interaction: ResMut<ChestInteraction>,
     player_query: Query<&Transform, With<Player>>,
     chest_query: Query<(Entity, &Transform), With<ChestMarker>>,
@@ -202,6 +208,10 @@ pub fn interact_with_chest(
 ) {
     // Don't open another chest if one is already open.
     if chest_interaction.is_open() {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 

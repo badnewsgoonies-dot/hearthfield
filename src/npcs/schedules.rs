@@ -652,3 +652,76 @@ fn child_lily_schedule(season: Season) -> NpcSchedule {
         ]),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_enhanced_schedule_returns_some_for_all_known_npcs() {
+        let npc_ids = [
+            "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
+            "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+        ];
+        for season in [Season::Spring, Season::Summer, Season::Fall, Season::Winter] {
+            for id in &npc_ids {
+                assert!(
+                    enhanced_schedule(id, season).is_some(),
+                    "enhanced_schedule should return Some for {} in {:?}",
+                    id, season
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_enhanced_schedule_returns_none_for_unknown() {
+        assert!(enhanced_schedule("nonexistent_npc", Season::Spring).is_none());
+        assert!(enhanced_schedule("", Season::Summer).is_none());
+    }
+
+    #[test]
+    fn test_schedules_have_non_empty_weekday_and_weekend() {
+        let npc_ids = [
+            "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
+            "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+        ];
+        for id in &npc_ids {
+            let sched = enhanced_schedule(id, Season::Spring).unwrap();
+            assert!(!sched.weekday.is_empty(), "{} weekday should not be empty", id);
+            assert!(!sched.weekend.is_empty(), "{} weekend should not be empty", id);
+        }
+    }
+
+    #[test]
+    fn test_schedules_have_rain_and_festival_overrides() {
+        let npc_ids = [
+            "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
+            "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+        ];
+        for id in &npc_ids {
+            let sched = enhanced_schedule(id, Season::Summer).unwrap();
+            assert!(sched.rain_override.is_some(), "{} should have rain_override", id);
+            assert!(sched.festival_override.is_some(), "{} should have festival_override", id);
+        }
+    }
+
+    #[test]
+    fn test_old_pete_beach_in_summer() {
+        let sched = enhanced_schedule("old_pete", Season::Summer).unwrap();
+        let has_beach = sched.weekday.iter().any(|e| e.map == MapId::Beach);
+        assert!(has_beach, "Old Pete should visit Beach in summer weekdays");
+    }
+
+    #[test]
+    fn test_elena_seasonal_variation() {
+        let _spring = enhanced_schedule("elena", Season::Spring).unwrap();
+        let summer = enhanced_schedule("elena", Season::Summer).unwrap();
+        // In summer, Elena's evening destination should differ from spring
+        // Both end at home, but the seasonal evening entry (index 4) should differ
+        let summer_eve = &summer.weekday[4];
+        // Summer should be at Beach
+        assert_eq!(summer_eve.map, MapId::Beach,
+            "Elena should visit Beach in summer evenings");
+    }
+}

@@ -63,6 +63,7 @@ impl FishingSkill {
     }
 
     /// Apply the catch-zone bonus to a catch-bar half-height.
+    #[allow(dead_code)]
     pub fn apply_catch_zone(&self, base_half: f32) -> f32 {
         base_half * (1.0 + self.catch_zone_bonus)
     }
@@ -75,6 +76,7 @@ impl FishingSkill {
 #[derive(Event, Debug, Clone)]
 pub struct FishingLevelUpEvent {
     /// New skill level reached.
+    #[allow(dead_code)]
     pub new_level: u32,
 }
 
@@ -119,5 +121,88 @@ pub fn update_fishing_skill(
                 duration_secs: 4.0,
             });
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fishing_skill_default_level_zero() {
+        let skill = FishingSkill::default();
+        assert_eq!(skill.level, 0);
+        assert_eq!(skill.total_catches, 0);
+        assert!((skill.bite_speed_bonus).abs() < f32::EPSILON);
+        assert!((skill.catch_zone_bonus).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_fishing_skill_level_zero_bonuses() {
+        let mut skill = FishingSkill::default();
+        skill.total_catches = 0;
+        skill.recalculate();
+        assert_eq!(skill.level, 0);
+        assert!((skill.bite_speed_bonus).abs() < f32::EPSILON);
+        assert!((skill.catch_zone_bonus).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_fishing_skill_recalculate_level_1() {
+        let mut skill = FishingSkill::default();
+        skill.total_catches = 10;
+        skill.recalculate();
+        assert_eq!(skill.level, 1);
+        assert!((skill.bite_speed_bonus - 0.05).abs() < f32::EPSILON);
+        assert!((skill.catch_zone_bonus - 0.03).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_fishing_skill_max_level_cap() {
+        let mut skill = FishingSkill::default();
+        // 200 catches = level 20, but bonuses should cap at level 10 values
+        skill.total_catches = 200;
+        skill.recalculate();
+        assert_eq!(skill.level, 20);
+        // bite_speed_bonus caps at 0.5
+        assert!((skill.bite_speed_bonus - FishingSkill::MAX_BITE_SPEED).abs() < f32::EPSILON);
+        // catch_zone_bonus caps at 0.3
+        assert!((skill.catch_zone_bonus - FishingSkill::MAX_CATCH_ZONE).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_apply_bite_speed_zero_bonus() {
+        let skill = FishingSkill::default();
+        let result = skill.apply_bite_speed(5.0);
+        assert!((result - 5.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_apply_bite_speed_with_bonus() {
+        let mut skill = FishingSkill::default();
+        skill.total_catches = 10; // level 1 -> 0.05 bonus
+        skill.recalculate();
+        let result = skill.apply_bite_speed(10.0);
+        // 10.0 * (1.0 - 0.05) = 9.5
+        assert!((result - 9.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_apply_bite_speed_zero_input() {
+        let mut skill = FishingSkill::default();
+        skill.total_catches = 50;
+        skill.recalculate();
+        let result = skill.apply_bite_speed(0.0);
+        assert!((result).abs() < f32::EPSILON, "0 input should produce 0 output");
+    }
+
+    #[test]
+    fn test_apply_catch_zone_with_bonus() {
+        let mut skill = FishingSkill::default();
+        skill.total_catches = 20; // level 2 -> 0.06 catch zone bonus
+        skill.recalculate();
+        let result = skill.apply_catch_zone(50.0);
+        // 50.0 * (1.0 + 0.06) = 53.0
+        assert!((result - 53.0).abs() < 0.001);
     }
 }

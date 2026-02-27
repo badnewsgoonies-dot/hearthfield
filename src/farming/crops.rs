@@ -16,6 +16,7 @@ use super::{
 /// current grid tile (or the tile the player is facing).
 pub fn detect_seed_use(
     keys: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     player_state: Res<PlayerState>,
     inventory: Res<Inventory>,
     farm_state: Res<FarmState>,
@@ -25,6 +26,10 @@ pub fn detect_seed_use(
     mut plant_events: EventWriter<PlantSeedEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     // Interact key: F
     if !keys.just_pressed(KeyCode::KeyF) {
         return;

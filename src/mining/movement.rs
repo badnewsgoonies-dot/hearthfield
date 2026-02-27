@@ -28,6 +28,7 @@ impl Default for MineMoveCooldown {
 pub fn mine_player_movement(
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     mut active_floor: ResMut<ActiveFloor>,
     mut cooldown: ResMut<MineMoveCooldown>,
     rocks: Query<&MineGridPos, With<MineRock>>,
@@ -37,6 +38,10 @@ pub fn mine_player_movement(
     mut player_query: Query<&mut Transform, With<Player>>,
 ) {
     if !in_mine.0 || !active_floor.spawned || elevator_ui.0 {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
@@ -93,6 +98,7 @@ pub fn mine_player_movement(
 /// targeting the tile the player is facing. Uses the currently equipped tool.
 pub fn mine_player_action(
     input: Res<ButtonInput<KeyCode>>,
+    input_blocks: Res<InputBlocks>,
     active_floor: Res<ActiveFloor>,
     player_state: Res<PlayerState>,
     in_mine: Res<InMine>,
@@ -101,6 +107,10 @@ pub fn mine_player_action(
     mut tool_events: EventWriter<ToolUseEvent>,
 ) {
     if !in_mine.0 || !active_floor.spawned || elevator_ui.0 {
+        return;
+    }
+
+    if input_blocks.is_blocked() {
         return;
     }
 
