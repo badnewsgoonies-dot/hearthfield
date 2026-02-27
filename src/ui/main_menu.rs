@@ -28,7 +28,11 @@ pub enum MainMenuMode {
     LoadSlots,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Quit"];
+
+#[cfg(target_arch = "wasm32")]
+const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game"];
 const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
 const MAIN_MENU_MAX_ITEMS: usize = NUM_SAVE_SLOTS + 1;
 
@@ -255,6 +259,7 @@ pub fn main_menu_navigation(
                     state.cursor = 0;
                     state.status_message.clear();
                 }
+                #[cfg(not(target_arch = "wasm32"))]
                 2 => {
                     app_exit.send(AppExit::Success);
                 }
