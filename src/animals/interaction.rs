@@ -24,8 +24,8 @@ pub fn handle_animal_interact(
     mut commands: Commands,
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
-    player_query: Query<&Transform, With<Player>>,
-    mut animal_query: Query<(Entity, &mut Animal, &Transform)>,
+    player_query: Query<&LogicalPosition, With<Player>>,
+    mut animal_query: Query<(Entity, &mut Animal, &LogicalPosition)>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
 ) {
     if input_blocks.is_blocked() {
@@ -36,17 +36,17 @@ pub fn handle_animal_interact(
         return;
     }
 
-    let Ok(player_transform) = player_query.get_single() else {
+    let Ok(player_lp) = player_query.get_single() else {
         return;
     };
 
-    let player_pos = player_transform.translation.truncate();
+    let player_pos = player_lp.0;
 
     // First, check if any in-range animal has a product ready. If so, skip
     // petting entirely — handle_product_collection will process that press.
-    let any_product_ready = animal_query.iter().any(|(_, animal, animal_transform)| {
+    let any_product_ready = animal_query.iter().any(|(_, animal, animal_lp)| {
         animal.product_ready
-            && player_pos.distance(animal_transform.translation.truncate()) <= INTERACT_RANGE
+            && player_pos.distance(animal_lp.0) <= INTERACT_RANGE
     });
 
     if any_product_ready {
@@ -54,8 +54,8 @@ pub fn handle_animal_interact(
         return;
     }
 
-    for (_entity, mut animal, animal_transform) in animal_query.iter_mut() {
-        let animal_pos = animal_transform.translation.truncate();
+    for (_entity, mut animal, animal_lp) in animal_query.iter_mut() {
+        let animal_pos = animal_lp.0;
         let dist = player_pos.distance(animal_pos);
 
         if dist > INTERACT_RANGE {
@@ -79,7 +79,7 @@ pub fn handle_animal_interact(
             // Heart feedback above animal.
             spawn_floating_text(
                 &mut commands,
-                animal_transform.translation + Vec3::new(0.0, 14.0, 2.0),
+                animal_pos.extend(Z_EFFECTS) + Vec3::new(0.0, 14.0, 0.0),
                 pet_text,
                 Color::srgb(1.0, 0.4, 0.7),
             );
@@ -91,7 +91,7 @@ pub fn handle_animal_interact(
             // Already petted today — give small feedback so player knows.
             spawn_floating_text(
                 &mut commands,
-                animal_transform.translation + Vec3::new(0.0, 14.0, 2.0),
+                animal_pos.extend(Z_EFFECTS) + Vec3::new(0.0, 14.0, 0.0),
                 "Already happy!",
                 Color::srgb(0.8, 0.8, 0.4),
             );

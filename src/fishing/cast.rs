@@ -132,17 +132,16 @@ pub fn handle_tool_use_for_fishing(
         fishing_state.tackle_kind = tackle_kind;
         fishing_state.rod_tier = rod_tier;
 
-        // Spawn bobber sprite in world space
-        // Camera scale is 1/PIXEL_SCALE, so world_pos = tile_pos * TILE_SIZE * PIXEL_SCALE
-        let bobber_world_x = target_x as f32 * TILE_SIZE * PIXEL_SCALE;
-        let bobber_world_y = target_y as f32 * TILE_SIZE * PIXEL_SCALE;
+        // Spawn bobber sprite in world space (grid * TILE_SIZE)
+        let bobber_world_x = target_x as f32 * TILE_SIZE;
+        let bobber_world_y = target_y as f32 * TILE_SIZE;
         commands.spawn((
             Sprite {
                 color: Color::srgb(0.9, 0.2, 0.2), // Red bobber (placeholder)
                 custom_size: Some(Vec2::new(6.0, 8.0)),
                 ..default()
             },
-            Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, 5.0)),
+            Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, Z_EFFECTS)),
             Bobber {
                 bob_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
                 _bob_direction: 1.0,

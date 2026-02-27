@@ -15,7 +15,7 @@ use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
 pub fn detect_harvest_input(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
-    player_query: Query<&Transform, With<Player>>,
+    player_query: Query<&LogicalPosition, With<Player>>,
     player_state: Res<PlayerState>,
     mut harvest_events: EventWriter<HarvestAttemptEvent>,
 ) {
@@ -31,13 +31,13 @@ pub fn detect_harvest_input(
         return;
     }
 
-    let Ok(transform) = player_query.get_single() else {
+    let Ok(logical_pos) = player_query.get_single() else {
         return;
     };
 
     // Convert world position to grid.
-    let grid_x = (transform.translation.x / TILE_SIZE).round() as i32;
-    let grid_y = (transform.translation.y / TILE_SIZE).round() as i32;
+    let grid_x = (logical_pos.0.x / TILE_SIZE).round() as i32;
+    let grid_y = (logical_pos.0.y / TILE_SIZE).round() as i32;
 
     harvest_events.send(HarvestAttemptEvent { grid_x, grid_y });
 }
@@ -216,7 +216,7 @@ fn update_crop_entity_color(
     } else {
         // Entity doesn't exist yet — spawn it.
         // We need a CropTileEntity and CropTile; both are cloneable.
-        let translation = super::grid_to_world(pos.0, pos.1).with_z(2.0);
+        let translation = super::grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
         let entity = commands.spawn((
             Sprite {
                 color,

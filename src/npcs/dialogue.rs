@@ -47,7 +47,7 @@ pub fn handle_npc_interaction(
     };
 
     let player_pos = player_transform.translation.truncate();
-    let interaction_range = TILE_SIZE * PIXEL_SCALE * 1.5; // ~72px in world space
+    let interaction_range = TILE_SIZE * 1.5; // 1.5 tiles in world space
 
     // Find the closest adjacent NPC within range
     let mut closest: Option<(&Npc, f32)> = None;

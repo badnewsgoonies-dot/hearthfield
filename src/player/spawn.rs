@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{PlayerSpriteData, AnimationTimer};
+use super::{PlayerSpriteData, ActionSpriteData, DistanceAnimator};
 
 /// Starting grid position on the farm (roughly center of the farmable area).
 const SPAWN_GRID_X: i32 = 10;
@@ -14,6 +14,7 @@ pub fn spawn_player(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut sprite_data: ResMut<PlayerSpriteData>,
+    mut action_data: ResMut<ActionSpriteData>,
 ) {
     // Guard: don't double-spawn if returning to Playing state.
     if !existing.is_empty() {
@@ -56,15 +57,29 @@ pub fn spawn_player(
                 index: 0,
             },
         ),
-        // World-space transform. Z = 10 so the player draws above terrain.
-        Transform::from_translation(Vec3::new(world_x, world_y, 10.0)),
+        // Logical position for pixel-perfect rendering (movement writes here)
+        LogicalPosition(Vec2::new(world_x, world_y)),
+        // World-space transform — Y-sort system sets Z from LogicalPosition each frame.
+        Transform::from_translation(Vec3::new(world_x, world_y, Z_ENTITY_BASE)),
+        // Y-sort depth ordering
+        YSorted,
         // Required for rendering
         Visibility::default(),
-        // Walk-cycle animation state
-        AnimationTimer {
-            timer: Timer::from_seconds(0.15, TimerMode::Repeating),
-            frame_count: 4,
-            current_frame: 0,
+        // Distance-based walk animation
+        DistanceAnimator {
+            last_pos: Vec2::new(world_x, world_y),
+            ..default()
         },
     ));
+
+    // Load character_actions.png atlas (tool-use animations)
+    if !action_data.loaded {
+        let action_texture = asset_server.load("sprites/character_actions.png");
+        let action_layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(48, 48), 2, 12, None, None,
+        ));
+        action_data.image = action_texture;
+        action_data.layout = action_layout;
+        action_data.loaded = true;
+    }
 }

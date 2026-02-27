@@ -133,7 +133,7 @@ pub fn handle_gift_input(
     };
 
     let player_pos = player_transform.translation.truncate();
-    let interaction_range = TILE_SIZE * PIXEL_SCALE * 1.5;
+    let interaction_range = TILE_SIZE * 1.5;
 
     // Find closest NPC
     let mut closest_npc_id: Option<String> = None;

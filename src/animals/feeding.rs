@@ -28,7 +28,7 @@ use super::{FeedTrough, spawn_floating_text};
 pub fn handle_feed_trough_interact(
     mut commands: Commands,
     mut removed_events: EventReader<ItemRemovedEvent>,
-    mut animal_query: Query<(Entity, &mut Animal, &Transform)>,
+    mut animal_query: Query<(Entity, &mut Animal, &LogicalPosition)>,
     _trough_query: Query<&FeedTrough>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
@@ -40,7 +40,7 @@ pub fn handle_feed_trough_interact(
 
         // Hay was consumed — feed all productive barn/coop animals.
         let mut fed_count = 0u32;
-        for (_entity, mut animal, transform) in animal_query.iter_mut() {
+        for (_entity, mut animal, animal_lp) in animal_query.iter_mut() {
             if !matches!(
                 animal.kind,
                 AnimalKind::Chicken | AnimalKind::Cow | AnimalKind::Sheep
@@ -56,7 +56,7 @@ pub fn handle_feed_trough_interact(
                 // Floating "Yum!" feedback above each newly-fed animal.
                 spawn_floating_text(
                     &mut commands,
-                    transform.translation + Vec3::new(0.0, 14.0, 2.0),
+                    animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 14.0, 0.0),
                     "Yum!",
                     Color::srgb(0.3, 0.9, 0.3),
                 );

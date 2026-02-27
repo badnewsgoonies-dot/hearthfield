@@ -26,8 +26,8 @@ pub fn handle_product_collection(
     mut commands: Commands,
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
-    player_query: Query<&Transform, With<Player>>,
-    mut animal_query: Query<(Entity, &mut Animal, &Transform, Option<&PendingProductQuality>)>,
+    player_query: Query<&LogicalPosition, With<Player>>,
+    mut animal_query: Query<(Entity, &mut Animal, &LogicalPosition, Option<&PendingProductQuality>)>,
     mut product_writer: EventWriter<AnimalProductEvent>,
     mut pickup_writer: EventWriter<ItemPickupEvent>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
@@ -41,18 +41,18 @@ pub fn handle_product_collection(
         return;
     }
 
-    let Ok(player_transform) = player_query.get_single() else {
+    let Ok(player_lp) = player_query.get_single() else {
         return;
     };
 
-    let player_pos = player_transform.translation.truncate();
+    let player_pos = player_lp.0;
 
-    for (entity, mut animal, animal_transform, pending_quality) in animal_query.iter_mut() {
+    for (entity, mut animal, animal_lp, pending_quality) in animal_query.iter_mut() {
         if !animal.product_ready {
             continue;
         }
 
-        let animal_pos = animal_transform.translation.truncate();
+        let animal_pos = animal_lp.0;
         if player_pos.distance(animal_pos) > INTERACT_RANGE {
             continue;
         }
@@ -130,7 +130,7 @@ pub fn handle_product_collection(
 
         spawn_floating_text(
             &mut commands,
-            animal_transform.translation + Vec3::new(0.0, 14.0, 2.0),
+            animal_pos.extend(Z_EFFECTS) + Vec3::new(0.0, 14.0, 0.0),
             floating_label,
             text_color,
         );
@@ -156,7 +156,7 @@ pub fn handle_product_collection(
 
 pub fn update_product_indicators(
     mut commands: Commands,
-    animal_query: Query<(Entity, &Animal, &Transform)>,
+    animal_query: Query<(Entity, &Animal, &LogicalPosition)>,
     mut indicator_query: Query<(Entity, &mut Transform, &ProductReadyIndicator), Without<Animal>>,
 ) {
     // Build the set of animal entities that currently have a product ready.
@@ -173,9 +173,9 @@ pub fn update_product_indicators(
     for (ind_entity, mut ind_transform, indicator) in indicator_query.iter_mut() {
         if ready_entities.contains(&indicator.owner) {
             // Keep the indicator and track its owner so we don't re-spawn.
-            if let Ok((_, _, animal_transform)) = animal_query.get(indicator.owner) {
+            if let Ok((_, _, animal_lp)) = animal_query.get(indicator.owner) {
                 ind_transform.translation =
-                    animal_transform.translation + Vec3::new(0.0, 12.0, 2.0);
+                    animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 12.0, 0.0);
             }
             indicators_present.insert(indicator.owner);
         } else {
@@ -185,7 +185,7 @@ pub fn update_product_indicators(
     }
 
     // Spawn new indicators for animals that just became ready.
-    for (entity, animal, transform) in animal_query.iter() {
+    for (entity, animal, animal_lp) in animal_query.iter() {
         if !animal.product_ready || indicators_present.contains(&entity) {
             continue;
         }
@@ -208,9 +208,8 @@ pub fn update_product_indicators(
                 ..default()
             },
             Transform::from_translation(
-                transform.translation + Vec3::new(0.0, 12.0, 2.0),
+                animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 12.0, 0.0),
             ),
-            GlobalTransform::default(),
             Visibility::default(),
         ));
     }

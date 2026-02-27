@@ -124,7 +124,7 @@ pub fn spawn_weather_particles(
                         custom_size: Some(Vec2::new(1.0, 6.0)),
                         ..default()
                     },
-                    Transform::from_translation(Vec3::new(x, y, 50.0)),
+                    Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
             }
         }
@@ -142,7 +142,7 @@ pub fn spawn_weather_particles(
                         custom_size: Some(Vec2::new(1.0, 6.0)),
                         ..default()
                     },
-                    Transform::from_translation(Vec3::new(x, y, 50.0)),
+                    Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
             }
         }
@@ -170,7 +170,7 @@ pub fn spawn_weather_particles(
                         custom_size: Some(Vec2::new(3.0, 3.0)),
                         ..default()
                     },
-                    Transform::from_translation(Vec3::new(x, y, 50.0)),
+                    Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
             }
         }

@@ -65,13 +65,13 @@ pub fn update_npc_schedules(
     calendar: Res<Calendar>,
     npc_registry: Res<NpcRegistry>,
     player_state: Res<PlayerState>,
-    mut query: Query<(&Npc, &mut NpcMovement, &Transform)>,
+    mut query: Query<(&Npc, &mut NpcMovement, &LogicalPosition)>,
 ) {
     let current_map = player_state.current_map;
     let time = calendar.time_float();
     let _ = time; // used indirectly through current_schedule_entry
 
-    for (npc, mut movement, transform) in query.iter_mut() {
+    for (npc, mut movement, logical_pos) in query.iter_mut() {
         let Some(schedule) = npc_registry.schedules.get(&npc.id) else {
             continue;
         };
@@ -84,8 +84,8 @@ pub fn update_npc_schedules(
             let target_y = -(entry.y as f32 * TILE_SIZE);
 
             // Only set moving if not already at target
-            let dx = target_x - transform.translation.x;
-            let dy = target_y - transform.translation.y;
+            let dx = target_x - logical_pos.0.x;
+            let dy = target_y - logical_pos.0.y;
             let dist_sq = dx * dx + dy * dy;
 
             movement.target_x = target_x;
@@ -98,17 +98,17 @@ pub fn update_npc_schedules(
 /// System: move NPC entities toward their target positions (lerp / walk).
 pub fn move_npcs_toward_targets(
     time: Res<Time>,
-    mut query: Query<(&mut NpcMovement, &mut Transform), With<Npc>>,
+    mut query: Query<(&mut NpcMovement, &mut LogicalPosition), With<Npc>>,
 ) {
     let dt = time.delta_secs();
 
-    for (mut movement, mut transform) in query.iter_mut() {
+    for (mut movement, mut logical_pos) in query.iter_mut() {
         if !movement.is_moving {
             continue;
         }
 
-        let current_x = transform.translation.x;
-        let current_y = transform.translation.y;
+        let current_x = logical_pos.0.x;
+        let current_y = logical_pos.0.y;
 
         let dx = movement.target_x - current_x;
         let dy = movement.target_y - current_y;
@@ -116,16 +116,16 @@ pub fn move_npcs_toward_targets(
 
         if dist < 2.0 {
             // Snap to target
-            transform.translation.x = movement.target_x;
-            transform.translation.y = movement.target_y;
+            logical_pos.0.x = movement.target_x;
+            logical_pos.0.y = movement.target_y;
             movement.is_moving = false;
         } else {
             // Move at NPC speed
             let step = (movement.speed * dt).min(dist);
             let dir_x = dx / dist;
             let dir_y = dy / dist;
-            transform.translation.x += dir_x * step;
-            transform.translation.y += dir_y * step;
+            logical_pos.0.x += dir_x * step;
+            logical_pos.0.y += dir_y * step;
         }
     }
 }

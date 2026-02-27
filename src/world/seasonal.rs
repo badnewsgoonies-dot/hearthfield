@@ -224,7 +224,7 @@ pub fn spawn_falling_leaves(
             custom_size: Some(Vec2::new(4.0, 4.0)),
             ..default()
         },
-        Transform::from_translation(Vec3::new(spawn_x, spawn_y, 8.0)),
+        Transform::from_translation(Vec3::new(spawn_x, spawn_y, Z_SEASONAL)),
         FallingLeaf {
             age: 0.0,
             base_x: spawn_x,

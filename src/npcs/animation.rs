@@ -26,12 +26,12 @@ pub struct NpcAnimationTimer {
 /// direction.
 pub fn animate_npc_sprites(
     time: Res<Time>,
-    mut query: Query<(&NpcMovement, &Transform, &mut Sprite, &mut NpcAnimationTimer), With<Npc>>,
+    mut query: Query<(&NpcMovement, &LogicalPosition, &mut Sprite, &mut NpcAnimationTimer), With<Npc>>,
 ) {
-    for (movement, transform, mut sprite, mut anim) in query.iter_mut() {
+    for (movement, logical_pos, mut sprite, mut anim) in query.iter_mut() {
         // Determine facing from movement vector (current pos → target)
-        let dx = movement.target_x - transform.translation.x;
-        let dy = movement.target_y - transform.translation.y;
+        let dx = movement.target_x - logical_pos.0.x;
+        let dy = movement.target_y - logical_pos.0.y;
 
         let base: usize = if dx.abs() > dy.abs() {
             if dx > 0.0 { 8 } else { 12 } // Right : Left

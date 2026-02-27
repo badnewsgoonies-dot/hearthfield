@@ -227,7 +227,7 @@ pub fn sync_crop_sprites(
             .map(|d| d.growth_days.len() as u8)
             .unwrap_or(4);
 
-        let translation = grid_to_world(pos.0, pos.1).with_z(2.0);
+        let translation = grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
 
         let entity = if atlases.loaded && !crop.dead {
             // Preferred path: texture atlas sprite.
