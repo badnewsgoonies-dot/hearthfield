@@ -1,8 +1,12 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::shared::*;
 
@@ -200,8 +204,8 @@ impl Plugin for SavePlugin {
 // FILESYSTEM HELPERS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[cfg(not(target_arch = "wasm32"))]
 fn saves_directory() -> PathBuf {
-    // Place saves/ next to the executable so it is easy to find.
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|p| p.to_path_buf()))
@@ -209,10 +213,12 @@ fn saves_directory() -> PathBuf {
     exe_dir.join("saves")
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn slot_path(slot: u8) -> PathBuf {
     saves_directory().join(format!("slot_{}.json", slot))
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn ensure_saves_dir() -> Result<(), std::io::Error> {
     let dir = saves_directory();
     if !dir.exists() {
@@ -221,11 +227,17 @@ fn ensure_saves_dir() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn current_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn current_timestamp() -> u64 {
+    0
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -273,6 +285,7 @@ impl FullSaveFile {
 // SAVE / LOAD LOGIC
 // ═══════════════════════════════════════════════════════════════════════
 
+#[cfg(not(target_arch = "wasm32"))]
 fn write_save(
     slot: u8,
     calendar: &Calendar,
@@ -320,6 +333,24 @@ fn write_save(
     Ok(())
 }
 
+#[cfg(target_arch = "wasm32")]
+fn write_save(
+    _slot: u8,
+    _calendar: &Calendar,
+    _player_state: &PlayerState,
+    _inventory: &Inventory,
+    _farm_state: &FarmState,
+    _animal_state: &AnimalState,
+    _relationships: &Relationships,
+    _mine_state: &MineState,
+    _unlocked_recipes: &UnlockedRecipes,
+    _shipping_bin: &ShippingBin,
+    _statistics: &GameStatistics,
+) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn read_save(slot: u8) -> Result<FullSaveFile, String> {
     let path = slot_path(slot);
     if !path.exists() {
@@ -339,6 +370,11 @@ fn read_save(slot: u8) -> Result<FullSaveFile, String> {
     }
 
     Ok(file)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn read_save(_slot: u8) -> Result<FullSaveFile, String> {
+    Err("Saves not available in browser".to_string())
 }
 
 fn peek_save(slot: u8) -> Option<SaveSlotInfo> {

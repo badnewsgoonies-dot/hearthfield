@@ -29,6 +29,10 @@ fn main() {
                         resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
                         present_mode: PresentMode::AutoVsync,
                         resizable: true,
+                        #[cfg(target_arch = "wasm32")]
+                        canvas: Some("#game-canvas".into()),
+                        #[cfg(target_arch = "wasm32")]
+                        fit_canvas_to_parent: true,
                         ..default()
                     }),
                     ..default()

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Hearthfield</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas#game-canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #loading {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
+            color: #e0d6c2;
+            font-family: system-ui, sans-serif;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        #loading h1 {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+            letter-spacing: 0.05em;
+        }
+
+        #loading-bar-bg {
+            width: 60%;
+            max-width: 300px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #loading-bar {
+            width: 0%;
+            height: 100%;
+            background: #7eb356;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        #loading-text {
+            margin-top: 0.5em;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; }
+
+        @supports (-webkit-touch-callout: none) {
+            html, body { height: -webkit-fill-available; }
+            #game-container { height: -webkit-fill-available; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h1>Hearthfield</h1>
+        <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+        <p id="loading-text">Loading...</p>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <script type="module">
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+        const loadingScreen = document.getElementById('loading');
+
+        loadingText.textContent = 'Downloading game...';
+        loadingBar.style.width = '10%';
+
+        import init from './hearthfield.js';
+
+        loadingText.textContent = 'Starting engine...';
+        loadingBar.style.width = '50%';
+
+        init().then(() => {
+            loadingBar.style.width = '100%';
+            loadingText.textContent = 'Ready!';
+            setTimeout(() => loadingScreen.classList.add('hidden'), 300);
+        }).catch(err => {
+            loadingText.textContent = 'Error: ' + err.message;
+            loadingBar.style.background = '#c44';
+            console.error(err);
+        });
+
+        // Prevent iOS Safari gestures that break the game
+        document.addEventListener('gesturestart', e => e.preventDefault());
+        document.addEventListener('gesturechange', e => e.preventDefault());
+        document.addEventListener('gestureend', e => e.preventDefault());
+
+        // iOS audio unlock — WebAudio needs a user gesture to start
+        let audioUnlocked = false;
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const buf = ctx.createBuffer(1, 1, 22050);
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            src.start(0);
+            audioUnlocked = true;
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
+        }
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
+    </script>
+</body>
+</html>
