@@ -13,6 +13,8 @@ pub mod blacksmith;
 pub mod stats;
 pub mod tool_upgrades;
 pub mod evaluation;
+pub mod play_stats;
+pub mod achievements;
 
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{
@@ -29,6 +31,11 @@ use blacksmith::{
 };
 use stats::{HarvestStats, AnimalProductStats, track_crop_harvests, track_animal_products};
 use evaluation::{check_evaluation_trigger, handle_evaluation};
+use achievements::{check_achievements, track_achievement_progress};
+use play_stats::{
+    track_crops_harvested, track_fish_caught, track_day_end,
+    track_gifts_given, track_animals_petted, track_gold_earned, track_recipes_cooked,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
@@ -75,6 +82,18 @@ impl Plugin for EconomyPlugin {
                 // Year-end evaluation: check trigger condition, then score.
                 check_evaluation_trigger,
                 handle_evaluation,
+                // PlayStats counters — passive listeners for global play statistics.
+                track_crops_harvested,
+                track_fish_caught,
+                track_day_end,
+                track_gifts_given,
+                track_animals_petted,
+                track_gold_earned,
+                track_recipes_cooked,
+                // Achievement progress counters (rocks broken, crops planted, gold-quality crops).
+                track_achievement_progress,
+                // Achievement condition checks — fires AchievementUnlockedEvent when earned.
+                check_achievements,
             )
                 .run_if(in_state(GameState::Playing)),
         );

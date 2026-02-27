@@ -10,6 +10,7 @@ mod pause_menu;
 mod shop_screen;
 mod toast;
 mod transitions;
+mod tutorial;
 
 use crate::shared::*;
 use bevy::prelude::*;
@@ -102,6 +103,17 @@ impl Plugin for UiPlugin {
                 toast::wire_season_toasts,
                 toast::wire_pickup_toasts,
             )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── TUTORIAL & CONTEXTUAL HINTS ───
+        app.add_systems(
+            Update,
+            (
+                tutorial::check_tutorial_hints,
+                tutorial::forward_hint_to_toast,
+            )
+                .chain()
                 .run_if(in_state(GameState::Playing)),
         );
 
