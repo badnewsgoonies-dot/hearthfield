@@ -7,6 +7,7 @@ mod input;
 mod inventory_screen;
 mod main_menu;
 pub mod menu_input;
+pub mod menu_kit;
 mod pause_menu;
 mod shop_screen;
 mod toast;
@@ -32,8 +33,8 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        // ─── FONT LOADING — runs at Startup so it's available everywhere ───
-        app.add_systems(Startup, load_ui_font);
+        // ─── FONT LOADING + MENU ASSETS — runs at Startup ───
+        app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets));
 
         // ─── AUDIO — music state resource + event handlers ───
         app.init_resource::<audio::MusicState>();

@@ -1,4 +1,5 @@
 use super::UiFontHandle;
+use super::menu_kit::{self, MenuAssets, set_button_visual};
 use crate::save::{ActiveSaveSlot, SaveCompleteEvent, SaveRequestEvent};
 use crate::shared::*;
 use bevy::prelude::*;
@@ -9,17 +10,6 @@ use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct PauseMenuRoot;
-
-#[derive(Component)]
-pub struct PauseMenuItem {
-    pub index: usize,
-}
-
-#[derive(Component)]
-#[allow(dead_code)]
-pub struct PauseMenuItemText {
-    pub index: usize,
-}
 
 /// Tracks pause menu selection
 #[derive(Resource)]
@@ -37,7 +27,12 @@ const PAUSE_OPTIONS: &[&str] = &["Resume", "Save Game", "Quit to Menu"];
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) {
+pub fn spawn_pause_menu(
+    mut commands: Commands,
+    font_handle: Res<UiFontHandle>,
+    assets: Res<MenuAssets>,
+    theme: Res<MenuTheme>,
+) {
     commands.insert_resource(PauseMenuState {
         cursor: 0,
         status_message: String::new(),
@@ -56,67 +51,34 @@ pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) 
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+            BackgroundColor(theme.bg_overlay),
         ))
         .with_children(|parent| {
             // Panel
             parent
                 .spawn((
                     Node {
-                        width: Val::Px(300.0),
+                        width: Val::Px(theme.panel_width),
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
-                        padding: UiRect::all(Val::Px(24.0)),
-                        row_gap: Val::Px(12.0),
-                        border: UiRect::all(Val::Px(3.0)),
+                        padding: UiRect::all(Val::Px(theme.panel_padding)),
+                        row_gap: Val::Px(theme.panel_gap),
+                        border: UiRect::all(Val::Px(theme.panel_border_width)),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.1, 0.08, 0.06, 0.95)),
-                    BorderColor(Color::srgb(0.5, 0.4, 0.25)),
+                    BackgroundColor(theme.panel_bg),
+                    BorderColor(theme.panel_border),
                 ))
                 .with_children(|panel| {
                     // Title
-                    panel.spawn((
-                        Text::new("PAUSED"),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 28.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(1.0, 0.9, 0.6)),
-                    ));
+                    menu_kit::spawn_menu_title(panel, "PAUSED", &theme, &font);
 
-                    // Menu items
+                    // Menu items — atlas-backed buttons matching main menu
                     for (i, label) in PAUSE_OPTIONS.iter().enumerate() {
-                        panel
-                            .spawn((
-                                PauseMenuItem { index: i },
-                                Node {
-                                    width: Val::Px(220.0),
-                                    height: Val::Px(36.0),
-                                    justify_content: JustifyContent::Center,
-                                    align_items: AlignItems::Center,
-                                    border: UiRect::all(Val::Px(2.0)),
-                                    ..default()
-                                },
-                                BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.8)),
-                                BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.6)),
-                            ))
-                            .with_children(|item| {
-                                item.spawn((
-                                    PauseMenuItemText { index: i },
-                                    Text::new(*label),
-                                    TextFont {
-                                        font: font.clone(),
-                                        font_size: 18.0,
-                                        ..default()
-                                    },
-                                    TextColor(Color::WHITE),
-                                ));
-                            });
+                        menu_kit::spawn_menu_button(panel, i, label, &assets, &theme, &font);
                     }
 
-                    // Hint
+                    // Status text
                     panel.spawn((
                         PauseMenuStatusText,
                         Text::new(""),
@@ -128,15 +90,13 @@ pub fn spawn_pause_menu(mut commands: Commands, font_handle: Res<UiFontHandle>) 
                         TextColor(Color::srgb(0.95, 0.75, 0.45)),
                     ));
 
-                    panel.spawn((
-                        Text::new("Up/Down: Select | Enter: Confirm | Esc: Resume"),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 10.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.5, 0.5, 0.5)),
-                    ));
+                    // Hint
+                    menu_kit::spawn_menu_footer(
+                        panel,
+                        "Up/Down: Select | Enter: Confirm | Esc: Resume",
+                        &theme,
+                        &font,
+                    );
                 });
         });
 }
@@ -154,18 +114,12 @@ pub fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<Paus
 
 pub fn update_pause_menu_visuals(
     state: Option<Res<PauseMenuState>>,
-    mut query: Query<(&PauseMenuItem, &mut BackgroundColor, &mut BorderColor)>,
+    mut query: Query<(&MenuItem, &mut ImageNode)>,
     mut status_query: Query<&mut Text, With<PauseMenuStatusText>>,
 ) {
     let Some(state) = state else { return };
-    for (item, mut bg, mut border) in &mut query {
-        if item.index == state.cursor {
-            *bg = BackgroundColor(Color::srgba(0.35, 0.3, 0.2, 0.95));
-            *border = BorderColor(Color::srgb(1.0, 0.84, 0.0));
-        } else {
-            *bg = BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.8));
-            *border = BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.6));
-        }
+    for (item, mut image_node) in &mut query {
+        set_button_visual(&mut image_node, item.index == state.cursor);
     }
 
     let mut text = status_query.single_mut();
@@ -180,6 +134,13 @@ pub fn pause_menu_navigation(
     mut save_writer: EventWriter<SaveRequestEvent>,
 ) {
     let Some(ref mut state) = state else { return };
+
+    // Pointer hover → set cursor
+    if let Some(idx) = action.set_cursor {
+        if idx < PAUSE_OPTIONS.len() {
+            state.cursor = idx;
+        }
+    }
 
     if action.move_down {
         if state.cursor < PAUSE_OPTIONS.len() - 1 {

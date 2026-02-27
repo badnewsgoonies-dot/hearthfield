@@ -1,4 +1,5 @@
 use super::UiFontHandle;
+use super::menu_kit::{self, MenuAssets, MenuButtonText, set_button_visual};
 use crate::save::{
     LoadCompleteEvent, LoadRequestEvent, NewGameEvent, SaveSlotInfoCache, NUM_SAVE_SLOTS,
 };
@@ -11,16 +12,6 @@ use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct MainMenuRoot;
-
-#[derive(Component)]
-pub struct MainMenuItem {
-    pub index: usize,
-}
-
-#[derive(Component)]
-pub struct MainMenuItemText {
-    pub index: usize,
-}
 
 /// Tracks main menu selection
 #[derive(Resource)]
@@ -37,22 +28,9 @@ pub enum MainMenuMode {
     LoadSlots,
 }
 
-/// Stores the play button atlas layout for button backgrounds
-#[derive(Resource)]
-#[allow(dead_code)]
-pub struct PlayButtonAtlas {
-    pub image: Handle<Image>,
-    pub layout: Handle<TextureAtlasLayout>,
-}
-
 const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Quit"];
 const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
 const MAIN_MENU_MAX_ITEMS: usize = NUM_SAVE_SLOTS + 1;
-
-// Play button atlas: 192x64px image, 2 columns x 2 rows of 96x32 button states
-// Index 0 = normal, 1 = hovered/selected, 2 = pressed, 3 = disabled
-const PLAY_BUTTON_NORMAL: usize = 0;
-const PLAY_BUTTON_SELECTED: usize = 1;
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN / DESPAWN
@@ -61,28 +39,14 @@ const PLAY_BUTTON_SELECTED: usize = 1;
 pub fn spawn_main_menu(
     mut commands: Commands,
     font_handle: Res<UiFontHandle>,
-    asset_server: Res<AssetServer>,
-    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    assets: Res<MenuAssets>,
+    theme: Res<MenuTheme>,
 ) {
     commands.insert_resource(MainMenuState {
         mode: MainMenuMode::Root,
         cursor: 0,
         status_message: String::new(),
         pending_load_slot: None,
-    });
-
-    // Load the play button sprite sheet (192x64, 2x2 grid of 96x32 buttons)
-    let button_image = asset_server.load("ui/play_button.png");
-    let button_layout = texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(96, 32),
-        2,
-        2,
-        None,
-        None,
-    ));
-    commands.insert_resource(PlayButtonAtlas {
-        image: button_image.clone(),
-        layout: button_layout.clone(),
     });
 
     let font = font_handle.0.clone();
@@ -103,15 +67,7 @@ pub fn spawn_main_menu(
         ))
         .with_children(|parent| {
             // Game title
-            parent.spawn((
-                Text::new("HEARTHFIELD"),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 52.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(1.0, 0.9, 0.5)),
-            ));
+            menu_kit::spawn_menu_title(parent, "HEARTHFIELD", &theme, &font);
 
             // Subtitle
             parent.spawn((
@@ -126,45 +82,15 @@ pub fn spawn_main_menu(
 
             // Menu options container
             parent
-                .spawn((Node {
+                .spawn(Node {
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
                     row_gap: Val::Px(8.0),
                     ..default()
-                },))
+                })
                 .with_children(|menu| {
                     for i in 0..MAIN_MENU_MAX_ITEMS {
-                        // Each menu item uses the play button sprite as background
-                        menu.spawn((
-                            MainMenuItem { index: i },
-                            Node {
-                                width: Val::Px(240.0),
-                                height: Val::Px(42.0),
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                ..default()
-                            },
-                            ImageNode {
-                                image: button_image.clone(),
-                                texture_atlas: Some(TextureAtlas {
-                                    layout: button_layout.clone(),
-                                    index: PLAY_BUTTON_NORMAL,
-                                }),
-                                ..default()
-                            },
-                        ))
-                        .with_children(|item| {
-                            item.spawn((
-                                MainMenuItemText { index: i },
-                                Text::new(""),
-                                TextFont {
-                                    font: font.clone(),
-                                    font_size: 20.0,
-                                    ..default()
-                                },
-                                TextColor(Color::WHITE),
-                            ));
-                        });
+                        menu_kit::spawn_menu_button(menu, i, "", &assets, &theme, &font);
                     }
                 });
 
@@ -181,15 +107,7 @@ pub fn spawn_main_menu(
             ));
 
             // Version text
-            parent.spawn((
-                Text::new("v0.1.0 - Early Development"),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 11.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.4, 0.45, 0.35)),
-            ));
+            menu_kit::spawn_menu_footer(parent, "v0.1.0 - Early Development", &theme, &font);
         });
 }
 
@@ -227,7 +145,6 @@ pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainM
         commands.entity(entity).despawn();
     }
     commands.remove_resource::<MainMenuState>();
-    commands.remove_resource::<PlayButtonAtlas>();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -237,9 +154,12 @@ pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainM
 pub fn update_main_menu_visuals(
     state: Option<Res<MainMenuState>>,
     cache: Option<Res<SaveSlotInfoCache>>,
-    mut item_query: Query<(&MainMenuItem, &mut ImageNode, &mut Visibility)>,
-    mut text_query: Query<(&MainMenuItemText, &mut Text, &mut TextColor)>,
-    mut status_query: Query<&mut Text, With<MainMenuStatusText>>,
+    mut item_query: Query<(&MenuItem, &mut ImageNode, &mut Visibility)>,
+    mut text_query: Query<
+        (&MenuButtonText, &mut Text, &mut TextColor),
+        Without<MainMenuStatusText>,
+    >,
+    mut status_query: Query<&mut Text, (With<MainMenuStatusText>, Without<MenuButtonText>)>,
 ) {
     let Some(state) = state else { return };
     let option_count = current_option_count(state.mode);
@@ -250,33 +170,26 @@ pub fn update_main_menu_visuals(
             continue;
         }
         *visibility = Visibility::Visible;
-
-        if let Some(ref mut atlas) = image_node.texture_atlas {
-            if item.index == state.cursor {
-                atlas.index = PLAY_BUTTON_SELECTED;
-            } else {
-                atlas.index = PLAY_BUTTON_NORMAL;
-            }
-        }
+        set_button_visual(&mut image_node, item.index == state.cursor);
     }
 
-    for (item_text, mut text, mut color) in &mut text_query {
-        if item_text.index >= option_count {
+    for (btn_text, mut text, mut color) in &mut text_query {
+        if btn_text.index >= option_count {
             text.0.clear();
             continue;
         }
 
         match state.mode {
             MainMenuMode::Root => {
-                text.0 = MAIN_MENU_OPTIONS[item_text.index].to_string();
+                text.0 = MAIN_MENU_OPTIONS[btn_text.index].to_string();
                 color.0 = Color::WHITE;
             }
             MainMenuMode::LoadSlots => {
-                if item_text.index == LOAD_MENU_BACK_INDEX {
+                if btn_text.index == LOAD_MENU_BACK_INDEX {
                     text.0 = "Back".to_string();
                     color.0 = Color::WHITE;
                 } else {
-                    let slot_info = cache.as_ref().and_then(|c| c.slots.get(item_text.index));
+                    let slot_info = cache.as_ref().and_then(|c| c.slots.get(btn_text.index));
                     let slot_exists = slot_info.map(|s| s.exists).unwrap_or(false);
                     text.0 = load_slot_label(slot_info);
                     color.0 = if slot_exists {
@@ -304,6 +217,13 @@ pub fn main_menu_navigation(
 ) {
     let Some(ref mut state) = state else { return };
     let option_count = current_option_count(state.mode);
+
+    // Pointer hover → set cursor
+    if let Some(idx) = action.set_cursor {
+        if idx < option_count {
+            state.cursor = idx;
+        }
+    }
 
     if action.move_down {
         if state.cursor + 1 < option_count {
