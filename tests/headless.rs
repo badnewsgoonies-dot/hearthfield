@@ -9,19 +9,16 @@
 
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use hearthfield::shared::*;
+use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
+use hearthfield::data::DataPlugin;
+use hearthfield::economy::blacksmith::{ToolUpgradeCompleteEvent, ToolUpgradeQueue};
 use hearthfield::economy::gold::{apply_gold_changes, EconomyStats};
-use hearthfield::economy::shipping::{
-    process_shipping_bin_on_day_end, ShippingBinPreview,
-};
-use hearthfield::economy::blacksmith::{ToolUpgradeQueue, ToolUpgradeCompleteEvent};
-use hearthfield::economy::stats::{HarvestStats, AnimalProductStats};
+use hearthfield::economy::shipping::{process_shipping_bin_on_day_end, ShippingBinPreview};
+use hearthfield::economy::stats::{AnimalProductStats, HarvestStats};
 use hearthfield::farming::crops::{advance_crop_growth, reset_soil_watered_state};
 use hearthfield::farming::events_handler::on_day_end as farming_on_day_end;
 use hearthfield::farming::{FarmEntities, TrackedDayWeather};
-use hearthfield::animals::{
-    handle_day_end_for_animals, quality_from_happiness, UnfedDays,
-};
+use hearthfield::shared::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test App Builder
@@ -92,7 +89,61 @@ fn enter_playing_state(app: &mut App) {
 
 /// Sends a DayEndEvent into the app's world.
 fn send_day_end(app: &mut App, day: u8, season: Season, year: u32) {
-    app.world_mut().send_event(DayEndEvent { day, season, year });
+    app.world_mut()
+        .send_event(DayEndEvent { day, season, year });
+}
+
+#[test]
+fn test_headless_boot_smoke_transitions_and_ticks() {
+    let mut app = build_test_app();
+    app.add_plugins(DataPlugin);
+
+    // First update enters Loading and populates registries; second applies NextState.
+    app.update();
+    app.update();
+
+    let state = app.world().resource::<State<GameState>>();
+    assert_eq!(
+        state.get(),
+        &GameState::MainMenu,
+        "Expected to reach MainMenu after loading data"
+    );
+
+    let item_count = app.world().resource::<ItemRegistry>().items.len();
+    let crop_count = app.world().resource::<CropRegistry>().crops.len();
+    let fish_count = app.world().resource::<FishRegistry>().fish.len();
+    let recipe_count = app.world().resource::<RecipeRegistry>().recipes.len();
+
+    assert!(
+        item_count > 0,
+        "Item registry should be populated during boot"
+    );
+    assert!(
+        crop_count > 0,
+        "Crop registry should be populated during boot"
+    );
+    assert!(
+        fish_count > 0,
+        "Fish registry should be populated during boot"
+    );
+    assert!(
+        recipe_count > 0,
+        "Recipe registry should be populated during boot"
+    );
+
+    enter_playing_state(&mut app);
+
+    // Smoke: run a small frame budget in Playing without panic.
+    for _ in 0..120 {
+        app.update();
+    }
+
+    let state = app.world().resource::<State<GameState>>();
+    assert_eq!(
+        state.get(),
+        &GameState::Playing,
+        "State should remain Playing after smoke ticks"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,9 +190,18 @@ fn test_crop_growth_advances_when_watered() {
     let updated = advance_crop_growth(&mut farm_state, &crop_registry, Season::Spring, false);
     let crop = farm_state.crops.get(&(5, 5)).unwrap();
 
-    assert!(updated.contains(&(5, 5)), "Position should be in updated list");
-    assert_eq!(crop.current_stage, 1, "Crop should advance to stage 1 after 1 watered day");
-    assert_eq!(crop.days_in_stage, 0, "days_in_stage should reset after stage advance");
+    assert!(
+        updated.contains(&(5, 5)),
+        "Position should be in updated list"
+    );
+    assert_eq!(
+        crop.current_stage, 1,
+        "Crop should advance to stage 1 after 1 watered day"
+    );
+    assert_eq!(
+        crop.days_in_stage, 0,
+        "days_in_stage should reset after stage advance"
+    );
     assert!(!crop.dead, "Crop should not be dead");
 }
 
@@ -230,7 +290,10 @@ fn test_rain_auto_waters_crops() {
     advance_crop_growth(&mut farm_state, &crop_registry, Season::Spring, true);
     let crop = farm_state.crops.get(&(0, 0)).unwrap();
 
-    assert_eq!(crop.current_stage, 1, "Rain should water crops and advance growth");
+    assert_eq!(
+        crop.current_stage, 1,
+        "Rain should water crops and advance growth"
+    );
     assert!(!crop.dead, "Rained-on crop should not die");
 }
 
@@ -327,7 +390,10 @@ fn test_full_crop_lifecycle() {
     }
 
     let crop = farm_state.crops.get(&(10, 10)).unwrap();
-    assert_eq!(crop.current_stage, 3, "Melon should be fully grown (stage 3) after 6 days");
+    assert_eq!(
+        crop.current_stage, 3,
+        "Melon should be fully grown (stage 3) after 6 days"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -367,10 +433,7 @@ fn test_shipping_bin_sells_on_day_end() {
     // Register the two systems we need: shipping sell + gold application
     app.add_systems(
         Update,
-        (
-            process_shipping_bin_on_day_end,
-            apply_gold_changes,
-        )
+        (process_shipping_bin_on_day_end, apply_gold_changes)
             .chain()
             .run_if(in_state(GameState::Playing)),
     );
@@ -427,7 +490,10 @@ fn test_shipping_bin_sells_on_day_end() {
 
     // Verify shipping bin is cleared
     let bin = app.world().resource::<ShippingBin>();
-    assert!(bin.items.is_empty(), "Shipping bin should be empty after day end");
+    assert!(
+        bin.items.is_empty(),
+        "Shipping bin should be empty after day end"
+    );
 
     // Verify economy stats
     let stats = app.world().resource::<EconomyStats>();
@@ -482,16 +548,19 @@ fn test_animal_happiness_increases_when_fed() {
     enter_playing_state(&mut app);
 
     // Spawn a fed chicken
-    let chicken_id = app.world_mut().spawn(Animal {
-        kind: AnimalKind::Chicken,
-        name: "Clucky".to_string(),
-        age: AnimalAge::Adult,
-        days_old: 10,
-        happiness: 100,
-        fed_today: true,
-        petted_today: false,
-        product_ready: false,
-    }).id();
+    let chicken_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Chicken,
+            name: "Clucky".to_string(),
+            age: AnimalAge::Adult,
+            days_old: 10,
+            happiness: 100,
+            fed_today: true,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
 
     send_day_end(&mut app, 1, Season::Spring, 1);
     app.update();
@@ -500,7 +569,10 @@ fn test_animal_happiness_increases_when_fed() {
 
     // Fed: +5 happiness
     assert_eq!(animal.happiness, 105, "Fed chicken should gain 5 happiness");
-    assert!(animal.product_ready, "Fed adult chicken should produce an egg");
+    assert!(
+        animal.product_ready,
+        "Fed adult chicken should produce an egg"
+    );
     assert!(!animal.fed_today, "fed_today should be reset");
 }
 
@@ -515,16 +587,19 @@ fn test_animal_happiness_decreases_when_not_fed() {
 
     enter_playing_state(&mut app);
 
-    let cow_id = app.world_mut().spawn(Animal {
-        kind: AnimalKind::Cow,
-        name: "Bessie".to_string(),
-        age: AnimalAge::Adult,
-        days_old: 20,
-        happiness: 100,
-        fed_today: false,
-        petted_today: false,
-        product_ready: false,
-    }).id();
+    let cow_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Cow,
+            name: "Bessie".to_string(),
+            age: AnimalAge::Adult,
+            days_old: 20,
+            happiness: 100,
+            fed_today: false,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
 
     send_day_end(&mut app, 1, Season::Spring, 1);
     app.update();
@@ -547,16 +622,19 @@ fn test_animal_fed_and_petted_bonus() {
 
     enter_playing_state(&mut app);
 
-    let sheep_id = app.world_mut().spawn(Animal {
-        kind: AnimalKind::Chicken, // using chicken for simpler daily production
-        name: "Woolly".to_string(),
-        age: AnimalAge::Adult,
-        days_old: 15,
-        happiness: 200,
-        fed_today: true,
-        petted_today: true,
-        product_ready: false,
-    }).id();
+    let sheep_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Chicken, // using chicken for simpler daily production
+            name: "Woolly".to_string(),
+            age: AnimalAge::Adult,
+            days_old: 15,
+            happiness: 200,
+            fed_today: true,
+            petted_today: true,
+            product_ready: false,
+        })
+        .id();
 
     send_day_end(&mut app, 1, Season::Spring, 1);
     app.update();
@@ -581,23 +659,30 @@ fn test_baby_animal_grows_to_adult() {
 
     enter_playing_state(&mut app);
 
-    let baby_id = app.world_mut().spawn(Animal {
-        kind: AnimalKind::Chicken,
-        name: "Chick".to_string(),
-        age: AnimalAge::Baby,
-        days_old: 4, // will become 5 after day end → adult
-        happiness: 150,
-        fed_today: true,
-        petted_today: false,
-        product_ready: false,
-    }).id();
+    let baby_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Chicken,
+            name: "Chick".to_string(),
+            age: AnimalAge::Baby,
+            days_old: 4, // will become 5 after day end → adult
+            happiness: 150,
+            fed_today: true,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
 
     send_day_end(&mut app, 5, Season::Spring, 1);
     app.update();
 
     let animal = app.world().entity(baby_id).get::<Animal>().unwrap();
 
-    assert_eq!(animal.age, AnimalAge::Adult, "Baby should grow to adult after 5 days");
+    assert_eq!(
+        animal.age,
+        AnimalAge::Adult,
+        "Baby should grow to adult after 5 days"
+    );
     assert_eq!(animal.days_old, 5);
 }
 
@@ -844,7 +929,10 @@ fn test_multi_day_shipping_accumulation() {
 
     let ps = app.world().resource::<PlayerState>();
     // 3 days × 2 eggs × 50g = 300g
-    assert_eq!(ps.gold, 300, "Should have 300g after 3 days of shipping 2 eggs");
+    assert_eq!(
+        ps.gold, 300,
+        "Should have 300g after 3 days of shipping 2 eggs"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -862,19 +950,22 @@ fn test_animal_starvation_blocks_production() {
 
     enter_playing_state(&mut app);
 
-    let chicken_id = app.world_mut().spawn((
-        Animal {
-            kind: AnimalKind::Chicken,
-            name: "Hungry".to_string(),
-            age: AnimalAge::Adult,
-            days_old: 10,
-            happiness: 200,
-            fed_today: false,
-            petted_today: false,
-            product_ready: false,
-        },
-        UnfedDays { count: 2 },
-    )).id();
+    let chicken_id = app
+        .world_mut()
+        .spawn((
+            Animal {
+                kind: AnimalKind::Chicken,
+                name: "Hungry".to_string(),
+                age: AnimalAge::Adult,
+                days_old: 10,
+                happiness: 200,
+                fed_today: false,
+                petted_today: false,
+                product_ready: false,
+            },
+            UnfedDays { count: 2 },
+        ))
+        .id();
 
     // Day with unfed_days going from 2→3: should trigger starvation block
     send_day_end(&mut app, 1, Season::Spring, 1);
