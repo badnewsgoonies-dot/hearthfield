@@ -633,17 +633,17 @@ pub fn spawn_daily_weeds(
             }
 
             // Spawn the weed entity
+            let wx = x as f32 * TILE_SIZE;
+            let wy = y as f32 * TILE_SIZE;
             commands.spawn((
                 Sprite {
                     color: Color::srgb(0.25, 0.55, 0.2),
                     custom_size: Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5)),
                     ..default()
                 },
-                Transform::from_translation(Vec3::new(
-                    x as f32 * TILE_SIZE,
-                    y as f32 * TILE_SIZE,
-                    Z_ENTITY_BASE,
-                )),
+                Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+                LogicalPosition(Vec2::new(wx, wy)),
+                YSorted,
                 Weed {
                     grid_x: x,
                     grid_y: y,

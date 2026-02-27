@@ -178,6 +178,7 @@ pub fn place_chest(
         StorageChest::new(36, target_x, target_y),
         chest_sprite,
         Transform::from_translation(Vec3::new(world_x, world_y, Z_ENTITY_BASE)),
+        LogicalPosition(Vec2::new(world_x, world_y)),
         YSorted,
     ));
 

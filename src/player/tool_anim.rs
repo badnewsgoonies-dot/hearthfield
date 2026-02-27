@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{ActionSpriteData, PlayerSpriteData, DistanceAnimator};
+use super::{ActionSpriteData, PlayerSpriteData, facing_offset, world_to_grid};
 
 // Action atlas base indices (2 cols × 12 rows, indexed left-to-right, top-to-bottom)
 // Each tool gets 4 frames (2 frames × 2 rows per tool direction).
@@ -38,7 +38,6 @@ pub fn animate_tool_use(
         Entity,
         &mut PlayerMovement,
         &mut Sprite,
-        &mut DistanceAnimator,
         &LogicalPosition,
     ), With<Player>>,
     mut impact_events: EventWriter<ToolImpactEvent>,
@@ -46,7 +45,7 @@ pub fn animate_tool_use(
     let Some(action_data) = action_sprites else { return };
     if !action_data.loaded { return; }
 
-    for (entity, mut movement, mut sprite, _dist_anim, logical_pos) in query.iter_mut() {
+    for (entity, mut movement, mut sprite, logical_pos) in query.iter_mut() {
         match movement.anim_state {
             PlayerAnimState::ToolUse { tool, frame, total_frames } => {
                 if frame == 0 {
@@ -58,14 +57,14 @@ pub fn animate_tool_use(
                     }
                 }
 
-                // Emit impact event on frame 2
+                // Emit impact event on frame 2 — target the faced tile, not the player's tile
                 if frame == 2 {
-                    let grid_x = (logical_pos.0.x / TILE_SIZE).floor() as i32;
-                    let grid_y = (logical_pos.0.y / TILE_SIZE).floor() as i32;
+                    let (px, py) = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+                    let (dx, dy) = facing_offset(&movement.facing);
                     impact_events.send(ToolImpactEvent {
                         tool,
-                        grid_x,
-                        grid_y,
+                        grid_x: px + dx,
+                        grid_y: py + dy,
                         player: entity,
                     });
                 }

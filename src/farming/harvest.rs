@@ -216,7 +216,7 @@ fn update_crop_entity_color(
     } else {
         // Entity doesn't exist yet — spawn it.
         // We need a CropTileEntity and CropTile; both are cloneable.
-        let translation = super::grid_to_world(pos.0, pos.1).with_z(2.0);
+        let translation = super::grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
         let entity = commands.spawn((
             Sprite {
                 color,

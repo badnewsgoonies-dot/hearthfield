@@ -59,14 +59,11 @@ pub fn player_movement(
         movement.is_moving = false;
     }
 
-    // Update animation state
-    movement.anim_state = if movement.is_moving {
-        PlayerAnimState::Walk
-    } else {
-        match movement.anim_state {
-            PlayerAnimState::ToolUse { .. } => movement.anim_state,
-            _ => PlayerAnimState::Idle,
-        }
+    // Update animation state — preserve ToolUse regardless of movement
+    movement.anim_state = match movement.anim_state {
+        PlayerAnimState::ToolUse { .. } => movement.anim_state,
+        _ if movement.is_moving => PlayerAnimState::Walk,
+        _ => PlayerAnimState::Idle,
     };
 }
 

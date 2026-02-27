@@ -254,8 +254,9 @@ pub fn setup_feed_trough(mut commands: Commands) {
             custom_size: Some(Vec2::new(24.0, 10.0)),
             ..default()
         },
-        Transform::from_xyz(-160.0, -128.0, 0.5),
-        GlobalTransform::default(),
+        Transform::from_xyz(-160.0, -128.0, Z_ENTITY_BASE),
+        LogicalPosition(Vec2::new(-160.0, -128.0)),
+        YSorted,
         Visibility::default(),
     ));
 }

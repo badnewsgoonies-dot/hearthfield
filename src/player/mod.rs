@@ -103,14 +103,6 @@ impl Default for DistanceAnimator {
     }
 }
 
-/// Per-entity walk animation state (kept for NPC compat, no longer used for player).
-#[derive(Component)]
-pub struct AnimationTimer {
-    pub timer: Timer,
-    pub frame_count: usize,
-    pub current_frame: usize,
-}
-
 /// Cooldown timer to prevent tool spam.
 #[derive(Resource)]
 pub struct ToolCooldown {

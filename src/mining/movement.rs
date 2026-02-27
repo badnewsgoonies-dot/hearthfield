@@ -34,8 +34,8 @@ pub fn mine_player_movement(
     rocks: Query<&MineGridPos, With<MineRock>>,
     in_mine: Res<InMine>,
     elevator_ui: Res<ElevatorUiOpen>,
-    // Move the player entity's transform to match
-    mut player_query: Query<&mut Transform, With<Player>>,
+    // Move the player entity's position to match
+    mut player_query: Query<&mut LogicalPosition, With<Player>>,
 ) {
     if !in_mine.0 || !active_floor.spawned || elevator_ui.0 {
         return;
@@ -87,10 +87,10 @@ pub fn mine_player_movement(
     active_floor.player_grid_y = new_y;
     cooldown.timer.reset();
 
-    // Sync player entity transform
-    for mut transform in player_query.iter_mut() {
-        transform.translation.x = new_x as f32 * TILE_SIZE;
-        transform.translation.y = new_y as f32 * TILE_SIZE;
+    // Sync player entity position (sync system writes Transform in PostUpdate)
+    for mut logical_pos in player_query.iter_mut() {
+        logical_pos.0.x = new_x as f32 * TILE_SIZE;
+        logical_pos.0.y = new_y as f32 * TILE_SIZE;
     }
 }
 
