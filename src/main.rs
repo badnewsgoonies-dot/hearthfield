@@ -15,6 +15,7 @@ mod save;
 mod data;
 
 use bevy::prelude::*;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::window::{PresentMode, WindowResolution};
 
 use shared::*;
@@ -138,6 +139,7 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera2d,
         Msaa::Off,
+        Tonemapping::None,
         Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)),
     ));
 }
