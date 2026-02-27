@@ -104,27 +104,42 @@
         loadingText.textContent = 'Downloading game...';
         loadingBar.style.width = '10%';
 
-        import init from './hearthfield.js';
+        try {
+            const module = await import('./hearthfield.js');
 
-        loadingText.textContent = 'Starting engine...';
-        loadingBar.style.width = '50%';
+            loadingText.textContent = 'Compiling WASM...';
+            loadingBar.style.width = '40%';
 
-        init().then(() => {
+            const timeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('WASM initialization timed out (60s). Your device may not support this game.')), 60000)
+            );
+
+            loadingText.textContent = 'Starting engine...';
+            loadingBar.style.width = '50%';
+
+            await Promise.race([module.default(), timeout]);
+
             loadingBar.style.width = '100%';
             loadingText.textContent = 'Ready!';
             setTimeout(() => loadingScreen.classList.add('hidden'), 300);
-        }).catch(err => {
+        } catch (err) {
             loadingText.textContent = 'Error: ' + err.message;
             loadingBar.style.background = '#c44';
-            console.error(err);
-        });
+            loadingBar.style.width = '100%';
+            console.error('Hearthfield load failed:', err);
 
-        // Prevent iOS Safari gestures that break the game
+            const hint = document.createElement('p');
+            hint.style.cssText = 'margin-top:1em;font-size:0.8em;opacity:0.6;max-width:80%;text-align:center;';
+            hint.textContent = 'Try refreshing, or open on a desktop browser. Mobile devices may have memory limitations with large WASM games.';
+            loadingScreen.appendChild(hint);
+        }
+
+        // Prevent iOS Safari gestures
         document.addEventListener('gesturestart', e => e.preventDefault());
         document.addEventListener('gesturechange', e => e.preventDefault());
         document.addEventListener('gestureend', e => e.preventDefault());
 
-        // iOS audio unlock — WebAudio needs a user gesture to start
+        // iOS audio unlock
         let audioUnlocked = false;
         function unlockAudio() {
             if (audioUnlocked) return;
