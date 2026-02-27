@@ -24,4 +24,4 @@ inherits = "release"
 opt-level = "z"
 lto = true
 codegen-units = 1
-strip = true
+# Note: strip=true removes wasm-bindgen custom sections; do NOT enable for WASM
