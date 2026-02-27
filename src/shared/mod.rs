@@ -1304,3 +1304,107 @@ pub struct EvaluationTriggerEvent;
 pub struct RelationshipStages {
     pub stages: HashMap<NpcId, RelationshipStage>,
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// PHASE 3 ADDITIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Upgrade tiers for farm buildings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum BuildingTier {
+    #[default]
+    None,
+    Basic,
+    Big,
+    Deluxe,
+}
+
+#[allow(dead_code)]
+impl BuildingTier {
+    pub fn next(&self) -> Option<Self> {
+        match self {
+            BuildingTier::None => Some(BuildingTier::Basic),
+            BuildingTier::Basic => Some(BuildingTier::Big),
+            BuildingTier::Big => Some(BuildingTier::Deluxe),
+            BuildingTier::Deluxe => None,
+        }
+    }
+    pub fn capacity(&self) -> usize {
+        match self {
+            BuildingTier::None => 0,
+            BuildingTier::Basic => 4,
+            BuildingTier::Big => 8,
+            BuildingTier::Deluxe => 12,
+        }
+    }
+}
+
+/// Achievement tracking.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Achievements {
+    pub unlocked: Vec<String>,
+    pub progress: HashMap<String, u32>,
+}
+
+/// Tracks what the player has shipped at least once (for collection tracking).
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ShippingLog {
+    pub shipped_items: HashMap<ItemId, u32>,
+}
+
+/// Tutorial/hint system state.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TutorialState {
+    pub hints_shown: Vec<String>,
+    pub tutorial_complete: bool,
+    pub current_objective: Option<String>,
+}
+
+/// Contextual hint event — shows a non-intrusive tip when the player does something new.
+#[derive(Event, Debug, Clone)]
+pub struct HintEvent {
+    pub hint_id: String,
+    pub message: String,
+}
+
+/// Achievement unlocked event.
+#[derive(Event, Debug, Clone)]
+pub struct AchievementUnlockedEvent {
+    pub achievement_id: String,
+    pub name: String,
+    pub description: String,
+}
+
+/// Building upgrade request.
+#[derive(Event, Debug, Clone)]
+pub struct BuildingUpgradeEvent {
+    pub building: BuildingKind,
+    pub from_tier: BuildingTier,
+    pub to_tier: BuildingTier,
+    pub cost_gold: u32,
+    pub cost_materials: Vec<(ItemId, u8)>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum BuildingKind {
+    House,
+    Coop,
+    Barn,
+    Silo,
+}
+
+/// Tracks total play statistics for achievements and end-of-year summary.
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PlayStats {
+    pub crops_harvested: u64,
+    pub fish_caught: u64,
+    pub items_shipped: u64,
+    pub gifts_given: u64,
+    pub mine_floors_cleared: u64,
+    pub animals_petted: u64,
+    pub recipes_cooked: u64,
+    pub total_gold_earned: u64,
+    pub total_steps_taken: u64,
+    pub days_played: u64,
+    pub festivals_attended: u64,
+}

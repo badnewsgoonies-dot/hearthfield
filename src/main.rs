@@ -60,6 +60,11 @@ fn main() {
         .init_resource::<ActiveBuffs>()
         .init_resource::<EvaluationScore>()
         .init_resource::<RelationshipStages>()
+        // Phase 3 resources
+        .init_resource::<Achievements>()
+        .init_resource::<ShippingLog>()
+        .init_resource::<TutorialState>()
+        .init_resource::<PlayStats>()
         // Events
         .add_event::<DayEndEvent>()
         .add_event::<SeasonChangeEvent>()
@@ -88,6 +93,10 @@ fn main() {
         .add_event::<PlaceSprinklerEvent>()
         .add_event::<EatFoodEvent>()
         .add_event::<EvaluationTriggerEvent>()
+        // Phase 3 events
+        .add_event::<HintEvent>()
+        .add_event::<AchievementUnlockedEvent>()
+        .add_event::<BuildingUpgradeEvent>()
         // Domain plugins
         .add_plugins(calendar::CalendarPlugin)
         .add_plugins(player::PlayerPlugin)
