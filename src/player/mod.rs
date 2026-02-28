@@ -4,6 +4,8 @@ mod camera;
 mod interaction;
 mod spawn;
 pub mod tool_anim;
+pub mod interact_dispatch;
+pub mod item_use;
 
 use bevy::prelude::*;
 use crate::shared::*;
@@ -22,6 +24,18 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             OnEnter(GameState::Playing),
             spawn::spawn_player,
+        );
+
+        // -- Interaction dispatchers: run BEFORE all legacy F-key systems --
+        app.add_systems(
+            Update,
+            interact_dispatch::dispatch_world_interaction
+                .before(interaction::item_pickup_check)
+                .run_if(in_state(GameState::Playing)),
+        );
+        app.add_systems(
+            Update,
+            item_use::dispatch_item_use.run_if(in_state(GameState::Playing)),
         );
 
         // -- Systems that run every frame while Playing --

@@ -267,6 +267,37 @@ pub fn consume_ingredients(inventory: &mut Inventory, recipe: &Recipe) {
     }
 }
 
+/// Opens crafting when C is pressed (unless holding a chest on the farm,
+/// since the chest-placement system in world/chests.rs also reads open_crafting).
+pub fn trigger_crafting_key(
+    player_input: Res<PlayerInput>,
+    player_state: Res<PlayerState>,
+    inventory: Res<Inventory>,
+    input_blocks: Res<InputBlocks>,
+    mut events: EventWriter<OpenCraftingEvent>,
+) {
+    if input_blocks.is_blocked() || !player_input.open_crafting {
+        return;
+    }
+
+    // Don't open crafting if holding a chest on the farm (chest placement wins).
+    if player_state.current_map == MapId::Farm {
+        let holding_chest = inventory
+            .slots
+            .get(inventory.selected_slot)
+            .and_then(|s| s.as_ref())
+            .map(|slot| slot.item_id == "chest")
+            .unwrap_or(false);
+        if holding_chest {
+            return;
+        }
+    }
+
+    events.send(OpenCraftingEvent {
+        cooking_mode: false,
+    });
+}
+
 /// Refund all ingredients back to inventory after a failed craft.
 pub fn refund_ingredients(inventory: &mut Inventory, recipe: &Recipe, registry: &ItemRegistry) {
     for (item_id, qty) in &recipe.ingredients {

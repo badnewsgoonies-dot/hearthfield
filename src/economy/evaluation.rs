@@ -67,6 +67,7 @@ pub fn handle_evaluation(
     quest_log: Res<QuestLog>,
     unlocked_recipes: Res<UnlockedRecipes>,
     player_state: Res<PlayerState>,
+    play_stats: Res<PlayStats>,
 ) {
     for _ev in trigger_events.read() {
         let previous_candles = eval_score.candles_lit;
@@ -141,7 +142,7 @@ pub fn handle_evaluation(
         // We check total_items_shipped as a rough proxy; if zero, we skip (safe default).
         // TODO: Add fish_caught counter to HarvestStats or FishingStats when fishing domain expands.
         // For now, we default to 0 fish caught so the point is not awarded until data is available.
-        let fish_caught: u32 = 0; // placeholder — real data not yet tracked
+        let fish_caught: u32 = play_stats.fish_caught as u32;
         if fish_caught >= 100 {
             categories.insert("skills_fish_100".to_string(), 1);
             total += 1;

@@ -124,13 +124,18 @@ fn pause_time(mut calendar: ResMut<Calendar>) {
 /// 2 AM rollover.  Sends a DayEndEvent which process_day_end will pick up to
 /// advance the calendar, and all other domains (farming, economy, etc.) will
 /// process their end-of-day logic.
-fn trigger_sleep(
+pub fn trigger_sleep(
     player_input: Res<PlayerInput>,
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
     mut day_end_events: EventWriter<DayEndEvent>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 

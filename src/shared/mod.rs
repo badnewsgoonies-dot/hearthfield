@@ -27,6 +27,7 @@ pub enum GameState {
     Inventory,
     #[allow(dead_code)]
     Cutscene,
+    BuildingUpgrade,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1543,6 +1544,32 @@ pub enum TransitionStyle {
 pub struct ScreenTransitionEvent {
     pub to: GameState,
     pub style: TransitionStyle,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTERACTION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Set to true by the world interaction dispatcher when it claims the F-key
+/// press for an Interactable entity. Existing F-key systems should check this
+/// and skip if true. Reset to false each frame by the input system.
+#[derive(Resource, Default, Debug)]
+pub struct InteractionClaimed(pub bool);
+
+/// Identifies the kind of interaction an entity supports.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InteractionKind {
+    ShippingBin,
+    CraftingBench,
+    Machine,
+    BuildingUpgrade,
+}
+
+/// Marker component for entities the player can interact with via F key.
+#[derive(Component, Debug, Clone)]
+pub struct Interactable {
+    pub kind: InteractionKind,
+    pub label: String,
 }
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).

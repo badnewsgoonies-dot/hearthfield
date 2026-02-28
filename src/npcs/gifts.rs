@@ -114,6 +114,7 @@ pub fn handle_gift_input(
     mut gift_writer: EventWriter<GiftGivenEvent>,
     mut item_removed_writer: EventWriter<ItemRemovedEvent>,
     current_state: Res<State<GameState>>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     // Only in Playing state
     if *current_state.get() != GameState::Playing {
@@ -125,6 +126,10 @@ pub fn handle_gift_input(
     }
 
     if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 

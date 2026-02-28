@@ -65,6 +65,18 @@ pub fn ensure_object_atlases_loaded(
 #[derive(Component, Debug)]
 pub struct WorldObject;
 
+/// Marker for the shipping bin interactable entity.
+#[derive(Component, Debug)]
+pub struct ShippingBinMarker;
+
+/// Marker for the carpenter board interactable entity.
+#[derive(Component, Debug)]
+pub struct CarpenterBoardMarker;
+
+/// Marker for the crafting bench interactable entity.
+#[derive(Component, Debug)]
+pub struct CraftingBenchMarker;
+
 /// Tracks the kind, health, and grid position of a world object.
 #[derive(Component, Debug, Clone)]
 pub struct WorldObjectData {
@@ -816,4 +828,95 @@ pub fn regrow_trees_on_season_change(
             spawned += 1;
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTERACTABLE OBJECT SPAWNING
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Spawns the shipping bin on the Farm map at grid (14, 6).
+/// Only spawns if the player is on the Farm map and the bin hasn't been spawned yet.
+pub fn spawn_shipping_bin(
+    mut commands: Commands,
+    player_state: Res<PlayerState>,
+    query: Query<Entity, With<ShippingBinMarker>>,
+) {
+    if player_state.current_map != MapId::Farm || !query.is_empty() {
+        return;
+    }
+    let (wx, wy) = crate::player::grid_to_world(14, 6);
+    commands.spawn((
+        ShippingBinMarker,
+        WorldObject,
+        Interactable {
+            kind: InteractionKind::ShippingBin,
+            label: "Ship Items".into(),
+        },
+        Sprite {
+            color: Color::srgb(0.55, 0.35, 0.15),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        YSorted,
+        Visibility::default(),
+    ));
+}
+
+/// Spawns the crafting bench on the Farm map at grid (12, 6).
+/// Only spawns if the player is on the Farm map and the bench hasn't been spawned yet.
+pub fn spawn_crafting_bench(
+    mut commands: Commands,
+    player_state: Res<PlayerState>,
+    query: Query<Entity, With<CraftingBenchMarker>>,
+) {
+    if player_state.current_map != MapId::Farm || !query.is_empty() {
+        return;
+    }
+    let (wx, wy) = crate::player::grid_to_world(12, 6);
+    commands.spawn((
+        CraftingBenchMarker,
+        WorldObject,
+        Interactable {
+            kind: InteractionKind::CraftingBench,
+            label: "Crafting Bench".into(),
+        },
+        Sprite {
+            color: Color::srgb(0.6, 0.5, 0.3),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        YSorted,
+        Visibility::default(),
+    ));
+}
+
+/// Spawns the carpenter board on the Town map at grid (10, 8).
+/// Only spawns if the player is on the Town map and the board hasn't been spawned yet.
+pub fn spawn_carpenter_board(
+    mut commands: Commands,
+    player_state: Res<PlayerState>,
+    query: Query<Entity, With<CarpenterBoardMarker>>,
+) {
+    if player_state.current_map != MapId::Town || !query.is_empty() {
+        return;
+    }
+    let (wx, wy) = crate::player::grid_to_world(10, 8);
+    commands.spawn((
+        CarpenterBoardMarker,
+        WorldObject,
+        Interactable {
+            kind: InteractionKind::BuildingUpgrade,
+            label: "Building Upgrades".into(),
+        },
+        Sprite {
+            color: Color::srgb(0.65, 0.55, 0.35),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        YSorted,
+        Visibility::default(),
+    ));
 }
