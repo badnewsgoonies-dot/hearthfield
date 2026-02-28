@@ -8,7 +8,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use super::{
-    FarmEntities, FarmingAtlases, SoilTileEntity, CropTileEntity,
+    FarmEntities, FarmingAtlases, SoilTileEntity, CropTileEntity, FarmObjectEntity,
     grid_to_world, crop_stage_color,
     soil::soil_color,
 };
@@ -311,6 +311,126 @@ pub fn sync_crop_sprites(
 
     for pos in stale {
         if let Some(entity) = farm_entities.crop_entities.remove(&pos) {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Farm object (sprinkler / scarecrow) sprite sync
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Map a FarmObject to an atlas index in furniture.png (9 cols × 6 rows).
+fn farm_object_atlas_index(obj: &FarmObject) -> Option<usize> {
+    match obj {
+        FarmObject::Sprinkler => Some(36), // row 4: machinery/device
+        FarmObject::Scarecrow => Some(45), // row 5: tall object
+        _ => None,
+    }
+}
+
+/// Fallback placeholder colour for farm objects when no atlas is available.
+fn farm_object_color(obj: &FarmObject) -> Color {
+    match obj {
+        FarmObject::Sprinkler => Color::srgb(0.5, 0.5, 0.7),
+        FarmObject::Scarecrow => Color::srgb(0.6, 0.4, 0.2),
+        _ => Color::srgb(0.5, 0.5, 0.5),
+    }
+}
+
+/// Synchronise visual entities for sprinklers and scarecrows in `FarmState.objects`.
+///
+/// Follows the same three-phase pattern as `sync_soil_sprites` / `sync_crop_sprites`:
+///   1. Update existing entities (no-op for now — these objects don't change appearance).
+///   2. Spawn missing entities.
+///   3. Despawn stale entities.
+pub fn sync_farm_objects_sprites(
+    mut commands: Commands,
+    mut farm_entities: ResMut<FarmEntities>,
+    farm_state: Res<FarmState>,
+    furniture: Res<crate::world::objects::FurnitureAtlases>,
+    obj_query: Query<(&FarmObjectEntity, &mut Sprite)>,
+) {
+    // ── Update existing ──────────────────────────────────────────────────────
+    // Sprinklers and scarecrows don't change appearance once placed, so we just
+    // verify the entity's position is still present in the farm state.
+    // (Nothing to change on the Sprite itself.)
+    let _ = &obj_query;
+
+    // ── Spawn missing ────────────────────────────────────────────────────────
+    let missing: Vec<((i32, i32), FarmObject)> = farm_state
+        .objects
+        .iter()
+        .filter(|(&pos, obj)| {
+            matches!(obj, FarmObject::Sprinkler | FarmObject::Scarecrow)
+                && !farm_entities.object_entities.contains_key(&pos)
+        })
+        .map(|(&pos, obj)| (pos, obj.clone()))
+        .collect();
+
+    for (pos, obj) in missing {
+        let translation = grid_to_world(pos.0, pos.1);
+
+        let entity = if furniture.loaded {
+            if let Some(idx) = farm_object_atlas_index(&obj) {
+                let mut sprite = Sprite::from_atlas_image(
+                    furniture.image.clone(),
+                    TextureAtlas {
+                        layout: furniture.layout.clone(),
+                        index: idx,
+                    },
+                );
+                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+                commands
+                    .spawn((
+                        sprite,
+                        Transform::from_translation(translation),
+                        FarmObjectEntity {
+                            grid_x: pos.0,
+                            grid_y: pos.1,
+                        },
+                    ))
+                    .id()
+            } else {
+                continue;
+            }
+        } else {
+            // Colour fallback — no atlas available yet.
+            commands
+                .spawn((
+                    Sprite {
+                        color: farm_object_color(&obj),
+                        custom_size: Some(Vec2::splat(TILE_SIZE)),
+                        ..default()
+                    },
+                    Transform::from_translation(translation),
+                    FarmObjectEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
+                    },
+                ))
+                .id()
+        };
+
+        farm_entities.object_entities.insert(pos, entity);
+    }
+
+    // ── Despawn stale ────────────────────────────────────────────────────────
+    let stale: Vec<(i32, i32)> = farm_entities
+        .object_entities
+        .keys()
+        .filter(|pos| {
+            !farm_state
+                .objects
+                .get(pos)
+                .map(|o| matches!(o, FarmObject::Sprinkler | FarmObject::Scarecrow))
+                .unwrap_or(false)
+        })
+        .cloned()
+        .collect();
+
+    for pos in stale {
+        if let Some(entity) = farm_entities.object_entities.remove(&pos) {
             commands.entity(entity).despawn();
         }
     }

@@ -523,6 +523,31 @@ pub fn seasonal_forageables(season: Season) -> Vec<(&'static str, Color)> {
     }
 }
 
+/// Maps a forageable item_id to an atlas index in grass_biome.png.
+fn forageable_atlas_index(item_id: &str) -> Option<usize> {
+    Some(match item_id {
+        "wild_horseradish" => 3,
+        "daffodil" => 4,
+        "leek" => 5,
+        "dandelion" => 7,
+        "spring_onion" => 8,
+        "grape" => 11,
+        "spice_berry" => 12,
+        "sweet_pea" => 13,
+        "red_mushroom" => 14,
+        "common_mushroom" => 9,
+        "wild_plum" => 15,
+        "hazelnut" => 16,
+        "blackberry" => 17,
+        "chanterelle" => 10,
+        "winter_root" => 16,
+        "crystal_fruit" => 13,
+        "snow_yam" => 3,
+        "crocus" => 7,
+        _ => return None,
+    })
+}
+
 /// Spawn forageables for the current day on the active map.
 pub fn spawn_forageables(
     commands: &mut Commands,
@@ -530,6 +555,7 @@ pub fn spawn_forageables(
     season: Season,
     day: u8,
     world_map: &WorldMap,
+    object_atlases: &ObjectAtlases,
 ) {
     let forageables = seasonal_forageables(season);
     if forageables.is_empty() {
@@ -554,12 +580,34 @@ pub fn spawn_forageables(
         let idx = ((day as usize).wrapping_mul(7).wrapping_add(i.wrapping_mul(13))) % forageables.len();
         let (item_id, color) = &forageables[idx];
 
-        commands.spawn((
+        let sprite = if let Some(atlas_idx) = forageable_atlas_index(item_id) {
+            if object_atlases.loaded {
+                let mut s = Sprite::from_atlas_image(
+                    object_atlases.grass_biome_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.grass_biome_layout.clone(),
+                        index: atlas_idx,
+                    },
+                );
+                s.custom_size = Some(Vec2::new(TILE_SIZE * 0.7, TILE_SIZE * 0.7));
+                s
+            } else {
+                Sprite {
+                    color: *color,
+                    custom_size: Some(Vec2::new(TILE_SIZE * 0.7, TILE_SIZE * 0.7)),
+                    ..default()
+                }
+            }
+        } else {
             Sprite {
                 color: *color,
                 custom_size: Some(Vec2::new(TILE_SIZE * 0.7, TILE_SIZE * 0.7)),
                 ..default()
-            },
+            }
+        };
+
+        commands.spawn((
+            sprite,
             Transform::from_translation(Vec3::new(
                 gx as f32 * TILE_SIZE,
                 gy as f32 * TILE_SIZE,
@@ -624,6 +672,7 @@ pub fn spawn_daily_weeds(
     world_map: Res<super::WorldMap>,
     farm_state: Res<FarmState>,
     existing_weeds: Query<&Weed>,
+    object_atlases: Res<ObjectAtlases>,
 ) {
     for event in day_events.read() {
         // Only spawn weeds on the farm map
@@ -682,12 +731,25 @@ pub fn spawn_daily_weeds(
             // Spawn the weed entity
             let wx = x as f32 * TILE_SIZE;
             let wy = y as f32 * TILE_SIZE;
-            commands.spawn((
+            let sprite = if object_atlases.loaded {
+                let mut s = Sprite::from_atlas_image(
+                    object_atlases.grass_biome_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.grass_biome_layout.clone(),
+                        index: 2, // weed/grass frame from row 0
+                    },
+                );
+                s.custom_size = Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5));
+                s
+            } else {
                 Sprite {
                     color: Color::srgb(0.25, 0.55, 0.2),
                     custom_size: Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5)),
                     ..default()
-                },
+                }
+            };
+            commands.spawn((
+                sprite,
                 Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
                 LogicalPosition(Vec2::new(wx, wy)),
                 YSorted,
@@ -875,11 +937,29 @@ pub fn spawn_shipping_bin(
     mut commands: Commands,
     player_state: Res<PlayerState>,
     query: Query<Entity, With<ShippingBinMarker>>,
+    furniture: Res<FurnitureAtlases>,
 ) {
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
     let (wx, wy) = crate::player::grid_to_world(14, 6);
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 18,
+            },
+        );
+        s.custom_size = Some(Vec2::splat(TILE_SIZE));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.55, 0.35, 0.15),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        }
+    };
     commands.spawn((
         ShippingBinMarker,
         WorldObject,
@@ -887,11 +967,7 @@ pub fn spawn_shipping_bin(
             kind: InteractionKind::ShippingBin,
             label: "Ship Items".into(),
         },
-        Sprite {
-            color: Color::srgb(0.55, 0.35, 0.15),
-            custom_size: Some(Vec2::splat(TILE_SIZE)),
-            ..default()
-        },
+        sprite,
         Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
@@ -904,11 +980,29 @@ pub fn spawn_crafting_bench(
     mut commands: Commands,
     player_state: Res<PlayerState>,
     query: Query<Entity, With<CraftingBenchMarker>>,
+    furniture: Res<FurnitureAtlases>,
 ) {
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
     let (wx, wy) = crate::player::grid_to_world(12, 6);
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 27,
+            },
+        );
+        s.custom_size = Some(Vec2::splat(TILE_SIZE));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.6, 0.5, 0.3),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        }
+    };
     commands.spawn((
         CraftingBenchMarker,
         WorldObject,
@@ -916,11 +1010,7 @@ pub fn spawn_crafting_bench(
             kind: InteractionKind::CraftingBench,
             label: "Crafting Bench".into(),
         },
-        Sprite {
-            color: Color::srgb(0.6, 0.5, 0.3),
-            custom_size: Some(Vec2::splat(TILE_SIZE)),
-            ..default()
-        },
+        sprite,
         Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
@@ -933,11 +1023,29 @@ pub fn spawn_carpenter_board(
     mut commands: Commands,
     player_state: Res<PlayerState>,
     query: Query<Entity, With<CarpenterBoardMarker>>,
+    furniture: Res<FurnitureAtlases>,
 ) {
     if player_state.current_map != MapId::Town || !query.is_empty() {
         return;
     }
     let (wx, wy) = crate::player::grid_to_world(10, 8);
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 20,
+            },
+        );
+        s.custom_size = Some(Vec2::splat(TILE_SIZE));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.65, 0.55, 0.35),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        }
+    };
     commands.spawn((
         CarpenterBoardMarker,
         WorldObject,
@@ -945,11 +1053,7 @@ pub fn spawn_carpenter_board(
             kind: InteractionKind::BuildingUpgrade,
             label: "Building Upgrades".into(),
         },
-        Sprite {
-            color: Color::srgb(0.65, 0.55, 0.35),
-            custom_size: Some(Vec2::splat(TILE_SIZE)),
-            ..default()
-        },
+        sprite,
         Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),

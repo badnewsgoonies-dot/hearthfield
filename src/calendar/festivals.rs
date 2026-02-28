@@ -130,6 +130,7 @@ pub fn start_egg_hunt(
     player_state: Res<PlayerState>,
     mut commands: Commands,
     mut toast_writer: EventWriter<ToastEvent>,
+    asset_server: Res<AssetServer>,
 ) {
     // Guard: must be Egg Festival, not yet started, player on Farm, pressing E.
     if festival.active != Some(FestivalKind::EggFestival) {
@@ -151,18 +152,18 @@ pub fn start_egg_hunt(
     festival.timer = Some(Timer::from_seconds(30.0, TimerMode::Once));
 
     // Spawn 20 egg entities at random positions within the farm area.
+    let egg_image: Handle<Image> = asset_server.load("sprites/egg_item.png");
     let mut rng = rand::thread_rng();
     for _ in 0..20 {
         let x = rng.gen_range(-8..8) as f32 * TILE_SIZE;
         let y = rng.gen_range(-8..8) as f32 * TILE_SIZE;
 
+        let mut egg_sprite = Sprite::from_image(egg_image.clone());
+        egg_sprite.custom_size = Some(Vec2::new(12.0, 12.0));
+
         commands.spawn((
             FestivalEgg,
-            Sprite {
-                color: Color::srgb(1.0, 0.95, 0.2), // bright yellow
-                custom_size: Some(Vec2::new(6.0, 6.0)),
-                ..default()
-            },
+            egg_sprite,
             Transform::from_translation(Vec3::new(x, y, Z_EFFECTS)),
         ));
     }

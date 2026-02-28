@@ -37,6 +37,13 @@ pub struct CropTileEntity {
     pub grid_y: i32,
 }
 
+/// Marker component for farm object sprite entities (sprinklers, scarecrows).
+#[derive(Component, Debug, Clone)]
+pub struct FarmObjectEntity {
+    pub grid_x: i32,
+    pub grid_y: i32,
+}
+
 /// Tracks which soil/crop entities exist keyed by grid position.
 /// This lets systems find ECS entities for a given tile quickly.
 #[derive(Resource, Default, Debug)]
@@ -45,6 +52,8 @@ pub struct FarmEntities {
     pub soil_entities: std::collections::HashMap<(i32, i32), Entity>,
     /// (x, y) -> crop entity
     pub crop_entities: std::collections::HashMap<(i32, i32), Entity>,
+    /// (x, y) -> farm object entity (sprinklers, scarecrows)
+    pub object_entities: std::collections::HashMap<(i32, i32), Entity>,
 }
 
 /// Holds the texture atlas handles for farming sprites (soil tiles and plant stages).
@@ -182,6 +191,7 @@ impl Plugin for FarmingPlugin {
                 (
                     render::sync_soil_sprites,
                     render::sync_crop_sprites,
+                    render::sync_farm_objects_sprites,
                 )
                     .run_if(in_state(GameState::Playing)),
             );

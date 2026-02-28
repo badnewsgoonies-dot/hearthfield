@@ -520,7 +520,7 @@ fn load_map(
 
     // Spawn forageables for today
     let forage_points = map_def.forage_points.clone();
-    spawn_forageables(commands, &forage_points, season, day, world_map);
+    spawn_forageables(commands, &forage_points, season, day, world_map, object_atlases);
 
     // Store the map definition
     world_map.map_def = Some(map_def);
@@ -687,6 +687,7 @@ fn handle_day_end_forageables(
     mut day_events: EventReader<DayEndEvent>,
     forageable_query: Query<Entity, With<objects::Forageable>>,
     world_map: Res<WorldMap>,
+    object_atlases: Res<objects::ObjectAtlases>,
 ) {
     for event in day_events.read() {
         // Despawn existing forageables
@@ -703,6 +704,7 @@ fn handle_day_end_forageables(
                 event.season,
                 event.day,
                 &world_map,
+                &object_atlases,
             );
         }
     }
