@@ -59,6 +59,7 @@ pub fn dispatch_world_interaction(
         InteractionKind::ShippingBin => {
             let slot_idx = inventory.selected_slot;
             let Some(ref slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
+                interaction_claimed.0 = true;
                 toast_events.send(ToastEvent {
                     message: "No item selected to ship.".into(),
                     duration_secs: 2.0,

@@ -22,8 +22,8 @@ pub fn toggle_debug_overlay(
 }
 
 /// Spawn the debug overlay UI (runs once at startup).
-pub fn spawn_debug_overlay(mut commands: Commands, font_handle: Option<Res<UiFontHandle>>) {
-    let font = font_handle.map(|h| h.0.clone()).unwrap_or_default();
+pub fn spawn_debug_overlay(mut commands: Commands, font_handle: Res<UiFontHandle>) {
+    let font = font_handle.0.clone();
     commands.spawn((
         DebugOverlayRoot,
         Node {

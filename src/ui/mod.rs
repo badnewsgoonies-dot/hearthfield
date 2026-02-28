@@ -240,7 +240,7 @@ impl Plugin for UiPlugin {
 
         // ─── DEBUG OVERLAY (always available, toggled by F3) ───
         app.init_resource::<DebugOverlayState>();
-        app.add_systems(Startup, debug_overlay::spawn_debug_overlay);
+        app.add_systems(Startup, debug_overlay::spawn_debug_overlay.after(load_ui_font));
         app.add_systems(Update, (
             debug_overlay::toggle_debug_overlay,
             debug_overlay::update_debug_overlay,
