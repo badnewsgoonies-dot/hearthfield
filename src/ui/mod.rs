@@ -79,6 +79,14 @@ impl Plugin for UiPlugin {
             cutscene_runner::start_pending_cutscene,
         );
 
+        // After all Update systems have processed DayEndEvents, check if
+        // trigger_sleep or tick_time queued a cutscene and activate it.
+        app.add_systems(
+            PostUpdate,
+            cutscene_runner::activate_pending_cutscene
+                .run_if(in_state(GameState::Playing)),
+        );
+
         // ─── DIALOGUE LISTENER — runs in Playing AND Cutscene to catch events ───
         app.add_systems(
             Update,
