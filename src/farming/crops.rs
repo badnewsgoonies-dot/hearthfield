@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::{
     FarmEntities, CropTileEntity, PlantSeedEvent,
-    grid_to_world, crop_stage_color, crop_can_grow_in_season,
+    crop_stage_color, crop_can_grow_in_season,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,8 +67,9 @@ pub fn detect_seed_use(
         return;
     };
 
-    let player_gx = (logical_pos.0.x / TILE_SIZE).round() as i32;
-    let player_gy = (logical_pos.0.y / TILE_SIZE).round() as i32;
+    let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+    let player_gx = g.x;
+    let player_gy = g.y;
 
     // Target tile is the tile the player is facing.
     let (offset_x, offset_y) = match movement.facing {
@@ -207,7 +208,7 @@ pub fn spawn_crop_entity(
 ) {
     let total_stages = crop_def.growth_days.len() as u8;
     let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
-    let translation = grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
+    let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
 
     let entity = commands.spawn((
         Sprite {

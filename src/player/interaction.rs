@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{grid_to_world, CollisionMap};
+use super::CollisionMap;
 
 // Default energy restored by an edible item when no registry entry is found.
 const DEFAULT_FOOD_ENERGY: f32 = 20.0;
@@ -159,9 +159,9 @@ pub fn handle_map_transition(
     player_state.current_map = ev.to_map;
 
     // Reposition player to the target tile.
-    let (wx, wy) = grid_to_world(ev.to_x, ev.to_y);
-    logical_pos.0.x = wx;
-    logical_pos.0.y = wy;
+    let wc = grid_to_world_center(ev.to_x, ev.to_y);
+    logical_pos.0.x = wc.x;
+    logical_pos.0.y = wc.y;
     grid_pos.x = ev.to_x;
     grid_pos.y = ev.to_y;
 
@@ -297,9 +297,9 @@ pub fn handle_day_end(
         player_state.current_map = MapId::PlayerHouse;
 
         if let Ok((mut logical_pos, mut grid_pos)) = query.get_single_mut() {
-            let (wx, wy) = grid_to_world(bed_gx, bed_gy);
-            logical_pos.0.x = wx;
-            logical_pos.0.y = wy;
+            let wc = grid_to_world_center(bed_gx, bed_gy);
+            logical_pos.0.x = wc.x;
+            logical_pos.0.y = wc.y;
             grid_pos.x = bed_gx;
             grid_pos.y = bed_gy;
         }

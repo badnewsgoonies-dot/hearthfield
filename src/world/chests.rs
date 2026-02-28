@@ -119,8 +119,9 @@ pub fn place_chest(
         return;
     };
 
-    let px = (transform.translation.x / TILE_SIZE).floor() as i32;
-    let py = (transform.translation.y / TILE_SIZE).floor() as i32;
+    let pg = world_to_grid(transform.translation.x, transform.translation.y);
+    let px = pg.x;
+    let py = pg.y;
     let (dx, dy) = facing_offset(&movement.facing);
     let target_x = px + dx;
     let target_y = py + dy;
