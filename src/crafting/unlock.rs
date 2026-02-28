@@ -32,8 +32,8 @@ pub struct FriendshipRecipeUnlock {
 pub const FRIENDSHIP_RECIPE_UNLOCKS: &[FriendshipRecipeUnlock] = &[
     FriendshipRecipeUnlock { npc_id: "elena",  hearts: 3, recipe_id: "salad" },
     FriendshipRecipeUnlock { npc_id: "elena",  hearts: 7, recipe_id: "fruit_salad" },
-    FriendshipRecipeUnlock { npc_id: "marcus", hearts: 2, recipe_id: "pancakes" },
-    FriendshipRecipeUnlock { npc_id: "marcus", hearts: 6, recipe_id: "pizza" },
+    FriendshipRecipeUnlock { npc_id: "marco", hearts: 2, recipe_id: "pancakes" },
+    FriendshipRecipeUnlock { npc_id: "marco", hearts: 6, recipe_id: "pizza" },
     FriendshipRecipeUnlock { npc_id: "vera",   hearts: 4, recipe_id: "pumpkin_soup" },
     FriendshipRecipeUnlock { npc_id: "vera",   hearts: 8, recipe_id: "cheese_omelette" },
     FriendshipRecipeUnlock { npc_id: "tom",    hearts: 3, recipe_id: "fish_stew" },

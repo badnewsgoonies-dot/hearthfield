@@ -17,7 +17,6 @@ mod schedule;
 pub mod schedules;
 mod spawning;
 
-use definitions::build_npc_registry;
 use dialogue::{handle_npc_interaction, ActiveNpcInteraction};
 use gifts::{handle_gifts, handle_gift_input};
 use map_events::{handle_map_transition, handle_day_end, GiftDecayTracker};
@@ -67,8 +66,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<WeddingTimer>()
             .init_resource::<FarmVisitTracker>();
 
-        // Populate NPC registry on startup (before Loading completes)
-        app.add_systems(Startup, setup_npc_registry);
+        // NPC data is populated by DataPlugin during OnEnter(Loading).
 
         // Apply enhanced (seasonally-varied) schedules and spawn NPCs when entering Playing.
         // apply_enhanced_schedules must run before spawn_initial_npcs so spawning uses the
@@ -78,6 +76,15 @@ impl Plugin for NpcPlugin {
             (apply_enhanced_schedules, spawn_initial_npcs).chain(),
         );
 
+        // NPC interaction runs before the world interaction dispatcher so NPCs
+        // take priority over world objects when both are within range.
+        app.add_systems(
+            Update,
+            handle_npc_interaction
+                .run_if(in_state(GameState::Playing))
+                .before(crate::player::interact_dispatch::dispatch_world_interaction),
+        );
+
         // Playing-state systems: core NPC behaviour
         app.add_systems(
             Update,
@@ -85,7 +92,6 @@ impl Plugin for NpcPlugin {
                 update_npc_schedules,
                 move_npcs_toward_targets,
                 animate_npc_sprites,
-                handle_npc_interaction,
                 handle_gift_input,
                 handle_gifts,
                 handle_map_transition,
@@ -117,11 +123,4 @@ impl Plugin for NpcPlugin {
                 .run_if(in_state(GameState::Playing)),
         );
     }
-}
-
-/// System: populate the NpcRegistry from our built-in definitions.
-fn setup_npc_registry(mut npc_registry: ResMut<NpcRegistry>) {
-    let registry = build_npc_registry();
-    npc_registry.npcs = registry.npcs;
-    npc_registry.schedules = registry.schedules;
 }
