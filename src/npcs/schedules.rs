@@ -17,17 +17,17 @@ use crate::shared::*;
 /// Returns None for unknown NPC ids.
 pub fn enhanced_schedule(npc_id: &str, season: Season) -> Option<NpcSchedule> {
     match npc_id {
-        "mayor_thomas"   => Some(mayor_thomas_schedule(season)),
-        "elena"          => Some(elena_schedule(season)),
-        "marcus"         => Some(marcus_schedule(season)),
-        "dr_iris"        => Some(dr_iris_schedule(season)),
-        "old_pete"       => Some(old_pete_schedule(season)),
-        "chef_rosa"      => Some(chef_rosa_schedule(season)),
-        "miner_gil"      => Some(miner_gil_schedule(season)),
-        "librarian_faye" => Some(librarian_faye_schedule(season)),
-        "farmer_dale"    => Some(farmer_dale_schedule(season)),
-        "child_lily"     => Some(child_lily_schedule(season)),
-        _                => None,
+        "mayor_rex"  => Some(mayor_rex_schedule(season)),
+        "margaret"   => Some(margaret_schedule(season)),
+        "elena"      => Some(elena_schedule(season)),
+        "doc"        => Some(doc_schedule(season)),
+        "old_tom"    => Some(old_tom_schedule(season)),
+        "marco"      => Some(marco_schedule(season)),
+        "sam"        => Some(sam_schedule(season)),
+        "mira"       => Some(mira_schedule(season)),
+        "nora"       => Some(nora_schedule(season)),
+        "lily"       => Some(lily_schedule(season)),
+        _            => None,
     }
 }
 
@@ -169,10 +169,10 @@ pub fn check_farm_visits(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// MAYOR THOMAS — civic leader, ceremonial, formal
+// MAYOR REX — civic leader, ceremonial, formal
 // ═══════════════════════════════════════════════════════════════════════
 
-fn mayor_thomas_schedule(season: Season) -> NpcSchedule {
+fn mayor_rex_schedule(season: Season) -> NpcSchedule {
     // Afternoon destination varies by season
     let (afternoon_map, afternoon_x, afternoon_y) = match season {
         Season::Summer => (MapId::Beach, 20, 22),
@@ -214,10 +214,10 @@ fn mayor_thomas_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ELENA — general store owner, flower-lover, marriage candidate
+// MARGARET — baker, general store, warm personality
 // ═══════════════════════════════════════════════════════════════════════
 
-fn elena_schedule(season: Season) -> NpcSchedule {
+fn margaret_schedule(season: Season) -> NpcSchedule {
     // After-store evening destination varies by season
     let (eve_map, eve_x, eve_y) = match season {
         Season::Summer => (MapId::Beach, 15, 20),   // beach walk after closing
@@ -260,10 +260,10 @@ fn elena_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// MARCUS — blacksmith, stoic, mine-adjacent, marriage candidate
+// ELENA — blacksmith, stoic, mine-adjacent, marriage candidate
 // ═══════════════════════════════════════════════════════════════════════
 
-fn marcus_schedule(season: Season) -> NpcSchedule {
+fn elena_schedule(season: Season) -> NpcSchedule {
     // His weekend outing changes: beach in summer, forest in fall, stays local otherwise
     let (weekend_afternoon_map, wknd_x, wknd_y) = match season {
         Season::Summer => (MapId::Beach, 14, 22),
@@ -314,10 +314,10 @@ fn marcus_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DR. IRIS — physician, herbalist, forest-researcher
+// DOC — physician, herbalist, forest-researcher
 // ═══════════════════════════════════════════════════════════════════════
 
-fn dr_iris_schedule(season: Season) -> NpcSchedule {
+fn doc_schedule(season: Season) -> NpcSchedule {
     // Herb-gathering destination changes by season
     let (herb_map, herb_x, herb_y) = match season {
         Season::Summer => (MapId::Beach, 15, 20),   // seaweed & coastal plants
@@ -359,10 +359,10 @@ fn dr_iris_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// OLD PETE — veteran fisherman, dawn riser, loves bad weather
+// OLD TOM — veteran fisherman, dawn riser, loves bad weather
 // ═══════════════════════════════════════════════════════════════════════
 
-fn old_pete_schedule(season: Season) -> NpcSchedule {
+fn old_tom_schedule(season: Season) -> NpcSchedule {
     // Fishing spots slightly vary by season
     let (primary_x, primary_y, secondary_x, secondary_y) = match season {
         Season::Summer => (14, 26, 20, 26), // prefers far end of beach
@@ -409,10 +409,10 @@ fn old_pete_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// CHEF ROSA — restaurateur, ingredient-hunter, farm visitor
+// MARCO — chef, restaurateur, ingredient-hunter, farm visitor
 // ═══════════════════════════════════════════════════════════════════════
 
-fn chef_rosa_schedule(season: Season) -> NpcSchedule {
+fn marco_schedule(season: Season) -> NpcSchedule {
     // She sources seasonal ingredients differently each season
     let (ingredient_hunt_map, ing_x, ing_y) = match season {
         Season::Summer => (MapId::Beach, 15, 18),   // sea vegetables, clams
@@ -455,10 +455,10 @@ fn chef_rosa_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// MINER GIL — mine guardian, dutiful, stays near mine
+// SAM — musician, adventurous spirit, near mine area
 // ═══════════════════════════════════════════════════════════════════════
 
-fn miner_gil_schedule(season: Season) -> NpcSchedule {
+fn sam_schedule(season: Season) -> NpcSchedule {
     // In summer he takes a beach break on weekends; in fall he visits the forest
     let (weekend_pm_map, wknd_pm_x, wknd_pm_y) = match season {
         Season::Summer => (MapId::Beach, 15, 20),
@@ -499,10 +499,10 @@ fn miner_gil_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// LIBRARIAN FAYE — scholar, ruin-hunter, loves rainy days
+// MIRA — merchant, scholar, ruin-hunter, loves rainy days
 // ═══════════════════════════════════════════════════════════════════════
 
-fn librarian_faye_schedule(season: Season) -> NpcSchedule {
+fn mira_schedule(season: Season) -> NpcSchedule {
     // Her outdoor research location depends on season
     let (research_map, res_x, res_y) = match season {
         Season::Summer => (MapId::Beach, 15, 20),   // coastal ruins interest
@@ -544,10 +544,10 @@ fn librarian_faye_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// FARMER DALE — veteran farmer, south plots, market-goer
+// NORA — veteran farmer, south plots, market-goer
 // ═══════════════════════════════════════════════════════════════════════
 
-fn farmer_dale_schedule(season: Season) -> NpcSchedule {
+fn nora_schedule(season: Season) -> NpcSchedule {
     // Dale adjusts his farm work for season: light work in winter, heavy in spring/summer
     let farm_start_time = match season {
         Season::Winter => 8.0,  // light winter chores
@@ -596,10 +596,10 @@ fn farmer_dale_schedule(season: Season) -> NpcSchedule {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// CHILD LILY — energetic, everywhere, bedtime enforced
+// LILY — florist, energetic, everywhere, bedtime enforced
 // ═══════════════════════════════════════════════════════════════════════
 
-fn child_lily_schedule(season: Season) -> NpcSchedule {
+fn lily_schedule(season: Season) -> NpcSchedule {
     // Lily's adventures change dramatically by season
     let (mid_morning_map, mid_x, mid_y) = match season {
         Season::Summer => (MapId::Beach, 16, 16),   // beach! beach! beach!
@@ -659,8 +659,8 @@ mod tests {
     #[test]
     fn test_enhanced_schedule_returns_some_for_all_known_npcs() {
         let npc_ids = [
-            "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
-            "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+            "mayor_rex", "margaret", "elena", "doc", "old_tom",
+            "marco", "sam", "mira", "nora", "lily",
         ];
         for season in [Season::Spring, Season::Summer, Season::Fall, Season::Winter] {
             for id in &npc_ids {
@@ -682,8 +682,8 @@ mod tests {
     #[test]
     fn test_schedules_have_non_empty_weekday_and_weekend() {
         let npc_ids = [
-            "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
-            "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+            "mayor_rex", "margaret", "elena", "doc", "old_tom",
+            "marco", "sam", "mira", "nora", "lily",
         ];
         for id in &npc_ids {
             let sched = enhanced_schedule(id, Season::Spring).unwrap();
@@ -695,8 +695,8 @@ mod tests {
     #[test]
     fn test_schedules_have_rain_and_festival_overrides() {
         let npc_ids = [
-            "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
-            "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+            "mayor_rex", "margaret", "elena", "doc", "old_tom",
+            "marco", "sam", "mira", "nora", "lily",
         ];
         for id in &npc_ids {
             let sched = enhanced_schedule(id, Season::Summer).unwrap();
@@ -706,21 +706,21 @@ mod tests {
     }
 
     #[test]
-    fn test_old_pete_beach_in_summer() {
-        let sched = enhanced_schedule("old_pete", Season::Summer).unwrap();
+    fn test_old_tom_beach_in_summer() {
+        let sched = enhanced_schedule("old_tom", Season::Summer).unwrap();
         let has_beach = sched.weekday.iter().any(|e| e.map == MapId::Beach);
-        assert!(has_beach, "Old Pete should visit Beach in summer weekdays");
+        assert!(has_beach, "Old Tom should visit Beach in summer weekdays");
     }
 
     #[test]
-    fn test_elena_seasonal_variation() {
-        let _spring = enhanced_schedule("elena", Season::Spring).unwrap();
-        let summer = enhanced_schedule("elena", Season::Summer).unwrap();
-        // In summer, Elena's evening destination should differ from spring
+    fn test_margaret_seasonal_variation() {
+        let _spring = enhanced_schedule("margaret", Season::Spring).unwrap();
+        let summer = enhanced_schedule("margaret", Season::Summer).unwrap();
+        // In summer, Margaret's evening destination should differ from spring
         // Both end at home, but the seasonal evening entry (index 4) should differ
         let summer_eve = &summer.weekday[4];
         // Summer should be at Beach
         assert_eq!(summer_eve.map, MapId::Beach,
-            "Elena should visit Beach in summer evenings");
+            "Margaret should visit Beach in summer evenings");
     }
 }

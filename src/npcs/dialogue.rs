@@ -15,7 +15,7 @@ pub struct ActiveNpcInteraction {
     pub npc_id: Option<String>,
 }
 
-/// System: detect player pressing Space near an NPC and start dialogue.
+/// System: detect player pressing F (interact) near an NPC and start dialogue.
 pub fn handle_npc_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -28,6 +28,7 @@ pub fn handle_npc_interaction(
     mut active_interaction: ResMut<ActiveNpcInteraction>,
     current_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut interaction_claimed: ResMut<InteractionClaimed>,
 ) {
     // Only check interaction during Playing state
     if *current_state.get() != GameState::Playing {
@@ -38,7 +39,11 @@ pub fn handle_npc_interaction(
         return;
     }
 
-    if !player_input.tool_use {
+    if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 
@@ -75,6 +80,7 @@ pub fn handle_npc_interaction(
         .map(|def| def.portrait_index);
 
     active_interaction.npc_id = Some(npc_id.clone());
+    interaction_claimed.0 = true;
 
     dialogue_writer.send(DialogueStartEvent {
         npc_id: npc_id.clone(),
@@ -179,98 +185,77 @@ pub fn build_dialogue_lines(
 
 /// Return a weather-aware comment for the given NPC, or None if no comment is warranted.
 fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
-    match weather {
-        Weather::Sunny => None, // sunny is default — no special comment
-        Weather::Rainy => {
-            let line = match npc_id {
-                "mayor_thomas"   => "Wet day today! Good for the crops, I suppose.",
-                "elena"          => "The rain has kept the shop quiet. I like the sound it makes on the roof, honestly.",
-                "marcus"         => "Rainy days mean fewer customers. I use the time to sharpen the tools.",
-                "dr_iris"        => "Stay dry out there! Wet feet lead to all sorts of trouble.",
-                "old_pete"       => "Rain's good fishing weather, if you know where to look.",
-                "chef_rosa"      => "Rain days are soup days. Come by the inn later — I'm making chowder.",
-                "miner_gil"      => "Rain keeps me out of the mountains. Might as well dig inside.",
-                "librarian_faye" => "A perfect reading day. I almost don't mind the clouds.",
-                "farmer_dale"    => "Good steady rain. The fields will thank us for it.",
-                "child_lily"     => "It's RAINING! I jumped in three puddles already!",
-                _                => "Wet day, isn't it? Hope you brought an umbrella.",
-            };
-            Some(line.to_string())
-        }
-        Weather::Stormy => {
-            let line = match npc_id {
-                "mayor_thomas"   => "Nasty storm rolling in. Please be careful out there.",
-                "elena"          => "This storm has me worried. Please don't stay out too long.",
-                "marcus"         => "A storm like this could bring down a tree. Watch your head.",
-                "dr_iris"        => "In this weather? You're lucky I'm open! Please be safe.",
-                "old_pete"       => "I'd stay off the water today. That storm's no joke.",
-                "chef_rosa"      => "I closed the shutters and lit the fire. Come in if you need to warm up!",
-                "miner_gil"      => "Even I stay out of the mine when lightning's this close.",
-                "librarian_faye" => "The storm knocked my shutters open! Three books got damp. I'm devastated.",
-                "farmer_dale"    => "Storm like this can flatten crops. Hope you've got some shelter built.",
-                "child_lily"     => "Mama said I can't go outside but the thunder is SO COOL.",
-                _                => "Quite a storm today, eh? You should head inside soon.",
-            };
-            Some(line.to_string())
-        }
-        Weather::Snowy => {
-            let line = match npc_id {
-                "mayor_thomas"   => "First snow of winter! Hearthfield looks like a painting today.",
-                "elena"          => "Snow! The shop window looks magical with the flakes drifting by.",
-                "marcus"         => "Snow days are slow days. I use the time to plan spring inventory.",
-                "dr_iris"        => "Bundle up! Frostbite is no laughing matter.",
-                "old_pete"       => "Ice fishing season. The pond freezes just right by the old bridge.",
-                "chef_rosa"      => "Snow means hot cocoa weather. I'll put a pot on.",
-                "miner_gil"      => "Doesn't matter what the sky does — it's always the same temperature down in the mine.",
-                "librarian_faye" => "Snow makes everything so quiet. I could read all day.",
-                "farmer_dale"    => "Snow cover actually protects the winter crops. Nature's blanket.",
-                "child_lily"     => "SNOW!! Can you build a snowman with me later?!",
-                _                => "Snow's here! Stay warm out there.",
-            };
-            Some(line.to_string())
-        }
-    }
+    let comment = match (npc_id, weather) {
+        (_, Weather::Sunny) => return None, // sunny is default — no special comment
+
+        ("margaret", Weather::Rainy)  => "Rainy days mean more baking. Everyone wants fresh bread when it's grey outside.",
+        ("margaret", Weather::Stormy) => "Storm's rattling the windows! I hope my oven stays lit...",
+        ("margaret", Weather::Snowy)  => "Snow reminds me of powdered sugar. Makes me want to bake something sweet.",
+
+        ("marco", Weather::Rainy)     => "Rain days are soup days. Come by later — I'm making chowder.",
+        ("marco", Weather::Stormy)    => "This storm! The herbs in my garden are getting flattened...",
+        ("marco", Weather::Snowy)     => "Snow means hearty stews. My kitchen hasn't cooled down in days.",
+
+        ("lily", Weather::Rainy)      => "The flowers LOVE the rain! Look how bright they are!",
+        ("lily", Weather::Stormy)     => "Oh no, my poor petunias! I hope they survive the storm...",
+        ("lily", Weather::Snowy)      => "Even in the snow, there's beauty. Have you seen the frost on the windows?",
+
+        ("old_tom", Weather::Rainy)   => "Rain's good fishing weather, if you know where to look.",
+        ("old_tom", Weather::Stormy)  => "No sense going out in this. Even the fish are hiding.",
+        ("old_tom", Weather::Snowy)   => "Ice fishing season! Grab a stool and join me by the lake.",
+
+        ("elena", Weather::Rainy)     => "Rainy days mean fewer customers. I use the time to sharpen the tools.",
+        ("elena", Weather::Stormy)    => "Storm makes the forge feel cozy, honestly. Nothing like hot metal in cold air.",
+        ("elena", Weather::Snowy)     => "Snow piles up on the anvil overnight. Adds character.",
+
+        ("mira", Weather::Rainy)      => "Rain keeps the travelers off the roads. Bad for business.",
+        ("mira", Weather::Stormy)     => "I've weathered worse storms than this in the Eastern deserts.",
+        ("mira", Weather::Snowy)      => "Snow! It never snowed where I grew up. I still find it magical.",
+
+        ("doc", Weather::Rainy)       => "Damp weather aggravates joint pain. Tell the older folks to stay warm.",
+        ("doc", Weather::Stormy)      => "Storm season means injuries. Please be careful out there.",
+        ("doc", Weather::Snowy)       => "Bundle up! I've already seen two cases of frostbite this week.",
+
+        ("mayor_rex", Weather::Rainy) => "Rain is good for the crops! The town treasury thanks the clouds.",
+        ("mayor_rex", Weather::Stormy)=> "I've filed a formal complaint with the weather. No response yet.",
+        ("mayor_rex", Weather::Snowy) => "I do love how the town square looks under fresh snow.",
+
+        ("sam", Weather::Rainy)       => "Rain on the roof... best percussion section in nature.",
+        ("sam", Weather::Stormy)      => "This storm has ENERGY. I'm writing it into my next song.",
+        ("sam", Weather::Snowy)       => "Snow muffles everything. The silence is almost musical.",
+
+        ("nora", Weather::Rainy)      => "Good rain. The soil needed this.",
+        ("nora", Weather::Stormy)     => "I've got tarps over the seedlings. Should hold.",
+        ("nora", Weather::Snowy)      => "Winter rest is important. For the land and for us.",
+
+        _ => return None,
+    };
+    Some(comment.to_string())
 }
 
 /// Return a season-aware comment for the given NPC, or None if no comment is warranted.
-/// To keep dialogue from feeling repetitive, only return something for specific season/NPC combos.
+/// Selective — only where it fits the character, to avoid repetitive dialogue.
 fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
-    let line = match (npc_id, season) {
-        // Spring
-        ("elena", Season::Spring) =>
-            Some("Spring is my favourite time of year. Everything is blooming!"),
-        ("farmer_dale", Season::Spring) =>
-            Some("Time to get those seeds in the ground. Spring waits for no one."),
-        ("child_lily", Season::Spring) =>
-            Some("Spring means the Egg Festival is coming! I can't wait!!"),
+    let comment = match (npc_id, season) {
+        ("lily", Season::Spring)       => "Spring! SPRING! Everything is blooming and I can't stop smiling!",
+        ("nora", Season::Spring)       => "Planting season. Best time of the year if you ask me.",
+        ("margaret", Season::Spring)   => "Egg Festival's coming up! I've been working on a new recipe.",
 
-        // Summer
-        ("old_pete", Season::Summer) =>
-            Some("Summer's when the big fish come in. Best season for the rod, no question."),
-        ("chef_rosa", Season::Summer) =>
-            Some("Summer produce is just bursting with flavour. Best season to cook."),
-        ("mayor_thomas", Season::Summer) =>
-            Some("The town square festival is my proudest achievement as mayor. Still months of planning every year."),
+        ("old_tom", Season::Summer)    => "Summer means the big fish come in. You should try the deep water.",
+        ("marco", Season::Summer)      => "Summer produce is incredible. Tomatoes, peppers, corn...",
+        ("mayor_rex", Season::Summer)  => "The town festival is the highlight of my year. Planning is underway!",
 
-        // Fall
-        ("farmer_dale", Season::Fall) =>
-            Some("Harvest time. This is what all that spring planting was for."),
-        ("librarian_faye", Season::Fall) =>
-            Some("Fall colours through the library window. It's almost too pretty to concentrate."),
-        ("miner_gil", Season::Fall) =>
-            Some("The mine runs deep this time of year. Some say the rocks change with the seasons. I believe it."),
+        ("nora", Season::Fall)         => "Harvest time. Nothing beats the smell of fresh-cut wheat.",
+        ("mira", Season::Fall)         => "The fall colours draw me back here every year. Worth the trip.",
+        ("sam", Season::Fall)          => "Something about autumn puts me in a songwriting mood.",
 
-        // Winter
-        ("old_pete", Season::Winter) =>
-            Some("Not much fishing to be had above ground. Good time to mend the nets."),
-        ("dr_iris", Season::Winter) =>
-            Some("Winter's my busiest season — everyone catches cold. Please dress warmly!"),
-        ("marcus", Season::Winter) =>
-            Some("Winter gives me time to practice new techniques at the forge. Quiet work is good work."),
+        ("old_tom", Season::Winter)    => "Mending nets by the fire. A fisherman's winter ritual.",
+        ("doc", Season::Winter)        => "Cold season keeps me busy. Stock up on hot soup and rest.",
+        ("elena", Season::Winter)      => "Quiet at the forge. Good time to practice new techniques.",
 
-        _ => None,
+        _ => return None,
     };
-    line.map(|s| s.to_string())
+    Some(comment.to_string())
 }
 
 /// Get the dialogue tier key for a given heart count.
@@ -327,33 +312,33 @@ pub fn build_gift_response_lines(
 
 fn loved_response(npc_id: &str, item_name: &str) -> String {
     match npc_id {
-        "mayor_thomas" => format!("A {}! I've been looking for one like this for ages. You have exceptional taste, my friend.", item_name),
-        "elena" => format!("A {}! Oh, it's absolutely beautiful! I'll press this one into my favorite book.", item_name),
-        "marcus" => format!("Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.", item_name),
-        "dr_iris" => format!("Wonderful! Do you know how rare {} is around here? This will be very useful. Thank you.", item_name),
-        "old_pete" => format!("Ha! A {}! You really know the way to an old fisherman's heart. Much appreciated.", item_name),
-        "chef_rosa" => format!("A {}! Oh, the things I could make with this... you'll have to come try the dish when it's ready!", item_name),
-        "miner_gil" => format!("Now we're talking! A quality {}. You've got a good eye. I appreciate this more than you know.", item_name),
-        "librarian_faye" => format!("A {}! Do you realize how significant this is? I've only read about these! Thank you, truly.", item_name),
-        "farmer_dale" => format!("A {}! I haven't seen one this fine in years. You're growing into quite the farmer — and gift-giver!", item_name),
-        "child_lily" => format!("A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!", item_name),
-        _ => format!("Oh, a {}! This is exactly what I wanted! Thank you so much!", item_name),
+        "margaret"  => format!("A {}! Oh, this will be perfect for my next batch of pastries! Thank you, dear.", item_name),
+        "marco"     => format!("A {}! Incredible quality. I can already taste the dish I'll make with this.", item_name),
+        "lily"      => format!("A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!", item_name),
+        "old_tom"   => format!("A {}? Well now... haven't seen one this fine in years. Much obliged.", item_name),
+        "elena"     => format!("Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.", item_name),
+        "mira"      => format!("A {}! You have a trader's eye for value. I'm genuinely impressed.", item_name),
+        "doc"       => format!("A {}? This is... very thoughtful. I appreciate it more than you know.", item_name),
+        "mayor_rex" => format!("A {} for the mayor! I shall display this proudly in my office!", item_name),
+        "sam"       => format!("A {}! No way! This is exactly what I needed for inspiration. You're the best.", item_name),
+        "nora"      => format!("A {}. Good quality. You've got a farmer's instinct for the real stuff.", item_name),
+        _           => format!("A {}! Thank you, I love it!", item_name),
     }
 }
 
 fn hated_response(npc_id: &str, item_name: &str) -> String {
     match npc_id {
-        "mayor_thomas" => format!("A {}...? I... well. I'm sure you meant well.", item_name),
-        "elena" => format!("Oh. A {}. I... don't really know what to do with this. But thank you for the thought.", item_name),
-        "marcus" => format!("A {}? What am I supposed to do with that? ...I'll figure something out.", item_name),
-        "dr_iris" => format!("A {}. Hmm. I can't say this is medically advisable, but... thank you?", item_name),
-        "old_pete" => format!("A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.", item_name),
-        "chef_rosa" => format!("A {}... in MY kitchen? I... no. No, I don't think so. But thank you.", item_name),
-        "miner_gil" => format!("A {}? I've seen things like this at the bottom of the mine. Left 'em there too.", item_name),
-        "librarian_faye" => format!("A {}? I... must admit I'm not sure this belongs in a library. Or anywhere near me.", item_name),
-        "farmer_dale" => format!("A {}? Hmph. Been farming sixty years and never needed one of those.", item_name),
-        "child_lily" => format!("Ewwww! A {}! I don't want THAT! ...but okay fine I'll keep it.", item_name),
-        _ => format!("Oh. A {}. I... see. Thank you for thinking of me.", item_name),
+        "margaret"  => format!("A {}? Oh dear... I don't think that belongs in any recipe I know.", item_name),
+        "marco"     => format!("A {}? I wouldn't serve this to my worst critic. No offense.", item_name),
+        "lily"      => format!("A {}?! Ew ew ew! Get it away from my flowers!", item_name),
+        "old_tom"   => format!("A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.", item_name),
+        "elena"     => format!("A {}? I'd sooner melt this down than look at it. Not my style.", item_name),
+        "mira"      => format!("A {}? In my travels, I've learned to politely decline. Consider this me declining.", item_name),
+        "doc"       => format!("A {}? I don't think this is... medically advisable. For anyone.", item_name),
+        "mayor_rex" => format!("A {}? I appreciate the gesture, but the mayor's office has standards.", item_name),
+        "sam"       => format!("A {}? I've seen things like this at the bottom of a dumpster. Left 'em there too.", item_name),
+        "nora"      => format!("A {}? Hmph. Been farming all my life and never needed one of those.", item_name),
+        _           => format!("A {}? ...Thanks, I guess.", item_name),
     }
 }
 
@@ -399,7 +384,7 @@ mod tests {
     #[test]
     fn test_gift_response_hated_contains_item_name() {
         let lines = build_gift_response_lines(
-            "marcus", "Marcus", GiftPreference::Hated, "Trash", false,
+            "marco", "Marco", GiftPreference::Hated, "Trash", false,
         );
         assert!(!lines.is_empty());
         assert!(lines[0].contains("Trash"),
@@ -420,17 +405,17 @@ mod tests {
     fn test_npc_weather_comment_sunny_returns_none() {
         // Sunny weather should produce no special comment
         assert!(npc_weather_comment("elena", Weather::Sunny).is_none());
-        assert!(npc_weather_comment("marcus", Weather::Sunny).is_none());
+        assert!(npc_weather_comment("marco", Weather::Sunny).is_none());
     }
 
     #[test]
     fn test_npc_weather_comment_rainy_returns_some() {
         assert!(npc_weather_comment("elena", Weather::Rainy).is_some());
-        assert!(npc_weather_comment("old_pete", Weather::Rainy).is_some());
+        assert!(npc_weather_comment("old_tom", Weather::Rainy).is_some());
     }
 
     #[test]
     fn test_npc_weather_comment_snowy_returns_some() {
-        assert!(npc_weather_comment("child_lily", Weather::Snowy).is_some());
+        assert!(npc_weather_comment("lily", Weather::Snowy).is_some());
     }
 }
