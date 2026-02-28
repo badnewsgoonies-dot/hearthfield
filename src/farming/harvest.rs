@@ -148,7 +148,7 @@ fn try_harvest_at(
 
         // Update the sprite to show regrow stage.
         if let Some(crop_ref) = farm_state.crops.get(&pos) {
-            update_crop_entity_color(pos, crop_ref, &def, farm_entities, commands);
+            refresh_crop_entity(pos, crop_ref, &def, farm_entities, commands);
         }
     } else {
         // Remove the crop entirely.
@@ -200,7 +200,7 @@ fn roll_harvest_quality() -> ItemQuality {
 /// reference). Instead, updates the CropTile component data on the entity —
 /// the `sync_crop_sprites` system in render.rs reads CropTile each frame and
 /// handles atlas index + color updates automatically.
-fn update_crop_entity_color(
+fn refresh_crop_entity(
     pos: (i32, i32),
     crop: &CropTile,
     _def: &CropDef,

@@ -60,32 +60,7 @@ pub struct BuildingUpgradeMenuState {
     status_timer: f32,
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// COST TABLE (mirrors economy/buildings.rs which is private)
-// ═══════════════════════════════════════════════════════════════════════
-
-fn local_upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'static str, u8)>) {
-    match (building, to_tier) {
-        // House
-        (BuildingKind::House, BuildingTier::Big) => (10_000, vec![("wood", 200)]),
-        (BuildingKind::House, BuildingTier::Deluxe) => (50_000, vec![("hardwood", 100)]),
-
-        // Coop
-        (BuildingKind::Coop, BuildingTier::Basic) => (4_000, vec![("wood", 150), ("stone", 50)]),
-        (BuildingKind::Coop, BuildingTier::Big) => (10_000, vec![("wood", 200), ("stone", 100)]),
-        (BuildingKind::Coop, BuildingTier::Deluxe) => (20_000, vec![("wood", 250), ("stone", 150)]),
-
-        // Barn
-        (BuildingKind::Barn, BuildingTier::Basic) => (6_000, vec![("wood", 200), ("stone", 75)]),
-        (BuildingKind::Barn, BuildingTier::Big) => (12_000, vec![("wood", 250), ("stone", 125)]),
-        (BuildingKind::Barn, BuildingTier::Deluxe) => (25_000, vec![("wood", 250), ("stone", 200)]),
-
-        // Silo (only None -> Basic)
-        (BuildingKind::Silo, BuildingTier::Basic) => (100, vec![("stone", 50), ("copper_bar", 5)]),
-
-        _ => (0, vec![]),
-    }
-}
+use crate::economy::buildings::upgrade_cost;
 
 fn tier_label(tier: BuildingTier) -> &'static str {
     match tier {
@@ -151,7 +126,7 @@ fn build_entries(
 
             let (cost_gold, cost_materials, available, status_line) = match next {
                 Some(to) => {
-                    let (gold, mats) = local_upgrade_cost(kind, to);
+                    let (gold, mats) = upgrade_cost(kind, to);
                     if gold == 0 && mats.is_empty() {
                         // Invalid upgrade combo (shouldn't happen, but guard)
                         (0, vec![], false, "MAX".to_string())

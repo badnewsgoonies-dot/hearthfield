@@ -2,7 +2,7 @@ mod audio;
 pub mod building_upgrade_menu;
 mod chest_screen;
 mod crafting_screen;
-pub mod debug_overlay;
+mod debug_overlay;
 mod dialogue_box;
 mod hud;
 mod input;
@@ -239,6 +239,7 @@ impl Plugin for UiPlugin {
         );
 
         // ─── DEBUG OVERLAY (always available, toggled by F3) ───
+        app.init_resource::<DebugOverlayState>();
         app.add_systems(Startup, debug_overlay::spawn_debug_overlay);
         app.add_systems(Update, (
             debug_overlay::toggle_debug_overlay,

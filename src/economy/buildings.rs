@@ -2,6 +2,7 @@
 //! for House, Coop, Barn, and Silo upgrades.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,7 +11,7 @@ use crate::shared::*;
 
 /// Returns `(gold_cost, Vec<(material_item_id, quantity)>)` for upgrading a
 /// building *to* the given tier. Returns `(0, vec![])` for invalid combinations.
-fn upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'static str, u8)>) {
+pub fn upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'static str, u8)>) {
     match (building, to_tier) {
         // House upgrades (starts at Basic by default, upgrades to Big then Deluxe)
         (BuildingKind::House, BuildingTier::Big) => (10_000, vec![("wood", 200)]),
@@ -38,7 +39,7 @@ fn upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'s
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Tracks the current tier of each farm building and any upgrade in progress.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BuildingLevels {
     pub coop_tier: BuildingTier,
     pub barn_tier: BuildingTier,

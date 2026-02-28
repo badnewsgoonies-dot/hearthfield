@@ -715,13 +715,11 @@ pub fn sync_collision_map(
     world_map: Res<WorldMap>,
     mut collision_map: ResMut<crate::player::CollisionMap>,
 ) {
-    if !collision_map.initialised {
-        return;
-    }
     if collision_map.solid_tiles.is_empty() && !world_map.solid_tiles.is_empty() {
         for &tile in &world_map.solid_tiles {
             collision_map.solid_tiles.insert(tile);
         }
+        collision_map.initialised = true;
     }
 }
 

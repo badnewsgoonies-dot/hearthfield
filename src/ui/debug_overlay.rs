@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use crate::player::DistanceAnimator;
+use super::UiFontHandle;
 
 /// Marker for the debug overlay root node.
 #[derive(Component)]
@@ -21,7 +22,8 @@ pub fn toggle_debug_overlay(
 }
 
 /// Spawn the debug overlay UI (runs once at startup).
-pub fn spawn_debug_overlay(mut commands: Commands) {
+pub fn spawn_debug_overlay(mut commands: Commands, font_handle: Option<Res<UiFontHandle>>) {
+    let font = font_handle.map(|h| h.0.clone()).unwrap_or_default();
     commands.spawn((
         DebugOverlayRoot,
         Node {
@@ -38,6 +40,7 @@ pub fn spawn_debug_overlay(mut commands: Commands) {
             DebugOverlayText,
             Text::new("Debug"),
             TextFont {
+                font,
                 font_size: 14.0,
                 ..default()
             },
