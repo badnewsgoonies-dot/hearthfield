@@ -131,8 +131,6 @@ pub fn trigger_sleep(
     mut day_end_events: EventWriter<DayEndEvent>,
     interaction_claimed: Res<InteractionClaimed>,
     mut cutscene_queue: ResMut<CutsceneQueue>,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut fade: ResMut<crate::ui::transitions::ScreenFade>,
 ) {
     if !player_input.interact {
         return;
@@ -196,11 +194,10 @@ pub fn trigger_sleep(
     steps.push_back(CutsceneStep::FadeIn(1.5));
 
     cutscene_queue.steps = steps;
-    cutscene_queue.active = true;
-    cutscene_queue.step_timer = 0.0;
-    // Ensure fade starts from current alpha (visible).
-    fade.active = true;
-    next_state.set(GameState::Cutscene);
+    // NOTE: Don't set active or change state here. The DayEndEvent must
+    // be processed by all Playing-gated readers this frame first.
+    // activate_pending_cutscene (PostUpdate) will detect the non-empty
+    // queue and transition to Cutscene after all readers have run.
 }
 
 // ─── Main time-tick system ────────────────────────────────────────────────────
@@ -220,8 +217,6 @@ fn tick_time(
     mut day_end_writer: EventWriter<DayEndEvent>,
     mut prev_weather: ResMut<PreviousDayWeather>,
     mut cutscene_queue: ResMut<CutsceneQueue>,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut fade: ResMut<crate::ui::transitions::ScreenFade>,
 ) {
     let delta = time.delta_secs();
     calendar.elapsed_real_seconds += delta;
@@ -263,10 +258,9 @@ fn tick_time(
         steps.push_back(CutsceneStep::FadeIn(1.5));
 
         cutscene_queue.steps = steps;
-        cutscene_queue.active = true;
-        cutscene_queue.step_timer = 0.0;
-        fade.active = true;
-        next_state.set(GameState::Cutscene);
+        // Don't activate or change state here — same rationale as
+        // trigger_sleep. activate_pending_cutscene handles this in
+        // PostUpdate after all DayEndEvent readers have run.
     }
 }
 

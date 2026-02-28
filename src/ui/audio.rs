@@ -116,7 +116,14 @@ pub fn handle_play_music(
 }
 
 /// Start background music when entering the Playing state.
-pub fn start_game_music(mut music_events: EventWriter<PlayMusicEvent>) {
+pub fn start_game_music(
+    mut music_events: EventWriter<PlayMusicEvent>,
+    music_state: Res<MusicState>,
+) {
+    // Skip if music is already playing (avoids restart on Cutscene→Playing).
+    if music_state.current_track.is_some() {
+        return;
+    }
     music_events.send(PlayMusicEvent {
         track_id: "farm".to_string(),
         fade_in: true,
