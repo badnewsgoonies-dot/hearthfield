@@ -25,6 +25,7 @@ pub fn detect_seed_use(
     player_query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
     mut plant_events: EventWriter<PlantSeedEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     if input_blocks.is_blocked() {
         return;
@@ -32,6 +33,10 @@ pub fn detect_seed_use(
 
     // Interact key: F
     if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 

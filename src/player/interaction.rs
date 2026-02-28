@@ -189,6 +189,7 @@ pub fn item_pickup_check(
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
     input_blocks: Res<InputBlocks>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     if input_blocks.is_blocked() {
         return;
@@ -196,6 +197,10 @@ pub fn item_pickup_check(
 
     // Manual interaction pickup on F key
     if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 

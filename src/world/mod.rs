@@ -25,6 +25,7 @@ use maps::{generate_map, MapDef};
 use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
     handle_weed_scythe, spawn_daily_weeds, regrow_trees_on_season_change,
+    spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board,
     WorldObject,
 };
 use seasonal::{
@@ -96,6 +97,12 @@ impl Plugin for WorldPlugin {
                     cleanup_weather_on_change,
                     // Weed scythe clearing
                     handle_weed_scythe,
+                    // Interactable object spawning (shipping bin, crafting bench, etc.)
+                    spawn_shipping_bin,
+                    spawn_crafting_bench,
+                    spawn_carpenter_board,
+                    // Sync solid tiles from WorldMap into CollisionMap after map loads
+                    sync_collision_map,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -687,6 +694,21 @@ fn handle_day_end_forageables(
                 event.day,
                 &world_map,
             );
+        }
+    }
+}
+
+/// After a map loads, copy WorldMap.solid_tiles into CollisionMap.
+pub fn sync_collision_map(
+    world_map: Res<WorldMap>,
+    mut collision_map: ResMut<crate::player::CollisionMap>,
+) {
+    if !collision_map.initialised {
+        return;
+    }
+    if collision_map.solid_tiles.is_empty() && !world_map.solid_tiles.is_empty() {
+        for &tile in &world_map.solid_tiles {
+            collision_map.solid_tiles.insert(tile);
         }
     }
 }

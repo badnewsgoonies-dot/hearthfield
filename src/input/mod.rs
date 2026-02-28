@@ -19,8 +19,10 @@ fn reset_and_read_input(
     bindings: Res<KeyBindings>,
     context: Res<InputContext>,
     mut input: ResMut<PlayerInput>,
+    mut interaction_claimed: ResMut<InteractionClaimed>,
 ) {
     *input = PlayerInput::default();
+    interaction_claimed.0 = false;
 
     input.any_key =
         keys.get_just_pressed().next().is_some() || mouse.get_just_pressed().next().is_some();
@@ -151,6 +153,7 @@ fn manage_input_context(
         GameState::Inventory => InputContext::Menu,
         GameState::Shop => InputContext::Menu,
         GameState::Crafting => InputContext::Menu,
+        GameState::BuildingUpgrade => InputContext::Menu,
         GameState::Dialogue => InputContext::Dialogue,
         GameState::Fishing => InputContext::Fishing,
         GameState::Cutscene => InputContext::Cutscene,

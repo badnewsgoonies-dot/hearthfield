@@ -74,6 +74,7 @@ fn main() {
         .init_resource::<TutorialState>()
         .init_resource::<PlayStats>()
         .init_resource::<InputBlocks>()
+        .init_resource::<InteractionClaimed>()
         .init_resource::<CutsceneQueue>()
         .init_resource::<DebugOverlayState>()
         // Input & menu abstraction

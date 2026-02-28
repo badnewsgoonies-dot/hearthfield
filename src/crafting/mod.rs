@@ -21,6 +21,7 @@ pub use recipes::{
 };
 pub use bench::{CraftingUiState, OpenCraftingEvent, CloseCraftingEvent, CraftItemEvent};
 pub use unlock::UnlockRecipeEvent;
+pub use buffs::food_buff_for_item;
 
 pub struct CraftingPlugin;
 
@@ -53,6 +54,8 @@ impl Plugin for CraftingPlugin {
                     machines::handle_collect_machine_output,
                     // Day-end: finalize any machines that finished
                     machines::handle_day_end_processing,
+                    // C key → open crafting (must run before handle_open_crafting)
+                    bench::trigger_crafting_key.before(bench::handle_open_crafting),
                     // Open crafting bench
                     bench::handle_open_crafting,
                     // Recipe unlock checks

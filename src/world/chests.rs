@@ -208,6 +208,7 @@ pub fn interact_with_chest(
     player_query: Query<&Transform, With<Player>>,
     chest_query: Query<(Entity, &Transform), With<ChestMarker>>,
     player_state: Res<PlayerState>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     // Don't open another chest if one is already open.
     if chest_interaction.is_open() {
@@ -220,6 +221,10 @@ pub fn interact_with_chest(
 
     // F key to interact (same as item pickup in the player domain).
     if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 

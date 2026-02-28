@@ -1,3 +1,4 @@
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_arch = "wasm32"))]
@@ -14,7 +15,7 @@ use crate::shared::*;
 // PUBLIC TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
-pub const SAVE_VERSION: u32 = 1;
+pub const SAVE_VERSION: u32 = 2;
 pub const NUM_SAVE_SLOTS: usize = 3;
 
 /// Info about a save slot shown on the load/save screen.
@@ -143,6 +144,40 @@ impl Default for SessionTimer {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// SYSTEM PARAM BUNDLES (to stay within Bevy's 16-param limit)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Read-only bundle of the 10 extended resources (for saving).
+#[derive(SystemParam)]
+struct ExtendedResources<'w> {
+    pub house_state: Res<'w, HouseState>,
+    pub marriage_state: Res<'w, MarriageState>,
+    pub quest_log: Res<'w, QuestLog>,
+    pub sprinkler_state: Res<'w, SprinklerState>,
+    pub active_buffs: Res<'w, ActiveBuffs>,
+    pub evaluation_score: Res<'w, EvaluationScore>,
+    pub relationship_stages: Res<'w, RelationshipStages>,
+    pub achievements: Res<'w, Achievements>,
+    pub tutorial_state: Res<'w, TutorialState>,
+    pub play_stats: Res<'w, PlayStats>,
+}
+
+/// Mutable bundle of the 10 extended resources (for loading / new game).
+#[derive(SystemParam)]
+struct ExtendedResourcesMut<'w> {
+    pub house_state: ResMut<'w, HouseState>,
+    pub marriage_state: ResMut<'w, MarriageState>,
+    pub quest_log: ResMut<'w, QuestLog>,
+    pub sprinkler_state: ResMut<'w, SprinklerState>,
+    pub active_buffs: ResMut<'w, ActiveBuffs>,
+    pub evaluation_score: ResMut<'w, EvaluationScore>,
+    pub relationship_stages: ResMut<'w, RelationshipStages>,
+    pub achievements: ResMut<'w, Achievements>,
+    pub tutorial_state: ResMut<'w, TutorialState>,
+    pub play_stats: ResMut<'w, PlayStats>,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // PLUGIN
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -164,31 +199,22 @@ impl Plugin for SavePlugin {
             .add_event::<NewGameEvent>()
             // Startup: scan existing save files for the slot cache
             .add_systems(Startup, scan_save_slots)
-            // Playing systems
-            .add_systems(
-                Update,
-                (
-                    tick_session_timer,
-                    track_gold_earned,
-                    track_items_shipped,
-                    handle_save_request,
-                    handle_load_request,
-                    handle_new_game,
-                    autosave_on_day_end,
-                )
-                    .run_if(in_state(GameState::Playing)),
-            )
+            // Playing systems — registered individually to stay within Bevy's
+            // system-tuple trait bounds (each system has many Res/ResMut params).
+            .add_systems(Update, tick_session_timer.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, track_gold_earned.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, track_items_shipped.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, handle_save_request.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, handle_load_request.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, handle_new_game.run_if(in_state(GameState::Playing)))
+            .add_systems(Update, autosave_on_day_end.run_if(in_state(GameState::Playing)))
             // Also allow saving/loading from the Paused state (pause menu)
-            .add_systems(
-                Update,
-                (handle_save_request, handle_load_request, handle_new_game)
-                    .run_if(in_state(GameState::Paused)),
-            )
+            .add_systems(Update, handle_save_request.run_if(in_state(GameState::Paused)))
+            .add_systems(Update, handle_load_request.run_if(in_state(GameState::Paused)))
+            .add_systems(Update, handle_new_game.run_if(in_state(GameState::Paused)))
             // Allow Main Menu to initialize new game and request save-slot load.
-            .add_systems(
-                Update,
-                (handle_load_request, handle_new_game).run_if(in_state(GameState::MainMenu)),
-            )
+            .add_systems(Update, handle_load_request.run_if(in_state(GameState::MainMenu)))
+            .add_systems(Update, handle_new_game.run_if(in_state(GameState::MainMenu)))
             // Refresh slot metadata whenever menu is entered.
             .add_systems(OnEnter(GameState::MainMenu), scan_save_slots)
             // Quick-save keybind: F5 in Playing or Paused
@@ -263,6 +289,26 @@ struct FullSaveFile {
     pub shipping_bin: ShippingBin,
     pub total_gold_earned: u64,
     pub total_items_shipped: u64,
+    #[serde(default)]
+    pub house_state: HouseState,
+    #[serde(default)]
+    pub marriage_state: MarriageState,
+    #[serde(default)]
+    pub quest_log: QuestLog,
+    #[serde(default)]
+    pub sprinkler_state: SprinklerState,
+    #[serde(default)]
+    pub active_buffs: ActiveBuffs,
+    #[serde(default)]
+    pub evaluation_score: EvaluationScore,
+    #[serde(default)]
+    pub relationship_stages: RelationshipStages,
+    #[serde(default)]
+    pub achievements: Achievements,
+    #[serde(default)]
+    pub tutorial_state: TutorialState,
+    #[serde(default)]
+    pub play_stats: PlayStats,
 }
 
 impl FullSaveFile {
@@ -298,6 +344,16 @@ fn write_save(
     unlocked_recipes: &UnlockedRecipes,
     shipping_bin: &ShippingBin,
     statistics: &GameStatistics,
+    house_state: &HouseState,
+    marriage_state: &MarriageState,
+    quest_log: &QuestLog,
+    sprinkler_state: &SprinklerState,
+    active_buffs: &ActiveBuffs,
+    evaluation_score: &EvaluationScore,
+    relationship_stages: &RelationshipStages,
+    achievements: &Achievements,
+    tutorial_state: &TutorialState,
+    play_stats: &PlayStats,
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
 
@@ -318,6 +374,16 @@ fn write_save(
         shipping_bin: shipping_bin.clone(),
         total_gold_earned: statistics.total_gold_earned,
         total_items_shipped: statistics.total_items_shipped,
+        house_state: house_state.clone(),
+        marriage_state: marriage_state.clone(),
+        quest_log: quest_log.clone(),
+        sprinkler_state: sprinkler_state.clone(),
+        active_buffs: active_buffs.clone(),
+        evaluation_score: evaluation_score.clone(),
+        relationship_stages: relationship_stages.clone(),
+        achievements: achievements.clone(),
+        tutorial_state: tutorial_state.clone(),
+        play_stats: play_stats.clone(),
     };
 
     let json =
@@ -346,6 +412,16 @@ fn write_save(
     _unlocked_recipes: &UnlockedRecipes,
     _shipping_bin: &ShippingBin,
     _statistics: &GameStatistics,
+    _house_state: &HouseState,
+    _marriage_state: &MarriageState,
+    _quest_log: &QuestLog,
+    _sprinkler_state: &SprinklerState,
+    _active_buffs: &ActiveBuffs,
+    _evaluation_score: &EvaluationScore,
+    _relationship_stages: &RelationshipStages,
+    _achievements: &Achievements,
+    _tutorial_state: &TutorialState,
+    _play_stats: &PlayStats,
 ) -> Result<(), String> {
     Ok(())
 }
@@ -458,6 +534,7 @@ fn handle_save_request(
     unlocked_recipes: Res<UnlockedRecipes>,
     shipping_bin: Res<ShippingBin>,
     statistics: Res<GameStatistics>,
+    ext: ExtendedResources,
 ) {
     for ev in save_events.read() {
         let slot = ev.slot;
@@ -477,6 +554,16 @@ fn handle_save_request(
             &unlocked_recipes,
             &shipping_bin,
             &statistics,
+            &ext.house_state,
+            &ext.marriage_state,
+            &ext.quest_log,
+            &ext.sprinkler_state,
+            &ext.active_buffs,
+            &ext.evaluation_score,
+            &ext.relationship_stages,
+            &ext.achievements,
+            &ext.tutorial_state,
+            &ext.play_stats,
         ) {
             Ok(()) => {
                 info!("Save to slot {} succeeded.", slot);
@@ -518,6 +605,7 @@ fn handle_load_request(
     mut unlocked_recipes: ResMut<UnlockedRecipes>,
     mut shipping_bin: ResMut<ShippingBin>,
     mut statistics: ResMut<GameStatistics>,
+    mut ext: ExtendedResourcesMut,
 ) {
     for ev in load_events.read() {
         let slot = ev.slot;
@@ -542,6 +630,17 @@ fn handle_load_request(
                 statistics.total_items_shipped = file.total_items_shipped;
                 statistics.play_time_seconds = file.play_time_seconds;
                 statistics.farm_name = file.farm_name;
+
+                *ext.house_state = file.house_state;
+                *ext.marriage_state = file.marriage_state;
+                *ext.quest_log = file.quest_log;
+                *ext.sprinkler_state = file.sprinkler_state;
+                *ext.active_buffs = file.active_buffs;
+                *ext.evaluation_score = file.evaluation_score;
+                *ext.relationship_stages = file.relationship_stages;
+                *ext.achievements = file.achievements;
+                *ext.tutorial_state = file.tutorial_state;
+                *ext.play_stats = file.play_stats;
 
                 info!("Load from slot {} succeeded.", slot);
                 complete_events.send(LoadCompleteEvent {
@@ -575,6 +674,7 @@ fn handle_new_game(
     mut unlocked_recipes: ResMut<UnlockedRecipes>,
     mut shipping_bin: ResMut<ShippingBin>,
     mut statistics: ResMut<GameStatistics>,
+    mut ext: ExtendedResourcesMut,
 ) {
     for ev in new_game_events.read() {
         info!(
@@ -597,6 +697,18 @@ fn handle_new_game(
 
         // Reset statistics with new farm name
         *statistics = GameStatistics::new(ev.farm_name.clone());
+
+        // Reset extended resources to default state
+        *ext.house_state = HouseState::default();
+        *ext.marriage_state = MarriageState::default();
+        *ext.quest_log = QuestLog::default();
+        *ext.sprinkler_state = SprinklerState::default();
+        *ext.active_buffs = ActiveBuffs::default();
+        *ext.evaluation_score = EvaluationScore::default();
+        *ext.relationship_stages = RelationshipStages::default();
+        *ext.achievements = Achievements::default();
+        *ext.tutorial_state = TutorialState::default();
+        *ext.play_stats = PlayStats::default();
 
         info!("New game initialized.");
     }

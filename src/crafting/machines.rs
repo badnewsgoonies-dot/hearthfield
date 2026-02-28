@@ -521,6 +521,7 @@ pub fn handle_place_machine(
         let world_y = event.grid_y as f32 * TILE_SIZE;
 
         // Spawn machine entity
+        let display_label = format!("{}", machine_type.display_name());
         let machine_entity = commands
             .spawn((
                 ProcessingMachine::new(machine_type),
@@ -532,6 +533,10 @@ pub fn handle_place_machine(
                 Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
                 LogicalPosition(Vec2::new(world_x, world_y)),
                 YSorted,
+                Interactable {
+                    kind: InteractionKind::Machine,
+                    label: display_label,
+                },
             ))
             .id();
 

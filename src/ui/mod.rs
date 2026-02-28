@@ -1,4 +1,5 @@
 mod audio;
+pub mod building_upgrade_menu;
 mod chest_screen;
 mod crafting_screen;
 pub mod debug_overlay;
@@ -203,6 +204,25 @@ impl Plugin for UiPlugin {
                 crafting_screen::crafting_status_timer,
             )
                 .run_if(in_state(GameState::Crafting)),
+        );
+
+        // ─── BUILDING UPGRADE MENU ───
+        app.add_systems(
+            OnEnter(GameState::BuildingUpgrade),
+            building_upgrade_menu::spawn_building_upgrade_menu,
+        );
+        app.add_systems(
+            OnExit(GameState::BuildingUpgrade),
+            building_upgrade_menu::despawn_building_upgrade_menu,
+        );
+        app.add_systems(
+            Update,
+            (
+                building_upgrade_menu::update_building_upgrade_display,
+                building_upgrade_menu::building_upgrade_navigation,
+                building_upgrade_menu::building_upgrade_status_timer,
+            )
+                .run_if(in_state(GameState::BuildingUpgrade)),
         );
 
         // ─── PAUSE MENU ───
