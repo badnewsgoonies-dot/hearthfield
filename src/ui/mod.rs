@@ -1,0 +1,233 @@
+mod audio;
+mod chest_screen;
+mod crafting_screen;
+mod dialogue_box;
+mod hud;
+mod input;
+mod inventory_screen;
+mod main_menu;
+pub mod menu_input;
+pub mod menu_kit;
+mod pause_menu;
+mod shop_screen;
+mod toast;
+mod transitions;
+mod tutorial;
+
+use crate::shared::*;
+use bevy::prelude::*;
+
+// ═══════════════════════════════════════════════════════════════════════
+// SHARED FONT HANDLE — used by all UI text across every screen
+// ═══════════════════════════════════════════════════════════════════════
+
+#[derive(Resource)]
+pub struct UiFontHandle(pub Handle<Font>);
+
+fn load_ui_font(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font = asset_server.load("fonts/sprout_lands.ttf");
+    commands.insert_resource(UiFontHandle(font));
+}
+
+pub struct UiPlugin;
+
+impl Plugin for UiPlugin {
+    fn build(&self, app: &mut App) {
+        // ─── FONT LOADING + MENU ASSETS — runs at Startup ───
+        app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets));
+
+        // ─── AUDIO — music state resource + event handlers ───
+        app.init_resource::<audio::MusicState>();
+        app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music));
+        app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
+        app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
+
+        // ─── FADE OVERLAY — always present ───
+        app.add_systems(Startup, transitions::spawn_fade_overlay);
+        app.add_systems(
+            Update,
+            (
+                transitions::trigger_fade_on_transition,
+                transitions::update_fade,
+            )
+                .chain(),
+        );
+
+        // ─── DIALOGUE LISTENER — runs in Playing to catch events ───
+        app.add_systems(
+            Update,
+            (
+                dialogue_box::listen_for_dialogue_start,
+                dialogue_box::handle_dialogue_end,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── MAIN MENU ───
+        app.add_systems(OnEnter(GameState::MainMenu), main_menu::spawn_main_menu);
+        app.add_systems(OnExit(GameState::MainMenu), main_menu::despawn_main_menu);
+        app.add_systems(
+            Update,
+            (
+                main_menu::update_main_menu_visuals,
+                main_menu::main_menu_navigation,
+                main_menu::handle_load_complete_in_main_menu,
+            )
+                .run_if(in_state(GameState::MainMenu)),
+        );
+
+        // ─── HUD — visible during Playing state ───
+        app.add_systems(OnEnter(GameState::Playing), hud::spawn_hud);
+        app.add_systems(OnExit(GameState::Playing), hud::despawn_hud);
+        app.add_systems(
+            Update,
+            (
+                hud::update_time_display,
+                hud::update_weather_display,
+                hud::update_gold_display,
+                hud::update_stamina_bar,
+                hud::update_tool_display,
+                hud::update_hotbar,
+                hud::update_map_name,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── TOAST NOTIFICATIONS ───
+        app.add_systems(OnEnter(GameState::Playing), toast::spawn_toast_container);
+        app.add_systems(OnExit(GameState::Playing), toast::despawn_toast_container);
+        app.add_systems(
+            Update,
+            (
+                toast::handle_toast_events,
+                toast::update_toasts,
+                toast::wire_gold_toasts,
+                toast::wire_season_toasts,
+                toast::wire_pickup_toasts,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── TUTORIAL & CONTEXTUAL HINTS ───
+        app.add_systems(
+            Update,
+            (
+                tutorial::check_tutorial_hints,
+                tutorial::forward_hint_to_toast,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── MENU ACTION RESET (PreUpdate, after input reader) ───
+        app.add_systems(PreUpdate, menu_input::reset_menu_action);
+
+        // ─── GLOBAL INPUT — unified via PlayerInput / MenuAction ───
+        app.add_systems(
+            Update,
+            (
+                menu_input::merge_keyboard_to_menu_action,
+                menu_input::gameplay_state_transitions
+                    .run_if(in_state(GameState::Playing)),
+                menu_input::hotbar_input_handler
+                    .run_if(in_state(GameState::Playing)),
+                menu_input::menu_cancel_transitions.run_if(
+                    in_state(GameState::Inventory)
+                        .or(in_state(GameState::Shop))
+                        .or(in_state(GameState::Crafting))
+                        .or(in_state(GameState::Dialogue)),
+                ),
+            ),
+        );
+
+        // ─── INVENTORY SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::Inventory),
+            inventory_screen::spawn_inventory_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::Inventory),
+            inventory_screen::despawn_inventory_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                inventory_screen::update_inventory_slots,
+                inventory_screen::update_inventory_cursor,
+                inventory_screen::inventory_navigation,
+            )
+                .run_if(in_state(GameState::Inventory)),
+        );
+
+        // ─── DIALOGUE BOX ───
+        app.add_systems(
+            OnEnter(GameState::Dialogue),
+            dialogue_box::spawn_dialogue_box,
+        );
+        app.add_systems(
+            OnExit(GameState::Dialogue),
+            dialogue_box::despawn_dialogue_box,
+        );
+        app.add_systems(
+            Update,
+            dialogue_box::advance_dialogue.run_if(in_state(GameState::Dialogue)),
+        );
+
+        // ─── SHOP SCREEN ───
+        app.add_systems(OnEnter(GameState::Shop), shop_screen::spawn_shop_screen);
+        app.add_systems(OnExit(GameState::Shop), shop_screen::despawn_shop_screen);
+        app.add_systems(
+            Update,
+            (
+                shop_screen::update_shop_display,
+                shop_screen::shop_navigation,
+            )
+                .run_if(in_state(GameState::Shop)),
+        );
+
+        // ─── CRAFTING SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::Crafting),
+            crafting_screen::spawn_crafting_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::Crafting),
+            crafting_screen::despawn_crafting_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                crafting_screen::update_crafting_display,
+                crafting_screen::crafting_navigation,
+                crafting_screen::crafting_status_timer,
+            )
+                .run_if(in_state(GameState::Crafting)),
+        );
+
+        // ─── PAUSE MENU ───
+        app.add_systems(OnEnter(GameState::Paused), pause_menu::spawn_pause_menu);
+        app.add_systems(OnExit(GameState::Paused), pause_menu::despawn_pause_menu);
+        app.add_systems(
+            Update,
+            (
+                pause_menu::update_pause_menu_visuals,
+                pause_menu::pause_menu_navigation,
+                pause_menu::handle_save_complete_in_pause_menu,
+            )
+                .run_if(in_state(GameState::Paused)),
+        );
+
+        // ─── CHEST SCREEN (reactive overlay during Playing state) ───
+        app.add_systems(
+            Update,
+            (
+                chest_screen::update_chest_ui_lifecycle,
+                chest_screen::update_chest_inv_display,
+                chest_screen::update_chest_storage_display,
+                chest_screen::update_chest_cursor,
+                chest_screen::handle_chest_input,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+    }
+}

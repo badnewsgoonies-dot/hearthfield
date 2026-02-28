@@ -1,0 +1,8 @@
+/target
+/web
+/dist
+*.zip
+*.log
+logs/
+*.db
+.DS_Store
