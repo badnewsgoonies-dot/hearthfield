@@ -95,6 +95,7 @@ pub fn run_cutscene_queue(
             fade.active = true;
 
             if fade.alpha >= 0.99 {
+                fade.active = false;
                 queue.steps.pop_front();
                 queue.step_timer = 0.0;
             }
@@ -107,6 +108,7 @@ pub fn run_cutscene_queue(
             fade.active = true;
 
             if fade.alpha <= 0.01 {
+                fade.active = false;
                 queue.steps.pop_front();
                 queue.step_timer = 0.0;
             }
@@ -135,7 +137,7 @@ pub fn run_cutscene_queue(
                         position_type: PositionType::Absolute,
                         ..default()
                     },
-                    GlobalZIndex(99),
+                    GlobalZIndex(101),
                     PickingBehavior::IGNORE,
                 ))
                 .with_children(|parent| {
