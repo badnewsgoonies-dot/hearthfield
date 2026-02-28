@@ -341,23 +341,15 @@ fn farm_object_color(obj: &FarmObject) -> Color {
 
 /// Synchronise visual entities for sprinklers and scarecrows in `FarmState.objects`.
 ///
-/// Follows the same three-phase pattern as `sync_soil_sprites` / `sync_crop_sprites`:
-///   1. Update existing entities (no-op for now — these objects don't change appearance).
-///   2. Spawn missing entities.
-///   3. Despawn stale entities.
+/// Follows the same overall pattern as `sync_soil_sprites` / `sync_crop_sprites`:
+///   - Spawn missing entities.
+///   - Despawn stale entities.
 pub fn sync_farm_objects_sprites(
     mut commands: Commands,
     mut farm_entities: ResMut<FarmEntities>,
     farm_state: Res<FarmState>,
     furniture: Res<crate::world::objects::FurnitureAtlases>,
-    obj_query: Query<(&FarmObjectEntity, &mut Sprite)>,
 ) {
-    // ── Update existing ──────────────────────────────────────────────────────
-    // Sprinklers and scarecrows don't change appearance once placed, so we just
-    // verify the entity's position is still present in the farm state.
-    // (Nothing to change on the Sprite itself.)
-    let _ = &obj_query;
-
     // ── Spawn missing ────────────────────────────────────────────────────────
     let missing: Vec<((i32, i32), FarmObject)> = farm_state
         .objects
@@ -370,7 +362,9 @@ pub fn sync_farm_objects_sprites(
         .collect();
 
     for (pos, obj) in missing {
-        let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY);
+        let wc = grid_to_world_center(pos.0, pos.1);
+        let translation = Vec3::new(wc.x, wc.y, Z_ENTITY_BASE);
+        let logical = LogicalPosition(wc);
 
         let entity = if furniture.loaded {
             if let Some(idx) = farm_object_atlas_index(&obj) {
@@ -386,6 +380,8 @@ pub fn sync_farm_objects_sprites(
                     .spawn((
                         sprite,
                         Transform::from_translation(translation),
+                        logical,
+                        YSorted,
                         FarmObjectEntity {
                             grid_x: pos.0,
                             grid_y: pos.1,
@@ -405,6 +401,8 @@ pub fn sync_farm_objects_sprites(
                         ..default()
                     },
                     Transform::from_translation(translation),
+                    logical,
+                    YSorted,
                     FarmObjectEntity {
                         grid_x: pos.0,
                         grid_y: pos.1,

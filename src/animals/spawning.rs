@@ -243,8 +243,15 @@ pub fn handle_animal_purchase(
 
 pub fn setup_feed_trough(
     mut commands: Commands,
-    furniture: Res<crate::world::objects::FurnitureAtlases>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut furniture: ResMut<crate::world::objects::FurnitureAtlases>,
 ) {
+    // Ensure furniture atlas is loaded even if WorldPlugin hasn't run yet
+    // (AnimalPlugin may be registered before WorldPlugin).
+    crate::world::objects::ensure_furniture_atlases_loaded(
+        &asset_server, &mut layouts, &mut furniture,
+    );
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_atlas_image(
             furniture.image.clone(),
