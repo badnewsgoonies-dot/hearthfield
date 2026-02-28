@@ -230,7 +230,7 @@ fn spawn_chest_panel(parent: &mut ChildBuilder, font: Handle<Font>) {
 
 fn despawn_chest_ui(commands: &mut Commands, query: &Query<Entity, With<ChestScreenRoot>>) {
     for entity in query.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<ChestUiState>();
 }

@@ -209,12 +209,10 @@ impl Plugin for SavePlugin {
             .add_systems(Update, track_items_shipped.run_if(in_state(GameState::Playing)))
             .add_systems(Update, handle_save_request.run_if(in_state(GameState::Playing)))
             .add_systems(Update, handle_load_request.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, handle_new_game.run_if(in_state(GameState::Playing)))
             .add_systems(Update, autosave_on_day_end.run_if(in_state(GameState::Playing)))
             // Also allow saving/loading from the Paused state (pause menu)
             .add_systems(Update, handle_save_request.run_if(in_state(GameState::Paused)))
             .add_systems(Update, handle_load_request.run_if(in_state(GameState::Paused)))
-            .add_systems(Update, handle_new_game.run_if(in_state(GameState::Paused)))
             // Allow Main Menu to initialize new game and request save-slot load.
             .add_systems(Update, handle_load_request.run_if(in_state(GameState::MainMenu)))
             .add_systems(Update, handle_new_game.run_if(in_state(GameState::MainMenu)))

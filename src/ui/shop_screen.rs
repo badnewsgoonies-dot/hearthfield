@@ -258,7 +258,7 @@ pub fn despawn_shop_screen(
     query: Query<Entity, With<ShopScreenRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<ShopUiState>();
 }

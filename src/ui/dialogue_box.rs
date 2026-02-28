@@ -182,7 +182,7 @@ pub fn despawn_dialogue_box(
     query: Query<Entity, With<DialogueBoxRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<DialogueUiState>();
 }

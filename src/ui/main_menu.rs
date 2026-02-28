@@ -146,7 +146,7 @@ fn load_slot_label(slot_info: Option<&crate::save::SaveSlotInfo>) -> String {
 
 pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<MainMenuState>();
 }

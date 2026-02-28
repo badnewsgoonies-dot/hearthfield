@@ -165,7 +165,7 @@ pub fn despawn_inventory_screen(
     query: Query<Entity, With<InventoryScreenRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<InventoryUiState>();
 }

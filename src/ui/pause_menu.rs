@@ -103,7 +103,7 @@ pub fn spawn_pause_menu(
 
 pub fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<PauseMenuState>();
 }

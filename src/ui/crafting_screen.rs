@@ -170,7 +170,7 @@ pub fn despawn_crafting_screen(
     query: Query<Entity, With<CraftingScreenRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<CraftingUiState>();
 }

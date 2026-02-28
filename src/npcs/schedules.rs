@@ -84,9 +84,8 @@ pub struct FarmVisitTracker {
 pub fn check_farm_visits(
     calendar: Res<Calendar>,
     relationships: Res<Relationships>,
-    npc_registry: Res<NpcRegistry>,
+    mut npc_registry: ResMut<NpcRegistry>,
     mut tracker: ResMut<FarmVisitTracker>,
-    mut npc_schedules: ResMut<NpcRegistry>,
 ) {
     // Only on weekdays before 10 AM
     let is_weekday = !matches!(
@@ -147,7 +146,7 @@ pub fn check_farm_visits(
         // Override the NPC's current schedule so the first active waypoint is the farm.
         // We insert a farm-visit entry at the start of the weekday schedule that covers
         // the morning window (6–9 AM), then let the regular schedule resume at 9 AM.
-        if let Some(schedule) = npc_schedules.schedules.get_mut(&npc_id) {
+        if let Some(schedule) = npc_registry.schedules.get_mut(&npc_id) {
             // Build a fresh farm-visit morning block that returns to the original
             // schedule around 9 AM. We prepend our visit entries and keep the rest.
             let mut new_weekday = vec![

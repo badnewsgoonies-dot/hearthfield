@@ -170,16 +170,12 @@ pub fn handle_proposal(
     mut proposal_reader: EventReader<ProposalEvent>,
     npc_registry: Res<NpcRegistry>,
     relationships: Res<Relationships>,
-    stages: Res<RelationshipStages>,
     house_state: Res<HouseState>,
     mut wedding_timer: ResMut<WeddingTimer>,
     mut relationship_stages: ResMut<RelationshipStages>,
     mut inventory: ResMut<Inventory>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
-    // Avoid borrow conflict: we read `stages` above but need mutable access
-    // through `relationship_stages`. We use `stages` only for the initial check.
-    let _ = &stages; // Suppress unused warning — we actually use relationship_stages below.
 
     for event in proposal_reader.read() {
         let npc_name = &event.npc_name;
