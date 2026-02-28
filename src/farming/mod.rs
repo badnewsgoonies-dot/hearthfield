@@ -234,15 +234,6 @@ fn load_farming_atlases(
 // Shared helpers used across submodules
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Convert a grid position to a world-space translation (centre of tile).
-pub fn grid_to_world(x: i32, y: i32) -> Vec3 {
-    Vec3::new(
-        x as f32 * TILE_SIZE,
-        y as f32 * TILE_SIZE,
-        Z_FARM_OVERLAY,
-    )
-}
-
 /// Check whether the given CropDef can grow in this season.
 pub fn crop_can_grow_in_season(def: &CropDef, season: Season) -> bool {
     def.seasons.is_empty() || def.seasons.contains(&season)

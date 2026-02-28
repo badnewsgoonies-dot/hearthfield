@@ -21,6 +21,11 @@ pub fn camera_follow_player(
     let target_x = logical_pos.0.x.round();
     let target_y = logical_pos.0.y.round();
 
-    cam_tf.translation.x += (target_x - cam_tf.translation.x) * t;
-    cam_tf.translation.y += (target_y - cam_tf.translation.y) * t;
+    // Lerp in float space (smooth)
+    let smooth_x = cam_tf.translation.x + (target_x - cam_tf.translation.x) * t;
+    let smooth_y = cam_tf.translation.y + (target_y - cam_tf.translation.y) * t;
+
+    // Snap to integer pixels for the actual transform (prevents sub-pixel blur)
+    cam_tf.translation.x = smooth_x.round();
+    cam_tf.translation.y = smooth_y.round();
 }

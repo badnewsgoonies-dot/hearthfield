@@ -1,6 +1,7 @@
 mod audio;
 mod chest_screen;
 mod crafting_screen;
+pub mod debug_overlay;
 mod dialogue_box;
 mod hud;
 mod input;
@@ -216,6 +217,13 @@ impl Plugin for UiPlugin {
             )
                 .run_if(in_state(GameState::Paused)),
         );
+
+        // ─── DEBUG OVERLAY (always available, toggled by F3) ───
+        app.add_systems(Startup, debug_overlay::spawn_debug_overlay);
+        app.add_systems(Update, (
+            debug_overlay::toggle_debug_overlay,
+            debug_overlay::update_debug_overlay,
+        ));
 
         // ─── CHEST SCREEN (reactive overlay during Playing state) ───
         app.add_systems(

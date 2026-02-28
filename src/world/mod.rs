@@ -711,8 +711,9 @@ fn handle_season_change(
         if let Some(ref map_def) = world_map.map_def {
             for (transform, mut sprite) in tile_query.iter_mut() {
                 // Convert world position back to grid position
-                let gx = (transform.translation.x / TILE_SIZE).round() as i32;
-                let gy = (transform.translation.y / TILE_SIZE).round() as i32;
+                let g = world_to_grid(transform.translation.x, transform.translation.y);
+                let gx = g.x;
+                let gy = g.y;
 
                 let tile = map_def.get_tile(gx, gy);
 

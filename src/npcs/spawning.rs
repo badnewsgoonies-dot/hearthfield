@@ -123,8 +123,9 @@ pub fn spawn_npcs_for_map(
             continue;
         }
 
-        let world_x = entry.x as f32 * TILE_SIZE;
-        let world_y = -(entry.y as f32 * TILE_SIZE);
+        let wc = grid_to_world_center(entry.x, entry.y);
+        let world_x = wc.x;
+        let world_y = wc.y;
         let color = npc_color(npc_id);
 
         // Use atlas sprite with tint color to differentiate NPCs visually.

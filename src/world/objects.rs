@@ -247,11 +247,12 @@ pub fn spawn_world_objects(
             );
             sprite.custom_size = Some(size);
 
+            let wc = grid_to_world_center(placement.x, placement.y);
             commands.spawn((
                 sprite,
                 Transform::from_translation(Vec3::new(
-                    placement.x as f32 * TILE_SIZE,
-                    placement.y as f32 * TILE_SIZE + y_offset,
+                    wc.x,
+                    wc.y + y_offset,
                     Z_ENTITY_BASE,
                 )),
                 WorldObject,
@@ -260,6 +261,7 @@ pub fn spawn_world_objects(
             ));
         } else {
             // Fallback: colored rectangle if atlases failed to load
+            let wc = grid_to_world_center(placement.x, placement.y);
             commands.spawn((
                 Sprite {
                     color: kind.color(),
@@ -267,8 +269,8 @@ pub fn spawn_world_objects(
                     ..default()
                 },
                 Transform::from_translation(Vec3::new(
-                    placement.x as f32 * TILE_SIZE,
-                    placement.y as f32 * TILE_SIZE + y_offset,
+                    wc.x,
+                    wc.y + y_offset,
                     Z_ENTITY_BASE,
                 )),
                 WorldObject,
@@ -389,11 +391,12 @@ pub fn handle_tool_use_on_objects(
                                 stump_sprite.custom_size =
                                     Some(WorldObjectKind::Stump.sprite_size());
 
+                                let stump_wc = grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
                                 commands.spawn((
                                     stump_sprite,
                                     Transform::from_translation(Vec3::new(
-                                        obj_data.grid_x as f32 * TILE_SIZE,
-                                        obj_data.grid_y as f32 * TILE_SIZE,
+                                        stump_wc.x,
+                                        stump_wc.y,
                                         Z_ENTITY_BASE,
                                     )),
                                     WorldObject,
@@ -402,6 +405,7 @@ pub fn handle_tool_use_on_objects(
                                 ));
                             } else {
                                 // Fallback: colored rectangle
+                                let stump_wc = grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
                                 commands.spawn((
                                     Sprite {
                                         color: WorldObjectKind::Stump.color(),
@@ -409,8 +413,8 @@ pub fn handle_tool_use_on_objects(
                                         ..default()
                                     },
                                     Transform::from_translation(Vec3::new(
-                                        obj_data.grid_x as f32 * TILE_SIZE,
-                                        obj_data.grid_y as f32 * TILE_SIZE,
+                                        stump_wc.x,
+                                        stump_wc.y,
                                         Z_ENTITY_BASE,
                                     )),
                                     WorldObject,
@@ -507,6 +511,7 @@ pub fn spawn_forageables(
         let idx = ((day as usize).wrapping_mul(7).wrapping_add(i.wrapping_mul(13))) % forageables.len();
         let (item_id, color) = &forageables[idx];
 
+        let fwc = grid_to_world_center(gx, gy);
         commands.spawn((
             Sprite {
                 color: *color,
@@ -514,8 +519,8 @@ pub fn spawn_forageables(
                 ..default()
             },
             Transform::from_translation(Vec3::new(
-                gx as f32 * TILE_SIZE,
-                gy as f32 * TILE_SIZE,
+                fwc.x,
+                fwc.y,
                 Z_ENTITY_BASE,
             )),
             WorldObject,
@@ -633,16 +638,15 @@ pub fn spawn_daily_weeds(
             }
 
             // Spawn the weed entity
-            let wx = x as f32 * TILE_SIZE;
-            let wy = y as f32 * TILE_SIZE;
+            let wwc = grid_to_world_center(x, y);
             commands.spawn((
                 Sprite {
                     color: Color::srgb(0.25, 0.55, 0.2),
                     custom_size: Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5)),
                     ..default()
                 },
-                Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
-                LogicalPosition(Vec2::new(wx, wy)),
+                Transform::from_translation(Vec3::new(wwc.x, wwc.y, Z_ENTITY_BASE)),
+                LogicalPosition(Vec2::new(wwc.x, wwc.y)),
                 YSorted,
                 Weed {
                     grid_x: x,
@@ -781,11 +785,12 @@ pub fn regrow_trees_on_season_change(
                 );
                 sprite.custom_size = Some(size);
 
+                let rwc = grid_to_world_center(x, y);
                 commands.spawn((
                     sprite,
                     Transform::from_translation(Vec3::new(
-                        x as f32 * TILE_SIZE,
-                        y as f32 * TILE_SIZE + y_offset,
+                        rwc.x,
+                        rwc.y + y_offset,
                         Z_ENTITY_BASE,
                     )),
                     WorldObject,
@@ -793,6 +798,7 @@ pub fn regrow_trees_on_season_change(
                     data,
                 ));
             } else {
+                let rwc = grid_to_world_center(x, y);
                 commands.spawn((
                     Sprite {
                         color: kind.color(),
@@ -800,8 +806,8 @@ pub fn regrow_trees_on_season_change(
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(
-                        x as f32 * TILE_SIZE,
-                        y as f32 * TILE_SIZE + y_offset,
+                        rwc.x,
+                        rwc.y + y_offset,
                         Z_ENTITY_BASE,
                     )),
                     WorldObject,

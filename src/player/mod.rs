@@ -142,22 +142,6 @@ pub fn stamina_cost(tool: &ToolKind) -> f32 {
     }
 }
 
-/// Convert world-space pixel coordinates to grid position.
-pub fn world_to_grid(x: f32, y: f32) -> (i32, i32) {
-    (
-        (x / TILE_SIZE).floor() as i32,
-        (y / TILE_SIZE).floor() as i32,
-    )
-}
-
-/// Convert grid coordinates to world-space pixel position (tile center).
-pub fn grid_to_world(gx: i32, gy: i32) -> (f32, f32) {
-    (
-        gx as f32 * TILE_SIZE + TILE_SIZE * 0.5,
-        gy as f32 * TILE_SIZE + TILE_SIZE * 0.5,
-    )
-}
-
 /// The ordered list of tools for cycling with Q/E.
 pub const TOOL_ORDER: [ToolKind; 6] = [
     ToolKind::Hoe,

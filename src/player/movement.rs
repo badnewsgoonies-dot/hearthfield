@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{CollisionMap, DistanceAnimator, world_to_grid};
+use super::{CollisionMap, DistanceAnimator};
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
 /// updates facing direction, snaps grid position, and checks collisions.
@@ -52,9 +52,9 @@ pub fn player_movement(
             logical_pos.0.y = candidate_y;
         }
 
-        let (gx, gy) = world_to_grid(logical_pos.0.x, logical_pos.0.y);
-        grid_pos.x = gx;
-        grid_pos.y = gy;
+        let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+        grid_pos.x = g.x;
+        grid_pos.y = g.y;
     } else {
         movement.is_moving = false;
     }
@@ -129,7 +129,8 @@ fn is_blocked(
     farm_state: &FarmState,
     player_state: &PlayerState,
 ) -> bool {
-    let (gx, gy) = world_to_grid(wx, wy);
+    let g = world_to_grid(wx, wy);
+    let (gx, gy) = (g.x, g.y);
 
     if collision_map.initialised && collision_map.solid_tiles.contains(&(gx, gy)) {
         return true;

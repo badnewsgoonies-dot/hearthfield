@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use super::{FarmEntities, SoilTileEntity, grid_to_world};
+use super::{FarmEntities, SoilTileEntity};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hoe — till a dirt tile
@@ -139,7 +139,8 @@ pub fn spawn_or_update_soil_entity(
         let _ = entity;
     } else {
         // Spawn a new sprite entity.
-        let translation = grid_to_world(pos.0, pos.1);
+        // Soil overlays are area fills — use corner-origin to match ground tiles
+        let translation = Vec3::new(pos.0 as f32 * TILE_SIZE, pos.1 as f32 * TILE_SIZE, Z_FARM_OVERLAY);
         let entity = commands.spawn((
             Sprite {
                 color,
