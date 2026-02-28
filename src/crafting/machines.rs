@@ -40,6 +40,18 @@ impl MachineType {
     }
 }
 
+/// Atlas index in furniture.png for each machine type.
+fn machine_atlas_index(machine_type: MachineType) -> usize {
+    match machine_type {
+        MachineType::Furnace => 22,
+        MachineType::PreservesJar => 23,
+        MachineType::Keg => 24,
+        MachineType::CheesePress => 25,
+        MachineType::Loom => 26,
+        MachineType::OilMaker => 19,
+    }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // PROCESSING MACHINE COMPONENT
 // ──────────────────────────────────────────────────────────────────────────────
@@ -479,6 +491,7 @@ pub fn handle_place_machine(
     mut inventory: ResMut<Inventory>,
     mut machine_registry: ResMut<ProcessingMachineRegistry>,
     item_registry: Res<ItemRegistry>,
+    furniture: Res<crate::world::objects::FurnitureAtlases>,
     mut toast_events: EventWriter<ToastEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
@@ -522,14 +535,27 @@ pub fn handle_place_machine(
 
         // Spawn machine entity
         let display_label = format!("{}", machine_type.display_name());
+        let machine_sprite = if furniture.loaded {
+            let mut s = Sprite::from_atlas_image(
+                furniture.image.clone(),
+                TextureAtlas {
+                    layout: furniture.layout.clone(),
+                    index: machine_atlas_index(machine_type),
+                },
+            );
+            s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+            s
+        } else {
+            Sprite::from_color(
+                Color::srgb(0.6, 0.4, 0.2),
+                Vec2::new(TILE_SIZE, TILE_SIZE),
+            )
+        };
         let machine_entity = commands
             .spawn((
                 ProcessingMachine::new(machine_type),
                 GridPosition::new(event.grid_x, event.grid_y),
-                Sprite::from_color(
-                    Color::srgb(0.6, 0.4, 0.2),
-                    Vec2::new(TILE_SIZE, TILE_SIZE),
-                ),
+                machine_sprite,
                 Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
                 LogicalPosition(Vec2::new(world_x, world_y)),
                 YSorted,

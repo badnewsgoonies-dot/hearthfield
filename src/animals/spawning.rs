@@ -241,7 +241,28 @@ pub fn handle_animal_purchase(
 // System: spawn the feed trough at a fixed position on the farm.
 // ─────────────────────────────────────────────────────────────────────────────
 
-pub fn setup_feed_trough(mut commands: Commands) {
+pub fn setup_feed_trough(
+    mut commands: Commands,
+    furniture: Res<crate::world::objects::FurnitureAtlases>,
+) {
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 30, // row 3: low/flat object for feed trough
+            },
+        );
+        s.custom_size = Some(Vec2::new(24.0, 10.0));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.55, 0.38, 0.18),
+            custom_size: Some(Vec2::new(24.0, 10.0)),
+            ..default()
+        }
+    };
+
     // Trough sits at the entrance of the barn area. Grid position (−10, −8) in
     // a 16-px grid → world (−160, −128).
     commands.spawn((
@@ -249,11 +270,7 @@ pub fn setup_feed_trough(mut commands: Commands) {
             grid_x: -10,
             grid_y: -8,
         },
-        Sprite {
-            color: Color::srgb(0.55, 0.38, 0.18),
-            custom_size: Some(Vec2::new(24.0, 10.0)),
-            ..default()
-        },
+        sprite,
         Transform::from_xyz(-160.0, -128.0, Z_ENTITY_BASE),
         LogicalPosition(Vec2::new(-160.0, -128.0)),
         YSorted,

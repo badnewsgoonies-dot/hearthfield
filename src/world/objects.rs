@@ -58,6 +58,41 @@ pub fn ensure_object_atlases_loaded(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// FURNITURE ATLAS RESOURCE
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Caches loaded texture atlas handles for furniture sprites (shipping bin,
+/// crafting bench, carpenter board, machines, feed trough).
+/// Loaded lazily on first map spawn.
+#[derive(Resource, Default)]
+pub struct FurnitureAtlases {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads the furniture atlas on first use. Subsequent calls are no-ops.
+pub fn ensure_furniture_atlases_loaded(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+    atlases: &mut FurnitureAtlases,
+) {
+    if atlases.loaded {
+        return;
+    }
+    // furniture.png: 144x96px -> 16x16 tiles, 9 columns x 6 rows
+    atlases.image = asset_server.load("sprites/furniture.png");
+    atlases.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        9,
+        6,
+        None,
+        None,
+    ));
+    atlases.loaded = true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -492,6 +527,31 @@ pub fn seasonal_forageables(season: Season) -> Vec<(&'static str, Color)> {
     }
 }
 
+/// Maps a forageable item_id to an atlas index in grass_biome.png.
+fn forageable_atlas_index(item_id: &str) -> Option<usize> {
+    Some(match item_id {
+        "wild_horseradish" => 3,
+        "daffodil" => 4,
+        "leek" => 5,
+        "dandelion" => 7,
+        "spring_onion" => 8,
+        "grape" => 11,
+        "spice_berry" => 12,
+        "sweet_pea" => 13,
+        "red_mushroom" => 14,
+        "common_mushroom" => 9,
+        "wild_plum" => 15,
+        "hazelnut" => 16,
+        "blackberry" => 17,
+        "chanterelle" => 10,
+        "winter_root" => 16,
+        "crystal_fruit" => 13,
+        "snow_yam" => 3,
+        "crocus" => 7,
+        _ => return None,
+    })
+}
+
 /// Spawn forageables for the current day on the active map.
 pub fn spawn_forageables(
     commands: &mut Commands,
@@ -499,6 +559,7 @@ pub fn spawn_forageables(
     season: Season,
     day: u8,
     world_map: &WorldMap,
+    object_atlases: &ObjectAtlases,
 ) {
     let forageables = seasonal_forageables(season);
     if forageables.is_empty() {
@@ -524,12 +585,34 @@ pub fn spawn_forageables(
         let (item_id, color) = &forageables[idx];
 
         let fwc = grid_to_world_center(gx, gy);
-        commands.spawn((
+        let sprite = if let Some(atlas_idx) = forageable_atlas_index(item_id) {
+            if object_atlases.loaded {
+                let mut s = Sprite::from_atlas_image(
+                    object_atlases.grass_biome_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.grass_biome_layout.clone(),
+                        index: atlas_idx,
+                    },
+                );
+                s.custom_size = Some(Vec2::new(TILE_SIZE * 0.7, TILE_SIZE * 0.7));
+                s
+            } else {
+                Sprite {
+                    color: *color,
+                    custom_size: Some(Vec2::new(TILE_SIZE * 0.7, TILE_SIZE * 0.7)),
+                    ..default()
+                }
+            }
+        } else {
             Sprite {
                 color: *color,
                 custom_size: Some(Vec2::new(TILE_SIZE * 0.7, TILE_SIZE * 0.7)),
                 ..default()
-            },
+            }
+        };
+
+        commands.spawn((
+            sprite,
             Transform::from_translation(Vec3::new(
                 fwc.x,
                 fwc.y,
@@ -594,6 +677,7 @@ pub fn spawn_daily_weeds(
     world_map: Res<super::WorldMap>,
     farm_state: Res<FarmState>,
     existing_weeds: Query<&Weed>,
+    object_atlases: Res<ObjectAtlases>,
 ) {
     for event in day_events.read() {
         // Only spawn weeds on the farm map
@@ -651,12 +735,25 @@ pub fn spawn_daily_weeds(
 
             // Spawn the weed entity
             let wwc = grid_to_world_center(x, y);
-            commands.spawn((
+            let sprite = if object_atlases.loaded {
+                let mut s = Sprite::from_atlas_image(
+                    object_atlases.grass_biome_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.grass_biome_layout.clone(),
+                        index: 2, // weed/grass frame from row 0
+                    },
+                );
+                s.custom_size = Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5));
+                s
+            } else {
                 Sprite {
                     color: Color::srgb(0.25, 0.55, 0.2),
                     custom_size: Some(Vec2::new(TILE_SIZE * 0.5, TILE_SIZE * 0.5)),
                     ..default()
-                },
+                }
+            };
+            commands.spawn((
+                sprite,
                 Transform::from_translation(Vec3::new(wwc.x, wwc.y, Z_ENTITY_BASE)),
                 LogicalPosition(Vec2::new(wwc.x, wwc.y)),
                 YSorted,
@@ -846,11 +943,29 @@ pub fn spawn_shipping_bin(
     mut commands: Commands,
     player_state: Res<PlayerState>,
     query: Query<Entity, With<ShippingBinMarker>>,
+    furniture: Res<FurnitureAtlases>,
 ) {
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let (wx, wy) = crate::player::grid_to_world(14, 6);
+    let wc = grid_to_world_center(14, 6);
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 18,
+            },
+        );
+        s.custom_size = Some(Vec2::splat(TILE_SIZE));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.55, 0.35, 0.15),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        }
+    };
     commands.spawn((
         ShippingBinMarker,
         WorldObject,
@@ -858,12 +973,8 @@ pub fn spawn_shipping_bin(
             kind: InteractionKind::ShippingBin,
             label: "Ship Items".into(),
         },
-        Sprite {
-            color: Color::srgb(0.55, 0.35, 0.15),
-            custom_size: Some(Vec2::splat(TILE_SIZE)),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        sprite,
+        Transform::from_translation(Vec3::new(wc.x, wc.y, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
     ));
@@ -875,11 +986,29 @@ pub fn spawn_crafting_bench(
     mut commands: Commands,
     player_state: Res<PlayerState>,
     query: Query<Entity, With<CraftingBenchMarker>>,
+    furniture: Res<FurnitureAtlases>,
 ) {
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let (wx, wy) = crate::player::grid_to_world(12, 6);
+    let wc = grid_to_world_center(12, 6);
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 27,
+            },
+        );
+        s.custom_size = Some(Vec2::splat(TILE_SIZE));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.6, 0.5, 0.3),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        }
+    };
     commands.spawn((
         CraftingBenchMarker,
         WorldObject,
@@ -887,12 +1016,8 @@ pub fn spawn_crafting_bench(
             kind: InteractionKind::CraftingBench,
             label: "Crafting Bench".into(),
         },
-        Sprite {
-            color: Color::srgb(0.6, 0.5, 0.3),
-            custom_size: Some(Vec2::splat(TILE_SIZE)),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        sprite,
+        Transform::from_translation(Vec3::new(wc.x, wc.y, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
     ));
@@ -904,11 +1029,29 @@ pub fn spawn_carpenter_board(
     mut commands: Commands,
     player_state: Res<PlayerState>,
     query: Query<Entity, With<CarpenterBoardMarker>>,
+    furniture: Res<FurnitureAtlases>,
 ) {
     if player_state.current_map != MapId::Town || !query.is_empty() {
         return;
     }
-    let (wx, wy) = crate::player::grid_to_world(10, 8);
+    let wc = grid_to_world_center(10, 8);
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 20,
+            },
+        );
+        s.custom_size = Some(Vec2::splat(TILE_SIZE));
+        s
+    } else {
+        Sprite {
+            color: Color::srgb(0.65, 0.55, 0.35),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
+            ..default()
+        }
+    };
     commands.spawn((
         CarpenterBoardMarker,
         WorldObject,
@@ -916,12 +1059,8 @@ pub fn spawn_carpenter_board(
             kind: InteractionKind::BuildingUpgrade,
             label: "Building Upgrades".into(),
         },
-        Sprite {
-            color: Color::srgb(0.65, 0.55, 0.35),
-            custom_size: Some(Vec2::splat(TILE_SIZE)),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        sprite,
+        Transform::from_translation(Vec3::new(wc.x, wc.y, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
     ));

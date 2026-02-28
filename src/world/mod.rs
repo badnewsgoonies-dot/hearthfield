@@ -56,6 +56,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<CurrentMapId>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
+            .init_resource::<objects::FurnitureAtlases>()
             .init_resource::<chests::ChestInteraction>()
             .init_resource::<chests::ChestSpriteData>()
             .init_resource::<SeasonalTintApplied>()
@@ -519,7 +520,7 @@ fn load_map(
 
     // Spawn forageables for today
     let forage_points = map_def.forage_points.clone();
-    spawn_forageables(commands, &forage_points, season, day, world_map);
+    spawn_forageables(commands, &forage_points, season, day, world_map, object_atlases);
 
     // Store the map definition
     world_map.map_def = Some(map_def);
@@ -604,11 +605,14 @@ fn spawn_initial_map(
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut terrain_atlases: ResMut<TerrainAtlases>,
     mut object_atlases: ResMut<objects::ObjectAtlases>,
+    mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
 ) {
     // Ensure terrain atlases are loaded
     ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);
     // Ensure object atlases are loaded
     objects::ensure_object_atlases_loaded(&asset_server, &mut atlas_layouts, &mut object_atlases);
+    // Ensure furniture atlases are loaded
+    objects::ensure_furniture_atlases_loaded(&asset_server, &mut atlas_layouts, &mut furniture_atlases);
 
     load_map(
         &mut commands,
@@ -636,6 +640,7 @@ fn handle_map_transition(
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut terrain_atlases: ResMut<TerrainAtlases>,
     mut object_atlases: ResMut<objects::ObjectAtlases>,
+    mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
 ) {
     for event in events.read() {
         // Don't transition to the same map
@@ -655,6 +660,11 @@ fn handle_map_transition(
             &asset_server,
             &mut atlas_layouts,
             &mut object_atlases,
+        );
+        objects::ensure_furniture_atlases_loaded(
+            &asset_server,
+            &mut atlas_layouts,
+            &mut furniture_atlases,
         );
 
         // Load the new map
@@ -677,6 +687,7 @@ fn handle_day_end_forageables(
     mut day_events: EventReader<DayEndEvent>,
     forageable_query: Query<Entity, With<objects::Forageable>>,
     world_map: Res<WorldMap>,
+    object_atlases: Res<objects::ObjectAtlases>,
 ) {
     for event in day_events.read() {
         // Despawn existing forageables
@@ -693,6 +704,7 @@ fn handle_day_end_forageables(
                 event.season,
                 event.day,
                 &world_map,
+                &object_atlases,
             );
         }
     }
