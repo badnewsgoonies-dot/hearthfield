@@ -21,10 +21,12 @@ pub enum GameState {
     Dialogue,
     Shop,
     Fishing,
+    /// Reserved for future underground mine UI state.
     #[allow(dead_code)]
     Mining,
     Crafting,
     Inventory,
+    /// Reserved for future scripted cutscene sequences.
     #[allow(dead_code)]
     Cutscene,
 }
@@ -402,6 +404,36 @@ impl Inventory {
                     quantity: add,
                 });
                 remaining -= add;
+            }
+        }
+
+        remaining
+    }
+
+    /// Check if items can fit without modifying the inventory. Returns leftover count.
+    pub fn can_fit(&self, item_id: &str, quantity: u8, max_stack: u8) -> u8 {
+        let mut remaining = quantity;
+
+        // First pass: count space in existing stacks of the same item
+        for slot in self.slots.iter() {
+            if remaining == 0 {
+                break;
+            }
+            if let Some(ref s) = slot {
+                if s.item_id == item_id && s.quantity < max_stack {
+                    let space = max_stack - s.quantity;
+                    remaining = remaining.saturating_sub(space);
+                }
+            }
+        }
+
+        // Second pass: count empty slots
+        for slot in self.slots.iter() {
+            if remaining == 0 {
+                break;
+            }
+            if slot.is_none() {
+                remaining = remaining.saturating_sub(max_stack);
             }
         }
 

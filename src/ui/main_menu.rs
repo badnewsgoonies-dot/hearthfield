@@ -206,7 +206,9 @@ pub fn update_main_menu_visuals(
         }
     }
 
-    let mut status = status_query.single_mut();
+    let Ok(mut status) = status_query.get_single_mut() else {
+        return;
+    };
     status.0 = state.status_message.clone();
 }
 

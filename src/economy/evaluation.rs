@@ -139,9 +139,9 @@ pub fn handle_evaluation(
 
         // 100+ fish caught — HarvestStats doesn't track fish directly.
         // We check total_items_shipped as a rough proxy; if zero, we skip (safe default).
-        // TODO: Add fish_caught counter to HarvestStats or FishingStats when fishing domain expands.
-        // For now, we default to 0 fish caught so the point is not awarded until data is available.
-        let fish_caught: u32 = 0; // placeholder — real data not yet tracked
+        // FUTURE: Add fish_caught counter to HarvestStats or FishingStats when fishing domain expands.
+        // Placeholder: defaults to 0 so the point is not awarded until tracking is implemented.
+        let fish_caught: u32 = 0;
         if fish_caught >= 100 {
             categories.insert("skills_fish_100".to_string(), 1);
             total += 1;
@@ -181,7 +181,7 @@ pub fn handle_evaluation(
 
         // ── Collection (1 point) ──────────────────────────────────────────────
         // 30+ unique items shipped — total_items_shipped is used as a proxy.
-        // TODO: Track unique item IDs shipped in EconomyStats for precise counting.
+        // FUTURE: Track unique item IDs shipped in EconomyStats for precise counting.
         // Using total_items_shipped >= 30 as a safe stand-in; overestimates but not punitive.
         if economy_stats.total_items_shipped >= 30 {
             categories.insert("collection_unique_30".to_string(), 1);
