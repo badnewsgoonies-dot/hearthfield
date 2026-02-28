@@ -198,6 +198,7 @@ pub fn advance_dialogue(
     mut prompt_query: Query<&mut Text, (With<DialoguePrompt>, Without<DialogueText>)>,
     mut next_state: ResMut<NextState<GameState>>,
     mut end_event: EventWriter<DialogueEndEvent>,
+    cutscene_queue: Res<CutsceneQueue>,
 ) {
     if !player_input.interact {
         return;
@@ -210,7 +211,12 @@ pub fn advance_dialogue(
     if state.current_line >= state.lines.len() {
         // End dialogue
         end_event.send(DialogueEndEvent);
-        next_state.set(GameState::Playing);
+        // Return to Cutscene if a cutscene is in progress, else Playing.
+        if cutscene_queue.active {
+            next_state.set(GameState::Cutscene);
+        } else {
+            next_state.set(GameState::Playing);
+        }
         return;
     }
 

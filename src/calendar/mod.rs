@@ -130,6 +130,9 @@ pub fn trigger_sleep(
     player_state: Res<PlayerState>,
     mut day_end_events: EventWriter<DayEndEvent>,
     interaction_claimed: Res<InteractionClaimed>,
+    mut cutscene_queue: ResMut<CutsceneQueue>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut fade: ResMut<crate::ui::transitions::ScreenFade>,
 ) {
     if !player_input.interact {
         return;
@@ -144,16 +147,60 @@ pub fn trigger_sleep(
         return;
     }
 
+    // Don't allow sleeping while a cutscene is already running.
+    if cutscene_queue.active {
+        return;
+    }
+
     info!(
         "[Calendar] Player triggered sleep at {}:{:02} Day {} {:?} Year {}",
         calendar.hour, calendar.minute, calendar.day, calendar.season, calendar.year
     );
 
+    // Compute next day label BEFORE sending DayEndEvent (calendar not yet advanced).
+    let next_day = if calendar.day >= DAYS_PER_SEASON { 1 } else { calendar.day + 1 };
+    let next_season = if calendar.day >= DAYS_PER_SEASON {
+        calendar.season.next()
+    } else {
+        calendar.season
+    };
+    let next_year = if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter) {
+        calendar.year + 1
+    } else {
+        calendar.year
+    };
+
+    // Send DayEndEvent — all backend systems (farming, economy, etc.) process
+    // their end-of-day logic this frame, while we're still in Playing state.
     day_end_events.send(DayEndEvent {
         day: calendar.day,
         season: calendar.season,
         year: calendar.year,
     });
+
+    // Build sleep transition cutscene.
+    let day_label = format!("Day {} - {:?}, Year {}", next_day, next_season, next_year);
+    let mut steps = std::collections::VecDeque::new();
+    steps.push_back(CutsceneStep::FadeOut(1.0));
+    steps.push_back(CutsceneStep::Wait(0.5));
+
+    // Season change announcement.
+    if calendar.day >= DAYS_PER_SEASON {
+        steps.push_back(CutsceneStep::ShowText(
+            format!("{:?} has arrived!", next_season),
+            3.0,
+        ));
+    }
+
+    steps.push_back(CutsceneStep::ShowText(day_label, 2.5));
+    steps.push_back(CutsceneStep::FadeIn(1.5));
+
+    cutscene_queue.steps = steps;
+    cutscene_queue.active = true;
+    cutscene_queue.step_timer = 0.0;
+    // Ensure fade starts from current alpha (visible).
+    fade.active = true;
+    next_state.set(GameState::Cutscene);
 }
 
 // ─── Main time-tick system ────────────────────────────────────────────────────
@@ -172,23 +219,54 @@ fn tick_time(
     mut calendar: ResMut<Calendar>,
     mut day_end_writer: EventWriter<DayEndEvent>,
     mut prev_weather: ResMut<PreviousDayWeather>,
+    mut cutscene_queue: ResMut<CutsceneQueue>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut fade: ResMut<crate::ui::transitions::ScreenFade>,
 ) {
     let delta = time.delta_secs();
     calendar.elapsed_real_seconds += delta;
 
     // How many real seconds equal one game-minute?
-    // time_scale game-minutes per real-second → 1 game-minute = 1/time_scale real-seconds
-    // Guard against zero / negative time_scale
     let secs_per_game_minute = if calendar.time_scale > 0.0 {
         1.0 / calendar.time_scale
     } else {
         1.0 / 10.0
     };
 
+    // Record state before advancing so we can detect auto-2AM rollover.
+    let day_before = calendar.day;
+    let season_before = calendar.season;
+
     // Advance as many game-minutes as have accumulated
     while calendar.elapsed_real_seconds >= secs_per_game_minute {
         calendar.elapsed_real_seconds -= secs_per_game_minute;
         advance_one_minute(&mut calendar, &mut day_end_writer, &mut prev_weather);
+    }
+
+    // If the day changed during this tick (auto 2AM rollover), build a
+    // cutscene transition so the player sees a day card instead of the
+    // calendar silently advancing.
+    if calendar.day != day_before && !cutscene_queue.active {
+        let day_label = format!("Day {} - {:?}, Year {}", calendar.day, calendar.season, calendar.year);
+        let mut steps = std::collections::VecDeque::new();
+        steps.push_back(CutsceneStep::FadeOut(1.0));
+        steps.push_back(CutsceneStep::Wait(0.5));
+
+        if calendar.season != season_before {
+            steps.push_back(CutsceneStep::ShowText(
+                format!("{:?} has arrived!", calendar.season),
+                3.0,
+            ));
+        }
+
+        steps.push_back(CutsceneStep::ShowText(day_label, 2.5));
+        steps.push_back(CutsceneStep::FadeIn(1.5));
+
+        cutscene_queue.steps = steps;
+        cutscene_queue.active = true;
+        cutscene_queue.step_timer = 0.0;
+        fade.active = true;
+        next_state.set(GameState::Cutscene);
     }
 }
 

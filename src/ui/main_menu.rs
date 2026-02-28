@@ -218,6 +218,8 @@ pub fn main_menu_navigation(
     mut new_game_events: EventWriter<NewGameEvent>,
     mut load_events: EventWriter<LoadRequestEvent>,
     mut app_exit: EventWriter<AppExit>,
+    mut cutscene_queue: ResMut<CutsceneQueue>,
+    mut fade: ResMut<super::transitions::ScreenFade>,
 ) {
     let Some(ref mut state) = state else { return };
     let option_count = current_option_count(state.mode);
@@ -252,6 +254,17 @@ pub fn main_menu_navigation(
                         farm_name: "Hearthfield Farm".to_string(),
                         active_slot: 0,
                     });
+                    // Set screen to black before entering Playing so the
+                    // farm spawns invisibly behind the fade overlay.
+                    fade.alpha = 1.0;
+                    fade.target_alpha = 1.0;
+                    fade.active = false;
+                    // Pre-populate the cutscene queue with the intro sequence.
+                    // start_pending_cutscene (OnEnter Playing) will detect this
+                    // and redirect to Cutscene state.
+                    cutscene_queue.steps = super::intro_sequence::build_intro_sequence();
+                    cutscene_queue.active = true;
+                    cutscene_queue.step_timer = 0.0;
                     next_state.set(GameState::Playing);
                 }
                 1 => {

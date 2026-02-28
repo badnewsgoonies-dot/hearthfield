@@ -2,10 +2,12 @@ mod audio;
 pub mod building_upgrade_menu;
 mod chest_screen;
 mod crafting_screen;
+pub mod cutscene_runner;
 mod debug_overlay;
-mod dialogue_box;
+pub mod dialogue_box;
 mod hud;
 mod input;
+pub mod intro_sequence;
 mod inventory_screen;
 mod main_menu;
 pub mod menu_input;
@@ -13,8 +15,8 @@ pub mod menu_kit;
 mod pause_menu;
 mod shop_screen;
 mod toast;
-mod transitions;
-mod tutorial;
+pub mod transitions;
+pub mod tutorial;
 
 use crate::shared::*;
 use bevy::prelude::*;
@@ -55,14 +57,39 @@ impl Plugin for UiPlugin {
                 .chain(),
         );
 
-        // ─── DIALOGUE LISTENER — runs in Playing to catch events ───
+        // ─── CUTSCENE RUNNER ───
+        app.init_resource::<cutscene_runner::CutsceneFlags>();
+        app.add_systems(
+            OnEnter(GameState::Cutscene),
+            cutscene_runner::on_enter_cutscene,
+        );
+        app.add_systems(
+            OnExit(GameState::Cutscene),
+            cutscene_runner::on_exit_cutscene,
+        );
+        app.add_systems(
+            Update,
+            cutscene_runner::run_cutscene_queue
+                .run_if(in_state(GameState::Cutscene)),
+        );
+        // When entering Playing, check if a cutscene queue was pre-populated
+        // (e.g. intro sequence from main menu) and redirect to Cutscene state.
+        app.add_systems(
+            OnEnter(GameState::Playing),
+            cutscene_runner::start_pending_cutscene,
+        );
+
+        // ─── DIALOGUE LISTENER — runs in Playing AND Cutscene to catch events ───
         app.add_systems(
             Update,
             (
                 dialogue_box::listen_for_dialogue_start,
                 dialogue_box::handle_dialogue_end,
             )
-                .run_if(in_state(GameState::Playing)),
+                .run_if(
+                    in_state(GameState::Playing)
+                        .or(in_state(GameState::Cutscene)),
+                ),
         );
 
         // ─── MAIN MENU ───
@@ -91,6 +118,7 @@ impl Plugin for UiPlugin {
                 hud::update_tool_display,
                 hud::update_hotbar,
                 hud::update_map_name,
+                hud::update_objective_display,
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -116,6 +144,7 @@ impl Plugin for UiPlugin {
             (
                 tutorial::check_tutorial_hints,
                 tutorial::forward_hint_to_toast,
+                tutorial::check_objectives,
             )
                 .chain()
                 .run_if(in_state(GameState::Playing)),

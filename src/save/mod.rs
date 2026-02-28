@@ -719,6 +719,12 @@ fn handle_new_game(
         *ext.play_stats = PlayStats::default();
         *ext.building_levels = BuildingLevels::default();
 
+        // Starter seeds — enough for one small plot on Day 1
+        inventory.try_add("turnip_seeds", 15, 99);
+        inventory.try_add("potato_seeds", 5, 99);
+        // One food item so the player can eat on Day 1
+        inventory.try_add("bread", 3, 99);
+
         info!("New game initialized.");
     }
 }
