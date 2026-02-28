@@ -3,3 +3,4 @@
 logs/
 *.db
 .DS_Store
+.claude/

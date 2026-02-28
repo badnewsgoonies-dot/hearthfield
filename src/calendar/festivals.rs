@@ -202,8 +202,9 @@ pub fn collect_eggs(
     // Tick the timer, then immediately read whether it finished, before
     // doing anything else with `festival`.  This avoids overlapping
     // mutable borrows.
-    festival.timer.as_mut().unwrap().tick(time.delta());
-    let timer_finished = festival.timer.as_ref().unwrap().just_finished();
+    let Some(timer) = festival.timer.as_mut() else { return };
+    timer.tick(time.delta());
+    let timer_finished = timer.just_finished();
 
     // Check player proximity to eggs.
     if let Ok(player_transform) = player_query.get_single() {
@@ -293,7 +294,7 @@ pub fn start_luau(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
+    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
         (slot.item_id.clone(), slot.quantity)
     });
 
@@ -390,7 +391,7 @@ pub fn start_harvest_festival(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
+    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
         (slot.item_id.clone(), slot.quantity)
     });
 
@@ -572,7 +573,7 @@ pub fn winter_star_give_gift(
 
     // Check that the player is holding an item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
+    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
         slot.item_id.clone()
     });
 

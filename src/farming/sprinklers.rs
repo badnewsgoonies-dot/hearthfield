@@ -165,10 +165,8 @@ pub fn auto_water_sprinklers(
         return;
     }
 
-    // Snapshot sprinkler list to avoid borrow issues.
-    let sprinklers: Vec<PlacedSprinkler> = sprinkler_state.sprinklers.clone();
-
-    for sp in &sprinklers {
+    // Iterate sprinkler list by reference (separate resource from farm_state).
+    for sp in &sprinkler_state.sprinklers {
         let affected = sprinkler_affected_tiles(sp.kind, sp.tile_x, sp.tile_y);
         for tile_pos in affected {
             let current_soil = farm_state.soil.get(&tile_pos).copied();

@@ -10,6 +10,20 @@ use super::maps::{WorldObjectKind, ObjectPlacement};
 use super::WorldMap;
 
 // ═══════════════════════════════════════════════════════════════════════
+// HASH PRIMES — used for deterministic pseudo-random seeding
+// ═══════════════════════════════════════════════════════════════════════
+const HASH_PRIME_A: usize = 31;
+const HASH_PRIME_B: usize = 17;
+const HASH_PRIME_C: usize = 7;
+const HASH_PRIME_D: usize = 13;
+const HASH_PRIME_E: usize = 97;
+const HASH_PRIME_F: usize = 53;
+const HASH_PRIME_G: usize = 41;
+const HASH_PRIME_H: usize = 67;
+const HASH_PRIME_I: usize = 29;
+const HASH_PRIME_J: usize = 23;
+
+// ═══════════════════════════════════════════════════════════════════════
 // OBJECT ATLAS RESOURCE
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -493,7 +507,7 @@ pub fn spawn_forageables(
     // Spawn on roughly 40-60% of available points, varying by day
     for (i, &(gx, gy)) in forage_points.iter().enumerate() {
         // Simple hash to determine if this point spawns today
-        let hash = ((day as usize).wrapping_mul(31).wrapping_add(i.wrapping_mul(17))) % 10;
+        let hash = ((day as usize).wrapping_mul(HASH_PRIME_A).wrapping_add(i.wrapping_mul(HASH_PRIME_B))) % 10;
         if hash > 5 {
             continue; // ~40% spawn rate
         }
@@ -504,7 +518,7 @@ pub fn spawn_forageables(
         }
 
         // Pick which forageable
-        let idx = ((day as usize).wrapping_mul(7).wrapping_add(i.wrapping_mul(13))) % forageables.len();
+        let idx = ((day as usize).wrapping_mul(HASH_PRIME_C).wrapping_add(i.wrapping_mul(HASH_PRIME_D))) % forageables.len();
         let (item_id, color) = &forageables[idx];
 
         commands.spawn((
@@ -591,7 +605,7 @@ pub fn spawn_daily_weeds(
         }
 
         // Determine how many weeds to spawn (2-4), using day as pseudo-random seed
-        let weed_count = 2 + ((event.day as usize).wrapping_mul(13).wrapping_add(event.season.index())) % 3;
+        let weed_count = 2 + ((event.day as usize).wrapping_mul(HASH_PRIME_D).wrapping_add(event.season.index())) % 3;
 
         let farm_w = 20i32;
         let farm_h = 20i32;
@@ -605,12 +619,12 @@ pub fn spawn_daily_weeds(
 
             // Simple deterministic pseudo-random based on day, season, and attempt index
             let hash = (event.day as usize)
-                .wrapping_mul(31)
-                .wrapping_add(event.season.index().wrapping_mul(97))
-                .wrapping_add(attempt.wrapping_mul(53))
-                .wrapping_add(event.year as usize * 7);
+                .wrapping_mul(HASH_PRIME_A)
+                .wrapping_add(event.season.index().wrapping_mul(HASH_PRIME_E))
+                .wrapping_add(attempt.wrapping_mul(HASH_PRIME_F))
+                .wrapping_add(event.year as usize * HASH_PRIME_C);
             let x = (hash % farm_w as usize) as i32;
-            let y = (((hash / farm_w as usize).wrapping_mul(17).wrapping_add(attempt * 3)) % farm_h as usize) as i32;
+            let y = (((hash / farm_w as usize).wrapping_mul(HASH_PRIME_B).wrapping_add(attempt * 3)) % farm_h as usize) as i32;
 
             // Skip if tile is solid (water, objects, etc.)
             if world_map.is_solid(x, y) {
@@ -733,11 +747,11 @@ pub fn regrow_trees_on_season_change(
 
             // Deterministic pseudo-random position
             let hash = (event.year as usize)
-                .wrapping_mul(41)
-                .wrapping_add(event.new_season.index().wrapping_mul(67))
-                .wrapping_add(attempt.wrapping_mul(29));
+                .wrapping_mul(HASH_PRIME_G)
+                .wrapping_add(event.new_season.index().wrapping_mul(HASH_PRIME_H))
+                .wrapping_add(attempt.wrapping_mul(HASH_PRIME_I));
             let x = (hash % farm_w as usize) as i32;
-            let y = (((hash / farm_w as usize).wrapping_mul(23).wrapping_add(attempt * 7)) % farm_h as usize) as i32;
+            let y = (((hash / farm_w as usize).wrapping_mul(HASH_PRIME_J).wrapping_add(attempt * HASH_PRIME_C)) % farm_h as usize) as i32;
 
             // Skip solid, cropped, tilled, or occupied tiles
             if world_map.is_solid(x, y) {

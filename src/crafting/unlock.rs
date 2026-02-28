@@ -214,9 +214,10 @@ pub fn check_friendship_recipe_unlocks(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// UNUSED IDS SILENCER (ensures all constants compile without dead_code warnings)
+// Ensure exported recipe constants and constructors are compiled even when
+// not yet referenced by other crates. Remove when consumers exist.
 // ──────────────────────────────────────────────────────────────────────────────
-#[allow(dead_code)]
+#[cfg(test)]
 fn _use_constants() {
     let _ = ALL_CRAFTING_RECIPE_IDS;
     let _ = ALL_COOKING_RECIPE_IDS;

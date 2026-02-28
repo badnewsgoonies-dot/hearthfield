@@ -164,12 +164,8 @@ pub fn handle_buy(
             continue;
         }
 
-        // Check inventory space.
-        let leftover = {
-            // We do a dry-run using a clone — the real add happens below.
-            let mut inv_clone = inventory.clone();
-            inv_clone.try_add(&ev.item_id, quantity, item_def.stack_size)
-        };
+        // Check inventory space (read-only, no clone needed).
+        let leftover = inventory.can_fit(&ev.item_id, quantity, item_def.stack_size);
         if leftover > 0 {
             info!(
                 "[Economy] Not enough inventory space to buy {} × '{}'",

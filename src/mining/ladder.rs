@@ -58,7 +58,8 @@ pub fn handle_ladder_interaction(
             }
 
             // Unlock elevator every 5 floors
-            if next_floor % 5 == 0 && !mine_state.elevator_floors.contains(&next_floor) {
+            const ELEVATOR_FLOOR_INTERVAL: u8 = 5;
+            if next_floor % ELEVATOR_FLOOR_INTERVAL == 0 && !mine_state.elevator_floors.contains(&next_floor) {
                 mine_state.elevator_floors.push(next_floor);
                 mine_state.elevator_floors.sort();
             }

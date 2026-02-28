@@ -267,7 +267,7 @@ pub fn apply_buff_effects(
         if original_max_stamina.is_none() {
             *original_max_stamina = Some(player_state.max_stamina);
         }
-        let base = original_max_stamina.unwrap();
+        let base = original_max_stamina.expect("set to Some on line above");
         let desired = base + max_stamina_bonus;
         // Only update when the value actually needs changing to avoid
         // constantly dirtying the resource.

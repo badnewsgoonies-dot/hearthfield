@@ -2,6 +2,9 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::UiFontHandle;
 
+/// Number of columns in the inventory grid (3 rows × 12 columns = 36 slots).
+const INVENTORY_COLUMNS: usize = 12;
+
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════
@@ -110,8 +113,8 @@ pub fn spawn_inventory_screen(mut commands: Commands, font_handle: Res<UiFontHan
                                 },
                             ))
                             .with_children(|row_node| {
-                                for col in 0..12 {
-                                    let index = row * 12 + col;
+                                for col in 0..INVENTORY_COLUMNS {
+                                    let index = row * INVENTORY_COLUMNS + col;
                                     row_node
                                         .spawn((
                                             InventoryGridSlot { index },
@@ -239,27 +242,27 @@ pub fn inventory_navigation(
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
     let cur = ui_state.cursor_slot;
-    let col = cur % 12;
-    let row = cur / 12;
+    let col = cur % INVENTORY_COLUMNS;
+    let row = cur / INVENTORY_COLUMNS;
 
     if action.move_right {
-        if col < 11 {
-            ui_state.cursor_slot = row * 12 + col + 1;
+        if col < INVENTORY_COLUMNS - 1 {
+            ui_state.cursor_slot = row * INVENTORY_COLUMNS + col + 1;
         }
     }
     if action.move_left {
         if col > 0 {
-            ui_state.cursor_slot = row * 12 + col - 1;
+            ui_state.cursor_slot = row * INVENTORY_COLUMNS + col - 1;
         }
     }
     if action.move_down {
         if row < 2 {
-            ui_state.cursor_slot = (row + 1) * 12 + col;
+            ui_state.cursor_slot = (row + 1) * INVENTORY_COLUMNS + col;
         }
     }
     if action.move_up {
         if row > 0 {
-            ui_state.cursor_slot = (row - 1) * 12 + col;
+            ui_state.cursor_slot = (row - 1) * INVENTORY_COLUMNS + col;
         }
     }
 }

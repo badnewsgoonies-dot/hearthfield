@@ -42,7 +42,7 @@ pub fn detect_seed_use(
 
     // Get the selected item from inventory.
     let slot_idx = inventory.selected_slot;
-    let Some(slot) = inventory.slots[slot_idx].as_ref() else {
+    let Some(slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
         return;
     };
 

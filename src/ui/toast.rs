@@ -144,19 +144,17 @@ pub fn update_toasts(
             }
         } else {
             // Tick fade timer.
-            let finished = {
-                let ft = toast.fade_timer.as_mut().unwrap();
-                ft.tick(time.delta());
-                ft.finished()
-            };
+            let Some(fade_timer) = toast.fade_timer.as_mut() else { continue };
+            fade_timer.tick(time.delta());
+            let finished = fade_timer.finished();
 
             if finished {
                 // Fully faded — despawn.
                 commands.entity(entity).despawn_recursive();
             } else {
                 // Reduce alpha based on how far through the fade we are.
-                let elapsed = toast.fade_timer.as_ref().unwrap().elapsed_secs();
-                let duration = toast.fade_timer.as_ref().unwrap().duration().as_secs_f32();
+                let elapsed = fade_timer.elapsed_secs();
+                let duration = fade_timer.duration().as_secs_f32();
                 let progress = (elapsed / duration).clamp(0.0, 1.0);
                 let alpha = 1.0 - progress;
 

@@ -507,12 +507,10 @@ fn load_map(
     }
 
     // Spawn world objects with atlas sprites
-    let object_placements = map_def.objects.clone();
-    spawn_world_objects(commands, &object_placements, world_map, object_atlases);
+    spawn_world_objects(commands, &map_def.objects, world_map, object_atlases);
 
     // Spawn forageables for today
-    let forage_points = map_def.forage_points.clone();
-    spawn_forageables(commands, &forage_points, season, day, world_map);
+    spawn_forageables(commands, &map_def.forage_points, season, day, world_map);
 
     // Store the map definition
     world_map.map_def = Some(map_def);
