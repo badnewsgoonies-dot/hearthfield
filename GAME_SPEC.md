@@ -144,14 +144,23 @@ All sprites loaded as texture atlases with Bevy's asset system.
 
 ### 11. UI System (`ui`)
 
-- HUD: time/date display, gold, stamina bar, current tool
-- Inventory grid with drag-and-drop
-- Dialogue box: bottom-screen, portrait + text + advance prompt
-- Shop interface: buy/sell with item icons and prices
-- Crafting menu: recipe list with material requirements
-- Pause menu: save, settings, quit
-- Map screen: shows current area
-- NPC friendship overview: heart meters
+7 interactive menus, plus HUD overlay and toast notifications:
+
+- **Main Menu**: title screen with New Game, Load Game, Quit (GameState::MainMenu)
+- **Pause Menu**: save, settings, quit (GameState::Paused)
+- **Inventory Screen**: inventory grid with cursor navigation (GameState::Inventory)
+- **Shop Screen**: buy/sell with item icons and prices (GameState::Shop)
+- **Crafting Screen**: recipe list with material requirements (GameState::Crafting)
+- **Dialogue Box**: bottom-screen, portrait + text + advance prompt (GameState::Dialogue)
+- **Chest Screen**: storage chest access overlay (reactive overlay during GameState::Playing)
+
+Additional UI elements:
+
+- HUD: time/date display, gold, stamina bar, current tool, hotbar
+- Toast notifications: gold changes, season changes, item pickups
+- Tutorial hints: contextual guidance for new players
+- Map screen: shows current area (planned)
+- NPC friendship overview: heart meters (planned)
 
 ### 12. Save & Settings (`save`)
 
