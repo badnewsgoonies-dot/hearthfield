@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::{
     FarmEntities, FarmingAtlases, SoilTileEntity, CropTileEntity, FarmObjectEntity,
-    grid_to_world, crop_stage_color,
+    crop_stage_color,
     soil::soil_color,
 };
 
@@ -102,7 +102,8 @@ pub fn sync_soil_sprites(
         .collect();
 
     for (pos, state) in missing {
-        let translation = grid_to_world(pos.0, pos.1);
+        // Soil overlays are area fills — use corner-origin to match ground tiles
+        let translation = Vec3::new(pos.0 as f32 * TILE_SIZE, pos.1 as f32 * TILE_SIZE, Z_FARM_OVERLAY);
 
         let entity = if atlases.loaded {
             // Preferred path: use a texture atlas sprite.
@@ -258,7 +259,7 @@ pub fn sync_crop_sprites(
             .map(|d| d.growth_days.len() as u8)
             .unwrap_or(4);
 
-        let translation = grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
+        let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
 
         let entity = if atlases.loaded && !crop.dead {
             // Preferred path: texture atlas sprite.
@@ -369,7 +370,7 @@ pub fn sync_farm_objects_sprites(
         .collect();
 
     for (pos, obj) in missing {
-        let translation = grid_to_world(pos.0, pos.1);
+        let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY);
 
         let entity = if furniture.loaded {
             if let Some(idx) = farm_object_atlas_index(&obj) {

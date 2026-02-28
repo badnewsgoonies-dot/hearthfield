@@ -21,8 +21,9 @@ pub fn spawn_player(
         return;
     }
 
-    let world_x = SPAWN_GRID_X as f32 * TILE_SIZE + TILE_SIZE * 0.5;
-    let world_y = SPAWN_GRID_Y as f32 * TILE_SIZE + TILE_SIZE * 0.5;
+    let spawn = grid_to_world_center(SPAWN_GRID_X, SPAWN_GRID_Y);
+    let world_x = spawn.x;
+    let world_y = spawn.y;
 
     // Load the character spritesheet.
     // Sheet is 192×192, laid out as a 4×4 grid of 48×48 frames:

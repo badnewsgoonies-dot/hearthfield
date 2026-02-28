@@ -294,11 +294,12 @@ pub fn spawn_world_objects(
             );
             sprite.custom_size = Some(size);
 
+            let wc = grid_to_world_center(placement.x, placement.y);
             commands.spawn((
                 sprite,
                 Transform::from_translation(Vec3::new(
-                    placement.x as f32 * TILE_SIZE,
-                    placement.y as f32 * TILE_SIZE + y_offset,
+                    wc.x,
+                    wc.y + y_offset,
                     Z_ENTITY_BASE,
                 )),
                 WorldObject,
@@ -307,6 +308,7 @@ pub fn spawn_world_objects(
             ));
         } else {
             // Fallback: colored rectangle if atlases failed to load
+            let wc = grid_to_world_center(placement.x, placement.y);
             commands.spawn((
                 Sprite {
                     color: kind.color(),
@@ -314,8 +316,8 @@ pub fn spawn_world_objects(
                     ..default()
                 },
                 Transform::from_translation(Vec3::new(
-                    placement.x as f32 * TILE_SIZE,
-                    placement.y as f32 * TILE_SIZE + y_offset,
+                    wc.x,
+                    wc.y + y_offset,
                     Z_ENTITY_BASE,
                 )),
                 WorldObject,
@@ -436,11 +438,12 @@ pub fn handle_tool_use_on_objects(
                                 stump_sprite.custom_size =
                                     Some(WorldObjectKind::Stump.sprite_size());
 
+                                let stump_wc = grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
                                 commands.spawn((
                                     stump_sprite,
                                     Transform::from_translation(Vec3::new(
-                                        obj_data.grid_x as f32 * TILE_SIZE,
-                                        obj_data.grid_y as f32 * TILE_SIZE,
+                                        stump_wc.x,
+                                        stump_wc.y,
                                         Z_ENTITY_BASE,
                                     )),
                                     WorldObject,
@@ -449,6 +452,7 @@ pub fn handle_tool_use_on_objects(
                                 ));
                             } else {
                                 // Fallback: colored rectangle
+                                let stump_wc = grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
                                 commands.spawn((
                                     Sprite {
                                         color: WorldObjectKind::Stump.color(),
@@ -456,8 +460,8 @@ pub fn handle_tool_use_on_objects(
                                         ..default()
                                     },
                                     Transform::from_translation(Vec3::new(
-                                        obj_data.grid_x as f32 * TILE_SIZE,
-                                        obj_data.grid_y as f32 * TILE_SIZE,
+                                        stump_wc.x,
+                                        stump_wc.y,
                                         Z_ENTITY_BASE,
                                     )),
                                     WorldObject,
@@ -580,6 +584,7 @@ pub fn spawn_forageables(
         let idx = ((day as usize).wrapping_mul(7).wrapping_add(i.wrapping_mul(13))) % forageables.len();
         let (item_id, color) = &forageables[idx];
 
+        let fwc = grid_to_world_center(gx, gy);
         let sprite = if let Some(atlas_idx) = forageable_atlas_index(item_id) {
             if object_atlases.loaded {
                 let mut s = Sprite::from_atlas_image(
@@ -609,8 +614,8 @@ pub fn spawn_forageables(
         commands.spawn((
             sprite,
             Transform::from_translation(Vec3::new(
-                gx as f32 * TILE_SIZE,
-                gy as f32 * TILE_SIZE,
+                fwc.x,
+                fwc.y,
                 Z_ENTITY_BASE,
             )),
             WorldObject,
@@ -729,8 +734,7 @@ pub fn spawn_daily_weeds(
             }
 
             // Spawn the weed entity
-            let wx = x as f32 * TILE_SIZE;
-            let wy = y as f32 * TILE_SIZE;
+            let wwc = grid_to_world_center(x, y);
             let sprite = if object_atlases.loaded {
                 let mut s = Sprite::from_atlas_image(
                     object_atlases.grass_biome_image.clone(),
@@ -750,8 +754,8 @@ pub fn spawn_daily_weeds(
             };
             commands.spawn((
                 sprite,
-                Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
-                LogicalPosition(Vec2::new(wx, wy)),
+                Transform::from_translation(Vec3::new(wwc.x, wwc.y, Z_ENTITY_BASE)),
+                LogicalPosition(Vec2::new(wwc.x, wwc.y)),
                 YSorted,
                 Weed {
                     grid_x: x,
@@ -890,11 +894,12 @@ pub fn regrow_trees_on_season_change(
                 );
                 sprite.custom_size = Some(size);
 
+                let rwc = grid_to_world_center(x, y);
                 commands.spawn((
                     sprite,
                     Transform::from_translation(Vec3::new(
-                        x as f32 * TILE_SIZE,
-                        y as f32 * TILE_SIZE + y_offset,
+                        rwc.x,
+                        rwc.y + y_offset,
                         Z_ENTITY_BASE,
                     )),
                     WorldObject,
@@ -902,6 +907,7 @@ pub fn regrow_trees_on_season_change(
                     data,
                 ));
             } else {
+                let rwc = grid_to_world_center(x, y);
                 commands.spawn((
                     Sprite {
                         color: kind.color(),
@@ -909,8 +915,8 @@ pub fn regrow_trees_on_season_change(
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(
-                        x as f32 * TILE_SIZE,
-                        y as f32 * TILE_SIZE + y_offset,
+                        rwc.x,
+                        rwc.y + y_offset,
                         Z_ENTITY_BASE,
                     )),
                     WorldObject,
@@ -942,7 +948,7 @@ pub fn spawn_shipping_bin(
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let (wx, wy) = crate::player::grid_to_world(14, 6);
+    let wc = grid_to_world_center(14, 6);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_atlas_image(
             furniture.image.clone(),
@@ -968,7 +974,7 @@ pub fn spawn_shipping_bin(
             label: "Ship Items".into(),
         },
         sprite,
-        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        Transform::from_translation(Vec3::new(wc.x, wc.y, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
     ));
@@ -985,7 +991,7 @@ pub fn spawn_crafting_bench(
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let (wx, wy) = crate::player::grid_to_world(12, 6);
+    let wc = grid_to_world_center(12, 6);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_atlas_image(
             furniture.image.clone(),
@@ -1011,7 +1017,7 @@ pub fn spawn_crafting_bench(
             label: "Crafting Bench".into(),
         },
         sprite,
-        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        Transform::from_translation(Vec3::new(wc.x, wc.y, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
     ));
@@ -1028,7 +1034,7 @@ pub fn spawn_carpenter_board(
     if player_state.current_map != MapId::Town || !query.is_empty() {
         return;
     }
-    let (wx, wy) = crate::player::grid_to_world(10, 8);
+    let wc = grid_to_world_center(10, 8);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_atlas_image(
             furniture.image.clone(),
@@ -1054,7 +1060,7 @@ pub fn spawn_carpenter_board(
             label: "Building Upgrades".into(),
         },
         sprite,
-        Transform::from_translation(Vec3::new(wx, wy, Z_ENTITY_BASE)),
+        Transform::from_translation(Vec3::new(wc.x, wc.y, Z_ENTITY_BASE)),
         YSorted,
         Visibility::default(),
     ));

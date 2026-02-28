@@ -1902,6 +1902,39 @@ fn facing_delta(facing: Facing) -> (i32, i32) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// COORDINATE CONVERSION (one true convention)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Convert grid coordinates to world-space position (tile CENTER).
+/// This is the ONLY sanctioned grid→world conversion in the codebase.
+pub fn grid_to_world_center(gx: i32, gy: i32) -> Vec2 {
+    Vec2::new(
+        gx as f32 * TILE_SIZE + TILE_SIZE * 0.5,
+        gy as f32 * TILE_SIZE + TILE_SIZE * 0.5,
+    )
+}
+
+/// Convert world-space position to grid coordinates.
+/// Uses floor() — a point at (15.9, 31.1) with TILE_SIZE=16 is tile (0, 1).
+/// This is the ONLY sanctioned world→grid conversion in the codebase.
+pub fn world_to_grid(wx: f32, wy: f32) -> IVec2 {
+    IVec2::new(
+        (wx / TILE_SIZE).floor() as i32,
+        (wy / TILE_SIZE).floor() as i32,
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DEBUG OVERLAY
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Toggle for debug overlay visibility.
+#[derive(Resource, Default)]
+pub struct DebugOverlayState {
+    pub visible: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

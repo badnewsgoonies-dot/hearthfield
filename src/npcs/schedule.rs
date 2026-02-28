@@ -80,8 +80,9 @@ pub fn update_npc_schedules(
 
         // Only update target if on the right map
         if entry.map == current_map {
-            let target_x = entry.x as f32 * TILE_SIZE;
-            let target_y = -(entry.y as f32 * TILE_SIZE);
+            let wc = grid_to_world_center(entry.x, entry.y);
+            let target_x = wc.x;
+            let target_y = wc.y;
 
             // Only set moving if not already at target
             let dx = target_x - logical_pos.0.x;

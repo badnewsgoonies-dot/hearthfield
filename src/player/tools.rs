@@ -75,7 +75,8 @@ pub fn tool_use(
     }
 
     // Calculate target tile: player's current grid + facing offset.
-    let (px, py) = super::world_to_grid(logical_pos.0.x, logical_pos.0.y);
+    let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+    let (px, py) = (g.x, g.y);
     let (dx, dy) = facing_offset(&movement.facing);
     let target_x = px + dx;
     let target_y = py + dy;

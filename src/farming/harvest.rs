@@ -36,8 +36,9 @@ pub fn detect_harvest_input(
     };
 
     // Convert world position to grid.
-    let grid_x = (logical_pos.0.x / TILE_SIZE).round() as i32;
-    let grid_y = (logical_pos.0.y / TILE_SIZE).round() as i32;
+    let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+    let grid_x = g.x;
+    let grid_y = g.y;
 
     harvest_events.send(HarvestAttemptEvent { grid_x, grid_y });
 }
@@ -212,7 +213,7 @@ fn update_crop_entity_color(
     } else {
         // Entity doesn't exist yet — spawn a placeholder; sync_crop_sprites
         // will upgrade it to an atlas sprite on the next frame.
-        let translation = super::grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
+        let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
         let color = super::crop_stage_color(crop.current_stage, _def.growth_days.len() as u8, crop.dead);
         let entity = commands.spawn((
             Sprite {
