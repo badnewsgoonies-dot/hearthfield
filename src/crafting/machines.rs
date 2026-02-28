@@ -534,7 +534,7 @@ pub fn handle_place_machine(
         let world_y = event.grid_y as f32 * TILE_SIZE;
 
         // Spawn machine entity
-        let display_label = format!("{}", machine_type.display_name());
+        let display_label = machine_type.display_name().to_string();
         let machine_sprite = if furniture.loaded {
             let mut s = Sprite::from_atlas_image(
                 furniture.image.clone(),

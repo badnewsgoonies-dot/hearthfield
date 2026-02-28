@@ -1907,7 +1907,7 @@ fn facing_delta(facing: Facing) -> (i32, i32) {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Convert grid coordinates to world-space position (tile CENTER).
-/// This is the ONLY sanctioned grid→world conversion in the codebase.
+/// Preferred grid→world conversion; use for entity placement and collision checks.
 pub fn grid_to_world_center(gx: i32, gy: i32) -> Vec2 {
     Vec2::new(
         gx as f32 * TILE_SIZE + TILE_SIZE * 0.5,

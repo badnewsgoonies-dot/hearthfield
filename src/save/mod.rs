@@ -10,6 +10,7 @@ use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::shared::*;
+use crate::economy::buildings::BuildingLevels;
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC TYPES
@@ -160,9 +161,10 @@ struct ExtendedResources<'w> {
     pub achievements: Res<'w, Achievements>,
     pub tutorial_state: Res<'w, TutorialState>,
     pub play_stats: Res<'w, PlayStats>,
+    pub building_levels: Res<'w, BuildingLevels>,
 }
 
-/// Mutable bundle of the 10 extended resources (for loading / new game).
+/// Mutable bundle of the extended resources (for loading / new game).
 #[derive(SystemParam)]
 struct ExtendedResourcesMut<'w> {
     pub house_state: ResMut<'w, HouseState>,
@@ -175,6 +177,7 @@ struct ExtendedResourcesMut<'w> {
     pub achievements: ResMut<'w, Achievements>,
     pub tutorial_state: ResMut<'w, TutorialState>,
     pub play_stats: ResMut<'w, PlayStats>,
+    pub building_levels: ResMut<'w, BuildingLevels>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -309,6 +312,8 @@ struct FullSaveFile {
     pub tutorial_state: TutorialState,
     #[serde(default)]
     pub play_stats: PlayStats,
+    #[serde(default)]
+    pub building_levels: BuildingLevels,
 }
 
 impl FullSaveFile {
@@ -354,6 +359,7 @@ fn write_save(
     achievements: &Achievements,
     tutorial_state: &TutorialState,
     play_stats: &PlayStats,
+    building_levels: &BuildingLevels,
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
 
@@ -384,6 +390,7 @@ fn write_save(
         achievements: achievements.clone(),
         tutorial_state: tutorial_state.clone(),
         play_stats: play_stats.clone(),
+        building_levels: building_levels.clone(),
     };
 
     let json =
@@ -422,6 +429,7 @@ fn write_save(
     _achievements: &Achievements,
     _tutorial_state: &TutorialState,
     _play_stats: &PlayStats,
+    _building_levels: &BuildingLevels,
 ) -> Result<(), String> {
     Ok(())
 }
@@ -564,6 +572,7 @@ fn handle_save_request(
             &ext.achievements,
             &ext.tutorial_state,
             &ext.play_stats,
+            &ext.building_levels,
         ) {
             Ok(()) => {
                 info!("Save to slot {} succeeded.", slot);
@@ -641,6 +650,7 @@ fn handle_load_request(
                 *ext.achievements = file.achievements;
                 *ext.tutorial_state = file.tutorial_state;
                 *ext.play_stats = file.play_stats;
+                *ext.building_levels = file.building_levels;
 
                 info!("Load from slot {} succeeded.", slot);
                 complete_events.send(LoadCompleteEvent {
@@ -709,6 +719,7 @@ fn handle_new_game(
         *ext.achievements = Achievements::default();
         *ext.tutorial_state = TutorialState::default();
         *ext.play_stats = PlayStats::default();
+        *ext.building_levels = BuildingLevels::default();
 
         info!("New game initialized.");
     }

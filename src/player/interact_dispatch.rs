@@ -55,9 +55,6 @@ pub fn dispatch_world_interaction(
         return;
     };
 
-    // Claim the interaction BEFORE dispatching.
-    interaction_claimed.0 = true;
-
     match interactable.kind {
         InteractionKind::ShippingBin => {
             let slot_idx = inventory.selected_slot;
@@ -68,6 +65,7 @@ pub fn dispatch_world_interaction(
                 });
                 return;
             };
+            interaction_claimed.0 = true;
             ship_events.send(ShipItemEvent {
                 item_id: slot.item_id.clone(),
                 quantity: 1,
@@ -75,12 +73,14 @@ pub fn dispatch_world_interaction(
         }
 
         InteractionKind::CraftingBench => {
+            interaction_claimed.0 = true;
             craft_events.send(OpenCraftingEvent {
                 cooking_mode: false,
             });
         }
 
         InteractionKind::Machine => {
+            interaction_claimed.0 = true;
             if let Ok(machine) = machine_query.get(entity) {
                 if machine.output_item.is_some() {
                     machine_collect_events.send(CollectMachineOutputEvent {
@@ -102,6 +102,7 @@ pub fn dispatch_world_interaction(
         }
 
         InteractionKind::BuildingUpgrade => {
+            interaction_claimed.0 = true;
             next_state.set(GameState::BuildingUpgrade);
         }
     }
