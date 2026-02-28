@@ -148,7 +148,7 @@ impl Default for SessionTimer {
 // SYSTEM PARAM BUNDLES (to stay within Bevy's 16-param limit)
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Read-only bundle of the 10 extended resources (for saving).
+/// Read-only bundle of extended resources (for saving).
 #[derive(SystemParam)]
 struct ExtendedResources<'w> {
     pub house_state: Res<'w, HouseState>,
