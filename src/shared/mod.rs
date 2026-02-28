@@ -25,7 +25,6 @@ pub enum GameState {
     Mining,
     Crafting,
     Inventory,
-    #[allow(dead_code)]
     Cutscene,
     BuildingUpgrade,
 }
@@ -1574,7 +1573,6 @@ pub struct Interactable {
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum CutsceneStep {
     FadeOut(f32),
     FadeIn(f32),
@@ -1585,12 +1583,17 @@ pub enum CutsceneStep {
     PlaySfx(String),
     SetFlag(String, bool),
     StartDialogue(String),
+    /// Start dialogue with custom lines (not from NPC registry).
+    StartDialogueCustom {
+        npc_id: String,
+        lines: Vec<String>,
+        portrait_index: Option<u32>,
+    },
     WaitForDialogueEnd,
 }
 
 /// Cutscene queue resource — runner pops front, executes, advances.
 #[derive(Resource, Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct CutsceneQueue {
     pub steps: std::collections::VecDeque<CutsceneStep>,
     pub active: bool,

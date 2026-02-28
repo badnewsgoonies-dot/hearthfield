@@ -246,7 +246,13 @@ pub fn setup_feed_trough(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut furniture: ResMut<crate::world::objects::FurnitureAtlases>,
+    existing: Query<Entity, With<super::FeedTrough>>,
 ) {
+    // Guard against re-entry (e.g. Playing → Cutscene → Playing).
+    if !existing.is_empty() {
+        return;
+    }
+
     // Ensure furniture atlas is loaded even if WorldPlugin hasn't run yet
     // (AnimalPlugin may be registered before WorldPlugin).
     crate::world::objects::ensure_furniture_atlases_loaded(

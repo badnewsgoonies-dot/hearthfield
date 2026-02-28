@@ -606,7 +606,13 @@ fn spawn_initial_map(
     mut terrain_atlases: ResMut<TerrainAtlases>,
     mut object_atlases: ResMut<objects::ObjectAtlases>,
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
+    existing_tiles: Query<Entity, With<MapTile>>,
 ) {
+    // Guard against re-entry (e.g. Playing → Cutscene → Playing).
+    if !existing_tiles.is_empty() {
+        return;
+    }
+
     // Ensure terrain atlases are loaded
     ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);
     // Ensure object atlases are loaded

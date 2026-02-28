@@ -36,15 +36,20 @@ pub fn gameplay_state_transitions(
 }
 
 /// Universal "cancel goes back to Playing" for overlay menus.
+/// If a cutscene is active and we're in Dialogue, return to Cutscene instead.
 pub fn menu_cancel_transitions(
     action: Res<MenuAction>,
     state: Res<State<GameState>>,
     mut next: ResMut<NextState<GameState>>,
+    cutscene_queue: Res<CutsceneQueue>,
 ) {
     if !action.cancel {
         return;
     }
     match *state.get() {
+        GameState::Dialogue if cutscene_queue.active => {
+            next.set(GameState::Cutscene);
+        }
         GameState::Inventory | GameState::Shop | GameState::Crafting | GameState::Dialogue => {
             next.set(GameState::Playing);
         }

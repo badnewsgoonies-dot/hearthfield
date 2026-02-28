@@ -68,6 +68,10 @@ pub struct HotbarQuantityText {
     pub index: usize,
 }
 
+/// Marker for the tutorial objective text below the top bar.
+#[derive(Component)]
+pub struct HudObjective;
+
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
@@ -245,6 +249,37 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
         ));
     });
 
+    // ─── OBJECTIVE — absolute position, top-left below top bar ───
+    commands.spawn((
+        HudObjective,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(52.0),
+            left: Val::Px(12.0),
+            padding: UiRect {
+                left: Val::Px(10.0),
+                right: Val::Px(10.0),
+                top: Val::Px(5.0),
+                bottom: Val::Px(5.0),
+            },
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+        PickingBehavior::IGNORE,
+    ))
+    .with_children(|parent| {
+        parent.spawn((
+            Text::new(""),
+            TextFont {
+                font: font.clone(),
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(Color::srgb(1.0, 0.95, 0.7)),
+            PickingBehavior::IGNORE,
+        ));
+    });
+
     // Initialise the fade timer resource every time the HUD spawns.
     commands.insert_resource(MapNameFadeTimer {
         display_timer: Timer::from_seconds(2.0, TimerMode::Once),
@@ -326,11 +361,15 @@ pub fn despawn_hud(
     mut commands: Commands,
     hud_query: Query<Entity, With<HudRoot>>,
     map_name_query: Query<Entity, With<HudMapName>>,
+    objective_query: Query<Entity, With<HudObjective>>,
 ) {
     for entity in &hud_query {
         commands.entity(entity).despawn_recursive();
     }
     for entity in &map_name_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in &objective_query {
         commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<MapNameFadeTimer>();
@@ -579,6 +618,45 @@ pub fn update_map_name(
                     **text = map_display_name(current_map).to_string();
                 }
                 tc.0 = Color::srgba(1.0, 1.0, 1.0, current_alpha);
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// OBJECTIVE DISPLAY
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Shows or hides the tutorial objective text based on TutorialState.
+pub fn update_objective_display(
+    tutorial: Res<TutorialState>,
+    mut objective_query: Query<(&Children, &mut BackgroundColor), With<HudObjective>>,
+    mut text_query: Query<(&mut Text, &mut TextColor)>,
+) {
+    for (children, mut bg_color) in &mut objective_query {
+        if let Some(ref obj_id) = tutorial.current_objective {
+            // Find the display text for this objective.
+            let display = super::tutorial::OBJECTIVES
+                .iter()
+                .find(|(id, _)| *id == obj_id.as_str())
+                .map(|(_, text)| *text)
+                .unwrap_or("...");
+
+            bg_color.0 = Color::srgba(0.0, 0.0, 0.0, 0.65);
+            for &child in children.iter() {
+                if let Ok((mut text, mut tc)) = text_query.get_mut(child) {
+                    **text = format!("> {}", display);
+                    tc.0 = Color::srgb(1.0, 0.95, 0.7);
+                }
+            }
+        } else {
+            // No objective — hide.
+            bg_color.0 = Color::srgba(0.0, 0.0, 0.0, 0.0);
+            for &child in children.iter() {
+                if let Ok((mut text, mut tc)) = text_query.get_mut(child) {
+                    text.0.clear();
+                    tc.0 = Color::srgba(1.0, 1.0, 1.0, 0.0);
+                }
             }
         }
     }
