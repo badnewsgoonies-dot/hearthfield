@@ -58,6 +58,41 @@ pub fn ensure_object_atlases_loaded(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// FURNITURE ATLAS RESOURCE
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Caches loaded texture atlas handles for furniture sprites (shipping bin,
+/// crafting bench, carpenter board, machines, feed trough).
+/// Loaded lazily on first map spawn.
+#[derive(Resource, Default)]
+pub struct FurnitureAtlases {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads the furniture atlas on first use. Subsequent calls are no-ops.
+pub fn ensure_furniture_atlases_loaded(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+    atlases: &mut FurnitureAtlases,
+) {
+    if atlases.loaded {
+        return;
+    }
+    // furniture.png: 144x96px -> 16x16 tiles, 9 columns x 6 rows
+    atlases.image = asset_server.load("sprites/furniture.png");
+    atlases.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        9,
+        6,
+        None,
+        None,
+    ));
+    atlases.loaded = true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════
 

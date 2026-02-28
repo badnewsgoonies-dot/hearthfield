@@ -193,30 +193,27 @@ fn roll_harvest_quality() -> ItemQuality {
     }
 }
 
-/// Update colour of an existing crop entity in-place.
+/// Notify the render pipeline that a crop entity needs visual refresh.
+///
+/// Does NOT replace the Sprite component (that would kill any TextureAtlas
+/// reference). Instead, updates the CropTile component data on the entity —
+/// the `sync_crop_sprites` system in render.rs reads CropTile each frame and
+/// handles atlas index + color updates automatically.
 fn update_crop_entity_color(
     pos: (i32, i32),
     crop: &CropTile,
-    def: &CropDef,
+    _def: &CropDef,
     farm_entities: &mut FarmEntities,
     commands: &mut Commands,
 ) {
-    use super::crop_stage_color;
-
-    let total_stages = def.growth_days.len() as u8;
-    let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
-
     if let Some(&entity) = farm_entities.crop_entities.get(&pos) {
-        // Insert updated Sprite; Bevy replaces it in-place.
-        commands.entity(entity).insert(Sprite {
-            color,
-            custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-            ..default()
-        });
+        // Update the CropTile component so sync_crop_sprites picks up the change.
+        commands.entity(entity).insert(crop.clone());
     } else {
-        // Entity doesn't exist yet — spawn it.
-        // We need a CropTileEntity and CropTile; both are cloneable.
+        // Entity doesn't exist yet — spawn a placeholder; sync_crop_sprites
+        // will upgrade it to an atlas sprite on the next frame.
         let translation = super::grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
+        let color = super::crop_stage_color(crop.current_stage, _def.growth_days.len() as u8, crop.dead);
         let entity = commands.spawn((
             Sprite {
                 color,

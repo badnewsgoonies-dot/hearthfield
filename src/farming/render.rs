@@ -72,8 +72,22 @@ pub fn sync_soil_sprites(
                     SoilState::Tilled  => Color::WHITE,
                     SoilState::Untilled => Color::WHITE,
                 };
+            } else if atlases.loaded {
+                // Upgrade: sprite was spawned as color-only before atlases loaded.
+                *sprite = Sprite::from_atlas_image(
+                    atlases.dirt_image.clone(),
+                    TextureAtlas {
+                        layout: atlases.dirt_layout.clone(),
+                        index: soil_atlas_index(state),
+                    },
+                );
+                sprite.color = match state {
+                    SoilState::Watered => Color::srgb(0.6, 0.5, 0.4),
+                    SoilState::Tilled  => Color::WHITE,
+                    SoilState::Untilled => Color::WHITE,
+                };
             } else {
-                // Fallback colour sprite (spawned before atlases were ready).
+                // Fallback colour sprite (atlases not ready yet).
                 sprite.color = soil_color(state);
             }
         }
@@ -185,8 +199,25 @@ pub fn sync_crop_sprites(
                 } else {
                     Color::WHITE // healthy / watered today
                 };
+            } else if atlases.loaded && !crop.dead {
+                // Upgrade: sprite was spawned as color-only before atlases loaded.
+                let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
+                *sprite = Sprite::from_atlas_image(
+                    atlases.plants_image.clone(),
+                    TextureAtlas {
+                        layout: atlases.plants_layout.clone(),
+                        index: atlas_index,
+                    },
+                );
+                sprite.color = if crop.days_without_water >= 2 {
+                    Color::srgb(0.85, 0.70, 0.30)
+                } else if crop.days_without_water >= 1 {
+                    Color::srgb(0.90, 0.85, 0.50)
+                } else {
+                    Color::WHITE
+                };
             } else {
-                // Fallback: colour placeholder, update tint.
+                // Fallback: colour placeholder (atlases not ready, or dead crop).
                 let color = if crop.days_without_water >= 2 {
                     Color::srgb(0.85, 0.70, 0.30) // severely dehydrated
                 } else if crop.days_without_water >= 1 {
