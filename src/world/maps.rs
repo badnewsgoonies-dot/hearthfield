@@ -137,6 +137,11 @@ fn generate_farm() -> MapDef {
     // Shipping bin area (near house)
     fill_rect(&mut tiles, 36, 3, 2, 2, TileKind::WoodFloor);
 
+    // Animal buildings
+    fill_rect(&mut tiles, 8, 38, 5, 4, TileKind::Stone);   // Barn
+    fill_rect(&mut tiles, 20, 38, 3, 3, TileKind::Stone);   // Chicken coop
+    fill_rect(&mut tiles, 13, 40, 7, 2, TileKind::Path);    // Path connecting barn to coop
+
     // Small bridge over a stream running east-west at row 52
     fill_rect(&mut tiles, 20, 52, 2, 1, TileKind::Bridge);
 
