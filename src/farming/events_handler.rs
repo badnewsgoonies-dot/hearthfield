@@ -13,7 +13,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use super::{
-    FarmEntities, TrackedDayWeather,
+    FarmEntities, MorningSprinklerEvent, TrackedDayWeather,
     crops::{advance_crop_growth, reset_soil_watered_state},
     soil::spawn_or_update_soil_entity,
     sprinkler::apply_rain_watering,
@@ -52,6 +52,22 @@ pub fn track_day_weather(
         // Same day — keep snapshotting (weather doesn't change mid-day, but
         // we refresh in case of edge cases).
         tracked.weather = calendar.weather;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Morning sprinkler dispatch
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Converts each `DayEndEvent` into a `MorningSprinklerEvent` so that
+/// `sprinkler::apply_sprinklers` (which listens for `MorningSprinklerEvent`)
+/// fires at the start of the new day, before crop growth is processed.
+pub fn send_morning_sprinkler_event(
+    mut day_end_events: EventReader<DayEndEvent>,
+    mut morning_events: EventWriter<MorningSprinklerEvent>,
+) {
+    for _ in day_end_events.read() {
+        morning_events.send(MorningSprinklerEvent);
     }
 }
 

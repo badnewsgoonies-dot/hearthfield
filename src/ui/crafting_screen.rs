@@ -262,8 +262,8 @@ pub fn crafting_navigation(
     action: Res<MenuAction>,
     mut ui_state: Option<ResMut<CraftingUiState>>,
     recipe_registry: Res<RecipeRegistry>,
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
+    inventory: Res<Inventory>,
+    mut craft_events: EventWriter<crate::crafting::CraftItemEvent>,
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
 
@@ -285,21 +285,8 @@ pub fn crafting_navigation(
             let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
             if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {
                 if can_craft_recipe(recipe, &inventory) {
-                    // Consume materials
-                    for (item_id, qty) in &recipe.ingredients {
-                        inventory.try_remove(item_id, *qty);
-                    }
-                    // Add result
-                    let max_stack = item_registry
-                        .get(&recipe.result)
-                        .map(|d| d.stack_size)
-                        .unwrap_or(99);
-                    let overflow = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
-                    if overflow > 0 {
-                        ui_state.status_message = "Crafted! (some items didn't fit)".to_string();
-                    } else {
-                        ui_state.status_message = format!("Crafted {}!", recipe.name);
-                    }
+                    craft_events.send(crate::crafting::CraftItemEvent { recipe_id: recipe_id.clone() });
+                    ui_state.status_message = "Crafting...".to_string();
                     ui_state.status_timer = 2.0;
                 } else {
                     ui_state.status_message = "Not enough materials!".to_string();

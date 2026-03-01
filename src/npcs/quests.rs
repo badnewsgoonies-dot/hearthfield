@@ -103,6 +103,7 @@ fn season_to_idx(season: &Season) -> u8 {
 pub fn post_daily_quests(
     mut day_end_events: EventReader<DayEndEvent>,
     mut quest_posted: EventWriter<QuestPostedEvent>,
+    mut accepted_events: EventWriter<QuestAcceptedEvent>,
     mut quest_log: ResMut<QuestLog>,
     calendar: Res<Calendar>,
     npc_registry: Res<NpcRegistry>,
@@ -146,6 +147,7 @@ pub fn post_daily_quests(
             };
 
             let quest_id = make_quest_id(next_day, &next_season, next_year, i);
+            let quest_id_clone = quest_id.clone();
             let deadline = rng.gen_range(3u8..=7);
 
             // Pick a random NPC as the quest giver
@@ -345,6 +347,7 @@ pub fn post_daily_quests(
                 quest: quest.clone(),
             });
             quest_log.active.push(quest);
+            accepted_events.send(QuestAcceptedEvent { quest_id: quest_id_clone });
         }
     }
 }

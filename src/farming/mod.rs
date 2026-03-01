@@ -174,6 +174,8 @@ impl Plugin for FarmingPlugin {
             .add_systems(
                 Update,
                 (
+                    // Fire MorningSprinklerEvent so apply_sprinklers can run.
+                    events_handler::send_morning_sprinkler_event,
                     // Legacy FarmObject::Sprinkler — basic 3×3 watering
                     sprinkler::apply_sprinklers,
                     // Phase 4 kind-aware sprinkler auto-watering
@@ -181,6 +183,7 @@ impl Plugin for FarmingPlugin {
                     events_handler::on_day_end,
                     events_handler::on_season_change,
                 )
+                    .chain()
                     .run_if(in_state(GameState::Playing)),
             )
             // ------------------------------------------------------------------

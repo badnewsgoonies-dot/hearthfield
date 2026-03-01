@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::economy::blacksmith::ToolUpgradeRequestEvent;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -38,16 +39,33 @@ pub struct ShopItemPrice {
 #[derive(Component)]
 pub struct ShopHintText;
 
+/// Display data for a single tool upgrade option in the Blacksmith upgrade mode.
+pub struct ToolUpgradeDisplayEntry {
+    pub tool: ToolKind,
+    pub current_tier: ToolTier,
+    pub target_tier: ToolTier,
+    pub gold_cost: u32,
+    pub bar_name: String,
+    pub bar_qty: u8,
+    pub can_afford: bool,
+    pub has_bars: bool,
+    pub is_upgrading: bool,
+}
+
 /// Tracks which shop is open, selection, and buy/sell mode
 #[derive(Resource)]
 pub struct ShopUiState {
     pub shop_id: ShopId,
     pub cursor: usize,
     pub is_buy_mode: bool,
+    /// True when the Blacksmith upgrade tab is active.
+    pub upgrade_mode: bool,
     /// Cached list of available items (filtered by season for buy mode)
     pub buy_items: Vec<ShopListing>,
     /// Player items available to sell
     pub sell_items: Vec<(ItemId, String, u32, u8)>, // id, name, sell_price, quantity
+    /// Upgrade entries (only populated for ShopId::Blacksmith)
+    pub upgrade_entries: Vec<ToolUpgradeDisplayEntry>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -61,11 +79,11 @@ pub fn spawn_shop_screen(
     player: Res<PlayerState>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
+    active_shop: Res<crate::economy::shop::ActiveShop>,
+    upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
 ) {
-    // Determine which shop to open — default to GeneralStore
-    // Other domains set the shop_id via a resource before transitioning state.
-    // We'll check if ShopUiState already exists (set by another domain).
-    let shop_id = ShopId::GeneralStore;
+    // Use the shop_id set by the economy system when opening the shop.
+    let shop_id = active_shop.shop_id.unwrap_or(ShopId::GeneralStore);
 
     let buy_items: Vec<ShopListing> = shop_data
         .listings
@@ -82,12 +100,21 @@ pub fn spawn_shop_screen(
 
     let sell_items = build_sell_list(&inventory, &item_registry);
 
+    // Build upgrade entries when at the Blacksmith.
+    let upgrade_entries = if shop_id == ShopId::Blacksmith {
+        build_upgrade_entries(&player, &inventory, &upgrade_queue)
+    } else {
+        Vec::new()
+    };
+
     commands.insert_resource(ShopUiState {
         shop_id,
         cursor: 0,
         is_buy_mode: true,
+        upgrade_mode: false,
         buy_items: buy_items.clone(),
         sell_items: sell_items.clone(),
+        upgrade_entries,
     });
 
     commands
@@ -219,7 +246,7 @@ pub fn spawn_shop_screen(
                     // Hint text
                     panel.spawn((
                         ShopHintText,
-                        Text::new("Up/Down: Select | Enter: Buy | Tab: Toggle Buy/Sell | Esc: Close"),
+                        Text::new("Up/Down: Select | Enter: Confirm | Tab: Toggle Mode | Esc: Close"),
                         TextFont {
                             font_size: 11.0,
                             ..default()
@@ -251,6 +278,44 @@ fn build_sell_list(
         }
     }
     result
+}
+
+fn build_upgrade_entries(
+    player: &PlayerState,
+    inventory: &Inventory,
+    queue: &crate::economy::blacksmith::ToolUpgradeQueue,
+) -> Vec<ToolUpgradeDisplayEntry> {
+    let upgradeable = [
+        ToolKind::Hoe,
+        ToolKind::WateringCan,
+        ToolKind::Axe,
+        ToolKind::Pickaxe,
+        ToolKind::FishingRod,
+    ];
+    upgradeable
+        .iter()
+        .filter_map(|&tool| {
+            let current_tier = *player.tools.get(&tool)?;
+            let target_tier = current_tier.next()?;
+            let gold_cost = target_tier.upgrade_cost();
+            let bar_qty = current_tier.upgrade_bars_needed();
+            let bar_id = current_tier.upgrade_bar_item()?;
+            let can_afford = player.gold >= gold_cost;
+            let has_bars = inventory.has(bar_id, bar_qty);
+            let is_upgrading = queue.is_upgrading(tool);
+            Some(ToolUpgradeDisplayEntry {
+                tool,
+                current_tier,
+                target_tier,
+                gold_cost,
+                bar_name: bar_id.replace('_', " "),
+                bar_qty,
+                can_afford,
+                has_bars,
+                is_upgrading,
+            })
+        })
+        .collect()
 }
 
 pub fn despawn_shop_screen(
@@ -286,7 +351,9 @@ pub fn update_shop_display(
 
     // Mode
     for mut text in &mut mode_query {
-        if ui_state.is_buy_mode {
+        if ui_state.upgrade_mode {
+            **text = "[Tab] Mode: UPGRADE".to_string();
+        } else if ui_state.is_buy_mode {
             **text = "[Tab] Mode: BUY".to_string();
         } else {
             **text = "[Tab] Mode: SELL".to_string();
@@ -294,7 +361,34 @@ pub fn update_shop_display(
     }
 
     // Items list
-    if ui_state.is_buy_mode {
+    if ui_state.upgrade_mode {
+        for (name_comp, mut text) in &mut name_query {
+            let idx = name_comp.index;
+            if idx < ui_state.upgrade_entries.len() {
+                let entry = &ui_state.upgrade_entries[idx];
+                let status = if entry.is_upgrading { " [IN PROGRESS]" } else { "" };
+                **text = format!("{:?}: {:?} → {:?}{}", entry.tool, entry.current_tier, entry.target_tier, status);
+            } else {
+                **text = String::new();
+            }
+        }
+        for (price_comp, mut text, mut color) in &mut price_query {
+            let idx = price_comp.index;
+            if idx < ui_state.upgrade_entries.len() {
+                let entry = &ui_state.upgrade_entries[idx];
+                **text = format!("{}G + {}x {}", entry.gold_cost, entry.bar_qty, entry.bar_name);
+                if entry.is_upgrading {
+                    *color = TextColor(Color::srgb(0.6, 0.6, 0.6));
+                } else if entry.can_afford && entry.has_bars {
+                    *color = TextColor(Color::srgb(0.5, 0.9, 0.5));
+                } else {
+                    *color = TextColor(Color::srgb(0.8, 0.3, 0.3));
+                }
+            } else {
+                **text = String::new();
+            }
+        }
+    } else if ui_state.is_buy_mode {
         for (name_comp, mut text) in &mut name_query {
             let idx = name_comp.index;
             if idx < ui_state.buy_items.len() {
@@ -362,11 +456,15 @@ pub fn shop_navigation(
     mut player: ResMut<PlayerState>,
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
+    upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
     mut tx_events: EventWriter<ShopTransactionEvent>,
+    mut upgrade_events: EventWriter<ToolUpgradeRequestEvent>,
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
 
-    let max_items = if ui_state.is_buy_mode {
+    let max_items = if ui_state.upgrade_mode {
+        ui_state.upgrade_entries.len()
+    } else if ui_state.is_buy_mode {
         ui_state.buy_items.len()
     } else {
         ui_state.sell_items.len()
@@ -384,19 +482,45 @@ pub fn shop_navigation(
         }
     }
 
-    // Toggle buy/sell (Tab is mapped to open_inventory in menu context)
+    // Cycle modes: Tab
+    // Blacksmith: buy → sell → upgrade → buy
+    // Other shops: buy ↔ sell
     if player_input.open_inventory {
-        ui_state.is_buy_mode = !ui_state.is_buy_mode;
-        ui_state.cursor = 0;
-        // Refresh sell list
-        if !ui_state.is_buy_mode {
-            ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+        if ui_state.shop_id == ShopId::Blacksmith {
+            if ui_state.is_buy_mode && !ui_state.upgrade_mode {
+                // buy → sell
+                ui_state.is_buy_mode = false;
+                ui_state.upgrade_mode = false;
+                ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+            } else if !ui_state.is_buy_mode && !ui_state.upgrade_mode {
+                // sell → upgrade
+                ui_state.upgrade_mode = true;
+                ui_state.upgrade_entries = build_upgrade_entries(&player, &inventory, &upgrade_queue);
+            } else {
+                // upgrade → buy
+                ui_state.upgrade_mode = false;
+                ui_state.is_buy_mode = true;
+            }
+        } else {
+            ui_state.is_buy_mode = !ui_state.is_buy_mode;
+            if !ui_state.is_buy_mode {
+                ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+            }
         }
+        ui_state.cursor = 0;
     }
 
     // Execute transaction
     if action.activate {
-        if ui_state.is_buy_mode {
+        if ui_state.upgrade_mode {
+            // Upgrade
+            if ui_state.cursor < ui_state.upgrade_entries.len() {
+                let tool = ui_state.upgrade_entries[ui_state.cursor].tool;
+                upgrade_events.send(ToolUpgradeRequestEvent { tool });
+                // Refresh entries after submitting request
+                ui_state.upgrade_entries = build_upgrade_entries(&player, &inventory, &upgrade_queue);
+            }
+        } else if ui_state.is_buy_mode {
             // Buy
             if ui_state.cursor < ui_state.buy_items.len() {
                 let listing = ui_state.buy_items[ui_state.cursor].clone();
