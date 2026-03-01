@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::world::TransitionZone;
 use super::CollisionMap;
 
 // Default energy restored by an edible item when no registry entry is found.
@@ -14,17 +15,18 @@ const DEFAULT_FOOD_ENERGY: f32 = 20.0;
 /// resource; here we define default map sizes per MapId so the player
 /// can trigger transitions by walking to the edge.
 fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
+    // (min_x, max_x, min_y, max_y) — must match generate_*() in world/maps.rs
     match map {
-        MapId::Farm => (0, 63, 0, 63),
-        MapId::Town => (0, 47, 0, 47),
-        MapId::Beach => (0, 31, 0, 31),
-        MapId::Forest => (0, 39, 0, 39),
-        MapId::MineEntrance => (0, 23, 0, 23),
-        MapId::Mine => (0, 23, 0, 23),
-        MapId::PlayerHouse => (0, 11, 0, 11),
-        MapId::GeneralStore => (0, 11, 0, 11),
-        MapId::AnimalShop => (0, 11, 0, 11),
-        MapId::Blacksmith => (0, 11, 0, 11),
+        MapId::Farm => (0, 31, 0, 23),          // 32×24
+        MapId::Town => (0, 27, 0, 21),          // 28×22
+        MapId::Beach => (0, 19, 0, 13),         // 20×14
+        MapId::Forest => (0, 21, 0, 17),        // 22×18
+        MapId::MineEntrance => (0, 13, 0, 11),  // 14×12
+        MapId::Mine => (0, 23, 0, 23),          // 24×24
+        MapId::PlayerHouse => (0, 15, 0, 15),   // 16×16
+        MapId::GeneralStore => (0, 11, 0, 11),  // 12×12
+        MapId::AnimalShop => (0, 11, 0, 11),    // 12×12
+        MapId::Blacksmith => (0, 11, 0, 11),    // 12×12
     }
 }
 
