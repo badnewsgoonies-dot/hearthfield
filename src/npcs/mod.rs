@@ -9,6 +9,7 @@ use crate::shared::*;
 mod animation;
 pub mod definitions;
 mod dialogue;
+pub mod emotes;
 mod gifts;
 mod map_events;
 pub mod romance;
@@ -43,6 +44,7 @@ use schedules::{
     FarmVisitTracker,
 };
 use animation::animate_npc_sprites;
+use emotes::{EmoteAtlas, NpcEmoteEvent, spawn_emote_bubbles, animate_emote_bubbles};
 use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
 use quests::{
     log_quest_posted,
@@ -65,7 +67,9 @@ impl Plugin for NpcPlugin {
             .init_resource::<ScheduleUpdateTimer>()
             .init_resource::<GiftDecayTracker>()
             .init_resource::<WeddingTimer>()
-            .init_resource::<FarmVisitTracker>();
+            .init_resource::<FarmVisitTracker>()
+            .init_resource::<EmoteAtlas>()
+            .add_event::<NpcEmoteEvent>();
 
         // NPC data is populated by DataPlugin during OnEnter(Loading).
 
@@ -99,6 +103,8 @@ impl Plugin for NpcPlugin {
                 handle_day_end,
                 refresh_schedules_on_season_change,
                 check_farm_visits,
+                spawn_emote_bubbles,
+                animate_emote_bubbles,
             )
                 .run_if(in_state(GameState::Playing)),
         );

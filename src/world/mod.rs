@@ -321,19 +321,15 @@ fn tile_atlas_info(
             7,
         )),
 
-        // Void: hills for outdoor maps, wall tile for indoor maps.
+        // Void: hills for outdoor maps, dark color for indoor maps.
         TileKind::Void => {
             let is_indoor = matches!(
                 map_id,
                 MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
             );
             if is_indoor {
-                // Use tilled_dirt as a dark wall texture (index 0 = top-left corner)
-                Some((
-                    atlases.dirt_image.clone(),
-                    atlases.dirt_layout.clone(),
-                    0,
-                ))
+                // Return None → solid dark color fallback via tile_color()
+                None
             } else {
                 // Outdoor: use hills for natural cliff edge
                 Some((

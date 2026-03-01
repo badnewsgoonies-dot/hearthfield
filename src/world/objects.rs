@@ -1174,7 +1174,7 @@ pub fn spawn_building_signs(
                 ..default()
             },
             TextColor(Color::srgb(1.0, 0.95, 0.7)),
-            Transform::from_xyz(wc.x, wc.y + TILE_SIZE * 0.8, Z_ENTITY_BASE + 50.0),
+            Transform::from_xyz(wc.x, wc.y + TILE_SIZE * 0.8, Z_GROUND + 4.0),
             Visibility::default(),
         ));
     }
@@ -1206,34 +1206,34 @@ struct BuildingDef {
 /// Town building definitions.
 fn town_buildings() -> Vec<BuildingDef> {
     vec![
-        // General Store (north-west)
+        // General Store (north-west) — entrance at y=4, path connects from y=12
         BuildingDef {
             x: 4, y: 4, w: 10, h: 8,
-            door_x: 8, door_y: 11,
+            door_x: 8, door_y: 4,
             roof_tint: Color::srgb(0.85, 0.55, 0.4),
         },
-        // Animal Shop (north-east)
+        // Animal Shop (north-east) — entrance at y=4, path connects from y=12
         BuildingDef {
             x: 34, y: 4, w: 10, h: 8,
-            door_x: 38, door_y: 11,
+            door_x: 38, door_y: 4,
             roof_tint: Color::srgb(0.5, 0.7, 0.85),
         },
-        // Blacksmith (east side)
+        // Blacksmith (east side) — entrance at y=30, path connects from y=32
         BuildingDef {
             x: 38, y: 30, w: 8, h: 6,
-            door_x: 41, door_y: 35,
+            door_x: 41, door_y: 30,
             roof_tint: Color::srgb(0.6, 0.55, 0.55),
         },
-        // NPC House 1 (south residential)
+        // NPC House 1 (south residential) — faces path at y=28
         BuildingDef {
             x: 2, y: 30, w: 6, h: 4,
-            door_x: 4, door_y: 33,
+            door_x: 4, door_y: 30,
             roof_tint: Color::srgb(0.75, 0.85, 0.6),
         },
-        // NPC House 2 (south residential)
+        // NPC House 2 (south residential) — faces path at y=28
         BuildingDef {
             x: 10, y: 30, w: 6, h: 4,
-            door_x: 12, door_y: 33,
+            door_x: 12, door_y: 30,
             roof_tint: Color::srgb(0.85, 0.75, 0.55),
         },
     ]
@@ -1241,10 +1241,10 @@ fn town_buildings() -> Vec<BuildingDef> {
 
 fn farm_buildings() -> Vec<BuildingDef> {
     vec![
-        // Player house (top center of farm)
+        // Player house (top center of farm) — entrance at y=0, path connects from y=2
         BuildingDef {
             x: 29, y: 0, w: 6, h: 3,
-            door_x: 31, door_y: 2,
+            door_x: 31, door_y: 0,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
         },
     ]
@@ -1270,31 +1270,31 @@ pub fn spawn_building_sprites(
 
     for bld in &buildings {
         // --- WALLS: tile the building footprint ---
-        // house_walls.png layout (5 cols x 3 rows):
-        //   Row 0: top wall (0=TL, 1=T, 2=TC, 3=T, 4=TR)
-        //   Row 1: middle wall (5=L, 6=M, 7=MC, 8=M, 9=R)
-        //   Row 2: bottom wall (10=BL, 11=B, 12=BC, 13=B, 14=BR)
+        // house_walls.png layout (5 cols x 3 rows) — opaque tiles only:
+        //   [1]=wall, [3]=wall, [4]=wall, [6]=light, [8]=wall, [9]=wall, [11]=wall
+        //   Transparent (skip): 0,2,5,7,10,12,13,14
+        // We use opaque tiles: 8/9 for body, 1/3/4 for top row, 11 for bottom.
         for dy in 0..bld.h {
             for dx in 0..bld.w {
                 let gx = bld.x + dx;
                 let gy = bld.y + dy;
 
-                // Pick wall tile based on position within building
+                // Pick wall tile — use only opaque indices
                 let is_left = dx == 0;
                 let is_right = dx == bld.w - 1;
-                let is_top = dy == 0;
-                let is_bottom = dy == bld.h - 1;
+                let is_top = dy == bld.h - 1; // highest Y = back wall
+                let is_bottom = dy == 0;       // lowest Y = front wall
 
                 let wall_index = match (is_top, is_bottom, is_left, is_right) {
-                    (true, _, true, _) => 0,     // top-left corner
-                    (true, _, _, true) => 4,     // top-right corner
-                    (true, _, _, _) => 2,        // top center
-                    (_, true, true, _) => 10,    // bottom-left corner
-                    (_, true, _, true) => 14,    // bottom-right corner
-                    (_, true, _, _) => 12,       // bottom center
-                    (_, _, true, _) => 5,        // left edge
-                    (_, _, _, true) => 9,        // right edge
-                    _ => 7,                      // interior fill
+                    (true, _, true, _) => 1,     // top-left: wall face
+                    (true, _, _, true) => 4,     // top-right: wall face
+                    (true, _, _, _) => 3,        // top center: wall face
+                    (_, true, true, _) => 11,    // bottom-left: base
+                    (_, true, _, true) => 9,     // bottom-right: wall
+                    (_, true, _, _) => 6,        // bottom center: light wall
+                    (_, _, true, _) => 1,        // left edge: wall face
+                    (_, _, _, true) => 9,        // right edge: wall
+                    _ => 8,                      // interior fill: wall
                 };
 
                 let wc = grid_to_world_center(gx, gy);
@@ -1311,33 +1311,33 @@ pub fn spawn_building_sprites(
                     BuildingOverlay,
                     WorldObject,
                     sprite,
-                    Transform::from_xyz(wc.x, wc.y, Z_ENTITY_BASE - 1.0),
+                    Transform::from_xyz(wc.x, wc.y, Z_GROUND + 1.0),
                     Visibility::default(),
                 ));
             }
         }
 
-        // --- ROOF: span the width of the building, 2 tiles above ---
-        // house_roof.png layout (7 cols x 5 rows):
-        //   Row 0: roof peak (0=left peak, 3=center, 6=right peak)
-        //   Row 1: upper roof (7=left, 10=center, 13=right)
-        //   Row 2-4: lower roof / eave tiles
+        // --- ROOF: span the width of the building, above the back wall ---
+        // house_roof.png layout (7 cols x 5 rows) — opaque tiles:
+        //   Row 2: [15=left, 17-20=body]  Row 3: [22=left, 24-27=body]
+        //   Row 4: [31-34=eave]
+        // We use eave (row 4) for the row closest to walls, body (row 3) for peak.
         let roof_rows = 2.min((bld.h + 1) / 2); // 1-2 roof rows
         for ry in 0..roof_rows {
             for dx in 0..bld.w {
                 let gx = bld.x + dx;
-                let gy = bld.y - 1 - ry; // above the building
-                if gy < 0 { continue; }
+                // Place roof BEHIND the building (higher Y = away from camera)
+                let gy = bld.y + bld.h + ry;
 
                 let is_left = dx == 0;
                 let is_right = dx == bld.w - 1;
 
                 let roof_index = if ry == 0 {
-                    // Bottom roof row (eave)
-                    if is_left { 14 } else if is_right { 20 } else { 17 }
+                    // Bottom roof row (eave, closest to building)
+                    if is_left { 31 } else if is_right { 34 } else { 32 }
                 } else {
-                    // Top roof row (peak)
-                    if is_left { 0 } else if is_right { 6 } else { 3 }
+                    // Top roof row (body/peak, furthest from building)
+                    if is_left { 22 } else if is_right { 27 } else { 25 }
                 };
 
                 let wc = grid_to_world_center(gx, gy);
@@ -1355,20 +1355,20 @@ pub fn spawn_building_sprites(
                     BuildingOverlay,
                     WorldObject,
                     sprite,
-                    Transform::from_xyz(wc.x, wc.y, Z_ENTITY_BASE + 10.0),
+                    Transform::from_xyz(wc.x, wc.y, Z_GROUND + 3.0),
                     Visibility::default(),
                 ));
             }
         }
 
         // --- DOOR: place at entrance ---
-        // doors.png: 1 col x 4 rows. Index 0 = closed door.
+        // doors.png: 1 col x 4 rows. Opaque tiles: 1, 3. Use index 1.
         let dwc = grid_to_world_center(bld.door_x, bld.door_y);
         let mut door_sprite = Sprite::from_atlas_image(
             object_atlases.doors_image.clone(),
             TextureAtlas {
                 layout: object_atlases.doors_layout.clone(),
-                index: 0,
+                index: 1,
             },
         );
         door_sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
@@ -1377,7 +1377,7 @@ pub fn spawn_building_sprites(
             BuildingOverlay,
             WorldObject,
             door_sprite,
-            Transform::from_xyz(dwc.x, dwc.y, Z_ENTITY_BASE + 5.0),
+            Transform::from_xyz(dwc.x, dwc.y, Z_GROUND + 2.0),
             Visibility::default(),
         ));
     }

@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use super::dialogue::build_gift_response_lines;
+use super::emotes::{NpcEmoteEvent, EmoteKind};
 
 /// System: process gift-given events, apply friendship changes, send response dialogue.
 pub fn handle_gifts(
@@ -12,6 +13,7 @@ pub fn handle_gifts(
     item_registry: Res<ItemRegistry>,
     calendar: Res<Calendar>,
     mut dialogue_writer: EventWriter<DialogueStartEvent>,
+    mut emote_writer: EventWriter<NpcEmoteEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     for gift_event in gift_reader.read() {
@@ -58,6 +60,12 @@ pub fn handle_gifts(
 
         // Apply friendship change
         relationships.add_friendship(npc_id, total_points);
+
+        // Show emote bubble above NPC
+        emote_writer.send(NpcEmoteEvent {
+            npc_id: npc_id.clone(),
+            emote: EmoteKind::from(preference),
+        });
 
         // Mark as gifted today
         relationships.gifted_today.insert(npc_id.clone(), true);
