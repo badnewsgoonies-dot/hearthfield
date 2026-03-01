@@ -376,6 +376,24 @@ pub fn check_achievements(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// SYSTEM: notify_achievement_unlocked
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Displays a toast when an achievement is unlocked.
+pub fn notify_achievement_unlocked(
+    mut events: EventReader<AchievementUnlockedEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
+) {
+    for event in events.read() {
+        toast_writer.send(ToastEvent {
+            message: format!("🏆 Achievement: {}!", event.name),
+            duration_secs: 4.0,
+        });
+        info!("[Achievements] Unlocked: {} — {}", event.name, event.description);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // SYSTEM: track_achievement_progress
 // ═══════════════════════════════════════════════════════════════════════
 

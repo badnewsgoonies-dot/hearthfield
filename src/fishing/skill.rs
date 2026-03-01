@@ -82,6 +82,16 @@ pub struct FishingLevelUpEvent {
 
 // ─── Systems ─────────────────────────────────────────────────────────────────
 
+/// Drains `FishingLevelUpEvent` and logs level-up milestones.
+/// The sender (`update_fishing_skill`) already fires a `ToastEvent` for player
+/// feedback; this handler exists solely to consume the event and avoid Bevy
+/// "event not read" warnings.
+pub fn track_fishing_level_up(mut events: EventReader<FishingLevelUpEvent>) {
+    for event in events.read() {
+        info!("[Fishing] Skill level-up: now level {}", event.new_level);
+    }
+}
+
 /// Listens for `ItemPickupEvent` events whose `item_id` matches a fish in the
 /// `FishRegistry`. For each fish caught the skill counter is incremented and,
 /// if a level boundary is crossed, a `FishingLevelUpEvent` + `ToastEvent` are

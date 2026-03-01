@@ -98,6 +98,13 @@ fn season_to_idx(season: &Season) -> u8 {
 // System 1: post_daily_quests
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Logs each newly posted quest title for observability.
+pub fn log_quest_posted(mut events: EventReader<QuestPostedEvent>) {
+    for event in events.read() {
+        info!("[Quests] New quest posted: {}", event.quest.title);
+    }
+}
+
 /// Listens to `DayEndEvent` and generates 2-3 random quests for the next day.
 /// Each quest is posted via `QuestPostedEvent` and added to `QuestLog.active`.
 pub fn post_daily_quests(

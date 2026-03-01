@@ -47,6 +47,7 @@ impl Plugin for PlayerPlugin {
                 movement::player_movement,
                 movement::animate_player_sprite,
                 tool_anim::animate_tool_use.after(movement::player_movement),
+                tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),
                 tools::tool_cycle,
                 tools::stamina_drain_handler,
                 interaction::item_pickup_check,

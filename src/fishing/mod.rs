@@ -55,9 +55,13 @@ impl Plugin for FishingPlugin {
             // that ItemPickupEvent written this frame are available).
             .add_systems(
                 PostUpdate,
-                skill::update_fishing_skill.run_if(
-                    in_state(GameState::Playing).or(in_state(GameState::Fishing)),
-                ),
+                (
+                    skill::update_fishing_skill,
+                    skill::track_fishing_level_up,
+                )
+                    .run_if(
+                        in_state(GameState::Playing).or(in_state(GameState::Fishing)),
+                    ),
             )
             // Setup/teardown on state transitions
             .add_systems(OnEnter(GameState::Fishing), render::spawn_minigame_ui)

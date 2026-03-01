@@ -45,6 +45,7 @@ use schedules::{
 use animation::animate_npc_sprites;
 use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
 use quests::{
+    log_quest_posted,
     post_daily_quests,
     handle_quest_accepted,
     track_quest_progress,
@@ -115,6 +116,7 @@ impl Plugin for NpcPlugin {
                 handle_spouse_action,
                 update_spouse_happiness,
                 post_daily_quests,
+                log_quest_posted,
                 handle_quest_accepted,
                 track_quest_progress,
                 handle_quest_completed,

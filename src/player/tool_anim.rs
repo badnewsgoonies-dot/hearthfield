@@ -12,6 +12,24 @@ const ACTION_PICK_BASE: usize = 12;
 const ACTION_FISH_BASE: usize = 16;
 const ACTION_SCYTHE_BASE: usize = 20;
 
+/// Plays a sound effect when a tool impact occurs.
+pub fn handle_tool_impact_sfx(
+    mut impact_events: EventReader<ToolImpactEvent>,
+    mut sfx_writer: EventWriter<PlaySfxEvent>,
+) {
+    for event in impact_events.read() {
+        let sfx_id = match event.tool {
+            ToolKind::Axe => "axe_chop",
+            ToolKind::Pickaxe => "pickaxe_hit",
+            ToolKind::Hoe => "hoe_till",
+            ToolKind::WateringCan => "water_splash",
+            ToolKind::FishingRod => "fishing_cast",
+            _ => "tool_generic",
+        };
+        sfx_writer.send(PlaySfxEvent { sfx_id: sfx_id.to_string() });
+    }
+}
+
 /// Map (tool, frame) → atlas index in character_actions.png.
 fn action_atlas_index(tool: ToolKind, frame: usize) -> usize {
     let tool_offset = match tool {

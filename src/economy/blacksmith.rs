@@ -79,6 +79,13 @@ pub struct ToolUpgradeCompleteEvent {
 // Systems
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Drains `ToolUpgradeCompleteEvent` to prevent Bevy "event not read" warnings.
+/// The sender (`tick_upgrade_queue`) already fires a `ToastEvent` and an SFX
+/// event for player feedback; this handler ensures the event queue is cleared.
+pub fn drain_upgrade_complete(mut events: EventReader<ToolUpgradeCompleteEvent>) {
+    for _event in events.read() {}
+}
+
 /// Handles ToolUpgradeRequestEvents from the shop UI.
 ///
 /// Validates:

@@ -28,11 +28,11 @@ use shipping::{
 };
 use blacksmith::{
     ToolUpgradeQueue, ToolUpgradeRequestEvent, ToolUpgradeCompleteEvent,
-    handle_upgrade_request, tick_upgrade_queue,
+    handle_upgrade_request, tick_upgrade_queue, drain_upgrade_complete,
 };
 use stats::{HarvestStats, AnimalProductStats, track_crop_harvests, track_animal_products};
 use evaluation::{check_evaluation_trigger, handle_evaluation};
-use achievements::{check_achievements, track_achievement_progress};
+use achievements::{check_achievements, notify_achievement_unlocked, track_achievement_progress};
 use play_stats::{
     track_crops_harvested, track_fish_caught, track_day_end,
     track_gifts_given, track_animals_petted, track_gold_earned, track_recipes_cooked,
@@ -79,6 +79,8 @@ impl Plugin for EconomyPlugin {
                 process_shipping_bin_on_day_end,
                 // Day-end: tick tool upgrade timers.
                 tick_upgrade_queue,
+                // Drain ToolUpgradeCompleteEvent to prevent "event not read" warnings.
+                drain_upgrade_complete,
                 // Harvest and animal product stat tracking.
                 track_crop_harvests,
                 track_animal_products,
@@ -97,6 +99,8 @@ impl Plugin for EconomyPlugin {
                 track_achievement_progress,
                 // Achievement condition checks — fires AchievementUnlockedEvent when earned.
                 check_achievements,
+                // Display toast notifications for newly unlocked achievements.
+                notify_achievement_unlocked,
             )
                 .run_if(in_state(GameState::Playing)),
         );
