@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use super::UiFontHandle;
+use super::hud::ItemAtlasData;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -26,6 +27,11 @@ pub struct InventorySlotQuantity {
 }
 
 #[derive(Component)]
+pub struct InventorySlotIcon {
+    pub index: usize,
+}
+
+#[derive(Component)]
 pub struct InventorySlotBg {
     pub index: usize,
 }
@@ -40,7 +46,13 @@ pub struct InventoryUiState {
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_inventory_screen(mut commands: Commands, font_handle: Res<UiFontHandle>) {
+pub fn spawn_inventory_screen(
+    mut commands: Commands,
+    font_handle: Res<UiFontHandle>,
+    atlas_data: Res<ItemAtlasData>,
+    inventory: Res<Inventory>,
+    item_registry: Res<ItemRegistry>,
+) {
     commands.insert_resource(InventoryUiState { cursor_slot: 0 });
 
     let font = font_handle.0.clone();
@@ -130,6 +142,35 @@ pub fn spawn_inventory_screen(mut commands: Commands, font_handle: Res<UiFontHan
                                             BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.7)),
                                         ))
                                         .with_children(|slot| {
+                                            // Item icon
+                                            let atlas_index = if index < inventory.slots.len() {
+                                                inventory.slots[index]
+                                                    .as_ref()
+                                                    .and_then(|s| item_registry.get(&s.item_id))
+                                                    .map(|def| def.sprite_index as usize)
+                                                    .unwrap_or(0)
+                                            } else { 0 };
+                                            let has_item = index < inventory.slots.len()
+                                                && inventory.slots[index].is_some();
+                                            if atlas_data.loaded {
+                                                slot.spawn((
+                                                    InventorySlotIcon { index },
+                                                    ImageNode {
+                                                        image: atlas_data.image.clone(),
+                                                        texture_atlas: Some(TextureAtlas {
+                                                            layout: atlas_data.layout.clone(),
+                                                            index: atlas_index,
+                                                        }),
+                                                        ..default()
+                                                    },
+                                                    Node {
+                                                        width: Val::Px(28.0),
+                                                        height: Val::Px(28.0),
+                                                        ..default()
+                                                    },
+                                                    if has_item { Visibility::Inherited } else { Visibility::Hidden },
+                                                ));
+                                            }
                                             // Item name
                                             slot.spawn((
                                                 InventorySlotItemName { index },
@@ -177,9 +218,27 @@ pub fn despawn_inventory_screen(
 pub fn update_inventory_slots(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
+    atlas_data: Res<ItemAtlasData>,
     mut item_text_query: Query<(&InventorySlotItemName, &mut Text), Without<InventorySlotQuantity>>,
     mut qty_text_query: Query<(&InventorySlotQuantity, &mut Text), Without<InventorySlotItemName>>,
+    mut icon_query: Query<(&InventorySlotIcon, &mut ImageNode, &mut Visibility)>,
 ) {
+    // Update icons
+    for (icon, mut img, mut vis) in &mut icon_query {
+        let idx = icon.index;
+        if idx < inventory.slots.len() {
+            if let Some(ref slot_data) = inventory.slots[idx] {
+                if let Some(def) = item_registry.get(&slot_data.item_id) {
+                    if let Some(ref mut atlas) = img.texture_atlas {
+                        atlas.index = def.sprite_index as usize;
+                    }
+                    *vis = Visibility::Inherited;
+                    continue;
+                }
+            }
+        }
+        *vis = Visibility::Hidden;
+    }
     for (item_name, mut text) in &mut item_text_query {
         let idx = item_name.index;
         if idx < inventory.slots.len() {

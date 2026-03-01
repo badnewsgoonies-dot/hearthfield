@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use super::hud::ItemAtlasData;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -7,6 +8,11 @@ use crate::shared::*;
 
 #[derive(Component)]
 pub struct CraftingScreenRoot;
+
+#[derive(Component)]
+pub struct CraftingRecipeIcon {
+    pub index: usize,
+}
 
 #[derive(Component)]
 pub struct CraftingRecipeRow {

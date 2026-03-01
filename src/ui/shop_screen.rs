@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use crate::economy::blacksmith::ToolUpgradeRequestEvent;
+use super::hud::ItemAtlasData;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -33,6 +34,11 @@ pub struct ShopItemName {
 
 #[derive(Component)]
 pub struct ShopItemPrice {
+    pub index: usize,
+}
+
+#[derive(Component)]
+pub struct ShopItemIcon {
     pub index: usize,
 }
 
@@ -81,6 +87,7 @@ pub fn spawn_shop_screen(
     item_registry: Res<ItemRegistry>,
     active_shop: Res<crate::economy::shop::ActiveShop>,
     upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
+    atlas_data: Res<ItemAtlasData>,
 ) {
     // Use the shop_id set by the economy system when opening the shop.
     let shop_id = active_shop.shop_id.unwrap_or(ShopId::GeneralStore);
@@ -221,6 +228,27 @@ pub fn spawn_shop_screen(
                                     BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.6)),
                                 ))
                                 .with_children(|row| {
+                                    // Item icon
+                                    if atlas_data.loaded {
+                                        row.spawn((
+                                            ShopItemIcon { index: i },
+                                            ImageNode {
+                                                image: atlas_data.image.clone(),
+                                                texture_atlas: Some(TextureAtlas {
+                                                    layout: atlas_data.layout.clone(),
+                                                    index: 0,
+                                                }),
+                                                ..default()
+                                            },
+                                            Node {
+                                                width: Val::Px(22.0),
+                                                height: Val::Px(22.0),
+                                                margin: UiRect::right(Val::Px(4.0)),
+                                                ..default()
+                                            },
+                                            Visibility::Hidden,
+                                        ));
+                                    }
                                     row.spawn((
                                         ShopItemName { index: i },
                                         Text::new(""),
@@ -341,6 +369,7 @@ pub fn update_shop_display(
     mut name_query: Query<(&ShopItemName, &mut Text), (Without<ShopGoldDisplay>, Without<ShopModeText>, Without<ShopItemPrice>)>,
     mut price_query: Query<(&ShopItemPrice, &mut Text, &mut TextColor), (Without<ShopGoldDisplay>, Without<ShopModeText>, Without<ShopItemName>)>,
     mut row_query: Query<(&ShopListItem, &mut BackgroundColor)>,
+    mut icon_query: Query<(&ShopItemIcon, &mut ImageNode, &mut Visibility)>,
 ) {
     let Some(ui_state) = ui_state else { return };
 
@@ -437,6 +466,28 @@ pub fn update_shop_display(
                 **text = String::new();
             }
         }
+    }
+
+    // Update item icons
+    for (icon, mut img, mut vis) in &mut icon_query {
+        let idx = icon.index;
+        let item_id: Option<&str> = if ui_state.upgrade_mode {
+            None // No item icon for tool upgrades
+        } else if ui_state.is_buy_mode {
+            ui_state.buy_items.get(idx).map(|l| l.item_id.as_str())
+        } else {
+            ui_state.sell_items.get(idx).map(|(id, _, _, _)| id.as_str())
+        };
+        if let Some(id) = item_id {
+            if let Some(def) = item_registry.get(id) {
+                if let Some(ref mut atlas) = img.texture_atlas {
+                    atlas.index = def.sprite_index as usize;
+                }
+                *vis = Visibility::Inherited;
+                continue;
+            }
+        }
+        *vis = Visibility::Hidden;
     }
 
     // Highlight cursor row
