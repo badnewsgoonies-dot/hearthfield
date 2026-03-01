@@ -67,6 +67,7 @@ pub fn handle_tool_use_for_fishing(
     mut item_removed_events: EventWriter<ItemRemovedEvent>,
     skill: Res<FishingSkill>,
     _toast_events: EventWriter<ToastEvent>,
+    fishing_atlas: Res<super::FishingAtlas>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {
@@ -139,11 +140,13 @@ pub fn handle_tool_use_for_fishing(
         let bobber_world_x = target_x as f32 * TILE_SIZE;
         let bobber_world_y = target_y as f32 * TILE_SIZE;
         commands.spawn((
-            Sprite {
-                color: Color::srgb(1.0, 0.3, 0.2), // Bright red bobber
-                custom_size: Some(Vec2::new(6.0, 8.0)),
-                ..default()
-            },
+            Sprite::from_atlas_image(
+                fishing_atlas.image.clone(),
+                TextureAtlas {
+                    layout: fishing_atlas.layout.clone(),
+                    index: 2, // Bobber sprite
+                },
+            ),
             Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, Z_EFFECTS)),
             Bobber {
                 bob_timer: Timer::from_seconds(0.5, TimerMode::Repeating),

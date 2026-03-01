@@ -23,7 +23,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.15,
             sell_price: 40,
-            sprite_index: 50,
+            sprite_index: 23,
         },
 
         FishDef {
@@ -36,7 +36,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.12,
             sell_price: 30,
-            sprite_index: 51,
+            sprite_index: 17,
         },
 
         // ── River Fish ────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.40,
             sell_price: 100,
-            sprite_index: 52,
+            sprite_index: 21,
         },
 
         FishDef {
@@ -64,7 +64,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.30,
             sell_price: 65,
-            sprite_index: 53,
+            sprite_index: 19,
         },
 
         FishDef {
@@ -77,7 +77,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.50,
             sell_price: 150,
-            sprite_index: 54,
+            sprite_index: 22,
         },
 
         FishDef {
@@ -90,7 +90,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.55,
             sell_price: 200,
-            sprite_index: 55,
+            sprite_index: 20,
         },
 
         // ── Pond Fish ─────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.10,
             sell_price: 30,
-            sprite_index: 56,
+            sprite_index: 16,
         },
 
         FishDef {
@@ -119,7 +119,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.60,
             sell_price: 100,
-            sprite_index: 57,
+            sprite_index: 24,
         },
 
         FishDef {
@@ -132,7 +132,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.20,
             sell_price: 55,
-            sprite_index: 58,
+            sprite_index: 18,
         },
 
         FishDef {
@@ -145,7 +145,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.70,
             sell_price: 85,
-            sprite_index: 59,
+            sprite_index: 27,
         },
 
         // ── Ocean Fish ────────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.55,
             sell_price: 275,
-            sprite_index: 60,
+            sprite_index: 25,
         },
 
         FishDef {
@@ -173,7 +173,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.75,
             sell_price: 350,
-            sprite_index: 61,
+            sprite_index: 26,
         },
 
         FishDef {
@@ -186,7 +186,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.78,
             sell_price: 200,
-            sprite_index: 62,
+            sprite_index: 30,
         },
 
         FishDef {
@@ -199,7 +199,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.50,
             sell_price: 200,
-            sprite_index: 63,
+            sprite_index: 29,
         },
 
         FishDef {
@@ -212,7 +212,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.65,
             sell_price: 150,
-            sprite_index: 64,
+            sprite_index: 45,
         },
 
         FishDef {
@@ -225,7 +225,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.30,
             sell_price: 80,
-            sprite_index: 65,
+            sprite_index: 46,
         },
 
         // ── Legendary & Rare Fish ──────────────────────────────────────────────────
@@ -240,7 +240,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.80,
             sell_price: 900,
-            sprite_index: 66,
+            sprite_index: 28,
         },
 
         FishDef {
@@ -253,7 +253,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.95,
             sell_price: 5000,
-            sprite_index: 67,
+            sprite_index: 31,
         },
 
         FishDef {
@@ -266,7 +266,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.90,
             sell_price: 1000,
-            sprite_index: 68,
+            sprite_index: 47,
         },
 
         FishDef {
@@ -279,7 +279,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.88,
             sell_price: 1500,
-            sprite_index: 69,
+            sprite_index: 44,
         },
     ];
 
