@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::npcs::spawning::NpcSpriteData;
+use crate::npcs::definitions::npc_color;
 use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -67,6 +69,7 @@ pub fn spawn_dialogue_box(
     ui_state: Option<Res<DialogueUiState>>,
     font_handle: Res<UiFontHandle>,
     asset_server: Res<AssetServer>,
+    npc_sprites: Res<NpcSpriteData>,
 ) {
     let first_line = ui_state
         .as_ref()
@@ -115,16 +118,39 @@ pub fn spawn_dialogue_box(
                     },
                 ))
                 .with_children(|panel| {
-                    // Left: Portrait placeholder
-                    panel.spawn((
-                        DialoguePortrait,
-                        Node {
-                            width: Val::Px(80.0),
-                            height: Val::Px(80.0),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgb(0.3, 0.5, 0.7)),
-                    ));
+                    // Left: NPC portrait using character_spritesheet
+                    if npc_sprites.loaded {
+                        let tint = ui_state.as_ref()
+                            .map(|s| npc_color(&s.npc_id))
+                            .unwrap_or(Color::WHITE);
+                        panel.spawn((
+                            DialoguePortrait,
+                            Node {
+                                width: Val::Px(80.0),
+                                height: Val::Px(80.0),
+                                ..default()
+                            },
+                            ImageNode {
+                                image: npc_sprites.image.clone(),
+                                color: tint,
+                                texture_atlas: Some(TextureAtlas {
+                                    layout: npc_sprites.layout.clone(),
+                                    index: 0, // front-facing standing frame
+                                }),
+                                ..default()
+                            },
+                        ));
+                    } else {
+                        panel.spawn((
+                            DialoguePortrait,
+                            Node {
+                                width: Val::Px(80.0),
+                                height: Val::Px(80.0),
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.3, 0.5, 0.7)),
+                        ));
+                    }
 
                     // Right: Text area
                     panel

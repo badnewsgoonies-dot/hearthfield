@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 
 mod animation;
-mod definitions;
+pub mod definitions;
 mod dialogue;
 mod gifts;
 mod map_events;
@@ -15,7 +15,7 @@ pub mod romance;
 pub mod quests;
 mod schedule;
 pub mod schedules;
-mod spawning;
+pub mod spawning;
 
 use dialogue::{handle_npc_interaction, ActiveNpcInteraction};
 use gifts::{handle_gifts, handle_gift_input};
