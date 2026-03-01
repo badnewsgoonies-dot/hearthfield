@@ -346,6 +346,27 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
                         PickingBehavior::IGNORE,
                     ))
                     .with_children(|slot| {
+                        // Slot key number (1-9, 0 for slot 10+)
+                        let key_label = if i < 9 {
+                            format!("{}", i + 1)
+                        } else {
+                            String::new()
+                        };
+                        slot.spawn((
+                            Text::new(key_label),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 7.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgba(0.5, 0.5, 0.45, 0.7)),
+                            Node {
+                                align_self: AlignSelf::FlexStart,
+                                margin: UiRect::left(Val::Px(2.0)),
+                                ..default()
+                            },
+                            PickingBehavior::IGNORE,
+                        ));
                         // Item name (short)
                         slot.spawn((
                             HotbarItemText { index: i },

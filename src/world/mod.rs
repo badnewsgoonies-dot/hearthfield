@@ -104,6 +104,8 @@ impl Plugin for WorldPlugin {
                     spawn_carpenter_board,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
+                    // Subtle pulse on nearby interactable objects
+                    highlight_nearby_interactables,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -781,5 +783,31 @@ fn handle_season_change(
         // Force apply_seasonal_tint to re-run on the next frame so the new
         // season's colour tint is applied over the freshly-swapped atlas tiles.
         tint_applied.season = None;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTERACTABLE HIGHLIGHT — subtle pulse on nearby interactable objects
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Gently brighten interactable sprites when the player is within interaction range.
+pub fn highlight_nearby_interactables(
+    time: Res<Time>,
+    player_query: Query<&LogicalPosition, With<Player>>,
+    mut interactable_query: Query<(&Transform, &mut Sprite), With<Interactable>>,
+) {
+    let Ok(player_pos) = player_query.get_single() else {
+        return;
+    };
+    let range = TILE_SIZE * 1.8;
+    let pulse = 1.0 + 0.15 * (time.elapsed_secs() * 3.0).sin().abs();
+
+    for (tf, mut sprite) in &mut interactable_query {
+        let d = player_pos.0.distance(tf.translation.truncate());
+        if d <= range {
+            sprite.color = Color::srgb(pulse, pulse, pulse);
+        } else {
+            sprite.color = Color::WHITE;
+        }
     }
 }
