@@ -1,171 +1,96 @@
-# CLAUDE.md — Hearthfield Build Orchestrator
+# CLAUDE.md
 
-You are building Hearthfield, a Harvest Moon-style farming simulator in Rust with Bevy.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What Already Exists
+## Project Overview
 
-- `GAME_SPEC.md` — full game design (READ THIS FIRST)
-- `src/shared/mod.rs` — **the type contract** (components, resources, events, states)
-- `src/main.rs` — plugin registration and wiring (DO NOT MODIFY)
-- `Cargo.toml` — dependencies
+Hearthfield is a Harvest Moon-style farming simulator built in Rust with Bevy 0.15. The full game design is in `GAME_SPEC.md`. ~116 source files, ~35k lines of Rust.
+
+## Build Commands
+
+```bash
+cargo check                  # Type-check without building (fast iteration)
+cargo build                  # Full debug build
+cargo run                    # Run the game (requires GPU/window)
+cargo test --test headless   # Run headless integration tests (no GPU needed)
+```
+
+WASM target is configured (`profile.wasm-release` in Cargo.toml, `webgl2` feature enabled) but no wasm-pack/trunk scripts exist yet.
 
 ## Architecture
 
-Every domain is a Bevy plugin. Domains communicate ONLY through:
+### Plugin-per-domain with shared type contract
 
-1. **Shared Resources** (defined in `crate::shared`)
-2. **Events** (defined in `crate::shared`)
-3. **State transitions** (via `NextState<GameState>`)
+The game uses a strict domain isolation pattern:
 
-**No domain imports from any other domain.** Only `use crate::shared::*;`
+- `src/shared/mod.rs` is the **type contract** — all components, resources, events, and states shared across domains are defined here (~1800 lines). **Do not casually modify** — changes ripple across every domain.
+- `src/main.rs` is the **wiring hub** — registers all resources, events, and plugins. **Do not casually modify** — order matters.
+- `src/lib.rs` re-exports all modules as a library crate so `tests/headless.rs` can import game systems.
 
-## Asset Setup
+Each domain lives in `src/{domain}/mod.rs` and exports a `{Domain}Plugin`. There are 13 domain directories plus `src/data/`.
 
-Before building, ensure assets are downloaded and placed:
+### Isolation rule
+
+Domains communicate **only** through `crate::shared::*`. No domain imports from another domain. Cross-domain coordination happens via:
+1. Shared resources (e.g., `Calendar`, `FarmState`, `Inventory`)
+2. Events (e.g., `DayEndEvent`, `ToolUseEvent`, `MapTransitionEvent`)
+3. State transitions (`NextState<GameState>`)
+
+### GameState machine
 
 ```
-assets/
-  sprites/          (Sprout Lands sprite sheets)
-  ui/               (Sprout Lands UI pack)
-  tilesets/          (terrain tiles per season)
-  audio/
-    music/
-    sfx/
+Loading → MainMenu → Playing ⇄ Paused
+                        ↕
+          Dialogue / Shop / Fishing / Crafting / Inventory / Cutscene / BuildingUpgrade
 ```
 
-If assets aren't present, use placeholder colored sprites (like Vale Village) and mark with TODO comments.
+Gameplay systems must be guarded with `.run_if(in_state(GameState::Playing))` or the appropriate state.
 
-## Build Order
+### Input abstraction
 
-### Phase 1: Data Layer
+`src/input/mod.rs` (`InputPlugin`) runs in `PreUpdate` and converts raw keyboard/mouse into a `PlayerInput` resource. All other systems read `PlayerInput` instead of `ButtonInput<KeyCode>` directly. `InputContext` controls which actions are available (Gameplay, Menu, Disabled).
 
-Create `src/data/mod.rs` — loads all registries (items, crops, fish, recipes, NPCs, shops).
-This populates ItemRegistry, CropRegistry, FishRegistry, RecipeRegistry, NpcRegistry, ShopData.
-Build as DataPlugin that runs in OnEnter(GameState::Loading).
+### Key event flows
 
-### Phase 2: Domain Plugins (PARALLEL — flat dispatch)
+**DayEndEvent** (most important): Player sleeps → CalendarPlugin fires `DayEndEvent` → farming advances crops, animals produce, economy sells shipping bin, NPCs reset, save autosaves.
 
-Dispatch 12 workers simultaneously. Each worker:
+**ToolUseEvent**: PlayerPlugin emits with target tile → farming tills/waters, world chops/breaks, mining breaks rocks, fishing starts minigame.
 
-1. Reads GAME_SPEC.md for their domain
-2. Reads src/shared/mod.rs for the type contract
-3. Creates src/{domain}/mod.rs exporting a {Domain}Plugin
-4. Implements real game logic, NOT stubs
-5. Uses `use crate::shared::*;` for all cross-domain types
-6. Registers systems with appropriate state guards
-
-```bash
-for domain in calendar player farming animals world npcs economy crafting fishing mining ui save; do
-  codex exec --full-auto --skip-git-repo-check -c model_reasoning_effort=\"high\" \
-    "You are building the ${domain} domain for Hearthfield, a Harvest Moon farming sim in Rust/Bevy.
-
-Read these files first:
-- $(pwd)/GAME_SPEC.md (full game design)
-- $(pwd)/src/shared/mod.rs (type contract — ALL shared types)
-- $(pwd)/src/main.rs (see how your plugin is registered)
-
-Create: $(pwd)/src/${domain}/mod.rs (and any sub-modules you need in src/${domain}/)
-
-Your plugin struct must be: pub struct ${Domain}Plugin;
-Import shared types with: use crate::shared::*;
-DO NOT modify any file outside src/${domain}/.
-DO NOT import from any other domain (only crate::shared).
-
-Write REAL implementations with game logic. Not stubs. Not TODOs.
-Use Bevy ECS patterns: systems, queries, resources, events.
-Guard gameplay systems with .run_if(in_state(GameState::Playing)) or appropriate state.
-Read events from shared:: and write events to shared:: for cross-domain communication.
-
-If sprites/assets aren't available, use Sprite::from_color() placeholders." &
-  sleep 3
-done
-wait
-```
-
-### Phase 3: Data Population
-
-After domains are built, create `src/data/` with actual game data:
-
-- `src/data/items.rs` — all item definitions (seeds, crops, fish, minerals, food, etc.)
-- `src/data/crops.rs` — crop growth definitions
-- `src/data/fish.rs` — fish species
-- `src/data/recipes.rs` — crafting and cooking recipes
-- `src/data/npcs.rs` — NPC definitions, schedules, gift preferences
-- `src/data/shops.rs` — shop inventories
-- `src/data/maps.rs` — tilemap definitions for each area
-
-### Phase 4: Compile & Fix
-
-```bash
-cargo check 2>&1 | head -100
-```
-
-Fix any compilation errors. Common issues:
-
-- Missing mod declarations (add `mod {submodule};` in domain mod.rs)
-- Import paths (should all be `use crate::shared::*;`)
-- Bevy API mismatches (check Bevy 0.15 API)
-
-### Phase 5: Integration Test
-
-```bash
-cargo run
-```
-
-Should show: window opens, loading state, transition to playing, camera renders.
+**MapTransitionEvent**: Triggers world map swap, player repositioning, NPC spawn/despawn, screen fade.
 
 ## Domain Reference
 
-| Domain   | Plugin Struct  | Primary Responsibility                       |
-|----------|----------------|----------------------------------------------|
-| calendar | CalendarPlugin | Time progression, day/season events          |
-| player   | PlayerPlugin   | Movement, tool use, stamina, collision       |
-| farming  | FarmingPlugin  | Soil tilling, crop growth, harvest           |
-| animals  | AnimalPlugin   | Animal care, products, buildings             |
-| world    | WorldPlugin    | Tilemap loading, rendering, transitions      |
-| npcs     | NpcPlugin      | NPC spawning, schedules, dialogue, gifts     |
-| economy  | EconomyPlugin  | Shops, shipping bin, gold transactions       |
-| crafting | CraftingPlugin | Crafting bench, cooking, processing machines |
-| fishing  | FishingPlugin  | Casting, minigame, catch resolution          |
-| mining   | MiningPlugin   | Mine floors, rocks, monsters, loot           |
-| ui       | UiPlugin       | HUD, inventory screen, menus, dialogue box   |
-| save     | SavePlugin     | Save/load, autosave on sleep                 |
+| Domain   | Plugin Struct  | Key Sub-modules |
+|----------|----------------|-----------------|
+| calendar | CalendarPlugin | festivals |
+| player   | PlayerPlugin   | movement, tools, tool_anim, camera, interaction, interact_dispatch, item_use, spawn |
+| farming  | FarmingPlugin  | soil, crops, harvest, render, sprinklers, sprinkler, events_handler |
+| animals  | AnimalPlugin   | feeding, products, movement, interaction, rendering, day_end |
+| world    | WorldPlugin    | maps, objects, chests, seasonal, lighting, weather_fx, ysort |
+| npcs     | NpcPlugin      | spawning, schedule, schedules, dialogue, gifts, animation, definitions, map_events, quests, romance |
+| economy  | EconomyPlugin  | shop, shipping, gold, tool_upgrades, blacksmith, buildings, evaluation, achievements, play_stats, stats |
+| crafting | CraftingPlugin | bench, recipes, cooking, machines, buffs, unlock |
+| fishing  | FishingPlugin  | cast, bite, minigame, resolve, render, fish_select, skill, legendaries, treasure |
+| mining   | MiningPlugin   | floor_gen, spawning, rock_breaking, combat, movement, ladder, transitions, hud, components |
+| ui       | UiPlugin       | hud, main_menu, pause_menu, dialogue_box, inventory_screen, shop_screen, crafting_screen, chest_screen, building_upgrade_menu, cutscene_runner, intro_sequence, tutorial, transitions, toast, debug_overlay, menu_kit, menu_input, audio |
+| save     | SavePlugin     | (single mod.rs) |
+| data     | DataPlugin     | items, crops, fish, recipes, npcs, shops |
 
-## Critical Integration Points
+## Testing
 
-### DayEndEvent Flow (most important event in the game)
+Headless tests (`tests/headless.rs`) exercise ECS logic without a window or GPU using `MinimalPlugins`. They import individual systems from the library crate (e.g., `hearthfield::farming::crops::advance_crop_growth`) and run them in a test `App`. To add a new headless test, register only the systems and resources your test needs in `build_test_app()`.
 
-When player sleeps, CalendarPlugin sends DayEndEvent. Every domain listens:
+## Conventions
 
-- **farming**: advance crop growth, reset watered status, check for withering
-- **animals**: check if fed, produce products, advance age
-- **economy**: sell shipping bin contents, add gold
-- **npcs**: reset gifted_today flags
-- **calendar**: advance day, check season change, roll weather
-- **save**: autosave
+- Use `Sprite::from_color()` for placeholder visuals when sprites aren't available; mark with `TODO` comments.
+- Bevy 0.15 API — e.g., `Camera2d` (not `Camera2dBundle`), `Sprite` component, `required_components`.
+- Camera uses `PIXEL_SCALE` for pixel-art scaling: `Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE))`.
+- Dependencies: `bevy 0.15`, `serde`, `serde_json`, `rand 0.8`, `ron 0.8`. No other runtime deps.
+- Dev profile: `opt-level = 1` for game code, `opt-level = 3` for dependencies (fast compile + fast deps).
 
-### Tool Use Flow
+## Common Pitfalls
 
-PlayerPlugin sends ToolUseEvent with target tile coordinates:
-
-- **farming**: hoe → till soil, watering can → water soil
-- **world**: axe → chop tree/stump, pickaxe → break rock
-- **mining**: pickaxe → break mine rocks
-- **fishing**: fishing rod → start fishing minigame
-
-### Map Transition Flow
-
-PlayerPlugin or WorldPlugin sends MapTransitionEvent:
-
-- **world**: despawn current map, load new map
-- **player**: reposition player at target coordinates
-- **npcs**: spawn/despawn NPCs for new map
-- **ui**: screen transition effect
-
-## Rules
-
-- ALL leaf workers use codex with reasoning=high
-- DO NOT modify src/shared/mod.rs or src/main.rs after initial setup
-- Each domain owns ONLY its own directory
-- Test with `cargo check` after each phase
-- Record: file count, LOC, compile errors per phase
+- Adding a new shared resource or event requires updating **both** `src/shared/mod.rs` (definition) and `src/main.rs` (registration via `.init_resource` or `.add_event`). Also update `tests/headless.rs:build_test_app()` if used in tests.
+- The `src/lib.rs` must re-export any new domain module for headless tests to access it.
+- System ordering: `InputPlugin` runs in `PreUpdate` before all domain plugins. Domain plugins should register gameplay systems in `Update` with state guards.
+- `InteractionClaimed` is reset each frame by the input system — use it to prevent multiple systems from handling the same player interaction.

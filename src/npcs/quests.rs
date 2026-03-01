@@ -78,10 +78,10 @@ const SLAY_TEMPLATES: &[(&str, u8, u8, u32, &str)] = &[
     ("golem", 1, 3, 400, "Golem Smashing"),
 ];
 
-/// NPC names used for Talk quests.
+/// NPC IDs used for Talk quests.
 const TALK_NPCS: &[&str] = &[
-    "Lily", "Mason", "Hazel", "Cliff", "Rose",
-    "Reed", "Ivy", "Flint", "Maple", "Elder Oak",
+    "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
+    "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
 ];
 
 /// Generates a unique quest ID from day, season, year, and an index.
@@ -283,7 +283,7 @@ pub fn post_daily_quests(
                         }
                         target
                     } else {
-                        npc_names.first().cloned().unwrap_or_else(|| "Lily".to_string())
+                        npc_names.first().cloned().unwrap_or_else(|| "child_lily".to_string())
                     };
                     let gold = rng.gen_range(80..=200);
                     Quest {
@@ -383,7 +383,7 @@ pub fn handle_quest_accepted(
 ///
 /// Tracked events:
 /// - `CropHarvestedEvent` -> `QuestObjective::Harvest`
-/// - `ItemPickupEvent` -> `QuestObjective::Deliver` and `QuestObjective::Mine`
+/// - `ItemPickupEvent` -> `QuestObjective::Deliver`, `QuestObjective::Mine`, `QuestObjective::Catch`
 /// - `GiftGivenEvent` -> `QuestObjective::Talk` (giving a gift = visiting the NPC)
 pub fn track_quest_progress(
     mut crop_events: EventReader<CropHarvestedEvent>,
@@ -415,7 +415,7 @@ pub fn track_quest_progress(
         }
     }
 
-    // --- ItemPickupEvent -> Deliver and Mine objectives ---
+    // --- ItemPickupEvent -> Deliver, Mine, and Catch objectives ---
     for event in item_events.read() {
         for quest in quest_log.active.iter_mut() {
             match &mut quest.objective {
@@ -443,6 +443,15 @@ pub fn track_quest_progress(
                         }
                     }
                 }
+                QuestObjective::Catch {
+                    ref fish_id,
+                    ref mut delivered,
+                } => {
+                    if !*delivered && *fish_id == event.item_id {
+                        *delivered = true;
+                        newly_completed.push((quest.id.clone(), quest.reward_gold));
+                    }
+                }
                 _ => {}
             }
         }
@@ -464,16 +473,9 @@ pub fn track_quest_progress(
         }
     }
 
-    // --- Catch objectives are tracked via ItemPickupEvent for fish items ---
-    // (Fish caught triggers ItemPickupEvent with the fish item_id)
-    // We handle this by checking Catch objectives against ItemPickupEvent too.
-    // Note: item_events was already consumed above, so we handle Catch in the
-    // same pass. Re-reading would require separate event reader or different approach.
-    // Instead, we also check for Catch in the ItemPickup loop above:
-    // Actually, EventReader is consumed. We handle Catch from ItemPickup in a
-    // second system or we rely on fish catch also producing ItemPickupEvent.
-    // For robustness, let's check if any Catch quests match items already tracked.
-
+    // --- End of quest-progress updates for this frame.
+    // Catch objectives are intentionally handled with ItemPickupEvent since
+    // fish collection and catch completion share that same event path.
     // Deduplicate completed quest IDs
     newly_completed.sort_by(|a, b| a.0.cmp(&b.0));
     newly_completed.dedup_by(|a, b| a.0 == b.0);

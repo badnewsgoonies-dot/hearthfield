@@ -113,6 +113,7 @@ pub fn handle_gift_input(
     relationships: Res<Relationships>,
     mut gift_writer: EventWriter<GiftGivenEvent>,
     mut item_removed_writer: EventWriter<ItemRemovedEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
     current_state: Res<State<GameState>>,
     interaction_claimed: Res<InteractionClaimed>,
 ) {
@@ -183,7 +184,14 @@ pub fn handle_gift_input(
     }
 
     // Remove one item from inventory
-    inventory.try_remove(&item_id, 1);
+    let removed = inventory.try_remove(&item_id, 1);
+    if removed == 0 {
+        toast_writer.send(ToastEvent {
+            message: format!("Couldn't gift {} right now. It seems to be missing.", item_id),
+            duration_secs: 2.0,
+        });
+        return;
+    }
     item_removed_writer.send(ItemRemovedEvent {
         item_id: item_id.clone(),
         quantity: 1,

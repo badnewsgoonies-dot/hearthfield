@@ -27,13 +27,15 @@ const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
 /// | worm_bait     | 0.75       | 25% faster bite                           |
 /// | magnet_bait   | 1.00       | Normal speed — bonus is treasure chance   |
 /// | wild_bait     | 0.70       | 30% faster bite + 15% double-catch chance |
-/// | (generic bait)| 0.50       | 50% faster bite                           |
+/// | (generic bait)| 0.85       | 15% faster bite                           |
+/// | (unknown)     | 1.00       | No speed bonus                            |
 pub fn bait_bite_multiplier(bait_id: &str) -> f32 {
     match bait_id {
         "worm_bait"   => 0.75,
         "magnet_bait" => 1.00, // magnet bait benefits treasure, not speed
         "wild_bait"   => 0.70,
-        _             => 0.50, // any other bait (generic "bait") = 50% faster
+        "bait"        => 0.85, // generic bait = moderate 15% faster
+        _             => 1.00, // unknown bait IDs get no speed bonus
     }
 }
 
@@ -127,6 +129,7 @@ pub fn handle_tool_use_for_fishing(
             target_y as f32 * TILE_SIZE,
         );
         fishing_state.bite_timer = Some(Timer::from_seconds(wait, TimerMode::Once));
+        fishing_state.bait_id = bait_id.clone();
         fishing_state.bait_equipped = bait_equipped;
         fishing_state.tackle_equipped = tackle_equipped;
         fishing_state.tackle_kind = tackle_kind;
@@ -360,9 +363,10 @@ mod tests {
 
     #[test]
     fn test_bait_bite_multiplier_generic() {
-        // Any unrecognized bait defaults to 0.50
-        assert!((bait_bite_multiplier("bait") - 0.50).abs() < f32::EPSILON);
-        assert!((bait_bite_multiplier("some_other_bait") - 0.50).abs() < f32::EPSILON);
+        // Generic "bait" gets moderate 15% speed bonus
+        assert!((bait_bite_multiplier("bait") - 0.85).abs() < f32::EPSILON);
+        // Unknown bait IDs get no speed bonus
+        assert!((bait_bite_multiplier("some_other_bait") - 1.00).abs() < f32::EPSILON);
     }
 
     #[test]

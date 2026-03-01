@@ -17,16 +17,14 @@ use bevy::prelude::*;
 
 use crate::shared::*;
 use super::{FishingPhase, FishingState, FishEncyclopedia};
-use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_EXTRA_CHANCE};
+use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_EXTRA_CHANCE, MAGNET_BAIT_EXTRA_CHANCE};
 
 // ─── catch_fish ───────────────────────────────────────────────────────────────
 
 /// Called when the player successfully catches a fish.
 ///
-/// `bait_equipped` indicates whether any bait was used this cast, which affects
-/// the treasure discovery chance. The specific bait type is not threaded through
-/// here; callers that know the exact bait ID should adjust `treasure_chance`
-/// before calling or use `catch_fish_with_bait_id` instead.
+/// `bait_id` is the specific bait item ID used for this cast (e.g. "wild_bait"),
+/// or `None` if no bait was equipped. This determines the treasure bonus.
 pub fn catch_fish(
     fishing_state: &mut FishingState,
     next_state: &mut NextState<GameState>,
@@ -40,7 +38,7 @@ pub fn catch_fish(
     calendar: &Calendar,
     toast_events: &mut EventWriter<ToastEvent>,
     gold_events: &mut EventWriter<GoldChangeEvent>,
-    bait_equipped: bool,
+    bait_id: Option<&str>,
 ) {
     // Determine what was caught
     let fish_id = fishing_state
@@ -101,18 +99,13 @@ pub fn catch_fish(
 
     // ── Treasure Chest ────────────────────────────────────────────────────
     // Bait affects treasure probability:
-    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)
-    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)
-    //   - any other bait has no extra treasure bonus
-    // Since we don't have the specific bait_id here, we apply a conservative
-    // flat bonus when `bait_equipped` is true. Systems that know the exact
-    // bait type should call `check_and_grant_treasure` directly with the
-    // adjusted chance.
-    let treasure_chance = if bait_equipped {
-        // Default bait bonus: apply WILD_BAIT rate as a conservative bonus.
-        BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE
-    } else {
-        BASE_TREASURE_CHANCE
+    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)  → 20% total
+    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)       → 10% total
+    //   - any other bait / no bait: base rate only           →  5% total
+    let treasure_chance = match bait_id {
+        Some("magnet_bait") => BASE_TREASURE_CHANCE + MAGNET_BAIT_EXTRA_CHANCE,
+        Some("wild_bait")   => BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE,
+        _                   => BASE_TREASURE_CHANCE,
     };
 
     check_and_grant_treasure(

@@ -294,7 +294,7 @@ pub fn start_luau(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
+    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
         (slot.item_id.clone(), slot.quantity)
     });
 
@@ -391,7 +391,7 @@ pub fn start_harvest_festival(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
+    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
         (slot.item_id.clone(), slot.quantity)
     });
 
@@ -573,7 +573,7 @@ pub fn winter_star_give_gift(
 
     // Check that the player is holding an item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
+    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
         slot.item_id.clone()
     });
 

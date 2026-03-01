@@ -21,7 +21,6 @@ use crate::shared::*;
 /// Default treasure chance per catch (5%).
 pub const BASE_TREASURE_CHANCE: f64 = 0.05;
 /// Extra treasure chance when magnet_bait is equipped (+15%).
-#[allow(dead_code)]
 pub const MAGNET_BAIT_EXTRA_CHANCE: f64 = 0.15;
 /// Extra treasure chance when wild_bait is equipped (+5%).
 pub const WILD_BAIT_EXTRA_CHANCE: f64 = 0.05;

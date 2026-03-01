@@ -716,15 +716,17 @@ fn handle_day_end_forageables(
     }
 }
 
-/// After a map loads, copy WorldMap.solid_tiles into CollisionMap.
+/// Keep CollisionMap in sync with WorldMap whenever solid_tiles change
+/// (initial load, object destruction, map transition, etc.).
 pub fn sync_collision_map(
     world_map: Res<WorldMap>,
     mut collision_map: ResMut<crate::player::CollisionMap>,
 ) {
-    if collision_map.solid_tiles.is_empty() && !world_map.solid_tiles.is_empty() {
-        for &tile in &world_map.solid_tiles {
-            collision_map.solid_tiles.insert(tile);
-        }
+    if !world_map.is_changed() {
+        return;
+    }
+    collision_map.solid_tiles.clone_from(&world_map.solid_tiles);
+    if !world_map.solid_tiles.is_empty() {
         collision_map.initialised = true;
     }
 }

@@ -196,7 +196,10 @@ pub struct FishingState {
     pub reaction_timer: Option<Timer>,
     /// The fish that has been selected for this cast.
     pub selected_fish_id: Option<ItemId>,
-    /// Whether bait is currently equipped.
+    /// The specific bait item ID used for this cast (e.g. "wild_bait", "magnet_bait").
+    /// `None` means no bait was equipped.
+    pub bait_id: Option<String>,
+    /// Whether bait is currently equipped (derived from bait_id for convenience).
     pub bait_equipped: bool,
     /// Whether tackle is currently equipped (any kind).
     pub tackle_equipped: bool,
@@ -215,6 +218,7 @@ impl Default for FishingState {
             bite_timer: None,
             reaction_timer: None,
             selected_fish_id: None,
+            bait_id: None,
             bait_equipped: false,
             tackle_equipped: false,
             tackle_kind: TackleKind::None,
@@ -229,6 +233,11 @@ impl FishingState {
         self.bite_timer = None;
         self.reaction_timer = None;
         self.selected_fish_id = None;
+        self.bait_id = None;
+        self.bait_equipped = false;
+        self.tackle_equipped = false;
+        self.tackle_kind = TackleKind::None;
+        self.rod_tier = ToolTier::Basic;
     }
 }
 

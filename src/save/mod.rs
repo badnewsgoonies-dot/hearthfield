@@ -399,6 +399,12 @@ fn write_save(
     let tmp_path = path.with_extension("json.tmp");
     fs::write(&tmp_path, &json)
         .map_err(|e| format!("Write failed for {}: {}", tmp_path.display(), e))?;
+    // On Windows, fs::rename fails if the destination already exists.
+    // Remove the old file first so the rename succeeds on all platforms.
+    if path.exists() {
+        fs::remove_file(&path)
+            .map_err(|e| format!("Could not remove old save {}: {}", path.display(), e))?;
+    }
     fs::rename(&tmp_path, &path).map_err(|e| format!("Rename failed: {}", e))?;
 
     Ok(())
@@ -443,10 +449,18 @@ fn read_save(slot: u8) -> Result<FullSaveFile, String> {
     let file: FullSaveFile =
         serde_json::from_str(&json).map_err(|e| format!("Deserialization failed: {}", e))?;
 
-    // Version check — future versions can add migration here
-    if file.version != SAVE_VERSION {
+    // Reject saves from future versions (unknown format); allow older saves
+    // (serde(default) fills in missing fields).
+    if file.version > SAVE_VERSION {
+        return Err(format!(
+            "Save slot {} uses version {} but this game only supports up to version {}. \
+             Please update the game.",
+            slot, file.version, SAVE_VERSION
+        ));
+    }
+    if file.version < SAVE_VERSION {
         warn!(
-            "Save slot {} has version {} but current version is {}. Attempting to load anyway.",
+            "Save slot {} has older version {} (current: {}). Loading with defaults for new fields.",
             slot, file.version, SAVE_VERSION
         );
     }
@@ -626,6 +640,11 @@ fn handle_load_request(
                 *calendar = file.calendar;
                 *player_state = file.player_state;
                 *inventory = file.inventory;
+                // Clamp selected_slot to valid bounds in case save data is
+                // malformed or from a version with a different slot count.
+                if inventory.selected_slot >= inventory.slots.len() {
+                    inventory.selected_slot = 0;
+                }
                 *farm_state = file.farm_state;
                 *animal_state = file.animal_state;
                 *relationships = file.relationships;

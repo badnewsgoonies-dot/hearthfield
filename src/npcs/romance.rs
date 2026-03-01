@@ -147,11 +147,17 @@ pub fn handle_bouquet(
             continue;
         }
 
+        // Consume bouquet from inventory
+        if inventory.try_remove("bouquet", 1) == 0 {
+            toast_writer.send(ToastEvent {
+                message: "You need a bouquet to start dating someone.".to_string(),
+                duration_secs: 3.0,
+            });
+            continue;
+        }
+
         // All checks passed — begin dating
         stages.stages.insert(npc_id.clone(), RelationshipStage::Dating);
-
-        // Consume bouquet from inventory
-        inventory.try_remove("bouquet", 1);
 
         toast_writer.send(ToastEvent {
             message: format!("You are now dating {}!", npc_name),
@@ -233,13 +239,19 @@ pub fn handle_proposal(
             continue;
         }
 
+        // Consume mermaid pendant from inventory
+        if inventory.try_remove("mermaid_pendant", 1) == 0 {
+            toast_writer.send(ToastEvent {
+                message: "You need a mermaid pendant to propose.".to_string(),
+                duration_secs: 3.0,
+            });
+            continue;
+        }
+
         // All checks passed — become engaged
         relationship_stages
             .stages
             .insert(npc_id.clone(), RelationshipStage::Engaged);
-
-        // Consume mermaid pendant from inventory
-        inventory.try_remove("mermaid_pendant", 1);
 
         // Schedule wedding in 3 days
         wedding_timer.days_remaining = Some(3);

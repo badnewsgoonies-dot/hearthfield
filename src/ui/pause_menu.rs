@@ -122,7 +122,9 @@ pub fn update_pause_menu_visuals(
         set_button_visual(&mut image_node, item.index == state.cursor);
     }
 
-    let mut text = status_query.single_mut();
+    let Ok(mut text) = status_query.get_single_mut() else {
+        return;
+    };
     text.0 = state.status_message.clone();
 }
 

@@ -218,7 +218,7 @@ pub fn check_minigame_result(
     if minigame_state.progress >= 100.0 {
         // Determine perfect catch before consuming minigame_state
         let is_perfect = minigame_state.is_perfect_catch();
-        let bait_equipped = fishing_state.bait_equipped;
+        let bait_id = fishing_state.bait_id.clone();
         let selected_fish = fishing_state.selected_fish_id.clone();
 
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
@@ -235,7 +235,7 @@ pub fn check_minigame_result(
             &calendar,
             &mut toast_events,
             &mut gold_events,
-            bait_equipped,
+            bait_id.as_deref(),
         );
 
         // Perfect catch notification (after the normal catch is processed)
@@ -249,15 +249,8 @@ pub fn check_minigame_result(
             });
         }
 
-        // Wild bait double-catch: 15% chance for a bonus fish
-        if bait_equipped {
-            // We can't inspect which bait type was equipped post-catch (state was
-            // reset), so we stored the flag in the local capture above. Only
-            // wild_bait triggers double-catch; we check it via the inventory in
-            // handle_tool_use_for_fishing, so here we use the helper roll.
-            // In a full implementation you would store bait_id on FishingState;
-            // for now wild_bait_double_catch_roll() is always called but only
-            // sends an event when the random check passes.
+        // Wild bait double-catch: 15% chance for a bonus fish (wild_bait only)
+        if bait_id.as_deref() == Some("wild_bait") {
             if super::cast::wild_bait_double_catch_roll() {
                 if let Some(ref fid) = selected_fish {
                     item_pickup_events.send(ItemPickupEvent {
