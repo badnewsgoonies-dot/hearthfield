@@ -22,6 +22,19 @@ pub struct ObjectAtlases {
     pub grass_biome_layout: Handle<TextureAtlasLayout>,
     pub fences_image: Handle<Image>,
     pub fences_layout: Handle<TextureAtlasLayout>,
+    // Building tilesets (Sprout Lands)
+    pub house_walls_image: Handle<Image>,
+    pub house_walls_layout: Handle<TextureAtlasLayout>,
+    pub house_roof_image: Handle<Image>,
+    pub house_roof_layout: Handle<TextureAtlasLayout>,
+    pub doors_image: Handle<Image>,
+    pub doors_layout: Handle<TextureAtlasLayout>,
+    pub hills_image: Handle<Image>,
+    pub hills_layout: Handle<TextureAtlasLayout>,
+    pub wood_bridge_image: Handle<Image>,
+    pub wood_bridge_layout: Handle<TextureAtlasLayout>,
+    pub tools_image: Handle<Image>,
+    pub tools_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads object atlas assets on first use. Subsequent calls are no-ops.
@@ -50,6 +63,66 @@ pub fn ensure_object_atlases_loaded(
         UVec2::new(16, 16),
         4,
         4,
+        None,
+        None,
+    ));
+
+    // house_walls.png: 80x48px -> 16x16 tiles, 5 columns x 3 rows
+    atlases.house_walls_image = asset_server.load("tilesets/house_walls.png");
+    atlases.house_walls_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        5,
+        3,
+        None,
+        None,
+    ));
+
+    // house_roof.png: 112x80px -> 16x16 tiles, 7 columns x 5 rows
+    atlases.house_roof_image = asset_server.load("tilesets/house_roof.png");
+    atlases.house_roof_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        7,
+        5,
+        None,
+        None,
+    ));
+
+    // doors.png: 16x64px -> 16x16 tiles, 1 column x 4 rows
+    atlases.doors_image = asset_server.load("tilesets/doors.png");
+    atlases.doors_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        1,
+        4,
+        None,
+        None,
+    ));
+
+    // hills.png: 176x144px -> 16x16 tiles, 11 columns x 9 rows
+    atlases.hills_image = asset_server.load("tilesets/hills.png");
+    atlases.hills_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        11,
+        9,
+        None,
+        None,
+    ));
+
+    // wood_bridge.png: 80x48px -> 16x16 tiles, 5 columns x 3 rows
+    atlases.wood_bridge_image = asset_server.load("sprites/wood_bridge.png");
+    atlases.wood_bridge_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        5,
+        3,
+        None,
+        None,
+    ));
+
+    // tools.png: 96x96px -> 16x16 tiles, 6 columns x 6 rows
+    atlases.tools_image = asset_server.load("sprites/tools.png");
+    atlases.tools_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        6,
+        6,
         None,
         None,
     ));
@@ -1102,6 +1175,209 @@ pub fn spawn_building_signs(
             },
             TextColor(Color::srgb(1.0, 0.95, 0.7)),
             Transform::from_xyz(wc.x, wc.y + TILE_SIZE * 0.8, Z_ENTITY_BASE + 50.0),
+            Visibility::default(),
+        ));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BUILDING SPRITES — render Sprout Lands house walls, roofs, and doors
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Marker for building overlay sprite entities (despawned on map change).
+#[derive(Component)]
+pub struct BuildingOverlay;
+
+/// Definition for a building to render on a map.
+struct BuildingDef {
+    /// Top-left grid position of the building footprint.
+    x: i32,
+    y: i32,
+    /// Width and height in tiles.
+    w: i32,
+    h: i32,
+    /// Grid position of the door (relative to map).
+    door_x: i32,
+    door_y: i32,
+    /// Roof color tint to differentiate buildings.
+    roof_tint: Color,
+}
+
+/// Town building definitions.
+fn town_buildings() -> Vec<BuildingDef> {
+    vec![
+        // General Store (north-west)
+        BuildingDef {
+            x: 4, y: 4, w: 10, h: 8,
+            door_x: 8, door_y: 11,
+            roof_tint: Color::srgb(0.85, 0.55, 0.4),
+        },
+        // Animal Shop (north-east)
+        BuildingDef {
+            x: 34, y: 4, w: 10, h: 8,
+            door_x: 38, door_y: 11,
+            roof_tint: Color::srgb(0.5, 0.7, 0.85),
+        },
+        // Blacksmith (east side)
+        BuildingDef {
+            x: 38, y: 30, w: 8, h: 6,
+            door_x: 41, door_y: 35,
+            roof_tint: Color::srgb(0.6, 0.55, 0.55),
+        },
+        // NPC House 1 (south residential)
+        BuildingDef {
+            x: 2, y: 30, w: 6, h: 4,
+            door_x: 4, door_y: 33,
+            roof_tint: Color::srgb(0.75, 0.85, 0.6),
+        },
+        // NPC House 2 (south residential)
+        BuildingDef {
+            x: 10, y: 30, w: 6, h: 4,
+            door_x: 12, door_y: 33,
+            roof_tint: Color::srgb(0.85, 0.75, 0.55),
+        },
+    ]
+}
+
+fn farm_buildings() -> Vec<BuildingDef> {
+    vec![
+        // Player house (top center of farm)
+        BuildingDef {
+            x: 29, y: 0, w: 6, h: 3,
+            door_x: 31, door_y: 2,
+            roof_tint: Color::srgb(0.75, 0.5, 0.4),
+        },
+    ]
+}
+
+/// Spawn multi-tile building overlays using Sprout Lands house tilesets.
+/// Renders walls on the building footprint and roof tiles above.
+pub fn spawn_building_sprites(
+    mut commands: Commands,
+    player_state: Res<PlayerState>,
+    existing: Query<Entity, With<BuildingOverlay>>,
+    object_atlases: Res<ObjectAtlases>,
+) {
+    if !existing.is_empty() || !object_atlases.loaded {
+        return;
+    }
+
+    let buildings = match player_state.current_map {
+        MapId::Town => town_buildings(),
+        MapId::Farm => farm_buildings(),
+        _ => return,
+    };
+
+    for bld in &buildings {
+        // --- WALLS: tile the building footprint ---
+        // house_walls.png layout (5 cols x 3 rows):
+        //   Row 0: top wall (0=TL, 1=T, 2=TC, 3=T, 4=TR)
+        //   Row 1: middle wall (5=L, 6=M, 7=MC, 8=M, 9=R)
+        //   Row 2: bottom wall (10=BL, 11=B, 12=BC, 13=B, 14=BR)
+        for dy in 0..bld.h {
+            for dx in 0..bld.w {
+                let gx = bld.x + dx;
+                let gy = bld.y + dy;
+
+                // Pick wall tile based on position within building
+                let is_left = dx == 0;
+                let is_right = dx == bld.w - 1;
+                let is_top = dy == 0;
+                let is_bottom = dy == bld.h - 1;
+
+                let wall_index = match (is_top, is_bottom, is_left, is_right) {
+                    (true, _, true, _) => 0,     // top-left corner
+                    (true, _, _, true) => 4,     // top-right corner
+                    (true, _, _, _) => 2,        // top center
+                    (_, true, true, _) => 10,    // bottom-left corner
+                    (_, true, _, true) => 14,    // bottom-right corner
+                    (_, true, _, _) => 12,       // bottom center
+                    (_, _, true, _) => 5,        // left edge
+                    (_, _, _, true) => 9,        // right edge
+                    _ => 7,                      // interior fill
+                };
+
+                let wc = grid_to_world_center(gx, gy);
+                let mut sprite = Sprite::from_atlas_image(
+                    object_atlases.house_walls_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.house_walls_layout.clone(),
+                        index: wall_index,
+                    },
+                );
+                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+
+                commands.spawn((
+                    BuildingOverlay,
+                    WorldObject,
+                    sprite,
+                    Transform::from_xyz(wc.x, wc.y, Z_ENTITY_BASE - 1.0),
+                    Visibility::default(),
+                ));
+            }
+        }
+
+        // --- ROOF: span the width of the building, 2 tiles above ---
+        // house_roof.png layout (7 cols x 5 rows):
+        //   Row 0: roof peak (0=left peak, 3=center, 6=right peak)
+        //   Row 1: upper roof (7=left, 10=center, 13=right)
+        //   Row 2-4: lower roof / eave tiles
+        let roof_rows = 2.min((bld.h + 1) / 2); // 1-2 roof rows
+        for ry in 0..roof_rows {
+            for dx in 0..bld.w {
+                let gx = bld.x + dx;
+                let gy = bld.y - 1 - ry; // above the building
+                if gy < 0 { continue; }
+
+                let is_left = dx == 0;
+                let is_right = dx == bld.w - 1;
+
+                let roof_index = if ry == 0 {
+                    // Bottom roof row (eave)
+                    if is_left { 14 } else if is_right { 20 } else { 17 }
+                } else {
+                    // Top roof row (peak)
+                    if is_left { 0 } else if is_right { 6 } else { 3 }
+                };
+
+                let wc = grid_to_world_center(gx, gy);
+                let mut sprite = Sprite::from_atlas_image(
+                    object_atlases.house_roof_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.house_roof_layout.clone(),
+                        index: roof_index,
+                    },
+                );
+                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+                sprite.color = bld.roof_tint;
+
+                commands.spawn((
+                    BuildingOverlay,
+                    WorldObject,
+                    sprite,
+                    Transform::from_xyz(wc.x, wc.y, Z_ENTITY_BASE + 10.0),
+                    Visibility::default(),
+                ));
+            }
+        }
+
+        // --- DOOR: place at entrance ---
+        // doors.png: 1 col x 4 rows. Index 0 = closed door.
+        let dwc = grid_to_world_center(bld.door_x, bld.door_y);
+        let mut door_sprite = Sprite::from_atlas_image(
+            object_atlases.doors_image.clone(),
+            TextureAtlas {
+                layout: object_atlases.doors_layout.clone(),
+                index: 0,
+            },
+        );
+        door_sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+
+        commands.spawn((
+            BuildingOverlay,
+            WorldObject,
+            door_sprite,
+            Transform::from_xyz(dwc.x, dwc.y, Z_ENTITY_BASE + 5.0),
             Visibility::default(),
         ));
     }

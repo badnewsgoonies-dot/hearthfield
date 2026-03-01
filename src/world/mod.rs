@@ -26,6 +26,7 @@ use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
     handle_weed_scythe, spawn_daily_weeds, regrow_trees_on_season_change,
     spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board, spawn_building_signs,
+    spawn_building_sprites,
     WorldObject,
 };
 use seasonal::{
@@ -109,6 +110,7 @@ impl Plugin for WorldPlugin {
                     spawn_crafting_bench,
                     spawn_carpenter_board,
                     spawn_building_signs,
+                    spawn_building_sprites,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
                     // Subtle pulse on nearby interactable objects
@@ -145,6 +147,10 @@ pub struct TerrainAtlases {
     pub water_layout: Handle<TextureAtlasLayout>,
     pub paths_image: Handle<Image>,
     pub paths_layout: Handle<TextureAtlasLayout>,
+    pub bridge_image: Handle<Image>,
+    pub bridge_layout: Handle<TextureAtlasLayout>,
+    pub hills_image: Handle<Image>,
+    pub hills_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads all terrain atlas assets on first use. Subsequent calls are no-ops.
@@ -193,6 +199,26 @@ fn ensure_atlases_loaded(
         UVec2::new(16, 16),
         4,
         4,
+        None,
+        None,
+    ));
+
+    // wood_bridge.png: 80x48px -> 16x16 tiles, 5 columns x 3 rows
+    atlases.bridge_image = asset_server.load("sprites/wood_bridge.png");
+    atlases.bridge_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        5,
+        3,
+        None,
+        None,
+    ));
+
+    // hills.png: 176x144px -> 16x16 tiles, 11 columns x 9 rows
+    atlases.hills_image = asset_server.load("tilesets/hills.png");
+    atlases.hills_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        11,
+        9,
         None,
         None,
     ));
@@ -286,15 +312,20 @@ fn tile_atlas_info(
             5, // center path tile (row 1, col 1)
         )),
 
-        // Bridge: paths.png atlas, wood bridge tile (index 12, row 3 col 0).
+        // Bridge: wood_bridge.png atlas, center plank tile (row 1, col 2 = index 7).
         TileKind::Bridge => Some((
-            atlases.paths_image.clone(),
-            atlases.paths_layout.clone(),
-            12,
+            atlases.bridge_image.clone(),
+            atlases.bridge_layout.clone(),
+            7,
         )),
 
-        // Void: no atlas — use plain colored sprite.
-        TileKind::Void => None,
+        // Void: use hills.png for a natural cliff edge look.
+        // Index 60 (row 5, col 5) = generic hill/cliff face tile.
+        TileKind::Void => Some((
+            atlases.hills_image.clone(),
+            atlases.hills_layout.clone(),
+            60,
+        )),
     }
 }
 
