@@ -17,6 +17,7 @@ impl Plugin for PlayerPlugin {
         // -- Local resources --
         app.init_resource::<ToolCooldown>();
         app.init_resource::<CollisionMap>();
+        app.init_resource::<CameraSnap>();
         app.init_resource::<PlayerSpriteData>();
         app.init_resource::<ActionSpriteData>();
 
@@ -57,7 +58,8 @@ impl Plugin for PlayerPlugin {
                 interaction::handle_stamina_restore,
                 interaction::handle_consume_item,
                 interaction::check_stamina_consequences,
-                camera::camera_follow_player,
+                camera::camera_follow_player
+                    .after(interaction::handle_map_transition),
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -139,6 +141,17 @@ pub struct CollisionMap {
     pub solid_tiles: std::collections::HashSet<(i32, i32)>,
     pub bounds: (i32, i32, i32, i32),
     pub initialised: bool,
+}
+
+/// When set, camera_follow_player snaps instantly instead of lerping.
+/// Uses a 2-frame countdown so the snap survives system ordering races
+/// between the world map loader and the camera on the transition frame.
+#[derive(Resource, Default)]
+pub struct CameraSnap {
+    /// Frames remaining before snap fires. 0 = no snap pending.
+    /// Set to 2 by handle_map_transition; camera decrements each frame
+    /// and snaps when it reaches 1 (ensuring WorldMap is updated).
+    pub frames_remaining: u8,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

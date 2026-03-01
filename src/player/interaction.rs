@@ -144,6 +144,7 @@ pub fn handle_map_transition(
     mut events: EventReader<MapTransitionEvent>,
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
+    mut camera_snap: ResMut<super::CameraSnap>,
     mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
 ) {
     // Process only the most recent transition (in case multiple fire).
@@ -164,6 +165,9 @@ pub fn handle_map_transition(
     logical_pos.0.y = wc.y;
     grid_pos.x = ev.to_x;
     grid_pos.y = ev.to_y;
+
+    // Tell camera to snap instantly instead of lerping.
+    camera_snap.frames_remaining = 3;
 
     // Invalidate the collision map — the world domain will re-populate it
     // for the new map.
