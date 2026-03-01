@@ -15,6 +15,7 @@ pub fn dispatch_item_use(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
     input_blocks: Res<InputBlocks>,
+    interaction_claimed: Res<InteractionClaimed>,
     player_query: Query<(&GridPosition, &PlayerMovement), With<Player>>,
     npc_query: Query<(&Npc, &Transform)>,
     logical_pos_query: Query<&LogicalPosition, With<Player>>,
@@ -25,7 +26,7 @@ pub fn dispatch_item_use(
     mut proposal_events: EventWriter<ProposalEvent>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
-    if input_blocks.is_blocked() || !player_input.tool_secondary {
+    if input_blocks.is_blocked() || !player_input.tool_secondary || interaction_claimed.0 {
         return;
     }
 

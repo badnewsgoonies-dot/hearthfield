@@ -115,7 +115,7 @@ pub fn handle_gift_input(
     mut item_removed_writer: EventWriter<ItemRemovedEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
     current_state: Res<State<GameState>>,
-    interaction_claimed: Res<InteractionClaimed>,
+    mut interaction_claimed: ResMut<InteractionClaimed>,
 ) {
     // Only in Playing state
     if *current_state.get() != GameState::Playing {
@@ -126,7 +126,7 @@ pub fn handle_gift_input(
         return;
     }
 
-    if !player_input.interact {
+    if !player_input.tool_secondary {
         return;
     }
 
@@ -203,6 +203,7 @@ pub fn handle_gift_input(
         item_id,
         preference: GiftPreference::Neutral, // will be looked up in handle_gifts
     });
+    interaction_claimed.0 = true;
 }
 
 #[cfg(test)]
