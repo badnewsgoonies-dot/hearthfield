@@ -1055,6 +1055,7 @@ pub enum PlayerAnimState {
 }
 
 /// Fired when a tool animation reaches its "impact" frame.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolImpactEvent {
     pub tool: ToolKind,
@@ -1573,6 +1574,7 @@ pub struct Interactable {
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum CutsceneStep {
     FadeOut(f32),
     FadeIn(f32),
@@ -1714,6 +1716,7 @@ impl Default for KeyBindings {
 
 /// Centralized menu styling. All menus read from this.
 #[derive(Resource, Debug, Clone)]
+#[allow(dead_code)]
 pub struct MenuTheme {
     pub bg_overlay: Color,
     pub panel_bg: Color,
@@ -1778,11 +1781,13 @@ pub struct MenuItem {
 
 /// Tracks which item is selected. Each menu manages its own cursor.
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct MenuCursor {
     pub index: usize,
     pub count: usize,
 }
 
+#[allow(dead_code)]
 impl MenuCursor {
     pub fn new(count: usize) -> Self {
         Self { index: 0, count }

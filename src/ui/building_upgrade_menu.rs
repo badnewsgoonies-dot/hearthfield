@@ -23,12 +23,14 @@ pub struct BuildingRow {
 
 /// Marker for the name/status text of each row.
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct BuildingRowText {
     pub index: usize,
 }
 
 /// Marker for the cost text of each row.
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct BuildingRowCost {
     pub index: usize,
 }

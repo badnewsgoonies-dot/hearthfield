@@ -6,7 +6,7 @@ pub mod cutscene_runner;
 mod debug_overlay;
 pub mod dialogue_box;
 mod hud;
-mod input;
+// (input.rs removed — all input routing via src/input/mod.rs + menu_input.rs)
 pub mod intro_sequence;
 mod inventory_screen;
 mod main_menu;
