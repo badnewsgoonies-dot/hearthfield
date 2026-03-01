@@ -1414,70 +1414,157 @@ struct FurniturePlacement {
 
 fn player_house_furniture() -> Vec<FurniturePlacement> {
     vec![
-        // Bed (upper-right area)
-        FurniturePlacement { x: 12, y: 3, index: 2, wide: false },
-        FurniturePlacement { x: 13, y: 3, index: 3, wide: false },
-        // Bookshelf (left wall)
-        FurniturePlacement { x: 2, y: 2, index: 9, wide: false },
-        FurniturePlacement { x: 2, y: 3, index: 18, wide: false },
-        // Table (center rug area)
-        FurniturePlacement { x: 7, y: 7, index: 0, wide: false },
-        FurniturePlacement { x: 8, y: 7, index: 1, wide: false },
-        // Chair
-        FurniturePlacement { x: 7, y: 8, index: 4, wide: false },
-        // Dresser (right side)
-        FurniturePlacement { x: 12, y: 6, index: 10, wide: false },
-        // Barrel (near door)
-        FurniturePlacement { x: 3, y: 12, index: 27, wide: false },
+        // ── Bedroom (upper-right area) ──
+        // Bed (2-tile wide)
+        FurniturePlacement { x: 12, y: 2, index: 2, wide: false },
+        FurniturePlacement { x: 13, y: 2, index: 3, wide: false },
+        // Nightstand beside bed
+        FurniturePlacement { x: 11, y: 2, index: 31, wide: false },
+        // Dresser
+        FurniturePlacement { x: 14, y: 4, index: 21, wide: false },
+        // Bedroom rug under bed
+        FurniturePlacement { x: 12, y: 3, index: 48, wide: false },
+        FurniturePlacement { x: 13, y: 3, index: 49, wide: false },
+
+        // ── Kitchen (upper-left area) ──
+        // Counter along back wall
+        FurniturePlacement { x: 2, y: 1, index: 32, wide: false },
+        FurniturePlacement { x: 3, y: 1, index: 33, wide: false },
+        FurniturePlacement { x: 4, y: 1, index: 32, wide: false },
+        // Pantry barrel
+        FurniturePlacement { x: 1, y: 3, index: 27, wide: false },
+        // Kitchen table
+        FurniturePlacement { x: 3, y: 4, index: 0, wide: false },
+        FurniturePlacement { x: 4, y: 4, index: 1, wide: false },
+        // Stools at table
+        FurniturePlacement { x: 3, y: 5, index: 5, wide: false },
+        FurniturePlacement { x: 4, y: 5, index: 5, wide: false },
+
+        // ── Living Room (center) ──
+        // Bookshelf on left wall (2-tile tall)
+        FurniturePlacement { x: 1, y: 6, index: 9, wide: false },
+        FurniturePlacement { x: 1, y: 7, index: 18, wide: false },
+        // Chairs flanking rug
+        FurniturePlacement { x: 5, y: 7, index: 4, wide: false },
+        FurniturePlacement { x: 10, y: 7, index: 4, wide: false },
+        // Lamp next to bookshelf
+        FurniturePlacement { x: 1, y: 8, index: 24, wide: false },
+        // Plant in corner
+        FurniturePlacement { x: 14, y: 8, index: 22, wide: false },
+
+        // ── Fireplace area ──
+        // (Stone tiles handle the fireplace, but add decorative items)
+        FurniturePlacement { x: 5, y: 1, index: 24, wide: false }, // lamp on mantel
+
+        // ── Entry Area ──
+        // Coat/supply barrel near door
+        FurniturePlacement { x: 2, y: 13, index: 27, wide: false },
+        // Crate near door
+        FurniturePlacement { x: 13, y: 13, index: 36, wide: false },
+        // Welcome mat (furniture over path tiles)
+        FurniturePlacement { x: 7, y: 14, index: 48, wide: false },
+        FurniturePlacement { x: 8, y: 14, index: 49, wide: false },
     ]
 }
 
 fn general_store_furniture() -> Vec<FurniturePlacement> {
     vec![
-        // Shelves along top wall (behind counter)
-        FurniturePlacement { x: 3, y: 1, index: 9, wide: false },
-        FurniturePlacement { x: 4, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 5, y: 1, index: 11, wide: false },
+        // ── Behind counter (shopkeeper area, y=1-3) ──
+        // Shelves along back wall
+        FurniturePlacement { x: 2, y: 1, index: 9, wide: false },
+        FurniturePlacement { x: 3, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 4, y: 1, index: 11, wide: false },
         FurniturePlacement { x: 6, y: 1, index: 9, wide: false },
         FurniturePlacement { x: 7, y: 1, index: 10, wide: false },
         FurniturePlacement { x: 8, y: 1, index: 11, wide: false },
-        // Crates near entrance
-        FurniturePlacement { x: 2, y: 9, index: 36, wide: false },
+        // Back crates
+        FurniturePlacement { x: 9, y: 2, index: 36, wide: false },
+
+        // ── Counter surface (y=4, stone tiles underneath) ──
+        FurniturePlacement { x: 4, y: 4, index: 32, wide: false },
+        FurniturePlacement { x: 5, y: 4, index: 33, wide: false },
+        FurniturePlacement { x: 7, y: 4, index: 32, wide: false },
+
+        // ── Customer area displays ──
+        // Left wall shelves
+        FurniturePlacement { x: 1, y: 5, index: 9, wide: false },
+        FurniturePlacement { x: 1, y: 6, index: 18, wide: false },
+        FurniturePlacement { x: 1, y: 8, index: 9, wide: false },
+        // Right wall shelves
+        FurniturePlacement { x: 10, y: 5, index: 10, wide: false },
+        FurniturePlacement { x: 10, y: 6, index: 18, wide: false },
+        FurniturePlacement { x: 10, y: 8, index: 10, wide: false },
+
+        // ── Entrance area ──
+        // Barrel near door
+        FurniturePlacement { x: 2, y: 9, index: 27, wide: false },
+        // Crate near door
         FurniturePlacement { x: 9, y: 9, index: 36, wide: false },
-        // Barrel
-        FurniturePlacement { x: 2, y: 7, index: 27, wide: false },
+        // Potted plant
+        FurniturePlacement { x: 1, y: 4, index: 22, wide: false },
+        FurniturePlacement { x: 10, y: 3, index: 22, wide: false },
     ]
 }
 
 fn blacksmith_furniture() -> Vec<FurniturePlacement> {
     vec![
-        // Anvil (center)
-        FurniturePlacement { x: 5, y: 4, index: 19, wide: false },
-        // Furnace (back wall)
-        FurniturePlacement { x: 3, y: 1, index: 18, wide: false },
-        FurniturePlacement { x: 4, y: 1, index: 18, wide: false },
-        // Crates
-        FurniturePlacement { x: 8, y: 2, index: 36, wide: false },
-        FurniturePlacement { x: 9, y: 2, index: 36, wide: false },
-        // Barrel of water
-        FurniturePlacement { x: 8, y: 8, index: 27, wide: false },
+        // ── Forge area (back-right, on dirt) ──
+        FurniturePlacement { x: 7, y: 1, index: 18, wide: false },
+        FurniturePlacement { x: 8, y: 1, index: 18, wide: false },
+        FurniturePlacement { x: 9, y: 2, index: 27, wide: false }, // water barrel
+
+        // ── Anvil workspace (center, on wood floor island) ──
+        FurniturePlacement { x: 5, y: 6, index: 19, wide: false },
+
+        // ── Counter / reception (y=4) ──
+        FurniturePlacement { x: 3, y: 4, index: 32, wide: false },
+        FurniturePlacement { x: 4, y: 4, index: 33, wide: false },
+        FurniturePlacement { x: 5, y: 4, index: 32, wide: false },
+
+        // ── Storage corner (back-left, on dirt) ──
+        FurniturePlacement { x: 1, y: 1, index: 36, wide: false },
+        FurniturePlacement { x: 2, y: 1, index: 37, wide: false },
+        FurniturePlacement { x: 1, y: 2, index: 38, wide: false },
+        FurniturePlacement { x: 3, y: 1, index: 36, wide: false },
+
+        // ── Decorations ──
+        FurniturePlacement { x: 1, y: 5, index: 24, wide: false }, // lamp
+        FurniturePlacement { x: 10, y: 5, index: 27, wide: false }, // barrel
+        FurniturePlacement { x: 10, y: 8, index: 36, wide: false }, // crate near door
+
+        // ── Tool display on right wall ──
+        FurniturePlacement { x: 10, y: 3, index: 9, wide: false },
     ]
 }
 
 fn animal_shop_furniture() -> Vec<FurniturePlacement> {
     vec![
-        // Hay bales along wall
-        FurniturePlacement { x: 2, y: 2, index: 45, wide: false },
-        FurniturePlacement { x: 3, y: 2, index: 45, wide: false },
-        // Counter items
-        FurniturePlacement { x: 5, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 6, y: 1, index: 11, wide: false },
-        // Feed bin
-        FurniturePlacement { x: 9, y: 7, index: 27, wide: false },
+        // ── Hay/feed storage (back-left, on dirt) ──
+        FurniturePlacement { x: 1, y: 1, index: 45, wide: false },
+        FurniturePlacement { x: 2, y: 1, index: 46, wide: false },
+        FurniturePlacement { x: 3, y: 1, index: 47, wide: false },
+        FurniturePlacement { x: 1, y: 2, index: 45, wide: false },
+        FurniturePlacement { x: 2, y: 2, index: 27, wide: false }, // feed barrel
+
+        // ── Counter (y=4, stone underneath) ──
+        FurniturePlacement { x: 5, y: 4, index: 32, wide: false },
+        FurniturePlacement { x: 6, y: 4, index: 33, wide: false },
+        FurniturePlacement { x: 7, y: 4, index: 32, wide: false },
+
+        // ── Back wall shelves (right side) ──
+        FurniturePlacement { x: 6, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 7, y: 1, index: 11, wide: false },
+        FurniturePlacement { x: 8, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 9, y: 1, index: 9, wide: false },
+
+        // ── Customer area ──
+        FurniturePlacement { x: 1, y: 6, index: 28, wide: false }, // barrel
+        FurniturePlacement { x: 10, y: 6, index: 22, wide: false }, // plant
+        FurniturePlacement { x: 10, y: 9, index: 36, wide: false }, // crate
+        FurniturePlacement { x: 1, y: 9, index: 27, wide: false }, // barrel near door
     ]
 }
 
-/// Spawn furniture sprites inside interior maps.
 pub fn spawn_interior_decorations(
     mut commands: Commands,
     player_state: Res<PlayerState>,

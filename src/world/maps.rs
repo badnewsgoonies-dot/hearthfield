@@ -653,15 +653,15 @@ fn generate_mine_floor() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Player House: 16x16 interior
-// Layout: wood floor, bed, table, fireplace, door
+// Player House: 16x16 interior — cozy Harvest Moon starter home
+// y=0 is back wall, y=15 is front wall with door
 // ---------------------------------------------------------------------------
 fn generate_player_house() -> MapDef {
     let w = 16usize;
     let h = 16usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
                 let xx = x0 + dx;
@@ -673,27 +673,37 @@ fn generate_player_house() -> MapDef {
         }
     };
 
-    // Walls (void) around the perimeter
+    // ── Void perimeter (walls) ──
     for x in 0..w {
-        tiles[x] = TileKind::Void;
-        tiles[(h - 1) * w + x] = TileKind::Void;
+        tiles[x] = TileKind::Void;               // y=0 back wall
+        tiles[(h - 1) * w + x] = TileKind::Void;  // y=15 front wall
     }
     for y in 0..h {
-        tiles[y * w] = TileKind::Void;
-        tiles[y * w + (w - 1)] = TileKind::Void;
+        tiles[y * w] = TileKind::Void;            // x=0 left wall
+        tiles[y * w + (w - 1)] = TileKind::Void;  // x=15 right wall
     }
 
-    // Stone fireplace on north wall
-    fill_rect(&mut tiles, 6, 1, 4, 2, TileKind::Stone);
+    // ── Door opening at front wall (y=15) ──
+    tiles[15 * w + 7] = TileKind::WoodFloor;
+    tiles[15 * w + 8] = TileKind::WoodFloor;
 
-    // Rug / carpet area (use path as rug)
-    fill_rect(&mut tiles, 5, 6, 6, 4, TileKind::Path);
+    // ── Stone fireplace on back wall (y=1-2, centered) ──
+    fill(&mut tiles, 6, 1, 4, 2, TileKind::Stone);
 
-    // Door at bottom center
-    fill_rect(&mut tiles, 7, 15, 2, 1, TileKind::WoodFloor);
+    // ── Kitchen area upper-left: stone counter along back wall ──
+    fill(&mut tiles, 1, 1, 4, 2, TileKind::Stone);
+
+    // ── Living room rug (Path tiles) ──
+    fill(&mut tiles, 5, 5, 6, 4, TileKind::Path);
+
+    // ── Bedroom area upper-right: subtle rug ──
+    fill(&mut tiles, 11, 2, 3, 2, TileKind::Path);
+
+    // ── Entrance mat ──
+    tiles[14 * w + 7] = TileKind::Path;
+    tiles[14 * w + 8] = TileKind::Path;
 
     let transitions = vec![
-        // Door -> Farm
         MapTransition {
             from_map: MapId::PlayerHouse,
             from_rect: (7, 15, 2, 1),
@@ -714,37 +724,45 @@ fn generate_player_house() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// General Store: 12x12 interior
+// General Store: 12x12 — organized shop with counter, shelves, displays
 // ---------------------------------------------------------------------------
 fn generate_general_store() -> MapDef {
     let w = 12usize;
     let h = 12usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    // Walls
-    for x in 0..w {
-        tiles[x] = TileKind::Void;
-        tiles[(h - 1) * w + x] = TileKind::Void;
-    }
-    for y in 0..h {
-        tiles[y * w] = TileKind::Void;
-        tiles[y * w + (w - 1)] = TileKind::Void;
-    }
+    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+        for dy in 0..rh {
+            for dx in 0..rw {
+                let xx = x0 + dx;
+                let yy = y0 + dy;
+                if xx < w && yy < h {
+                    tiles[yy * w + xx] = kind;
+                }
+            }
+        }
+    };
 
-    // Counter (stone)
-    for x in 3..9 {
-        tiles[3 * w + x] = TileKind::Stone;
-    }
+    // Void perimeter
+    for x in 0..w { tiles[x] = TileKind::Void; tiles[(h-1)*w+x] = TileKind::Void; }
+    for y in 0..h { tiles[y*w] = TileKind::Void; tiles[y*w+(w-1)] = TileKind::Void; }
 
-    // Shelves along walls (stone)
-    for y in 1..4 {
-        tiles[y * w + 1] = TileKind::Stone;
-        tiles[y * w + (w - 2)] = TileKind::Stone;
-    }
-
-    // Door at bottom center
+    // Door at y=11 (front wall)
     tiles[11 * w + 5] = TileKind::WoodFloor;
     tiles[11 * w + 6] = TileKind::WoodFloor;
+
+    // Sales counter — stone strip at y=4
+    for x in 3..9 { tiles[4 * w + x] = TileKind::Stone; }
+
+    // Behind-counter shelving area — stone along back wall
+    fill(&mut tiles, 1, 1, 10, 1, TileKind::Stone);
+
+    // Welcome mat at door
+    tiles[10 * w + 5] = TileKind::Path;
+    tiles[10 * w + 6] = TileKind::Path;
+
+    // Display shelves along side walls (stone)
+    for y in [3, 5, 7] { tiles[y * w + 1] = TileKind::Stone; tiles[y * w + 10] = TileKind::Stone; }
 
     let transitions = vec![
         MapTransition {
@@ -767,38 +785,45 @@ fn generate_general_store() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Animal Shop: 12x12 interior
+// Animal Shop: 12x12 — rustic with hay storage, feed area
 // ---------------------------------------------------------------------------
 fn generate_animal_shop() -> MapDef {
     let w = 12usize;
     let h = 12usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    // Walls
-    for x in 0..w {
-        tiles[x] = TileKind::Void;
-        tiles[(h - 1) * w + x] = TileKind::Void;
-    }
-    for y in 0..h {
-        tiles[y * w] = TileKind::Void;
-        tiles[y * w + (w - 1)] = TileKind::Void;
-    }
-
-    // Hay/feed storage area (dirt floor in corner)
-    for y in 1..4 {
-        for x in 1..4 {
-            tiles[y * w + x] = TileKind::Dirt;
+    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+        for dy in 0..rh {
+            for dx in 0..rw {
+                let xx = x0 + dx;
+                let yy = y0 + dy;
+                if xx < w && yy < h {
+                    tiles[yy * w + xx] = kind;
+                }
+            }
         }
-    }
+    };
 
-    // Counter
-    for x in 4..9 {
-        tiles[3 * w + x] = TileKind::Stone;
-    }
+    // Void perimeter
+    for x in 0..w { tiles[x] = TileKind::Void; tiles[(h-1)*w+x] = TileKind::Void; }
+    for y in 0..h { tiles[y*w] = TileKind::Void; tiles[y*w+(w-1)] = TileKind::Void; }
 
     // Door
     tiles[11 * w + 5] = TileKind::WoodFloor;
     tiles[11 * w + 6] = TileKind::WoodFloor;
+
+    // Hay/feed storage — dirt floor in back-left corner (y=1-3, x=1-4)
+    fill(&mut tiles, 1, 1, 4, 3, TileKind::Dirt);
+
+    // Sales counter — stone at y=4
+    for x in 4..9 { tiles[4 * w + x] = TileKind::Stone; }
+
+    // Back shelves — stone along back wall right side
+    fill(&mut tiles, 5, 1, 5, 1, TileKind::Stone);
+
+    // Entrance mat
+    tiles[10 * w + 5] = TileKind::Path;
+    tiles[10 * w + 6] = TileKind::Path;
 
     let transitions = vec![
         MapTransition {
@@ -821,51 +846,50 @@ fn generate_animal_shop() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Blacksmith: 12x12 interior
+// Blacksmith: 12x12 — stone floors, forge area, anvil workspace
 // ---------------------------------------------------------------------------
 fn generate_blacksmith() -> MapDef {
     let w = 12usize;
     let h = 12usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
-    // Walls
-    for x in 0..w {
-        tiles[x] = TileKind::Void;
-        tiles[(h - 1) * w + x] = TileKind::Void;
-    }
-    for y in 0..h {
-        tiles[y * w] = TileKind::Void;
-        tiles[y * w + (w - 1)] = TileKind::Void;
-    }
-
-    // Work floor
-    for y in 1..(h - 1) {
-        for x in 1..(w - 1) {
-            tiles[y * w + x] = TileKind::Stone;
+    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+        for dy in 0..rh {
+            for dx in 0..rw {
+                let xx = x0 + dx;
+                let yy = y0 + dy;
+                if xx < w && yy < h {
+                    tiles[yy * w + xx] = kind;
+                }
+            }
         }
-    }
+    };
 
-    // Forge area (hot! use dirt to represent heated stone)
-    for y in 1..4 {
-        for x in 7..10 {
-            tiles[y * w + x] = TileKind::Dirt;
-        }
-    }
+    // Void perimeter
+    for x in 0..w { tiles[x] = TileKind::Void; tiles[(h-1)*w+x] = TileKind::Void; }
+    for y in 0..h { tiles[y*w] = TileKind::Void; tiles[y*w+(w-1)] = TileKind::Void; }
 
-    // Anvil area (wood floor)
-    tiles[5 * w + 3] = TileKind::WoodFloor;
-    tiles[5 * w + 4] = TileKind::WoodFloor;
-    tiles[6 * w + 3] = TileKind::WoodFloor;
-    tiles[6 * w + 4] = TileKind::WoodFloor;
-
-    // Counter
-    for x in 2..7 {
-        tiles[3 * w + x] = TileKind::WoodFloor;
-    }
+    // Interior stone (already base)
+    for y in 1..(h-1) { for x in 1..(w-1) { tiles[y*w+x] = TileKind::Stone; } }
 
     // Door
     tiles[11 * w + 5] = TileKind::WoodFloor;
     tiles[11 * w + 6] = TileKind::WoodFloor;
+
+    // Forge area — hot dirt in back-right (y=1-3, x=7-10)
+    fill(&mut tiles, 7, 1, 3, 3, TileKind::Dirt);
+
+    // Anvil workspace — wood floor island (y=5-7, x=4-6)
+    fill(&mut tiles, 4, 5, 3, 3, TileKind::WoodFloor);
+
+    // Counter / reception — wood floor at y=4, x=2-6
+    for x in 2..7 { tiles[4 * w + x] = TileKind::WoodFloor; }
+
+    // Entrance area — wood floor near door
+    fill(&mut tiles, 4, 9, 4, 2, TileKind::WoodFloor);
+
+    // Storage corner back-left (dirt)
+    fill(&mut tiles, 1, 1, 3, 2, TileKind::Dirt);
 
     let transitions = vec![
         MapTransition {
