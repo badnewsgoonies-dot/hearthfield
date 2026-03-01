@@ -203,8 +203,12 @@ pub fn collect_eggs(
     // Tick the timer, then immediately read whether it finished, before
     // doing anything else with `festival`.  This avoids overlapping
     // mutable borrows.
-    festival.timer.as_mut().unwrap().tick(time.delta());
-    let timer_finished = festival.timer.as_ref().unwrap().just_finished();
+    let timer_finished = if let Some(timer) = festival.timer.as_mut() {
+        timer.tick(time.delta());
+        timer.just_finished()
+    } else {
+        false
+    };
 
     // Check player proximity to eggs.
     if let Ok(player_transform) = player_query.get_single() {

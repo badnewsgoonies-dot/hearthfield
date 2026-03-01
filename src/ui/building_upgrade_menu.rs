@@ -386,7 +386,7 @@ pub fn building_upgrade_navigation(
             return;
         }
 
-        let to_tier = entry.to_tier.unwrap();
+        let Some(to_tier) = entry.to_tier else { return };
 
         // Check gold
         if player_state.gold < entry.cost_gold {

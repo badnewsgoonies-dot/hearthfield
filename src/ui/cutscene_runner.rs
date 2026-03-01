@@ -103,7 +103,9 @@ pub fn run_cutscene_queue(
     }
 
     let dt = time.delta_secs();
-    let step = queue.steps.front().unwrap().clone();
+    let Some(step) = queue.steps.front().cloned() else {
+        return;
+    };
 
     match step {
         CutsceneStep::FadeOut(duration) => {
