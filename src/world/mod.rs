@@ -25,7 +25,7 @@ use maps::{generate_map, MapDef};
 use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
     handle_weed_scythe, spawn_daily_weeds, regrow_trees_on_season_change,
-    spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board,
+    spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board, spawn_building_signs,
     WorldObject,
 };
 use seasonal::{
@@ -98,10 +98,17 @@ impl Plugin for WorldPlugin {
                     cleanup_weather_on_change,
                     // Weed scythe clearing
                     handle_weed_scythe,
+                )
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
                     // Interactable object spawning (shipping bin, crafting bench, etc.)
                     spawn_shipping_bin,
                     spawn_crafting_bench,
                     spawn_carpenter_board,
+                    spawn_building_signs,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
                     // Subtle pulse on nearby interactable objects

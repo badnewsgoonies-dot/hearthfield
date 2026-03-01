@@ -68,6 +68,20 @@ pub struct HotbarQuantityText {
     pub index: usize,
 }
 
+/// Marker for the item icon ImageNode inside each hotbar slot.
+#[derive(Component, Debug)]
+pub struct HotbarItemIcon {
+    pub index: usize,
+}
+
+/// Lazily loaded atlas for item icons in the hotbar.
+#[derive(Resource, Default)]
+pub struct ItemAtlasData {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
 /// Marker for the tutorial objective text below the top bar.
 #[derive(Component)]
 pub struct HudObjective;
@@ -367,7 +381,19 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
                             },
                             PickingBehavior::IGNORE,
                         ));
-                        // Item name (short)
+                        // Item icon (shown when atlas is loaded)
+                        slot.spawn((
+                            HotbarItemIcon { index: i },
+                            Node {
+                                width: Val::Px(28.0),
+                                height: Val::Px(28.0),
+                                ..default()
+                            },
+                            // ImageNode will be set dynamically in update_hotbar
+                            Visibility::Hidden,
+                            PickingBehavior::IGNORE,
+                        ));
+                        // Item name fallback (shown when atlas not loaded)
                         slot.spawn((
                             HotbarItemText { index: i },
                             Text::new(""),
@@ -559,8 +585,9 @@ pub fn update_hotbar(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
     mut slot_query: Query<(&HotbarSlot, &mut BackgroundColor, &mut BorderColor)>,
-    mut item_text_query: Query<(&HotbarItemText, &mut Text), Without<HotbarQuantityText>>,
+    mut item_text_query: Query<(&HotbarItemText, &mut Text, &mut TextColor), Without<HotbarQuantityText>>,
     mut qty_text_query: Query<(&HotbarQuantityText, &mut Text), Without<HotbarItemText>>,
+    mut icon_query: Query<(&HotbarItemIcon, &mut Visibility), Without<HotbarSlot>>,
 ) {
     // Update slot backgrounds (highlight selected)
     for (slot, mut bg, mut border) in &mut slot_query {
@@ -573,15 +600,21 @@ pub fn update_hotbar(
         }
     }
 
+    // Update icons — show if slot has item and icon has been hydrated with ImageNode
+    for (icon, mut vis) in &mut icon_query {
+        let idx = icon.index;
+        let has_item = idx < inventory.slots.len() && inventory.slots[idx].is_some();
+        *vis = if has_item { Visibility::Inherited } else { Visibility::Hidden };
+    }
+
     // Update item text
-    for (item_text, mut text) in &mut item_text_query {
+    for (item_text, mut text, mut tc) in &mut item_text_query {
         let idx = item_text.index;
         if idx < inventory.slots.len() {
             if let Some(ref slot_data) = inventory.slots[idx] {
                 let name = item_registry
                     .get(&slot_data.item_id)
                     .map(|def| {
-                        // Abbreviate long names for hotbar
                         if def.name.len() > 6 {
                             format!("{}.", &def.name[..5])
                         } else {
@@ -590,6 +623,7 @@ pub fn update_hotbar(
                     })
                     .unwrap_or_else(|| slot_data.item_id.chars().take(6).collect());
                 **text = name;
+                tc.0 = Color::srgb(1.0, 1.0, 1.0);
             } else {
                 **text = String::new();
             }
@@ -608,6 +642,81 @@ pub fn update_hotbar(
                 }
             } else {
                 **text = String::new();
+            }
+        }
+    }
+}
+
+/// One-shot system: once the item atlas is loaded, inserts ImageNode on all
+/// HotbarItemIcon entities so they display the correct sprite frame.
+pub fn hydrate_hotbar_icons(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas_data: ResMut<ItemAtlasData>,
+    inventory: Res<Inventory>,
+    item_registry: Res<ItemRegistry>,
+    icon_query: Query<(Entity, &HotbarItemIcon), Without<ImageNode>>,
+) {
+    if icon_query.is_empty() {
+        return; // Already hydrated or no icons spawned yet
+    }
+
+    // Lazy-load atlas on first call
+    if !atlas_data.loaded {
+        atlas_data.image = asset_server.load("sprites/items_atlas.png");
+        atlas_data.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            13,
+            10,
+            None,
+            None,
+        ));
+        atlas_data.loaded = true;
+    }
+
+    for (entity, icon) in &icon_query {
+        let idx = icon.index;
+        let atlas_index = if idx < inventory.slots.len() {
+            inventory.slots[idx]
+                .as_ref()
+                .and_then(|s| item_registry.get(&s.item_id))
+                .map(|def| def.sprite_index as usize)
+                .unwrap_or(0)
+        } else {
+            0
+        };
+
+        commands.entity(entity).insert(ImageNode {
+            image: atlas_data.image.clone(),
+            texture_atlas: Some(TextureAtlas {
+                layout: atlas_data.layout.clone(),
+                index: atlas_index,
+            }),
+            ..default()
+        });
+    }
+}
+
+/// Update icon atlas indices when inventory changes (runs after hydration).
+pub fn update_hotbar_icons(
+    inventory: Res<Inventory>,
+    item_registry: Res<ItemRegistry>,
+    atlas_data: Res<ItemAtlasData>,
+    mut icon_query: Query<(&HotbarItemIcon, &mut ImageNode)>,
+) {
+    if !atlas_data.loaded {
+        return;
+    }
+    for (icon, mut img) in &mut icon_query {
+        let idx = icon.index;
+        if idx < inventory.slots.len() {
+            if let Some(ref slot_data) = inventory.slots[idx] {
+                if let Some(def) = item_registry.get(&slot_data.item_id) {
+                    if let Some(ref mut atlas) = img.texture_atlas {
+                        atlas.index = def.sprite_index as usize;
+                    }
+                }
             }
         }
     }
@@ -717,6 +826,8 @@ pub fn update_interaction_prompt(
     npc_query: Query<(&Npc, &Transform)>,
     npc_registry: Res<NpcRegistry>,
     mut prompt_query: Query<(&mut Text, &mut TextColor), With<HudInteractionPrompt>>,
+    inventory: Res<Inventory>,
+    item_registry: Res<ItemRegistry>,
 ) {
     let Ok(player_pos) = player_query.get_single() else {
         return;
@@ -741,7 +852,18 @@ pub fn update_interaction_prompt(
                 .get(&npc.id)
                 .map(|def| def.name.as_str())
                 .unwrap_or(&npc.id);
-            best_label = Some((d, format!("[F] Talk to {}", name)));
+            let has_gift = inventory.slots
+                .get(inventory.selected_slot)
+                .and_then(|s| s.as_ref())
+                .and_then(|slot| item_registry.get(&slot.item_id))
+                .map(|def| def.category != ItemCategory::Tool)
+                .unwrap_or(false);
+            let label = if has_gift {
+                format!("[F] Talk to {} | [R] Give Gift", name)
+            } else {
+                format!("[F] Talk to {}", name)
+            };
+            best_label = Some((d, label));
         }
     }
 

@@ -1065,3 +1065,44 @@ pub fn spawn_carpenter_board(
         Visibility::default(),
     ));
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// BUILDING ENTRANCE SIGNS — floating labels above shop/building doors
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Marker for building sign entities (despawned on map change).
+#[derive(Component)]
+pub struct BuildingSign;
+
+/// Building entrance definitions: (grid_x, grid_y, label).
+const BUILDING_SIGNS: &[(i32, i32, &str)] = &[
+    (9,  5, "General Store"),
+    (39, 5, "Animal Shop"),
+    (42, 31, "Blacksmith"),
+];
+
+/// Spawn floating text labels above building entrances on the town map.
+pub fn spawn_building_signs(
+    mut commands: Commands,
+    player_state: Res<PlayerState>,
+    existing: Query<Entity, With<BuildingSign>>,
+) {
+    if player_state.current_map != MapId::Town || !existing.is_empty() {
+        return;
+    }
+    for &(gx, gy, label) in BUILDING_SIGNS {
+        let wc = grid_to_world_center(gx, gy);
+        commands.spawn((
+            BuildingSign,
+            WorldObject,
+            Text2d::new(label.to_string()),
+            TextFont {
+                font_size: 5.0,
+                ..default()
+            },
+            TextColor(Color::srgb(1.0, 0.95, 0.7)),
+            Transform::from_xyz(wc.x, wc.y + TILE_SIZE * 0.8, Z_ENTITY_BASE + 50.0),
+            Visibility::default(),
+        ));
+    }
+}
