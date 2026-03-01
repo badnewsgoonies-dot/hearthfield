@@ -1206,34 +1206,34 @@ struct BuildingDef {
 /// Town building definitions.
 fn town_buildings() -> Vec<BuildingDef> {
     vec![
-        // General Store (north-west) — entrance at y=4, path connects from y=12
+        // General Store (north-west)
         BuildingDef {
-            x: 4, y: 4, w: 10, h: 8,
-            door_x: 8, door_y: 4,
+            x: 2, y: 2, w: 8, h: 5,
+            door_x: 5, door_y: 2,
             roof_tint: Color::srgb(0.85, 0.55, 0.4),
         },
-        // Animal Shop (north-east) — entrance at y=4, path connects from y=12
+        // Animal Shop (north-east)
         BuildingDef {
-            x: 34, y: 4, w: 10, h: 8,
-            door_x: 38, door_y: 4,
+            x: 18, y: 2, w: 8, h: 5,
+            door_x: 22, door_y: 2,
             roof_tint: Color::srgb(0.5, 0.7, 0.85),
         },
-        // Blacksmith (east side) — entrance at y=30, path connects from y=32
+        // Blacksmith (east, below plaza)
         BuildingDef {
-            x: 38, y: 30, w: 8, h: 6,
-            door_x: 41, door_y: 30,
+            x: 20, y: 13, w: 6, h: 4,
+            door_x: 22, door_y: 13,
             roof_tint: Color::srgb(0.6, 0.55, 0.55),
         },
-        // NPC House 1 (south residential) — faces path at y=28
+        // NPC House 1 (west, below plaza — doc/librarian area)
         BuildingDef {
-            x: 2, y: 30, w: 6, h: 4,
-            door_x: 4, door_y: 30,
+            x: 2, y: 13, w: 5, h: 3,
+            door_x: 3, door_y: 13,
             roof_tint: Color::srgb(0.75, 0.85, 0.6),
         },
-        // NPC House 2 (south residential) — faces path at y=28
+        // NPC House 2 (center-west, below plaza — fisher/kid)
         BuildingDef {
-            x: 10, y: 30, w: 6, h: 4,
-            door_x: 12, door_y: 30,
+            x: 8, y: 13, w: 5, h: 3,
+            door_x: 9, door_y: 13,
             roof_tint: Color::srgb(0.85, 0.75, 0.55),
         },
     ]
@@ -1241,22 +1241,22 @@ fn town_buildings() -> Vec<BuildingDef> {
 
 fn farm_buildings() -> Vec<BuildingDef> {
     vec![
-        // Player house (top center of farm) — entrance at y=0, path connects from y=2
+        // Player house (top center of farm)
         BuildingDef {
-            x: 29, y: 0, w: 6, h: 3,
-            door_x: 31, door_y: 0,
+            x: 13, y: 0, w: 6, h: 3,
+            door_x: 15, door_y: 0,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
         },
-        // Chicken coop
+        // Chicken coop (bottom-left area)
         BuildingDef {
-            x: 20, y: 38, w: 3, h: 3,
-            door_x: 21, door_y: 38,
+            x: 9, y: 17, w: 3, h: 2,
+            door_x: 10, door_y: 17,
             roof_tint: Color::srgb(0.9, 0.8, 0.5),
         },
-        // Barn
+        // Barn (bottom-left area)
         BuildingDef {
-            x: 8, y: 38, w: 5, h: 4,
-            door_x: 10, door_y: 38,
+            x: 3, y: 16, w: 5, h: 3,
+            door_x: 5, door_y: 16,
             roof_tint: Color::srgb(0.7, 0.3, 0.3),
         },
     ]

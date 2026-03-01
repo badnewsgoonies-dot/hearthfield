@@ -78,16 +78,15 @@ pub fn generate_map(map_id: MapId) -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Farm map: 64x64
-// Layout: grass border, large central dirt/tillable area, pond in SE corner,
-// paths leading to exits (south to town, east to forest, north-west to mine)
+// Farm map: 32x24  (Harvest Moon scale — ~3.5 screens)
+// Layout: house at top-center, dirt field center, barn/coop bottom-left,
+// pond bottom-right, exits on edges
 // ---------------------------------------------------------------------------
 fn generate_farm() -> MapDef {
-    let w = 64usize;
-    let h = 64usize;
+    let w = 32usize;
+    let h = 24usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
-    // Helper closure to set a rectangular region
     let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
         for dy in 0..rh {
             for dx in 0..rw {
@@ -100,133 +99,103 @@ fn generate_farm() -> MapDef {
         }
     };
 
-    // Central farming area: large dirt region (columns 8..56, rows 8..48)
-    fill_rect(&mut tiles, 8, 8, 48, 40, TileKind::Dirt);
+    // Player house footprint (top center)
+    fill_rect(&mut tiles, 13, 0, 6, 3, TileKind::Stone);
+    // Path from house down to fields
+    fill_rect(&mut tiles, 15, 3, 2, 3, TileKind::Path);
+    // Shipping bin area (right of house)
+    fill_rect(&mut tiles, 20, 1, 2, 2, TileKind::WoodFloor);
 
-    // Path from farmhouse (top-center) downward
-    fill_rect(&mut tiles, 30, 2, 4, 8, TileKind::Path);
-    // Player house entrance marker at top
-    fill_rect(&mut tiles, 29, 0, 6, 3, TileKind::Stone);
+    // Central farming area (the tillable field)
+    fill_rect(&mut tiles, 6, 6, 20, 10, TileKind::Dirt);
 
-    // Path south to town exit (bottom center)
-    fill_rect(&mut tiles, 30, 48, 4, 16, TileKind::Path);
+    // Animal buildings (bottom-left)
+    fill_rect(&mut tiles, 3, 16, 5, 3, TileKind::Stone);   // Barn
+    fill_rect(&mut tiles, 9, 17, 3, 2, TileKind::Stone);    // Chicken coop
+    fill_rect(&mut tiles, 8, 19, 4, 1, TileKind::Path);     // Path connecting
 
-    // Path east to forest exit (right edge, middle)
-    fill_rect(&mut tiles, 56, 28, 8, 4, TileKind::Path);
-
-    // Path north-west to mine entrance
-    fill_rect(&mut tiles, 0, 10, 10, 4, TileKind::Path);
-
-    // Pond in the southeast corner
-    fill_rect(&mut tiles, 50, 50, 10, 10, TileKind::Water);
-    // Pond shoreline (sand around water)
-    for dy in 0..12 {
-        for dx in 0..12 {
-            let xx = 49 + dx;
-            let yy = 49 + dy;
+    // Pond (bottom-right)
+    fill_rect(&mut tiles, 24, 17, 5, 4, TileKind::Water);
+    // Pond shoreline
+    for dy in 0..6 {
+        for dx in 0..7 {
+            let xx = 23 + dx;
+            let yy = 16 + dy;
             if xx < w && yy < h {
-                let is_edge = dx == 0 || dy == 0 || dx == 11 || dy == 11;
-                let is_water = tiles[yy * w + xx] == TileKind::Water;
-                if is_edge && !is_water {
+                let is_edge = dx == 0 || dy == 0 || dx == 6 || dy == 5;
+                if is_edge && tiles[yy * w + xx] != TileKind::Water {
                     tiles[yy * w + xx] = TileKind::Sand;
                 }
             }
         }
     }
 
-    // Shipping bin area (near house)
-    fill_rect(&mut tiles, 36, 3, 2, 2, TileKind::WoodFloor);
-
-    // Animal buildings
-    fill_rect(&mut tiles, 8, 38, 5, 4, TileKind::Stone);   // Barn
-    fill_rect(&mut tiles, 20, 38, 3, 3, TileKind::Stone);   // Chicken coop
-    fill_rect(&mut tiles, 13, 40, 7, 2, TileKind::Path);    // Path connecting barn to coop
-
-    // Small bridge over a stream running east-west at row 52
-    fill_rect(&mut tiles, 20, 52, 2, 1, TileKind::Bridge);
-
-    // Grass borders are already the default
+    // Path west to mine
+    fill_rect(&mut tiles, 0, 9, 6, 2, TileKind::Path);
+    // Path east to forest
+    fill_rect(&mut tiles, 26, 9, 6, 2, TileKind::Path);
+    // Path south to town
+    fill_rect(&mut tiles, 14, 16, 3, 8, TileKind::Path);
 
     let transitions = vec![
         // South exit -> Town
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (28, 63, 8, 1),
+            from_rect: (13, 23, 5, 1),
             to_map: MapId::Town,
-            to_pos: (24, 0),
+            to_pos: (12, 1),
         },
         // East exit -> Forest
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (63, 26, 1, 8),
+            from_rect: (31, 8, 1, 4),
             to_map: MapId::Forest,
-            to_pos: (0, 20),
+            to_pos: (1, 7),
         },
-        // North-west exit -> Mine Entrance
+        // West exit -> Mine Entrance
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (0, 8, 1, 8),
+            from_rect: (0, 8, 1, 4),
             to_map: MapId::MineEntrance,
-            to_pos: (22, 12),
+            to_pos: (12, 6),
         },
-        // Top entrance -> Player House
+        // House entrance
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (31, 0, 2, 1),
+            from_rect: (15, 0, 2, 1),
             to_map: MapId::PlayerHouse,
             to_pos: (8, 14),
         },
     ];
 
-    // Objects: scatter trees around border, rocks in farming area
     let mut objects = Vec::new();
 
-    // Trees along the top edge
-    for x in (2..28).step_by(3) {
-        objects.push(ObjectPlacement { x: x as i32, y: 2, kind: WorldObjectKind::Tree });
+    // Trees along top edge (around house)
+    for x in (1..12).step_by(3) {
+        objects.push(ObjectPlacement { x: x as i32, y: 1, kind: WorldObjectKind::Tree });
     }
-    for x in (36..62).step_by(3) {
-        objects.push(ObjectPlacement { x: x as i32, y: 2, kind: WorldObjectKind::Tree });
-    }
-
-    // Trees along left edge
-    for y in (16..60).step_by(4) {
-        objects.push(ObjectPlacement { x: 2, y: y as i32, kind: WorldObjectKind::Tree });
-        objects.push(ObjectPlacement { x: 4, y: y as i32, kind: WorldObjectKind::Tree });
+    for x in (22..30).step_by(3) {
+        objects.push(ObjectPlacement { x: x as i32, y: 1, kind: WorldObjectKind::Tree });
     }
 
-    // Trees along right edge (above forest path)
-    for y in (2..26).step_by(3) {
-        objects.push(ObjectPlacement { x: 60, y: y as i32, kind: WorldObjectKind::Tree });
-    }
-    for y in (34..60).step_by(3) {
-        objects.push(ObjectPlacement { x: 60, y: y as i32, kind: WorldObjectKind::Tree });
-    }
-
-    // Rocks scattered in the dirt area (player must clear to farm)
+    // Rocks in the dirt (player clears to farm)
     let rock_positions = [
-        (12, 12), (18, 10), (25, 15), (35, 11), (42, 14),
-        (15, 22), (28, 25), (40, 20), (50, 18), (20, 35),
-        (38, 32), (45, 38), (13, 40), (48, 42), (22, 44),
+        (8, 7), (12, 8), (18, 7), (22, 9), (10, 12),
+        (16, 11), (20, 13), (14, 14), (24, 8),
     ];
     for (rx, ry) in &rock_positions {
         objects.push(ObjectPlacement { x: *rx, y: *ry, kind: WorldObjectKind::Rock });
     }
 
     // Stumps
-    let stump_positions = [(10, 30), (30, 40), (52, 10), (46, 46)];
-    for (sx, sy) in &stump_positions {
-        objects.push(ObjectPlacement { x: *sx, y: *sy, kind: WorldObjectKind::Stump });
-    }
+    objects.push(ObjectPlacement { x: 7, y: 14, kind: WorldObjectKind::Stump });
+    objects.push(ObjectPlacement { x: 25, y: 14, kind: WorldObjectKind::Stump });
 
-    // Bushes at the pond edge
-    objects.push(ObjectPlacement { x: 48, y: 50, kind: WorldObjectKind::Bush });
-    objects.push(ObjectPlacement { x: 48, y: 55, kind: WorldObjectKind::Bush });
+    // Bushes near pond
+    objects.push(ObjectPlacement { x: 23, y: 17, kind: WorldObjectKind::Bush });
 
-    // Forageable points scattered around non-farming areas
     let forage_points = vec![
-        (3, 5), (5, 3), (60, 5), (62, 8), (3, 55), (5, 60),
-        (58, 55), (60, 50), (7, 50), (55, 5),
+        (2, 4), (29, 3), (2, 20), (29, 20), (5, 22),
     ];
 
     MapDef {
@@ -241,13 +210,12 @@ fn generate_farm() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Town map: 48x48
-// Layout: central plaza with fountain, paths connecting buildings,
-// shops along north side, houses scattered, park area
+// Town map: 28x22  (Harvest Moon scale — ~2.8 screens)
+// Layout: shops top, plaza center, houses + blacksmith mid, park bottom
 // ---------------------------------------------------------------------------
 fn generate_town() -> MapDef {
-    let w = 48usize;
-    let h = 48usize;
+    let w = 28usize;
+    let h = 22usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
     let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
@@ -262,110 +230,100 @@ fn generate_town() -> MapDef {
         }
     };
 
-    // Main road running north-south through center
-    fill_rect(&mut tiles, 22, 0, 4, 48, TileKind::Path);
+    // Main road N-S through center
+    fill_rect(&mut tiles, 13, 0, 2, 22, TileKind::Path);
+    // Main road E-W through middle
+    fill_rect(&mut tiles, 0, 9, 28, 2, TileKind::Path);
 
-    // East-west road through middle
-    fill_rect(&mut tiles, 0, 22, 48, 4, TileKind::Path);
+    // Central plaza (stone square with fountain)
+    fill_rect(&mut tiles, 11, 7, 6, 6, TileKind::Stone);
+    fill_rect(&mut tiles, 13, 9, 2, 2, TileKind::Water);  // Fountain
 
-    // Central plaza / fountain area (stone square)
-    fill_rect(&mut tiles, 20, 20, 8, 8, TileKind::Stone);
-    // Fountain water in the center of the plaza
-    fill_rect(&mut tiles, 22, 22, 4, 4, TileKind::Water);
+    // General Store (north-west)
+    fill_rect(&mut tiles, 2, 2, 8, 5, TileKind::Stone);
+    fill_rect(&mut tiles, 5, 7, 2, 2, TileKind::Path);   // Path to plaza
 
-    // General Store building footprint (north-west)
-    fill_rect(&mut tiles, 4, 4, 10, 8, TileKind::Stone);
-    // Store entrance path
-    fill_rect(&mut tiles, 8, 12, 2, 10, TileKind::Path);
+    // Animal Shop (north-east)
+    fill_rect(&mut tiles, 18, 2, 8, 5, TileKind::Stone);
+    fill_rect(&mut tiles, 21, 7, 2, 2, TileKind::Path);   // Path to plaza
 
-    // Animal Shop building footprint (north-east)
-    fill_rect(&mut tiles, 34, 4, 10, 8, TileKind::Stone);
-    // Animal shop entrance path
-    fill_rect(&mut tiles, 38, 12, 2, 10, TileKind::Path);
+    // Blacksmith (east, below plaza)
+    fill_rect(&mut tiles, 20, 13, 6, 4, TileKind::Stone);
+    fill_rect(&mut tiles, 17, 14, 3, 2, TileKind::Path);  // Path to main road
 
-    // Blacksmith building (east side)
-    fill_rect(&mut tiles, 38, 30, 8, 6, TileKind::Stone);
-    // Blacksmith path to main road
-    fill_rect(&mut tiles, 26, 32, 12, 2, TileKind::Path);
+    // NPC houses (west, below plaza)
+    fill_rect(&mut tiles, 2, 13, 5, 3, TileKind::Stone);  // House 1 (doc/librarian)
+    fill_rect(&mut tiles, 8, 13, 5, 3, TileKind::Stone);  // House 2 (fisher/kid)
 
-    // Park area with grass and a small pond (south-west)
-    fill_rect(&mut tiles, 2, 34, 16, 12, TileKind::Grass);
-    fill_rect(&mut tiles, 6, 38, 4, 4, TileKind::Water);
-    // Sand around park pond
-    fill_rect(&mut tiles, 5, 37, 6, 1, TileKind::Sand);
-    fill_rect(&mut tiles, 5, 42, 6, 1, TileKind::Sand);
-    fill_rect(&mut tiles, 5, 38, 1, 4, TileKind::Sand);
-    fill_rect(&mut tiles, 10, 38, 1, 4, TileKind::Sand);
+    // Restaurant area (south center-east)
+    fill_rect(&mut tiles, 14, 16, 5, 3, TileKind::Stone);
 
-    // Residential path (south side)
-    fill_rect(&mut tiles, 4, 28, 16, 2, TileKind::Path);
+    // Park (south-west, small pond)
+    fill_rect(&mut tiles, 2, 17, 8, 4, TileKind::Grass);
+    fill_rect(&mut tiles, 4, 18, 3, 2, TileKind::Water);
+    fill_rect(&mut tiles, 3, 18, 1, 2, TileKind::Sand);
+    fill_rect(&mut tiles, 7, 18, 1, 2, TileKind::Sand);
+    fill_rect(&mut tiles, 4, 17, 3, 1, TileKind::Sand);
+    fill_rect(&mut tiles, 4, 20, 3, 1, TileKind::Sand);
 
-    // NPC houses (just stone footprints for now)
-    fill_rect(&mut tiles, 2, 30, 6, 4, TileKind::Stone); // House 1
-    fill_rect(&mut tiles, 10, 30, 6, 4, TileKind::Stone); // House 2
-
-    // Beach exit path (south-east)
-    fill_rect(&mut tiles, 40, 44, 8, 4, TileKind::Path);
+    // Beach exit path (east edge)
+    fill_rect(&mut tiles, 26, 11, 2, 2, TileKind::Path);
 
     let transitions = vec![
         // North exit -> Farm
         MapTransition {
             from_map: MapId::Town,
-            from_rect: (22, 0, 4, 1),
+            from_rect: (12, 0, 4, 1),
             to_map: MapId::Farm,
-            to_pos: (30, 62),
+            to_pos: (14, 22),
         },
         // General Store entrance
         MapTransition {
             from_map: MapId::Town,
-            from_rect: (8, 4, 2, 1),
+            from_rect: (5, 2, 2, 1),
             to_map: MapId::GeneralStore,
             to_pos: (6, 10),
         },
         // Animal Shop entrance
         MapTransition {
             from_map: MapId::Town,
-            from_rect: (38, 4, 2, 1),
+            from_rect: (22, 2, 2, 1),
             to_map: MapId::AnimalShop,
             to_pos: (6, 10),
         },
         // Blacksmith entrance
         MapTransition {
             from_map: MapId::Town,
-            from_rect: (41, 30, 2, 1),
+            from_rect: (22, 13, 2, 1),
             to_map: MapId::Blacksmith,
             to_pos: (6, 10),
         },
-        // South-east exit -> Beach
+        // East exit -> Beach
         MapTransition {
             from_map: MapId::Town,
-            from_rect: (47, 44, 1, 4),
+            from_rect: (27, 10, 1, 4),
             to_map: MapId::Beach,
-            to_pos: (0, 16),
+            to_pos: (1, 4),
         },
     ];
 
-    // Trees along edges and in park
     let mut objects = Vec::new();
-    for x in (1..20).step_by(4) {
-        objects.push(ObjectPlacement { x: x as i32, y: 1, kind: WorldObjectKind::Tree });
+    // Trees along top
+    for x in (0..12).step_by(3) {
+        objects.push(ObjectPlacement { x: x as i32, y: 0, kind: WorldObjectKind::Tree });
     }
-    for x in (28..46).step_by(4) {
-        objects.push(ObjectPlacement { x: x as i32, y: 1, kind: WorldObjectKind::Tree });
+    for x in (16..28).step_by(3) {
+        objects.push(ObjectPlacement { x: x as i32, y: 0, kind: WorldObjectKind::Tree });
     }
     // Park trees
-    objects.push(ObjectPlacement { x: 3, y: 36, kind: WorldObjectKind::Tree });
-    objects.push(ObjectPlacement { x: 14, y: 36, kind: WorldObjectKind::Tree });
-    objects.push(ObjectPlacement { x: 3, y: 44, kind: WorldObjectKind::Tree });
-    objects.push(ObjectPlacement { x: 14, y: 44, kind: WorldObjectKind::Tree });
+    objects.push(ObjectPlacement { x: 2, y: 17, kind: WorldObjectKind::Tree });
+    objects.push(ObjectPlacement { x: 9, y: 17, kind: WorldObjectKind::Tree });
     // Bushes near plaza
-    objects.push(ObjectPlacement { x: 19, y: 20, kind: WorldObjectKind::Bush });
-    objects.push(ObjectPlacement { x: 28, y: 20, kind: WorldObjectKind::Bush });
-    objects.push(ObjectPlacement { x: 19, y: 27, kind: WorldObjectKind::Bush });
-    objects.push(ObjectPlacement { x: 28, y: 27, kind: WorldObjectKind::Bush });
+    objects.push(ObjectPlacement { x: 10, y: 7, kind: WorldObjectKind::Bush });
+    objects.push(ObjectPlacement { x: 17, y: 7, kind: WorldObjectKind::Bush });
 
     let forage_points = vec![
-        (2, 40), (16, 42), (44, 46), (1, 46),
+        (1, 19), (9, 20), (26, 19),
     ];
 
     MapDef {
@@ -380,12 +338,12 @@ fn generate_town() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Beach map: 32x32
-// Layout: sand area with ocean on the south, dock on east, path to town on west
+// Beach map: 20x14  (Harvest Moon scale — ~1.3 screens)
+// Layout: grass top, sand middle, ocean bottom, dock on right
 // ---------------------------------------------------------------------------
 fn generate_beach() -> MapDef {
-    let w = 32usize;
-    let h = 32usize;
+    let w = 20usize;
+    let h = 14usize;
     let mut tiles = vec![TileKind::Sand; w * h];
 
     let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
@@ -400,55 +358,50 @@ fn generate_beach() -> MapDef {
         }
     };
 
-    // Ocean water on bottom half with wave-like shoreline
-    for y in 20..h {
+    // Ocean (bottom)
+    for y in 9..h {
         for x in 0..w {
-            // Create a slightly wavy shoreline
-            let shore_y = 20.0 + 1.5 * (x as f32 * 0.3).sin();
+            let shore_y = 9.0 + 1.0 * (x as f32 * 0.4).sin();
             if y as f32 >= shore_y {
                 tiles[y * w + x] = TileKind::Water;
             }
         }
     }
 
-    // Dock extending into the water (wood floor)
-    fill_rect(&mut tiles, 24, 14, 3, 14, TileKind::WoodFloor);
-    // Dock end platform
-    fill_rect(&mut tiles, 23, 26, 5, 3, TileKind::WoodFloor);
+    // Grass strip (top)
+    fill_rect(&mut tiles, 0, 0, 20, 3, TileKind::Grass);
 
-    // Grass strip along the top (transition to land)
-    fill_rect(&mut tiles, 0, 0, 32, 4, TileKind::Grass);
+    // Dock (right side, into water)
+    fill_rect(&mut tiles, 15, 6, 2, 7, TileKind::WoodFloor);
+    fill_rect(&mut tiles, 14, 11, 4, 2, TileKind::WoodFloor); // End platform
 
-    // Path from town (west side)
-    fill_rect(&mut tiles, 0, 14, 6, 4, TileKind::Path);
+    // Path from town (left)
+    fill_rect(&mut tiles, 0, 3, 4, 3, TileKind::Path);
 
-    // Small rocky area near cliff (north-east corner)
-    fill_rect(&mut tiles, 26, 2, 4, 4, TileKind::Stone);
+    // Rocky area (top-right)
+    fill_rect(&mut tiles, 16, 1, 3, 2, TileKind::Stone);
 
     // Tidal pools
-    fill_rect(&mut tiles, 4, 17, 2, 2, TileKind::Water);
-    fill_rect(&mut tiles, 14, 18, 2, 1, TileKind::Water);
+    fill_rect(&mut tiles, 3, 8, 2, 1, TileKind::Water);
+    fill_rect(&mut tiles, 9, 8, 1, 1, TileKind::Water);
 
     let transitions = vec![
         // West exit -> Town
         MapTransition {
             from_map: MapId::Beach,
-            from_rect: (0, 14, 1, 4),
+            from_rect: (0, 3, 1, 3),
             to_map: MapId::Town,
-            to_pos: (46, 44),
+            to_pos: (26, 11),
         },
     ];
 
     let mut objects = Vec::new();
-    // Rocks on the rocky area
-    objects.push(ObjectPlacement { x: 27, y: 3, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 28, y: 4, kind: WorldObjectKind::Rock });
-    // Driftwood
-    objects.push(ObjectPlacement { x: 10, y: 16, kind: WorldObjectKind::Log });
-    objects.push(ObjectPlacement { x: 18, y: 15, kind: WorldObjectKind::Log });
+    objects.push(ObjectPlacement { x: 17, y: 1, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement { x: 7, y: 7, kind: WorldObjectKind::Log });
+    objects.push(ObjectPlacement { x: 12, y: 6, kind: WorldObjectKind::Log });
 
     let forage_points = vec![
-        (6, 12), (12, 10), (20, 8), (8, 16), (16, 14),
+        (4, 5), (8, 4), (13, 5), (6, 7),
     ];
 
     MapDef {
@@ -463,12 +416,12 @@ fn generate_beach() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Forest map: 40x40
-// Layout: dense trees with clearings, winding paths, river, forage areas
+// Forest map: 22x18  (Harvest Moon scale — ~1.8 screens)
+// Layout: winding path, river, clearings, dense trees
 // ---------------------------------------------------------------------------
 fn generate_forest() -> MapDef {
-    let w = 40usize;
-    let h = 40usize;
+    let w = 22usize;
+    let h = 18usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
     let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
@@ -483,20 +436,18 @@ fn generate_forest() -> MapDef {
         }
     };
 
-    // Winding path from west (farm entrance) to east, with a split going south
-    // Main east-west path
-    fill_rect(&mut tiles, 0, 18, 18, 3, TileKind::Path);
-    fill_rect(&mut tiles, 18, 16, 6, 3, TileKind::Path); // slight curve up
-    fill_rect(&mut tiles, 24, 14, 16, 3, TileKind::Path);
+    // Main path from west (farm) winding east
+    fill_rect(&mut tiles, 0, 7, 10, 2, TileKind::Path);
+    fill_rect(&mut tiles, 10, 6, 4, 2, TileKind::Path);  // Curve up
+    fill_rect(&mut tiles, 14, 5, 8, 2, TileKind::Path);
 
     // South branch path
-    fill_rect(&mut tiles, 14, 21, 3, 12, TileKind::Path);
+    fill_rect(&mut tiles, 8, 9, 2, 6, TileKind::Path);
 
-    // River running north-south on the east side
+    // River (east side, north-south)
     for y in 0..h {
-        let river_x = 32.0 + 2.0 * (y as f32 * 0.15).sin();
-        let rx = river_x as usize;
-        for dx in 0..3 {
+        let rx = (17.0 + 1.0 * (y as f32 * 0.3).sin()) as usize;
+        for dx in 0..2 {
             if rx + dx < w {
                 tiles[y * w + rx + dx] = TileKind::Water;
             }
@@ -504,77 +455,56 @@ fn generate_forest() -> MapDef {
     }
 
     // Bridge over river
-    fill_rect(&mut tiles, 31, 14, 5, 3, TileKind::Bridge);
+    fill_rect(&mut tiles, 16, 5, 4, 2, TileKind::Bridge);
 
-    // Clearings (open grass areas)
-    fill_rect(&mut tiles, 6, 6, 8, 6, TileKind::Grass);   // North clearing
-    fill_rect(&mut tiles, 20, 26, 8, 8, TileKind::Grass);  // South clearing
-    fill_rect(&mut tiles, 4, 30, 6, 6, TileKind::Dirt);    // Mushroom grove (dirt floor)
+    // North clearing
+    fill_rect(&mut tiles, 3, 2, 6, 4, TileKind::Grass);
+    // Mushroom grove (south-west)
+    fill_rect(&mut tiles, 2, 13, 5, 4, TileKind::Dirt);
+    // South clearing
+    fill_rect(&mut tiles, 11, 12, 5, 4, TileKind::Grass);
 
     let transitions = vec![
         // West exit -> Farm
         MapTransition {
             from_map: MapId::Forest,
-            from_rect: (0, 18, 1, 4),
+            from_rect: (0, 6, 1, 4),
             to_map: MapId::Farm,
-            to_pos: (62, 28),
+            to_pos: (30, 9),
         },
     ];
 
-    // Dense tree cover
     let mut objects = Vec::new();
 
-    // Top dense trees
-    for x in (0..40).step_by(2) {
-        for y in (0..6).step_by(2) {
-            // Leave clearings open
-            if x >= 6 && x < 14 && y >= 4 {
-                continue;
-            }
+    // Dense trees (top area)
+    for x in (0..22).step_by(2) {
+        for y in (0..2).step_by(2) {
             objects.push(ObjectPlacement { x: x as i32, y: y as i32, kind: WorldObjectKind::Tree });
         }
     }
-
-    // Trees between paths (scattered)
+    // Scattered forest trees
     let tree_positions = [
-        (1, 8), (3, 10), (1, 14), (3, 16), (5, 14),
-        (10, 12), (12, 10), (16, 8), (18, 10),
-        (22, 8), (26, 10), (28, 8), (30, 10),
-        (1, 22), (3, 24), (5, 26), (7, 24), (9, 22),
-        (18, 24), (12, 28), (10, 32), (8, 34),
-        (20, 34), (22, 36), (26, 34), (28, 36),
-        (36, 4), (38, 6), (36, 10), (38, 12),
-        (36, 20), (38, 22), (36, 28), (38, 30),
-        (36, 34), (38, 36),
+        (1, 4), (1, 10), (3, 8), (5, 10), (7, 4),
+        (12, 3), (14, 3), (11, 10), (13, 14), (15, 10),
+        (19, 2), (20, 8), (20, 12), (20, 16),
     ];
     for (tx, ty) in &tree_positions {
         objects.push(ObjectPlacement { x: *tx, y: *ty, kind: WorldObjectKind::Tree });
     }
 
     // Rocks near river
-    objects.push(ObjectPlacement { x: 30, y: 6, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 31, y: 20, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 30, y: 30, kind: WorldObjectKind::Rock });
-
-    // Stumps in clearings
-    objects.push(ObjectPlacement { x: 8, y: 8, kind: WorldObjectKind::Stump });
-    objects.push(ObjectPlacement { x: 24, y: 30, kind: WorldObjectKind::Stump });
-
+    objects.push(ObjectPlacement { x: 16, y: 3, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement { x: 16, y: 10, kind: WorldObjectKind::Rock });
+    // Stump
+    objects.push(ObjectPlacement { x: 5, y: 3, kind: WorldObjectKind::Stump });
+    objects.push(ObjectPlacement { x: 13, y: 14, kind: WorldObjectKind::Stump });
     // Bushes
-    let bush_positions = [
-        (2, 12), (8, 14), (18, 22), (26, 24), (4, 36), (14, 34),
-    ];
-    for (bx, by) in &bush_positions {
-        objects.push(ObjectPlacement { x: *bx, y: *by, kind: WorldObjectKind::Bush });
-    }
+    objects.push(ObjectPlacement { x: 1, y: 12, kind: WorldObjectKind::Bush });
+    objects.push(ObjectPlacement { x: 9, y: 12, kind: WorldObjectKind::Bush });
 
-    // Rich forageable spawning
     let forage_points = vec![
-        (7, 7), (9, 9), (11, 7), (13, 9),     // North clearing
-        (5, 31), (6, 33), (7, 35), (8, 31),    // Mushroom grove
-        (21, 27), (23, 29), (25, 31), (27, 27), // South clearing
-        (15, 22), (15, 26), (15, 30),           // Along south path
-        (2, 20), (36, 16), (28, 12),            // Random forest spots
+        (4, 3), (6, 4), (3, 14), (4, 16), (5, 14),  // Mushroom grove
+        (12, 13), (14, 15), (8, 11), (10, 14),
     ];
 
     MapDef {
@@ -589,12 +519,11 @@ fn generate_forest() -> MapDef {
 }
 
 // ---------------------------------------------------------------------------
-// Mine Entrance: 24x24
-// Layout: mountain rock walls, cave entrance, path from farm
+// Mine Entrance: 14x12  (compact)
 // ---------------------------------------------------------------------------
 fn generate_mine_entrance() -> MapDef {
-    let w = 24usize;
-    let h = 24usize;
+    let w = 14usize;
+    let h = 12usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
     let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
@@ -609,53 +538,47 @@ fn generate_mine_entrance() -> MapDef {
         }
     };
 
-    // Open ground area (dirt and grass)
-    fill_rect(&mut tiles, 4, 8, 16, 14, TileKind::Dirt);
-    fill_rect(&mut tiles, 6, 16, 12, 6, TileKind::Grass);
+    // Open ground
+    fill_rect(&mut tiles, 2, 4, 10, 7, TileKind::Dirt);
+    fill_rect(&mut tiles, 3, 8, 8, 3, TileKind::Grass);
 
-    // Cave entrance (dark void area)
-    fill_rect(&mut tiles, 9, 2, 6, 4, TileKind::Void);
-    // Stone frame around cave
-    fill_rect(&mut tiles, 8, 1, 8, 1, TileKind::Stone);
-    fill_rect(&mut tiles, 8, 6, 8, 2, TileKind::Stone);
+    // Cave entrance (top center)
+    fill_rect(&mut tiles, 5, 1, 4, 2, TileKind::Void);
+    fill_rect(&mut tiles, 4, 0, 6, 1, TileKind::Stone);
+    fill_rect(&mut tiles, 4, 3, 6, 1, TileKind::Stone);
 
-    // Path from cave to the open area
-    fill_rect(&mut tiles, 10, 6, 4, 4, TileKind::Path);
+    // Path from cave down
+    fill_rect(&mut tiles, 6, 3, 2, 3, TileKind::Path);
+    // Path east to farm
+    fill_rect(&mut tiles, 12, 5, 2, 2, TileKind::Path);
 
-    // Path leading east to farm
-    fill_rect(&mut tiles, 20, 10, 4, 4, TileKind::Path);
-
-    // Small water feature (mountain spring)
-    fill_rect(&mut tiles, 4, 10, 2, 3, TileKind::Water);
+    // Mountain spring
+    fill_rect(&mut tiles, 2, 5, 1, 2, TileKind::Water);
 
     let transitions = vec![
         // East exit -> Farm
         MapTransition {
             from_map: MapId::MineEntrance,
-            from_rect: (23, 10, 1, 4),
+            from_rect: (13, 5, 1, 2),
             to_map: MapId::Farm,
-            to_pos: (1, 10),
+            to_pos: (1, 9),
         },
         // Cave entrance -> Mine floor 1
         MapTransition {
             from_map: MapId::MineEntrance,
-            from_rect: (10, 2, 4, 2),
+            from_rect: (6, 1, 2, 2),
             to_map: MapId::Mine,
             to_pos: (8, 14),
         },
     ];
 
     let mut objects = Vec::new();
-    // Large rocks around the mountain
-    let rock_positions = [
-        (2, 4), (3, 6), (18, 4), (19, 6), (6, 8), (17, 8),
-        (2, 14), (20, 14), (8, 20), (15, 20),
-    ];
+    let rock_positions = [(1, 2), (11, 2), (3, 6), (10, 6), (5, 10), (9, 10)];
     for (rx, ry) in &rock_positions {
         objects.push(ObjectPlacement { x: *rx, y: *ry, kind: WorldObjectKind::LargeRock });
     }
 
-    let forage_points = vec![(6, 18), (16, 18), (12, 20)];
+    let forage_points = vec![(4, 9), (9, 9)];
 
     MapDef {
         id: MapId::MineEntrance,
@@ -882,7 +805,7 @@ fn generate_animal_shop() -> MapDef {
             from_map: MapId::AnimalShop,
             from_rect: (5, 11, 2, 1),
             to_map: MapId::Town,
-            to_pos: (38, 5),
+            to_pos: (22, 3),
         },
     ];
 
@@ -949,7 +872,7 @@ fn generate_blacksmith() -> MapDef {
             from_map: MapId::Blacksmith,
             from_rect: (5, 11, 2, 1),
             to_map: MapId::Town,
-            to_pos: (41, 31),
+            to_pos: (22, 14),
         },
     ];
 
