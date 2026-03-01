@@ -12,6 +12,7 @@ mod inventory_screen;
 mod main_menu;
 pub mod menu_input;
 pub mod menu_kit;
+mod minimap;
 mod pause_menu;
 mod shop_screen;
 mod toast;
@@ -136,6 +137,7 @@ impl Plugin for UiPlugin {
                 hud::update_hotbar,
                 hud::hydrate_hotbar_icons,
                 hud::update_hotbar_icons,
+                minimap::update_minimap,
                 hud::update_map_name,
                 hud::update_objective_display,
                 hud::update_interaction_prompt,
@@ -146,6 +148,8 @@ impl Plugin for UiPlugin {
         // ─── TOAST NOTIFICATIONS ───
         app.add_systems(OnEnter(GameState::Playing), toast::spawn_toast_container);
         app.add_systems(OnExit(GameState::Playing), toast::despawn_toast_container);
+        app.add_systems(OnEnter(GameState::Playing), minimap::spawn_minimap);
+        app.add_systems(OnExit(GameState::Playing), minimap::despawn_minimap);
         app.add_systems(
             Update,
             (
