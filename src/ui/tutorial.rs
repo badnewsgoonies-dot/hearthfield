@@ -143,10 +143,10 @@ pub fn forward_hint_to_toast(
 
 pub const OBJECTIVES: &[(&str, &str)] = &[
     ("till_soil",    "Till some soil with your hoe (Space)"),
-    ("plant_seeds",  "Plant your turnip seeds (select seeds, press F)"),
-    ("water_crops",  "Water your crops (select watering can, press Space)"),
+    ("plant_seeds",  "Plant your turnip seeds (press 1 to select seeds, then F)"),
+    ("water_crops",  "Water your crops (press [ or ] to switch tools, then Space)"),
     ("visit_town",   "Visit the town (walk south from the farm)"),
-    ("go_to_bed",    "Go home and sleep (press F on your farm)"),
+    ("go_to_bed",    "End the day (press F anywhere on your farm to sleep)"),
 ];
 
 fn is_objective_complete(

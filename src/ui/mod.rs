@@ -135,6 +135,7 @@ impl Plugin for UiPlugin {
                 hud::update_hotbar,
                 hud::update_map_name,
                 hud::update_objective_display,
+                hud::update_interaction_prompt,
             )
                 .run_if(in_state(GameState::Playing)),
         );

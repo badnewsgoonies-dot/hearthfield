@@ -72,6 +72,10 @@ pub struct HotbarQuantityText {
 #[derive(Component)]
 pub struct HudObjective;
 
+/// Marker for the "[F] Interact" prompt above the hotbar.
+#[derive(Component, Debug)]
+pub struct HudInteractionPrompt;
+
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
@@ -213,6 +217,24 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                                 });
                         });
                 });
+
+            // ─── INTERACTION PROMPT — centered above hotbar ───
+            parent.spawn((
+                HudInteractionPrompt,
+                Text::new(""),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(1.0, 0.95, 0.7, 0.0)),
+                Node {
+                    align_self: AlignSelf::Center,
+                    margin: UiRect::bottom(Val::Px(2.0)),
+                    ..default()
+                },
+                PickingBehavior::IGNORE,
+            ));
 
             // ─── BOTTOM: HOTBAR ───
             spawn_hotbar(parent, &font);
@@ -658,6 +680,57 @@ pub fn update_objective_display(
                     tc.0 = Color::srgba(1.0, 1.0, 1.0, 0.0);
                 }
             }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTERACTION PROMPT — show "[F] label" near interactables/NPCs
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Shows a contextual interaction prompt when the player is near an
+/// interactable object or NPC.
+pub fn update_interaction_prompt(
+    player_query: Query<&LogicalPosition, With<Player>>,
+    interactable_query: Query<(&Transform, &Interactable)>,
+    npc_query: Query<(&Npc, &Transform)>,
+    npc_registry: Res<NpcRegistry>,
+    mut prompt_query: Query<(&mut Text, &mut TextColor), With<HudInteractionPrompt>>,
+) {
+    let Ok(player_pos) = player_query.get_single() else {
+        return;
+    };
+    let range = TILE_SIZE * 1.8;
+    let mut best_label: Option<(f32, String)> = None;
+
+    // Check interactable objects.
+    for (tf, inter) in &interactable_query {
+        let d = player_pos.0.distance(tf.translation.truncate());
+        if d <= range && (best_label.is_none() || d < best_label.as_ref().unwrap().0) {
+            best_label = Some((d, format!("[F] {}", inter.label)));
+        }
+    }
+
+    // Check NPCs (closer NPC takes priority).
+    for (npc, tf) in &npc_query {
+        let d = player_pos.0.distance(tf.translation.truncate());
+        if d <= range && (best_label.is_none() || d < best_label.as_ref().unwrap().0) {
+            let name = npc_registry
+                .npcs
+                .get(&npc.id)
+                .map(|def| def.name.as_str())
+                .unwrap_or(&npc.id);
+            best_label = Some((d, format!("[F] Talk to {}", name)));
+        }
+    }
+
+    for (mut text, mut tc) in &mut prompt_query {
+        if let Some((_, label)) = &best_label {
+            **text = label.clone();
+            tc.0 = Color::srgb(1.0, 0.95, 0.7);
+        } else {
+            text.0.clear();
+            tc.0 = Color::srgba(1.0, 1.0, 1.0, 0.0);
         }
     }
 }

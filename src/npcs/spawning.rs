@@ -163,6 +163,19 @@ pub fn spawn_npcs_for_map(
             Visibility::default(),
         )).id();
 
+        // Floating name tag above the NPC sprite.
+        commands.entity(entity).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(npc_def.name.clone()),
+                TextFont {
+                    font_size: 5.0,
+                    ..default()
+                },
+                TextColor(color),
+                Transform::from_xyz(0.0, 14.0, 0.1),
+            ));
+        });
+
         spawned.entities.insert(npc_id.to_string(), entity);
     }
 }

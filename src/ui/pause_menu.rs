@@ -90,10 +90,12 @@ pub fn spawn_pause_menu(
                         TextColor(Color::srgb(0.95, 0.75, 0.45)),
                     ));
 
-                    // Hint
+                    // Hint + Controls reference
                     menu_kit::spawn_menu_footer(
                         panel,
-                        "Up/Down: Select | Enter: Confirm | Esc: Resume",
+                        "WASD: Move | Space: Use Tool | F: Interact\n\
+                         [ ]: Cycle Tools | 1-9: Select Hotbar\n\
+                         E: Inventory | C: Crafting | Esc: Resume",
                         &theme,
                         &font,
                     );
