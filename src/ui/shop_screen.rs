@@ -536,7 +536,7 @@ pub fn shop_navigation(
     // Cycle modes: Tab
     // Blacksmith: buy → sell → upgrade → buy
     // Other shops: buy ↔ sell
-    if player_input.open_inventory {
+    if player_input.tab_pressed {
         if ui_state.shop_id == ShopId::Blacksmith {
             if ui_state.is_buy_mode && !ui_state.upgrade_mode {
                 // buy → sell

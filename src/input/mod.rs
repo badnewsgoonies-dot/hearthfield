@@ -90,10 +90,16 @@ fn reset_and_read_input(
             input.quickload = keys.just_pressed(KeyCode::F9);
 
             // UI navigation for in-game overlays (chest panel, elevator, etc.)
-            input.ui_up = keys.just_pressed(KeyCode::ArrowUp);
-            input.ui_down = keys.just_pressed(KeyCode::ArrowDown);
-            input.ui_left = keys.just_pressed(KeyCode::ArrowLeft) || keys.just_pressed(KeyCode::Tab);
-            input.ui_right = keys.just_pressed(KeyCode::ArrowRight);
+            // WASD + Arrows for consistency with Menu context.
+            input.ui_up = keys.just_pressed(KeyCode::ArrowUp)
+                || keys.just_pressed(bindings.move_up);
+            input.ui_down = keys.just_pressed(KeyCode::ArrowDown)
+                || keys.just_pressed(bindings.move_down);
+            input.ui_left = keys.just_pressed(KeyCode::ArrowLeft)
+                || keys.just_pressed(bindings.move_left);
+            input.ui_right = keys.just_pressed(KeyCode::ArrowRight)
+                || keys.just_pressed(bindings.move_right);
+            input.tab_pressed = keys.just_pressed(KeyCode::Tab);
             input.ui_confirm = keys.just_pressed(bindings.ui_confirm);
             input.ui_cancel = keys.just_pressed(bindings.ui_cancel);
         }
@@ -111,15 +117,17 @@ fn reset_and_read_input(
                 keys.just_pressed(bindings.ui_confirm) || keys.just_pressed(bindings.interact);
             input.ui_cancel = keys.just_pressed(bindings.ui_cancel);
             input.pause = keys.just_pressed(bindings.pause);
+            input.tab_pressed = keys.just_pressed(KeyCode::Tab);
 
-            // Also read Tab for buy/sell toggle in shop and panel-switch in chest
-            input.open_inventory =
-                keys.just_pressed(KeyCode::Tab) || keys.just_pressed(KeyCode::KeyI);
+            // Quicksave / quickload available from pause menu
+            input.quicksave = keys.just_pressed(KeyCode::F5);
+            input.quickload = keys.just_pressed(KeyCode::F9);
         }
 
         InputContext::Dialogue => {
             input.interact = keys.just_pressed(bindings.interact)
-                || keys.just_pressed(bindings.ui_confirm);
+                || keys.just_pressed(bindings.ui_confirm)
+                || keys.just_pressed(KeyCode::Space);
             input.skip_cutscene = keys.just_pressed(bindings.skip_cutscene);
             input.ui_up =
                 keys.just_pressed(bindings.move_up) || keys.just_pressed(KeyCode::ArrowUp);

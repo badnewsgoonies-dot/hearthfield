@@ -190,7 +190,7 @@ pub fn spawn_dialogue_box(
                             // Continue prompt
                             text_area.spawn((
                                 DialoguePrompt,
-                                Text::new("[Space] Continue"),
+                                Text::new("[F / Space] Continue"),
                                 TextFont {
                                     font: font.clone(),
                                     font_size: 12.0,
@@ -256,9 +256,9 @@ pub fn advance_dialogue(
 
     for mut text in &mut prompt_query {
         if is_last {
-            **text = "[Space] Close".to_string();
+            **text = "[F / Space] Close".to_string();
         } else {
-            **text = "[Space] Continue".to_string();
+            **text = "[F / Space] Continue".to_string();
         }
     }
 }

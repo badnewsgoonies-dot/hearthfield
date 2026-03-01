@@ -399,8 +399,8 @@ pub fn handle_chest_input(
         return;
     };
 
-    // Tab: switch panels (Tab is mapped to ui_left in Gameplay context)
-    if player_input.ui_left {
+    // Tab: switch panels
+    if player_input.tab_pressed {
         ui_state.on_chest_side = !ui_state.on_chest_side;
         ui_state.cursor = 0;
     }

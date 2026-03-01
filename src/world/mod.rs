@@ -783,7 +783,8 @@ pub fn sync_collision_map(
         return;
     }
     collision_map.solid_tiles.clone_from(&world_map.solid_tiles);
-    if !world_map.solid_tiles.is_empty() {
+    if world_map.width > 0 && world_map.height > 0 {
+        collision_map.bounds = (0, world_map.width as i32 - 1, 0, world_map.height as i32 - 1);
         collision_map.initialised = true;
     }
 }

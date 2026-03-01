@@ -146,7 +146,7 @@ pub const OBJECTIVES: &[(&str, &str)] = &[
     ("plant_seeds",  "Plant your turnip seeds (press 1 to select seeds, then F)"),
     ("water_crops",  "Water your crops (press [ or ] to switch tools, then Space)"),
     ("visit_town",   "Visit the town (walk south from the farm)"),
-    ("go_to_bed",    "End the day (press F anywhere on your farm to sleep)"),
+    ("go_to_bed",    "End the day (go home and press F near your bed to sleep)"),
 ];
 
 fn is_objective_complete(

@@ -1644,6 +1644,7 @@ pub struct PlayerInput {
     pub ui_down: bool,
     pub ui_left: bool,
     pub ui_right: bool,
+    pub tab_pressed: bool,            // Tab key (panel switch, mode cycle)
 
     // Meta
     pub any_key: bool,            // splash/title "press any key"

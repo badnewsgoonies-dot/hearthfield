@@ -119,7 +119,7 @@ fn pause_time(mut calendar: ResMut<Calendar>) {
 
 // ─── Manual sleep trigger ────────────────────────────────────────────────────
 
-/// Allows the player to end the day by pressing B while on the Farm or in the
+/// Allows the player to end the day by pressing F near their bed in the
 /// PlayerHouse.  This is the primary way to trigger sleep before the forced
 /// 2 AM rollover.  Sends a DayEndEvent which process_day_end will pick up to
 /// advance the calendar, and all other domains (farming, economy, etc.) will
@@ -131,6 +131,7 @@ pub fn trigger_sleep(
     mut day_end_events: EventWriter<DayEndEvent>,
     interaction_claimed: Res<InteractionClaimed>,
     mut cutscene_queue: ResMut<CutsceneQueue>,
+    player_query: Query<&GridPosition, With<Player>>,
 ) {
     if !player_input.interact {
         return;
@@ -140,8 +141,22 @@ pub fn trigger_sleep(
         return;
     }
 
-    // Only allow sleeping at home or on the farm.
-    if !matches!(player_state.current_map, MapId::Farm | MapId::PlayerHouse) {
+    // Only allow sleeping in the player's house, near the bed.
+    if player_state.current_map != MapId::PlayerHouse {
+        return;
+    }
+
+    // Bed tiles at (12,3) and (13,3) — sleep within 2 tiles.
+    const BED_X: i32 = 12;
+    const BED_Y: i32 = 3;
+    const MAX_DIST: i32 = 2;
+    if let Ok(gp) = player_query.get_single() {
+        let dx = (gp.x - BED_X).abs();
+        let dy = (gp.y - BED_Y).abs();
+        if dx > MAX_DIST || dy > MAX_DIST {
+            return;
+        }
+    } else {
         return;
     }
 

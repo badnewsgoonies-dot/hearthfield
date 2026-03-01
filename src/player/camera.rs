@@ -31,8 +31,8 @@ pub fn camera_follow_player(
     let map_w = (world_map.width as f32) * TILE_SIZE;
     let map_h = (world_map.height as f32) * TILE_SIZE;
 
-    let half_vw = projection.area.width() / 2.0;
-    let half_vh = projection.area.height() / 2.0;
+    let half_vw = projection.area.width() / 2.0 * cam_tf.scale.x;
+    let half_vh = projection.area.height() / 2.0 * cam_tf.scale.y;
 
     let min_x = half_vw;
     let max_x = (map_w - half_vw).max(min_x);

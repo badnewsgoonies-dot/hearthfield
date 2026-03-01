@@ -100,7 +100,7 @@ pub fn spawn_inventory_screen(
 
                     // Hint text
                     panel.spawn((
-                        Text::new("Arrow keys to move | Esc to close"),
+                        Text::new("WASD/Arrows: Move | Esc: Close"),
                         TextFont {
                             font: font.clone(),
                             font_size: 12.0,
