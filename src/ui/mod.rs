@@ -44,6 +44,7 @@ impl Plugin for UiPlugin {
         // ─── AUDIO — music state resource + event handlers ───
         app.init_resource::<audio::MusicState>();
         app.init_resource::<hud::ItemAtlasData>();
+        app.init_resource::<hud::WeatherIconAtlas>();
         app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music));
         app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
         app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
@@ -131,6 +132,7 @@ impl Plugin for UiPlugin {
             (
                 hud::update_time_display,
                 hud::update_weather_display,
+                hud::update_weather_icon,
                 hud::update_gold_display,
                 hud::update_stamina_bar,
                 hud::update_tool_display,

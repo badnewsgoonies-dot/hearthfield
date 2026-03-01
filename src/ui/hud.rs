@@ -32,6 +32,10 @@ pub struct HudTimeText;
 #[derive(Component)]
 pub struct HudWeatherText;
 
+/// Marker for the weather icon image node.
+#[derive(Component)]
+pub struct HudWeatherIcon;
+
 #[derive(Component)]
 pub struct HudGoldText;
 
@@ -77,6 +81,14 @@ pub struct HotbarItemIcon {
 /// Lazily loaded atlas for item icons in the hotbar.
 #[derive(Resource, Default)]
 pub struct ItemAtlasData {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+/// Lazily-loaded atlas for weather icons (weather_icons.png: 4×6 grid, 16×16).
+#[derive(Resource, Default)]
+pub struct WeatherIconAtlas {
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
     pub loaded: bool,
@@ -149,6 +161,17 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                                     ..default()
                                 },
                                 TextColor(Color::WHITE),
+                                PickingBehavior::IGNORE,
+                            ));
+
+                            left.spawn((
+                                HudWeatherIcon,
+                                ImageNode::default(),
+                                Node {
+                                    width: Val::Px(16.0),
+                                    height: Val::Px(16.0),
+                                    ..default()
+                                },
                                 PickingBehavior::IGNORE,
                             ));
 
@@ -514,6 +537,53 @@ pub fn update_weather_display(
         };
         **text = label.to_string();
         *color = TextColor(col);
+    }
+}
+
+/// Update the weather icon atlas sprite to match current weather.
+/// Lazy-loads weather_icons.png (4 cols × 6 rows, 16×16 tiles).
+pub fn update_weather_icon(
+    mut commands: Commands,
+    calendar: Res<Calendar>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas: ResMut<WeatherIconAtlas>,
+    query: Query<Entity, With<HudWeatherIcon>>,
+) {
+    if !calendar.is_changed() {
+        return;
+    }
+    // Lazy-load the weather icons atlas
+    if !atlas.loaded {
+        atlas.image = asset_server.load("ui/weather_icons.png");
+        atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            4,
+            6,
+            None,
+            None,
+        ));
+        atlas.loaded = true;
+    }
+
+    // Map weather to icon index in the sheet
+    // Row 0: sun variants, Row 1: cloud/overcast, Row 2: rain, Row 3: storm, Row 4: snow
+    let icon_index = match calendar.weather {
+        Weather::Sunny => 0,  // sun icon
+        Weather::Rainy => 8,  // rain icon
+        Weather::Stormy => 12, // storm icon
+        Weather::Snowy => 16,  // snow icon
+    };
+
+    for entity in &query {
+        commands.entity(entity).insert(ImageNode {
+            image: atlas.image.clone(),
+            texture_atlas: Some(TextureAtlas {
+                layout: atlas.layout.clone(),
+                index: icon_index,
+            }),
+            ..default()
+        });
     }
 }
 
