@@ -140,7 +140,7 @@ pub fn handle_tool_use_for_fishing(
         let bobber_world_y = target_y as f32 * TILE_SIZE;
         commands.spawn((
             Sprite {
-                color: Color::srgb(0.9, 0.2, 0.2), // Red bobber (placeholder)
+                color: Color::srgb(1.0, 0.3, 0.2), // Bright red bobber
                 custom_size: Some(Vec2::new(6.0, 8.0)),
                 ..default()
             },
