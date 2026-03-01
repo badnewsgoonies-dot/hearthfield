@@ -3,8 +3,8 @@
 //! Uses the same 4×4 spritesheet layout as the player character:
 //!   Row 0 (indices 0-3):  Walk down
 //!   Row 1 (indices 4-7):  Walk up
-//!   Row 2 (indices 8-11): Walk right
-//!   Row 3 (indices 12-15): Walk left
+//!   Row 2 (indices 8-11): Walk left
+//!   Row 3 (indices 12-15): Walk right
 
 use bevy::prelude::*;
 use crate::shared::*;
@@ -34,7 +34,7 @@ pub fn animate_npc_sprites(
         let dy = movement.target_y - logical_pos.0.y;
 
         let base: usize = if dx.abs() > dy.abs() {
-            if dx > 0.0 { 8 } else { 12 } // Right : Left
+            if dx > 0.0 { 12 } else { 8 } // Right (row 3) : Left (row 2)
         } else {
             if dy > 0.0 { 4 } else { 0 } // Up : Down
         };

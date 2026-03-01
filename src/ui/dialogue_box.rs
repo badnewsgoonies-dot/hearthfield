@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use crate::npcs::spawning::NpcSpriteData;
-use crate::npcs::definitions::npc_color;
+use crate::npcs::definitions::{npc_color, npc_sprite_file};
 use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -118,11 +118,15 @@ pub fn spawn_dialogue_box(
                     },
                 ))
                 .with_children(|panel| {
-                    // Left: NPC portrait using character_spritesheet
+                    // Left: NPC portrait using per-NPC spritesheet
                     if npc_sprites.loaded {
-                        let tint = ui_state.as_ref()
-                            .map(|s| npc_color(&s.npc_id))
-                            .unwrap_or(Color::WHITE);
+                        let npc_id_str = ui_state.as_ref()
+                            .map(|s| s.npc_id.as_str())
+                            .unwrap_or("");
+                        let portrait_image = npc_sprites.images
+                            .get(npc_id_str)
+                            .cloned()
+                            .unwrap_or_else(|| asset_server.load(npc_sprite_file(npc_id_str)));
                         panel.spawn((
                             DialoguePortrait,
                             Node {
@@ -131,8 +135,7 @@ pub fn spawn_dialogue_box(
                                 ..default()
                             },
                             ImageNode {
-                                image: npc_sprites.image.clone(),
-                                color: tint,
+                                image: portrait_image,
                                 texture_atlas: Some(TextureAtlas {
                                     layout: npc_sprites.layout.clone(),
                                     index: 0, // front-facing standing frame
