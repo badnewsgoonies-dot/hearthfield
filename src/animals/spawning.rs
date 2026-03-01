@@ -177,11 +177,42 @@ pub fn handle_animal_purchase(
                     s.custom_size = Some(Vec2::new(32.0, 32.0));
                     s
                 }
-                _ => Sprite {
-                    color: vis.color,
-                    custom_size: Some(Vec2::new(vis.width, vis.height)),
-                    ..default()
-                },
+                AnimalKind::Sheep => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.sheep_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.sheep_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(16.0, 16.0));
+                    s.color = Color::srgb(0.95, 0.95, 0.98); // white-ish tint
+                    s
+                }
+                AnimalKind::Cat => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.cat_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.cat_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(16.0, 16.0));
+                    s.color = Color::srgb(1.0, 0.7, 0.3); // orange tint
+                    s
+                }
+                AnimalKind::Dog => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.dog_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.dog_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(16.0, 16.0));
+                    s.color = Color::srgb(0.6, 0.4, 0.25); // brown tint
+                    s
+                }
             }
         } else {
             Sprite {

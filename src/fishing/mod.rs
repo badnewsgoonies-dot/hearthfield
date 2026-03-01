@@ -17,6 +17,29 @@ pub mod legendaries;
 
 // ─── Plugin ─────────────────────────────────────────────────────────────────
 
+/// Cached sprite atlas handles for fishing-related sprites (fish, rods, etc.)
+#[derive(Resource, Default)]
+pub struct FishingAtlas {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads the fishing sprite atlas on first entry into Playing state.
+fn load_fishing_atlas(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas: ResMut<FishingAtlas>,
+) {
+    if atlas.loaded { return; }
+    // fishing_atlas.png: 256x352, 8 cols x 11 rows of 32x32 tiles
+    atlas.image = asset_server.load("sprites/fishing_atlas.png");
+    atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32), 8, 11, None, None,
+    ));
+    atlas.loaded = true;
+}
+
 pub struct FishingPlugin;
 
 impl Plugin for FishingPlugin {
@@ -27,6 +50,7 @@ impl Plugin for FishingPlugin {
             .init_resource::<FishingMinigameState>()
             .init_resource::<FishEncyclopedia>()
             .init_resource::<skill::FishingSkill>()
+            .init_resource::<FishingAtlas>()
             // Internal events
             .add_event::<skill::FishingLevelUpEvent>()
             // Systems that run in Playing state (cast detection)
@@ -64,6 +88,7 @@ impl Plugin for FishingPlugin {
                     ),
             )
             // Setup/teardown on state transitions
+            .add_systems(OnEnter(GameState::Playing), load_fishing_atlas)
             .add_systems(OnEnter(GameState::Fishing), render::spawn_minigame_ui)
             .add_systems(OnExit(GameState::Fishing), render::despawn_minigame_ui)
             // Minigame visual updates (color feedback on progress bar)
