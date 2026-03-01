@@ -218,7 +218,7 @@ pub fn despawn_inventory_screen(
 pub fn update_inventory_slots(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
-    atlas_data: Res<ItemAtlasData>,
+    _atlas_data: Res<ItemAtlasData>,
     mut item_text_query: Query<(&InventorySlotItemName, &mut Text), Without<InventorySlotQuantity>>,
     mut qty_text_query: Query<(&InventorySlotQuantity, &mut Text), Without<InventorySlotItemName>>,
     mut icon_query: Query<(&InventorySlotIcon, &mut ImageNode, &mut Visibility)>,

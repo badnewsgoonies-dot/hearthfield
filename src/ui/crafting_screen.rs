@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use super::hud::ItemAtlasData;
+// use super::hud::ItemAtlasData; // TODO: wire crafting icons
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -10,6 +10,7 @@ use super::hud::ItemAtlasData;
 pub struct CraftingScreenRoot;
 
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct CraftingRecipeIcon {
     pub index: usize,
 }
