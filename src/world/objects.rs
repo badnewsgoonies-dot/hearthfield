@@ -1382,3 +1382,148 @@ pub fn spawn_building_sprites(
         ));
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTERIOR DECORATIONS — furniture sprites inside buildings
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Marker for interior decoration entities (despawned on map change).
+#[derive(Component)]
+pub struct InteriorDecoration;
+
+/// A furniture placement: grid position + atlas index in furniture.png.
+struct FurniturePlacement {
+    x: i32,
+    y: i32,
+    index: usize,
+    /// Optional: 2-tile wide item (spawns at x and x+1).
+    wide: bool,
+}
+
+fn player_house_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        // Bed (upper-right area)
+        FurniturePlacement { x: 12, y: 3, index: 2, wide: false },
+        FurniturePlacement { x: 13, y: 3, index: 3, wide: false },
+        // Bookshelf (left wall)
+        FurniturePlacement { x: 2, y: 2, index: 9, wide: false },
+        FurniturePlacement { x: 2, y: 3, index: 18, wide: false },
+        // Table (center rug area)
+        FurniturePlacement { x: 7, y: 7, index: 0, wide: false },
+        FurniturePlacement { x: 8, y: 7, index: 1, wide: false },
+        // Chair
+        FurniturePlacement { x: 7, y: 8, index: 4, wide: false },
+        // Dresser (right side)
+        FurniturePlacement { x: 12, y: 6, index: 10, wide: false },
+        // Barrel (near door)
+        FurniturePlacement { x: 3, y: 12, index: 27, wide: false },
+    ]
+}
+
+fn general_store_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        // Shelves along top wall (behind counter)
+        FurniturePlacement { x: 3, y: 1, index: 9, wide: false },
+        FurniturePlacement { x: 4, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 5, y: 1, index: 11, wide: false },
+        FurniturePlacement { x: 6, y: 1, index: 9, wide: false },
+        FurniturePlacement { x: 7, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 8, y: 1, index: 11, wide: false },
+        // Crates near entrance
+        FurniturePlacement { x: 2, y: 9, index: 36, wide: false },
+        FurniturePlacement { x: 9, y: 9, index: 36, wide: false },
+        // Barrel
+        FurniturePlacement { x: 2, y: 7, index: 27, wide: false },
+    ]
+}
+
+fn blacksmith_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        // Anvil (center)
+        FurniturePlacement { x: 5, y: 4, index: 19, wide: false },
+        // Furnace (back wall)
+        FurniturePlacement { x: 3, y: 1, index: 18, wide: false },
+        FurniturePlacement { x: 4, y: 1, index: 18, wide: false },
+        // Crates
+        FurniturePlacement { x: 8, y: 2, index: 36, wide: false },
+        FurniturePlacement { x: 9, y: 2, index: 36, wide: false },
+        // Barrel of water
+        FurniturePlacement { x: 8, y: 8, index: 27, wide: false },
+    ]
+}
+
+fn animal_shop_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        // Hay bales along wall
+        FurniturePlacement { x: 2, y: 2, index: 45, wide: false },
+        FurniturePlacement { x: 3, y: 2, index: 45, wide: false },
+        // Counter items
+        FurniturePlacement { x: 5, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 6, y: 1, index: 11, wide: false },
+        // Feed bin
+        FurniturePlacement { x: 9, y: 7, index: 27, wide: false },
+    ]
+}
+
+/// Spawn furniture sprites inside interior maps.
+pub fn spawn_interior_decorations(
+    mut commands: Commands,
+    player_state: Res<PlayerState>,
+    existing: Query<Entity, With<InteriorDecoration>>,
+    furniture: Res<FurnitureAtlases>,
+) {
+    if !existing.is_empty() || !furniture.loaded {
+        return;
+    }
+
+    let placements = match player_state.current_map {
+        MapId::PlayerHouse => player_house_furniture(),
+        MapId::GeneralStore => general_store_furniture(),
+        MapId::Blacksmith => blacksmith_furniture(),
+        MapId::AnimalShop => animal_shop_furniture(),
+        _ => return,
+    };
+
+    for fp in &placements {
+        let wc = grid_to_world_center(fp.x, fp.y);
+        let mut sprite = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: fp.index,
+            },
+        );
+        sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+
+        commands.spawn((
+            InteriorDecoration,
+            WorldObject,
+            sprite,
+            Transform::from_xyz(wc.x, wc.y, Z_ENTITY_BASE),
+            YSorted,
+            Visibility::default(),
+        ));
+
+        // Wide furniture: spawn second tile
+        if fp.wide {
+            let wc2 = grid_to_world_center(fp.x + 1, fp.y);
+            let mut sprite2 = Sprite::from_atlas_image(
+                furniture.image.clone(),
+                TextureAtlas {
+                    layout: furniture.layout.clone(),
+                    index: fp.index + 1,
+                },
+            );
+            sprite2.custom_size = Some(Vec2::splat(TILE_SIZE));
+
+            commands.spawn((
+                InteriorDecoration,
+                WorldObject,
+                sprite2,
+                Transform::from_xyz(wc2.x, wc2.y, Z_ENTITY_BASE),
+                YSorted,
+                Visibility::default(),
+            ));
+        }
+    }
+}

@@ -26,7 +26,7 @@ use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
     handle_weed_scythe, spawn_daily_weeds, regrow_trees_on_season_change,
     spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board, spawn_building_signs,
-    spawn_building_sprites,
+    spawn_building_sprites, spawn_interior_decorations,
     WorldObject,
 };
 use seasonal::{
@@ -111,6 +111,7 @@ impl Plugin for WorldPlugin {
                     spawn_carpenter_board,
                     spawn_building_signs,
                     spawn_building_sprites,
+                    spawn_interior_decorations,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
                     // Subtle pulse on nearby interactable objects
@@ -236,6 +237,7 @@ fn tile_atlas_info(
     kind: TileKind,
     _season: Season,
     atlases: &TerrainAtlases,
+    map_id: MapId,
 ) -> Option<(Handle<Image>, Handle<TextureAtlasLayout>, usize)> {
     match kind {
         // Grass: use grass.png atlas. Index 5 is a nice center grass tile.
@@ -319,13 +321,28 @@ fn tile_atlas_info(
             7,
         )),
 
-        // Void: use hills.png for a natural cliff edge look.
-        // Index 60 (row 5, col 5) = generic hill/cliff face tile.
-        TileKind::Void => Some((
-            atlases.hills_image.clone(),
-            atlases.hills_layout.clone(),
-            60,
-        )),
+        // Void: hills for outdoor maps, wall tile for indoor maps.
+        TileKind::Void => {
+            let is_indoor = matches!(
+                map_id,
+                MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+            );
+            if is_indoor {
+                // Use tilled_dirt as a dark wall texture (index 0 = top-left corner)
+                Some((
+                    atlases.dirt_image.clone(),
+                    atlases.dirt_layout.clone(),
+                    0,
+                ))
+            } else {
+                // Outdoor: use hills for natural cliff edge
+                Some((
+                    atlases.hills_image.clone(),
+                    atlases.hills_layout.clone(),
+                    60,
+                ))
+            }
+        }
     }
 }
 
@@ -577,7 +594,7 @@ fn spawn_tile_sprites(
         for x in 0..map_def.width {
             let tile = map_def.tiles[y * map_def.width + x];
 
-            match tile_atlas_info(tile, season, atlases) {
+            match tile_atlas_info(tile, season, atlases, map_def.id) {
                 Some((image, layout, index)) => {
                     // Use texture atlas sprite
                     commands.spawn((
@@ -801,7 +818,7 @@ fn handle_season_change(
 
                 let tile = map_def.get_tile(gx, gy);
 
-                match tile_atlas_info(tile, new_season, &terrain_atlases) {
+                match tile_atlas_info(tile, new_season, &terrain_atlases, map_def.id) {
                     Some((image, layout, index)) => {
                         // Update the sprite to use the new seasonal atlas image and index.
                         // Reset color to white so apply_seasonal_tint can tint cleanly.
