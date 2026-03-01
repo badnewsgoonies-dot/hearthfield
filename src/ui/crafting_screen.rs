@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
-// use super::hud::ItemAtlasData; // TODO: wire crafting icons
+use super::hud::ItemAtlasData;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -51,6 +51,8 @@ pub fn spawn_crafting_screen(
     mut commands: Commands,
     recipe_registry: Res<RecipeRegistry>,
     unlocked_recipes: Res<UnlockedRecipes>,
+    item_registry: Res<ItemRegistry>,
+    atlas_data: Res<ItemAtlasData>,
 ) {
     // Gather visible recipes: show all unlocked (or all if unlocked list is empty for development)
     let visible: Vec<String> = if unlocked_recipes.ids.is_empty() {
@@ -66,7 +68,7 @@ pub fn spawn_crafting_screen(
 
     commands.insert_resource(CraftingUiState {
         cursor: 0,
-        visible_recipes: visible,
+        visible_recipes: visible.clone(),
         status_message: String::new(),
         status_timer: 0.0,
     });
@@ -138,6 +140,33 @@ pub fn spawn_crafting_screen(
                                 BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.6)),
                             ))
                             .with_children(|row| {
+                                // Item icon
+                                let mut icon_cmd = row.spawn((
+                                    CraftingRecipeIcon { index: i },
+                                    Node {
+                                        width: Val::Px(24.0),
+                                        height: Val::Px(24.0),
+                                        margin: UiRect::right(Val::Px(6.0)),
+                                        ..default()
+                                    },
+                                ));
+                                if atlas_data.loaded {
+                                    if let Some(recipe_id) = visible.get(i) {
+                                        if let Some(recipe) = recipe_registry.recipes.get(recipe_id.as_str()) {
+                                            if let Some(item_def) = item_registry.get(&recipe.result) {
+                                                icon_cmd.insert(ImageNode {
+                                                    image: atlas_data.image.clone(),
+                                                    texture_atlas: Some(TextureAtlas {
+                                                        layout: atlas_data.layout.clone(),
+                                                        index: item_def.sprite_index as usize,
+                                                    }),
+                                                    ..default()
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+
                                 row.spawn((
                                     CraftingRecipeName { index: i },
                                     Text::new(""),
