@@ -45,6 +45,14 @@ impl Plugin for UiPlugin {
         app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music));
         app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
         app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
+        app.add_systems(
+            Update,
+            (
+                audio::switch_music_on_season_change,
+                audio::switch_music_on_map_change,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
 
         // ─── FADE OVERLAY — always present ───
         app.add_systems(Startup, transitions::spawn_fade_overlay);

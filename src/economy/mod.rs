@@ -97,6 +97,14 @@ impl Plugin for EconomyPlugin {
                 track_recipes_cooked,
                 // Achievement progress counters (rocks broken, crops planted, gold-quality crops).
                 track_achievement_progress,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ── Achievement systems (separate group to stay under Bevy tuple limit) ──
+        app.add_systems(
+            Update,
+            (
                 // Achievement condition checks — fires AchievementUnlockedEvent when earned.
                 check_achievements,
                 // Display toast notifications for newly unlocked achievements.

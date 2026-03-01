@@ -541,13 +541,17 @@ fn spawn_tile_sprites(
                 Some((image, layout, index)) => {
                     // Use texture atlas sprite
                     commands.spawn((
-                        Sprite::from_atlas_image(
-                            image,
-                            TextureAtlas {
-                                layout,
-                                index,
-                            },
-                        ),
+                        {
+                            let mut sprite = Sprite::from_atlas_image(
+                                image,
+                                TextureAtlas {
+                                    layout,
+                                    index,
+                                },
+                            );
+                            sprite.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+                            sprite
+                        },
                         Transform::from_translation(Vec3::new(
                             x as f32 * TILE_SIZE,
                             y as f32 * TILE_SIZE,
