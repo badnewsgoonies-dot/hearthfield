@@ -4,7 +4,7 @@ use crate::world::WorldMap;
 use super::CameraSnap;
 
 /// Smoothly follow the player with the camera using a lerp, clamped to map bounds.
-/// On map transitions, snaps instantly for 2 frames (ensures WorldMap bounds are
+/// On map transitions, snaps instantly for 3 frames (ensures WorldMap bounds are
 /// updated before the final clamp).
 pub fn camera_follow_player(
     time: Res<Time>,
@@ -42,18 +42,32 @@ pub fn camera_follow_player(
         )
     };
 
-    // Clamp camera to map bounds so the viewport never shows past the edge
+    // Clamp camera to map bounds so the viewport never shows past the edge.
+    // Guard: if WorldMap hasn't loaded yet (width/height 0), skip clamping
+    // to avoid pinning the camera at (0, 0) during map transitions.
     let map_w = (world_map.width as f32) * TILE_SIZE;
     let map_h = (world_map.height as f32) * TILE_SIZE;
+
+    if map_w <= 0.0 || map_h <= 0.0 {
+        cam_tf.translation.x = smooth_x.round();
+        cam_tf.translation.y = smooth_y.round();
+        return;
+    }
 
     let half_vw = projection.area.width() / 2.0 * cam_tf.scale.x;
     let half_vh = projection.area.height() / 2.0 * cam_tf.scale.y;
 
-    let min_x = half_vw;
-    let max_x = (map_w - half_vw).max(min_x);
-    let min_y = half_vh;
-    let max_y = (map_h - half_vh).max(min_y);
+    // When the map is smaller than the viewport, center the camera on the
+    // map instead of clamping to an edge (avoids bottom-left anchoring).
+    cam_tf.translation.x = if map_w <= half_vw * 2.0 {
+        map_w / 2.0
+    } else {
+        smooth_x.round().clamp(half_vw, map_w - half_vw)
+    };
 
-    cam_tf.translation.x = smooth_x.round().clamp(min_x, max_x);
-    cam_tf.translation.y = smooth_y.round().clamp(min_y, max_y);
+    cam_tf.translation.y = if map_h <= half_vh * 2.0 {
+        map_h / 2.0
+    } else {
+        smooth_y.round().clamp(half_vh, map_h - half_vh)
+    };
 }

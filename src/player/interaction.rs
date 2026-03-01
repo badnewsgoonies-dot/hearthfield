@@ -35,68 +35,68 @@ fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
 fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
     let (min_x, max_x, min_y, max_y) = map_bounds(map);
 
-    // Farm exits
+    // Farm exits (32x24)
     if *map == MapId::Farm {
-        // South edge → Town
+        // South edge → Town (28x22)
         if gy <= min_y {
-            return Some((MapId::Town, gx.clamp(0, 47), 46));
+            return Some((MapId::Town, gx.clamp(0, 27), 20));
         }
-        // East edge → Forest
+        // East edge → Forest (22x18)
         if gx >= max_x {
-            return Some((MapId::Forest, 1, gy.clamp(0, 39)));
+            return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
         // North edge → nothing (mountain boundary)
-        // West edge → Beach
+        // West edge → Beach (20x14)
         if gx <= min_x {
-            return Some((MapId::Beach, 30, gy.clamp(0, 31)));
+            return Some((MapId::Beach, 18, gy.clamp(0, 13)));
         }
     }
 
-    // Town exits
+    // Town exits (28x22)
     if *map == MapId::Town {
-        // North edge → Farm
+        // North edge → Farm (32x24)
         if gy >= max_y {
-            return Some((MapId::Farm, gx.clamp(0, 63), 1));
+            return Some((MapId::Farm, gx.clamp(0, 31), 1));
         }
-        // South edge → Beach
+        // South edge → Beach (20x14)
         if gy <= min_y {
-            return Some((MapId::Beach, gx.clamp(0, 31), 30));
+            return Some((MapId::Beach, gx.clamp(0, 19), 12));
         }
-        // East edge → Forest
+        // East edge → Forest (22x18)
         if gx >= max_x {
-            return Some((MapId::Forest, 1, gy.clamp(0, 39)));
+            return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
     }
 
-    // Beach exits
+    // Beach exits (20x14)
     if *map == MapId::Beach {
-        // North edge → Town
+        // North edge → Town (28x22)
         if gy >= max_y {
-            return Some((MapId::Town, gx.clamp(0, 47), 1));
+            return Some((MapId::Town, gx.clamp(0, 27), 1));
         }
-        // East edge → Farm
+        // East edge → Farm (32x24)
         if gx >= max_x {
-            return Some((MapId::Farm, 1, gy.clamp(0, 63)));
+            return Some((MapId::Farm, 1, gy.clamp(0, 23)));
         }
     }
 
-    // Forest exits
+    // Forest exits (22x18)
     if *map == MapId::Forest {
-        // West edge → Farm
+        // West edge → Farm (32x24)
         if gx <= min_x {
-            return Some((MapId::Farm, 62, gy.clamp(0, 63)));
+            return Some((MapId::Farm, 30, gy.clamp(0, 23)));
         }
-        // North edge → MineEntrance
+        // North edge → MineEntrance (14x12)
         if gy >= max_y {
-            return Some((MapId::MineEntrance, 12, 1));
+            return Some((MapId::MineEntrance, 7, 1));
         }
     }
 
-    // MineEntrance exits
+    // MineEntrance exits (14x12)
     if *map == MapId::MineEntrance {
-        // South edge → Forest
+        // South edge → Forest (22x18)
         if gy <= min_y {
-            return Some((MapId::Forest, 20, 38));
+            return Some((MapId::Forest, 11, 16));
         }
     }
 
@@ -105,13 +105,13 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
         return Some((MapId::Farm, 10, 9));
     }
     if *map == MapId::GeneralStore && gy <= min_y {
-        return Some((MapId::Town, 24, 20));
+        return Some((MapId::Town, 14, 10));
     }
     if *map == MapId::AnimalShop && gy <= min_y {
-        return Some((MapId::Town, 10, 20));
+        return Some((MapId::Town, 6, 10));
     }
     if *map == MapId::Blacksmith && gy <= min_y {
-        return Some((MapId::Town, 38, 20));
+        return Some((MapId::Town, 22, 10));
     }
 
     None

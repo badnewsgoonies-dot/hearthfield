@@ -115,8 +115,8 @@ pub fn handle_mine_exit(
             // Transition back to mine entrance
             map_events.send(MapTransitionEvent {
                 to_map: MapId::MineEntrance,
-                to_x: 12,
-                to_y: 12,
+                to_x: 7,
+                to_y: 4,
             });
 
             return;

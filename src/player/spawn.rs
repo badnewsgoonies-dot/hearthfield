@@ -29,8 +29,8 @@ pub fn spawn_player(
     // Sheet is 192×192, laid out as a 4×4 grid of 48×48 frames:
     //   Row 0 (indices  0- 3): Walk down
     //   Row 1 (indices  4- 7): Walk up
-    //   Row 2 (indices  8-11): Walk right
-    //   Row 3 (indices 12-15): Walk left
+    //   Row 2 (indices  8-11): Walk left
+    //   Row 3 (indices 12-15): Walk right
     let texture = asset_server.load("sprites/character_spritesheet.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::new(48, 48), 4, 4, None, None);
     let layout_handle = layouts.add(layout);

@@ -278,8 +278,8 @@ pub fn check_player_knockout(
         // Transition back to mine entrance
         map_events.send(MapTransitionEvent {
             to_map: MapId::MineEntrance,
-            to_x: 12,
-            to_y: 12,
+            to_x: 7,
+            to_y: 4,
         });
     }
 }

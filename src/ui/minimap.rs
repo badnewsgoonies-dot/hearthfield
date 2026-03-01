@@ -150,11 +150,12 @@ pub fn update_minimap(
         // Clear to void
         minimap.base_pixels = vec![[20, 30, 20, 255]; MAX_MAP * MAX_MAP];
 
-        // Fill actual tiles
+        // Fill actual tiles (flip Y: image row 0 = top, game y=0 = bottom)
         for y in 0..h {
+            let img_y = h - 1 - y;
             for x in 0..w {
                 let kind = map_def.get_tile(x as i32, y as i32);
-                minimap.base_pixels[y * MAX_MAP + x] = tile_color(kind);
+                minimap.base_pixels[img_y * MAX_MAP + x] = tile_color(kind);
             }
         }
 
@@ -166,7 +167,8 @@ pub fn update_minimap(
                     let tx = (rx + dx) as usize;
                     let ty = (ry + dy) as usize;
                     if tx < w && ty < h {
-                        minimap.base_pixels[ty * MAX_MAP + tx] = [255, 220, 100, 255];
+                        let img_ty = h - 1 - ty;
+                        minimap.base_pixels[img_ty * MAX_MAP + tx] = [255, 220, 100, 255];
                     }
                 }
             }
@@ -178,11 +180,12 @@ pub fn update_minimap(
                 let ux = cx as usize;
                 let uy = cy as usize;
                 if ux < w && uy < h {
+                    let img_uy = h - 1 - uy;
                     if crop.dead {
-                        minimap.base_pixels[uy * MAX_MAP + ux] = [90, 60, 40, 255];
+                        minimap.base_pixels[img_uy * MAX_MAP + ux] = [90, 60, 40, 255];
                     } else {
                         let green = (100 + (crop.current_stage as u16 * 30).min(155)) as u8;
-                        minimap.base_pixels[uy * MAX_MAP + ux] = [30, green, 20, 255];
+                        minimap.base_pixels[img_uy * MAX_MAP + ux] = [30, green, 20, 255];
                     }
                 }
             }
@@ -217,7 +220,8 @@ pub fn update_minimap(
         let gx = (tf.translation.x / TILE_SIZE).round() as usize;
         let gy = (tf.translation.y / TILE_SIZE).round() as usize;
         if gx < w && gy < h {
-            let offset = (gy * MAX_MAP + gx) * 4;
+            let img_gy = h - 1 - gy;
+            let offset = (img_gy * MAX_MAP + gx) * 4;
             data[offset]     = 100;
             data[offset + 1] = 200;
             data[offset + 2] = 255;
@@ -238,13 +242,14 @@ pub fn update_minimap(
                 [255, 200, 50, 255]
             };
 
-            // 3×3 dot for visibility
+            // 3×3 dot for visibility (flip Y for image coords)
             for dy in 0..3i32 {
                 for dx in 0..3i32 {
                     let nx = (px as i32 + dx - 1) as usize;
-                    let ny = (py as i32 + dy - 1) as usize;
-                    if nx < w && ny < h {
-                        let offset = (ny * MAX_MAP + nx) * 4;
+                    let game_ny = (py as i32 + dy - 1) as usize;
+                    if nx < w && game_ny < h {
+                        let img_ny = h - 1 - game_ny;
+                        let offset = (img_ny * MAX_MAP + nx) * 4;
                         data[offset]     = color[0];
                         data[offset + 1] = color[1];
                         data[offset + 2] = color[2];

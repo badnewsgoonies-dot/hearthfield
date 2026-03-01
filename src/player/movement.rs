@@ -80,8 +80,8 @@ pub fn animate_player_sprite(
         let base: usize = match movement.facing {
             Facing::Down  =>  0,
             Facing::Up    =>  4,
-            Facing::Right =>  8,
-            Facing::Left  => 12,
+            Facing::Left  =>  8,
+            Facing::Right => 12,
         };
 
         match movement.anim_state {
