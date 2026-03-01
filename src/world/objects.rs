@@ -1247,6 +1247,18 @@ fn farm_buildings() -> Vec<BuildingDef> {
             door_x: 31, door_y: 0,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
         },
+        // Chicken coop
+        BuildingDef {
+            x: 20, y: 38, w: 3, h: 3,
+            door_x: 21, door_y: 38,
+            roof_tint: Color::srgb(0.9, 0.8, 0.5),
+        },
+        // Barn
+        BuildingDef {
+            x: 8, y: 38, w: 5, h: 4,
+            door_x: 10, door_y: 38,
+            roof_tint: Color::srgb(0.7, 0.3, 0.3),
+        },
     ]
 }
 
