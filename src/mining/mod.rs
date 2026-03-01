@@ -39,6 +39,7 @@ impl Plugin for MiningPlugin {
         app.init_resource::<MineMoveCooldown>();
         app.init_resource::<ElevatorUiOpen>();
         app.init_resource::<spawning::MiningAtlas>();
+        app.init_resource::<spawning::EnemyAtlas>();
 
         // === Systems that run during Playing state ===
         app.add_systems(
