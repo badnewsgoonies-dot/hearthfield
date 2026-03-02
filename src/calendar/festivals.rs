@@ -331,7 +331,7 @@ pub fn start_luau(
     } else if sell_price >= 100 {
         (
             "Very tasty! The town enjoyed the soup.",
-            100i32, // +1 heart
+            FRIENDSHIP_PER_HEART as i32, // +1 heart
         )
     } else {
         (

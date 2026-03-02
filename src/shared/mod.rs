@@ -111,7 +111,7 @@ impl Default for Calendar {
 
 impl Calendar {
     pub fn day_of_week(&self) -> DayOfWeek {
-        let total_days = (self.season.index() as u32 * 28) + (self.day as u32 - 1);
+        let total_days = (self.season.index() as u32 * DAYS_PER_SEASON as u32) + (self.day as u32 - 1);
         match total_days % 7 {
             0 => DayOfWeek::Monday,
             1 => DayOfWeek::Tuesday,
@@ -124,7 +124,7 @@ impl Calendar {
     }
 
     pub fn total_days_elapsed(&self) -> u32 {
-        ((self.year - 1) * 112) + (self.season.index() as u32 * 28) + (self.day as u32 - 1)
+        ((self.year - 1) * (SEASONS_PER_YEAR as u32 * DAYS_PER_SEASON as u32)) + (self.season.index() as u32 * DAYS_PER_SEASON as u32) + (self.day as u32 - 1)
     }
 
     pub fn is_festival_day(&self) -> bool {
@@ -294,10 +294,10 @@ impl Default for PlayerState {
         tools.insert(ToolKind::Scythe, ToolTier::Basic);
 
         Self {
-            stamina: 100.0,
-            max_stamina: 100.0,
-            health: 100.0,
-            max_health: 100.0,
+            stamina: MAX_STAMINA,
+            max_stamina: MAX_STAMINA,
+            health: MAX_HEALTH,
+            max_health: MAX_HEALTH,
             equipped_tool: ToolKind::Hoe,
             tools,
             gold: 500,
@@ -353,7 +353,7 @@ pub struct InventorySlot {
 
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct Inventory {
-    /// 36 slots: 0-11 = hotbar, 12-35 = backpack
+    /// `TOTAL_INVENTORY_SLOTS` slots: 0-11 = hotbar, 12-35 = backpack
     pub slots: Vec<Option<InventorySlot>>,
     pub selected_slot: usize,
 }
@@ -361,7 +361,7 @@ pub struct Inventory {
 impl Default for Inventory {
     fn default() -> Self {
         Self {
-            slots: vec![None; 36],
+            slots: vec![None; TOTAL_INVENTORY_SLOTS],
             selected_slot: 0,
         }
     }
@@ -681,7 +681,7 @@ impl Relationships {
 
     pub fn add_friendship(&mut self, npc_id: &str, amount: i32) {
         let entry = self.friendship.entry(npc_id.to_string()).or_insert(0);
-        *entry = (*entry as i32 + amount).clamp(0, 1000) as u32;
+        *entry = (*entry as i32 + amount).clamp(0, MAX_FRIENDSHIP as i32) as u32;
     }
 }
 
@@ -970,25 +970,17 @@ pub const SCREEN_WIDTH: f32 = 960.0;
 pub const SCREEN_HEIGHT: f32 = 540.0;
 
 pub const DAYS_PER_SEASON: u8 = 28;
-#[allow(dead_code)]
 pub const SEASONS_PER_YEAR: u8 = 4;
 
-#[allow(dead_code)]
 pub const MAX_STAMINA: f32 = 100.0;
-#[allow(dead_code)]
 pub const MAX_HEALTH: f32 = 100.0;
 
 pub const HOTBAR_SLOTS: usize = 12;
-#[allow(dead_code)]
 pub const BACKPACK_SLOTS: usize = 24;
-#[allow(dead_code)]
 pub const TOTAL_INVENTORY_SLOTS: usize = HOTBAR_SLOTS + BACKPACK_SLOTS;
 
-#[allow(dead_code)]
 pub const FRIENDSHIP_PER_HEART: u32 = 100;
-#[allow(dead_code)]
 pub const MAX_HEARTS: u32 = 10;
-#[allow(dead_code)]
 pub const MAX_FRIENDSHIP: u32 = MAX_HEARTS * FRIENDSHIP_PER_HEART;
 
 // ═══════════════════════════════════════════════════════════════════════

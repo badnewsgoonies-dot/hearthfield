@@ -100,8 +100,8 @@ pub fn handle_day_end(
                             .unwrap_or(0);
 
                         // Warn when a heart is lost (crossed a 100-point boundary)
-                        let hearts_before = (before / 100).min(10);
-                        let hearts_after = (after / 100).min(10);
+                        let hearts_before = (before / FRIENDSHIP_PER_HEART).min(MAX_HEARTS);
+                        let hearts_after = (after / FRIENDSHIP_PER_HEART).min(MAX_HEARTS);
                         if hearts_after < hearts_before {
                             let npc_name = npc_registry.npcs.get(npc_id.as_str())
                                 .map(|d| d.name.as_str())
