@@ -19,6 +19,7 @@ pub fn handle_ladder_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut tool_use_events: EventReader<ToolUseEvent>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
         return;
@@ -30,6 +31,12 @@ pub fn handle_ladder_interaction(
 
     // Player must press Space/Enter to interact with ladder
     if !player_input.tool_use && !player_input.ui_confirm {
+        return;
+    }
+
+    // Guard: if a tool action (rock-breaking or combat) was consumed this frame,
+    // the tool_use key was already claimed — don't simultaneously descend.
+    if tool_use_events.read().next().is_some() {
         return;
     }
 
@@ -157,21 +164,9 @@ pub fn handle_elevator_selection(
             // Key 1 → floor 1 (ground)
             selected_floor = Some(1);
         }
-        Some(1) => {
-            // Key 2 → first elevator stop
-            if let Some(&floor) = mine_state.elevator_floors.get(0) {
-                selected_floor = Some(floor);
-            }
-        }
-        Some(2) => {
-            // Key 3 → second elevator stop
-            if let Some(&floor) = mine_state.elevator_floors.get(1) {
-                selected_floor = Some(floor);
-            }
-        }
-        Some(3) => {
-            // Key 4 → third elevator stop
-            if let Some(&floor) = mine_state.elevator_floors.get(2) {
+        Some(n) if n >= 1 => {
+            // Keys 2-8 → elevator stops 0-6
+            if let Some(&floor) = mine_state.elevator_floors.get((n - 1) as usize) {
                 selected_floor = Some(floor);
             }
         }

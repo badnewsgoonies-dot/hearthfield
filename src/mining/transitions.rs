@@ -106,6 +106,9 @@ pub fn cleanup_mine_on_exit(
     // If we just left the mine (InMine changed to false), despawn everything.
     // We check if InMine is false but there are still mine entities.
     if !in_mine.0 {
+        if entities.is_empty() {
+            return;
+        }
         for entity in entities.iter() {
             commands.entity(entity).despawn();
         }

@@ -80,8 +80,9 @@ pub fn show_elevator_prompt(
 
     if elevator_ui.0 && existing_prompts.is_empty() {
         // Build elevator text
+        // Slot 0 = key [1] = Floor 1; slots 1-7 = keys [2]-[8] = elevator_floors[0..7]
         let mut lines = String::from("Choose floor:\n[1] Floor 1\n");
-        for (i, floor) in mine_state.elevator_floors.iter().enumerate() {
+        for (i, floor) in mine_state.elevator_floors.iter().take(7).enumerate() {
             lines.push_str(&format!("[{}] Floor {}\n", i + 2, floor));
         }
         lines.push_str("[Esc] Cancel");
@@ -117,6 +118,9 @@ pub fn despawn_mine_hud(
     entities: Query<Entity, With<MineHudEntity>>,
 ) {
     if !in_mine.0 {
+        if entities.is_empty() {
+            return;
+        }
         for entity in entities.iter() {
             commands.entity(entity).despawn();
         }

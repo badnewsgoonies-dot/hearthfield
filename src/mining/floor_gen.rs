@@ -132,10 +132,24 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
             lx = rng.gen_range(2..MINE_WIDTH - 2);
             ly = rng.gen_range(MINE_HEIGHT / 2..MINE_HEIGHT - 2);
             ladder_attempts += 1;
-            if !occupied.contains(&(lx, ly)) || ladder_attempts >= 100 {
+            if !occupied.contains(&(lx, ly)) {
+                break;
+            }
+            if ladder_attempts >= 100 {
+                // Exhaustive fallback: find any unoccupied tile in the upper half
+                'outer: for scan_y in (MINE_HEIGHT / 2..MINE_HEIGHT - 2).rev() {
+                    for scan_x in 2..MINE_WIDTH - 2 {
+                        if !occupied.contains(&(scan_x, scan_y)) {
+                            lx = scan_x;
+                            ly = scan_y;
+                            break 'outer;
+                        }
+                    }
+                }
                 break;
             }
         }
+        occupied.insert((lx, ly));
         ((lx, ly), false, None)
     };
 
@@ -187,15 +201,17 @@ fn rock_drop(floor: u8, rng: &mut StdRng) -> (String, u8, u8) {
             ("stone".to_string(), rng.gen_range(1..=3), 2)
         }
     } else if floor <= 15 {
-        // Floors 11-15: Stone, Iron (30%), Gold (10%), Quartz (5%)
-        if roll < 0.05 {
-            ("quartz".to_string(), 1, 3)
-        } else if roll < 0.15 {
-            ("gold_ore".to_string(), rng.gen_range(1..=2), 4)
-        } else if roll < 0.45 {
-            ("iron_ore".to_string(), rng.gen_range(1..=2), 3)
-        } else {
+        // Floors 11-15: Stone (55%), Iron (30%), Gold (10%), Quartz (5%), Amethyst (5%)
+        if roll < 0.55 {
             ("stone".to_string(), rng.gen_range(1..=3), 2)
+        } else if roll < 0.85 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 3)
+        } else if roll < 0.90 {
+            ("quartz".to_string(), 1, 3)
+        } else if roll < 0.95 {
+            ("amethyst".to_string(), 1, 3)
+        } else {
+            ("gold_ore".to_string(), rng.gen_range(1..=2), 4)
         }
     } else {
         // Floors 16-20: Stone, Gold (25%), Diamond (3%), Ruby (2%), Emerald (2%)

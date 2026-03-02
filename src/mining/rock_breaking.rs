@@ -9,7 +9,7 @@ use super::components::*;
 fn pickaxe_damage(tier: ToolTier) -> u8 {
     match tier {
         ToolTier::Basic => 1,
-        ToolTier::Copper => 1,
+        ToolTier::Copper => 2,
         ToolTier::Iron => 2,
         ToolTier::Gold => 3,
         ToolTier::Iridium => 4,

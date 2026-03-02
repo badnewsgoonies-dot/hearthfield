@@ -33,6 +33,7 @@ pub fn handle_player_attack(
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut monster_slain_events: EventWriter<MonsterSlainEvent>,
+    mut stamina_events: EventWriter<StaminaDrainEvent>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 {
@@ -63,7 +64,7 @@ pub fn handle_player_attack(
         }
 
         if let Some((entity, kind)) = killed {
-            commands.entity(entity).despawn();
+            commands.entity(entity).despawn_recursive();
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_enemy_die".to_string(),
@@ -86,6 +87,9 @@ pub fn handle_player_attack(
                 monster_kind: kind_str.to_string(),
             });
         }
+
+        // Drain stamina for swinging at an enemy
+        stamina_events.send(StaminaDrainEvent { amount: 2.0 });
     }
 }
 
@@ -180,7 +184,7 @@ pub fn enemy_ai_movement(
 
         for (nx, ny) in candidates {
             // Check bounds (stay within walkable area)
-            if nx < 1 || nx >= MINE_WIDTH - 1 || ny < 0 || ny >= MINE_HEIGHT - 1 {
+            if nx < 1 || nx >= MINE_WIDTH - 1 || ny < 1 || ny >= MINE_HEIGHT - 1 {
                 continue;
             }
             // Don't walk into rocks
@@ -262,6 +266,7 @@ pub fn check_player_knockout(
     mut map_events: EventWriter<MapTransitionEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut gold_events: EventWriter<GoldChangeEvent>,
+    mut iframes: ResMut<PlayerIFrames>,
 ) {
     if !in_mine.0 {
         return;
@@ -284,6 +289,7 @@ pub fn check_player_knockout(
 
         // Restore partial health
         player_state.health = player_state.max_health * 0.5;
+        iframes.timer = Timer::from_seconds(0.0, TimerMode::Once);
 
         // Reset mine state
         mine_state.current_floor = 0;
