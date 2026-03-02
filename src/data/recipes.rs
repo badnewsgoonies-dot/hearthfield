@@ -1,6 +1,6 @@
 use crate::shared::*;
 
-/// Populate the RecipeRegistry with 20 crafting recipes and 15 cooking recipes.
+/// Populate the RecipeRegistry with 20 crafting recipes and 25 cooking recipes.
 ///
 /// Crafting recipes produce tools, machines, and farm items.
 /// Cooking recipes produce food that restores stamina and provides buffs.
@@ -506,6 +506,124 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
             result_quantity: 1,
             is_cooking: true,
             unlocked_by_default: false, // Learned from Summer festival
+        },
+
+        Recipe {
+            id: "recipe_grilled_fish".into(),
+            name: "Grilled Fish".into(),
+            ingredients: vec![("trout".into(), 1)],
+            result: "grilled_fish".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_fish_stew_catfish".into(),
+            name: "Fish Stew (Catfish)".into(),
+            ingredients: vec![
+                ("catfish".into(), 1),
+                ("potato".into(), 1),
+            ],
+            result: "fish_stew".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_sashimi".into(),
+            name: "Sashimi".into(),
+            ingredients: vec![("salmon".into(), 1)],
+            result: "sashimi".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_roasted_pumpkin".into(),
+            name: "Roasted Pumpkin".into(),
+            ingredients: vec![("pumpkin".into(), 1)],
+            result: "roasted_pumpkin".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_corn_chowder".into(),
+            name: "Corn Chowder".into(),
+            ingredients: vec![
+                ("corn".into(), 1),
+                ("milk".into(), 1),
+            ],
+            result: "corn_chowder".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_melon_smoothie".into(),
+            name: "Melon Smoothie".into(),
+            ingredients: vec![("melon".into(), 1)],
+            result: "melon_smoothie".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_cheese_omelet".into(),
+            name: "Cheese Omelet".into(),
+            ingredients: vec![
+                ("egg".into(), 1),
+                ("cheese".into(), 1),
+            ],
+            result: "cheese_omelet".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_truffle_risotto".into(),
+            name: "Truffle Risotto".into(),
+            ingredients: vec![
+                ("truffle".into(), 1),
+                ("rice".into(), 1),
+            ],
+            result: "truffle_risotto".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_blueberry_pie".into(),
+            name: "Blueberry Pie".into(),
+            ingredients: vec![
+                ("blueberry".into(), 1),
+                ("wheat_flour".into(), 1),
+            ],
+            result: "blueberry_pie".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
+        },
+
+        Recipe {
+            id: "recipe_cranberry_sauce".into(),
+            name: "Cranberry Sauce".into(),
+            ingredients: vec![
+                ("cranberry".into(), 1),
+                ("sugar".into(), 1),
+            ],
+            result: "cranberry_sauce".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false,
         },
     ];
 

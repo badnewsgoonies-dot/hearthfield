@@ -276,3 +276,91 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use std::collections::HashSet;
+
+    #[test]
+    fn generate_floor_produces_valid_output_for_key_floors() {
+        for floor in [1_u8, 5, 10, 15, 20] {
+            let bp = generate_floor(floor);
+
+            assert!(
+                (0..MINE_WIDTH).contains(&bp.ladder_pos.0),
+                "ladder x out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+            assert!(
+                (0..MINE_HEIGHT).contains(&bp.ladder_pos.1),
+                "ladder y out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+
+            assert!(
+                !bp.rocks.is_empty(),
+                "expected >0 rocks on floor {floor}, got 0"
+            );
+
+            let mut enemy_positions = HashSet::new();
+            for enemy in &bp.enemies {
+                assert!(
+                    (0..MINE_WIDTH).contains(&enemy.x),
+                    "enemy x out of bounds on floor {floor}: ({}, {})",
+                    enemy.x,
+                    enemy.y
+                );
+                assert!(
+                    (0..MINE_HEIGHT).contains(&enemy.y),
+                    "enemy y out of bounds on floor {floor}: ({}, {})",
+                    enemy.x,
+                    enemy.y
+                );
+                assert!(
+                    enemy_positions.insert((enemy.x, enemy.y)),
+                    "duplicate enemy position on floor {floor}: ({}, {})",
+                    enemy.x,
+                    enemy.y
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn enemy_count_for_floor_is_reasonable() {
+        for seed in 0_u64..100 {
+            let mut rng_floor_1 = StdRng::seed_from_u64(seed);
+            let floor_1_count = enemy_count_for_floor(1, &mut rng_floor_1);
+            assert!(
+                (1..=3).contains(&floor_1_count),
+                "floor 1 enemy count out of expected small range: {floor_1_count}"
+            );
+
+            let mut rng_floor_20 = StdRng::seed_from_u64(seed);
+            let floor_20_count = enemy_count_for_floor(20, &mut rng_floor_20);
+            assert!(
+                floor_20_count > floor_1_count,
+                "floor 20 enemy count should be larger than floor 1 ({floor_20_count} <= {floor_1_count})"
+            );
+        }
+    }
+
+    #[test]
+    fn ladder_position_safety_bound_holds_across_many_floors() {
+        for floor in 1_u8..=100 {
+            let bp = generate_floor(floor);
+            assert!(
+                (0..MINE_WIDTH).contains(&bp.ladder_pos.0),
+                "ladder x out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+            assert!(
+                (0..MINE_HEIGHT).contains(&bp.ladder_pos.1),
+                "ladder y out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+        }
+    }
+}

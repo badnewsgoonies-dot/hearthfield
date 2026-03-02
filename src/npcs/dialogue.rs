@@ -3,6 +3,9 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use std::sync::atomic::{AtomicU8, Ordering};
+
+static SEASON_COMMENT_DAY: AtomicU8 = AtomicU8::new(1);
 
 /// Component marking an NPC that the player is adjacent to and can interact with.
 #[derive(Component, Debug)]
@@ -132,6 +135,7 @@ pub fn build_dialogue_lines(
     }
 
     // --- Contextual: seasonal comment ---
+    SEASON_COMMENT_DAY.store(calendar.day, Ordering::Relaxed);
     let season_line = npc_season_comment(npc_id, calendar.season);
     if let Some(sl) = season_line {
         lines.push(sl);
@@ -236,38 +240,193 @@ fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
 /// Return a season-aware comment for the given NPC, or None if no comment is warranted.
 /// Selective — only where it fits the character, to avoid repetitive dialogue.
 fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
-    let comment = match (npc_id, season) {
-        ("lily", Season::Spring)       => "Spring! SPRING! Everything is blooming and I can't stop smiling!",
-        ("elena", Season::Spring)      => "Spring orders are piling up at the forge. Hoes, shears, and plow tips all day.",
-        ("doc", Season::Spring)        => "Pollen season again. Keep handkerchiefs nearby and don't ignore those allergies.",
-        ("sam", Season::Spring)        => "Birdsong, thawing creeks, fresh air... spring hands me melodies for free.",
-        ("nora", Season::Spring)       => "Planting season. Best time of the year if you ask me.",
-        ("margaret", Season::Spring)   => "Egg Festival's coming up! I've been working on a new recipe.",
+    let variants: &[&str] = match (npc_id, season) {
+        ("lily", Season::Spring) => &[
+            "Spring! SPRING! Everything is blooming and I can't stop smiling!",
+            "My greenhouse smells like fresh lilac and wet soil. Best perfume in town.",
+            "Tulips, daisies, peonies... spring is my busiest and happiest season.",
+        ],
+        ("elena", Season::Spring) => &[
+            "Spring orders are piling up at the forge. Hoes, shears, and plow tips all day.",
+            "Every farmer wants sharpened tools in spring, so the anvil barely cools.",
+            "New season, new metalwork. I tune plowshares like musicians tune instruments.",
+        ],
+        ("doc", Season::Spring) => &[
+            "Pollen season again. Keep handkerchiefs nearby and don't ignore those allergies.",
+            "Spring colds spread fast when nights stay cool. Rest and fluids, not stubbornness.",
+            "If your eyes itch and you sneeze at flowers, come by for a remedy.",
+        ],
+        ("sam", Season::Spring) => &[
+            "Birdsong, thawing creeks, fresh air... spring hands me melodies for free.",
+            "I tuned my guitar on the porch this morning; even the robins kept tempo.",
+            "Spring gigs feel lighter, like every chord has sunlight in it.",
+        ],
+        ("nora", Season::Spring) => &[
+            "Planting season. Best time of the year if you ask me.",
+            "Spring soil tells the truth: if it crumbles right, your crops will thank you.",
+            "First furrow of spring always feels like opening a new book.",
+        ],
+        ("margaret", Season::Spring) => &[
+            "Egg Festival's coming up! I've been working on a new recipe.",
+            "Spring mornings are perfect for proofing bread by the sunny window.",
+            "Fresh eggs and new berries mean the bakery smells like celebration.",
+        ],
 
-        ("lily", Season::Summer)       => "Summer flowers are dramatic in the best way. Big petals, bright colors, zero shyness!",
-        ("elena", Season::Summer)      => "The forge is brutal in summer. You learn fast, work smart, and drink water.",
-        ("nora", Season::Summer)       => "Summer crops don't wait for anyone. Sunrise to sunset, there's always field work.",
-        ("old_tom", Season::Summer)    => "Summer means the big fish come in. You should try the deep water.",
-        ("marco", Season::Summer)      => "Summer produce is incredible. Tomatoes, peppers, corn...",
-        ("mayor_rex", Season::Summer)  => "The town festival is the highlight of my year. Planning is underway!",
+        ("lily", Season::Summer) => &[
+            "Summer flowers are dramatic in the best way. Big petals, bright colors, zero shyness!",
+            "My garden is bursting so hard I need three extra vases by noon.",
+            "Heat makes the roses bold. They practically pose for compliments.",
+        ],
+        ("elena", Season::Summer) => &[
+            "The forge is brutal in summer. You learn fast, work smart, and drink water.",
+            "Steel moves differently in this heat. Great for shaping, rough on lungs.",
+            "I keep two things close in summer: tongs and a full water jug.",
+        ],
+        ("nora", Season::Summer) => &[
+            "Summer crops don't wait for anyone. Sunrise to sunset, there's always field work.",
+            "If you weed late in summer, the field punishes you by morning.",
+            "Corn, beans, and sweat. That's summer farming in three words.",
+        ],
+        ("old_tom", Season::Summer) => &[
+            "Summer means the big fish come in. You should try the deep water.",
+            "Warm mornings and calm water put trout in a biting mood.",
+            "On hot days I fish before dawn; by noon the river gets lazy.",
+        ],
+        ("marco", Season::Summer) => &[
+            "Summer produce is incredible. Tomatoes, peppers, corn...",
+            "I can build a whole menu from summer herbs and one good olive oil.",
+            "When zucchini and basil are in season, my kitchen sings.",
+        ],
+        ("mayor_rex", Season::Summer) => &[
+            "The town festival is the highlight of my year. Planning is underway!",
+            "Summer brings visitors, so we keep the square tidy and the permits moving.",
+            "Council meetings run long this season, but it keeps town events smooth.",
+        ],
+        ("sam", Season::Summer) => &[
+            "Summer crowds are loud and friendly. Perfect audience for a guitar set.",
+            "I play by the fountain at dusk; the reverb between buildings is amazing.",
+            "Long summer evenings mean I can squeeze in one more song before dark.",
+        ],
 
-        ("margaret", Season::Fall)     => "Fall means pumpkin loaves and cinnamon rolls. My ovens hardly get a break.",
-        ("old_tom", Season::Fall)      => "Cooler water, hungry fish. Fall's one of the best times to cast a line.",
-        ("doc", Season::Fall)          => "I spend fall preparing medicine stocks now, before winter illnesses arrive.",
-        ("nora", Season::Fall)         => "Harvest time. Nothing beats the smell of fresh-cut wheat.",
-        ("mira", Season::Fall)         => "The fall colours draw me back here every year. Worth the trip.",
-        ("sam", Season::Fall)          => "Something about autumn puts me in a songwriting mood.",
+        ("margaret", Season::Fall) => &[
+            "Fall means pumpkin loaves and cinnamon rolls. My ovens hardly get a break.",
+            "Cool air helps my sourdough crust set just right.",
+            "Apple season keeps me elbow-deep in pie dough from dawn to closing.",
+        ],
+        ("old_tom", Season::Fall) => &[
+            "Cooler water, hungry fish. Fall's one of the best times to cast a line.",
+            "Autumn wind on the lake means steady bites if you stay patient.",
+            "Fish school near the reeds in fall. Cast quiet and let the line drift.",
+        ],
+        ("doc", Season::Fall) => &[
+            "I spend fall preparing medicine stocks now, before winter illnesses arrive.",
+            "Dry leaves, cold mornings, and coughs. Fall is prevention season at the clinic.",
+            "I brew extra herbal tonics in autumn so we're ready for first frost.",
+        ],
+        ("nora", Season::Fall) => &[
+            "Harvest time. Nothing beats the smell of fresh-cut wheat.",
+            "A good fall harvest starts with clean rows and sharp sickles.",
+            "If your barn is full by first frost, you did the year right.",
+        ],
+        ("mira", Season::Fall) => &[
+            "The fall colours draw me back here every year. Worth the trip.",
+            "Autumn caravans move slower, but rare spices fetch better prices.",
+            "I trade wool and dried fruit all fall; travelers love practical luxuries.",
+        ],
+        ("sam", Season::Fall) => &[
+            "Something about autumn puts me in a songwriting mood.",
+            "Crisp air and rustling leaves make a great rhythm section.",
+            "I write my best acoustic sets in fall. The town listens closer somehow.",
+        ],
 
-        ("margaret", Season::Winter)   => "Winter calls for comfort food. Stews, pies, and warm bread from dawn to dusk.",
-        ("lily", Season::Winter)       => "The greenhouse keeps my winter blooms alive. Tiny summer in a glass house!",
-        ("mayor_rex", Season::Winter)  => "Winter festival planning is in full swing. Logistics now, celebration later!",
-        ("old_tom", Season::Winter)    => "Mending nets by the fire. A fisherman's winter ritual.",
-        ("doc", Season::Winter)        => "Cold season keeps me busy. Stock up on hot soup and rest.",
-        ("elena", Season::Winter)      => "Quiet at the forge. Good time to practice new techniques.",
+        ("margaret", Season::Winter) => &[
+            "Winter calls for comfort food. Stews, pies, and warm bread from dawn to dusk.",
+            "In winter I bake extra rye loaves so no one goes home hungry.",
+            "Nothing beats pulling a buttered roll from the oven while snow falls outside.",
+        ],
+        ("lily", Season::Winter) => &[
+            "The greenhouse keeps my winter blooms alive. Tiny summer in a glass house!",
+            "I tuck my bulbs in warm beds so spring color arrives right on time.",
+            "Winter teaches flowers patience. A little light, a little water, lots of hope.",
+        ],
+        ("mayor_rex", Season::Winter) => &[
+            "Winter festival planning is in full swing. Logistics now, celebration later!",
+            "Snow means budget meetings, road crews, and hot cider for volunteers.",
+            "Keeping the town running through winter is governance at its finest.",
+        ],
+        ("old_tom", Season::Winter) => &[
+            "Mending nets by the fire. A fisherman's winter ritual.",
+            "Cold water slows fish down, but the patient angler still eats well.",
+            "I watch the weather close in winter; one bad wind can cost a boat.",
+        ],
+        ("doc", Season::Winter) => &[
+            "Cold season keeps me busy. Stock up on hot soup and rest.",
+            "Frost and flu arrive together. Gloves, sleep, and warm tea are good medicine.",
+            "If your cough lingers past a week, stop by. Don't wait it out.",
+        ],
+        ("elena", Season::Winter) => &[
+            "Quiet at the forge. Good time to practice new techniques.",
+            "Winter is for precision work: small tools, fine edges, clean welds.",
+            "Metal turns brittle in deep cold, so I temper slower and check every strike.",
+        ],
+        ("sam", Season::Winter) => &[
+            "Winter hush makes every guitar note ring longer in the night air.",
+            "I play near the tavern hearth in winter; warm room, warm crowd, better songs.",
+            "Snowy nights are made for soft melodies and slow chord changes.",
+        ],
+        ("nora", Season::Winter) => &[
+            "Winter's when a farmer plans more than plants. Notes now, better yields later.",
+            "I turn compost through the cold so spring soil starts rich.",
+            "Cold mornings teach patience. Fields rest, and farmers sharpen their sense.",
+        ],
+
+        ("marco", Season::Spring) => &[
+            "Spring herbs are tender and bright. Even simple soups taste alive again.",
+            "I wait all year for spring onions and young greens.",
+            "First spring harvest means lighter sauces and sharper flavors.",
+        ],
+        ("marco", Season::Fall) => &[
+            "Fall is stockpot season. Roots, squash, and slow-cooked depth.",
+            "I roast pumpkins and garlic until the whole inn smells like dinner.",
+            "Autumn ingredients are humble, but they make the richest plates.",
+        ],
+        ("marco", Season::Winter) => &[
+            "In winter I lean on braises and stews. Low heat, long time, big comfort.",
+            "Citrus from distant traders keeps winter dishes from feeling heavy.",
+            "A good winter kitchen is equal parts fire, broth, and patience.",
+        ],
+        ("mira", Season::Spring) => &[
+            "Spring roads open again, and caravans start bringing fresh goods.",
+            "I barter seeds, silk, and stories once the mountain passes thaw.",
+            "New season, new routes. Trade thrives when mud finally dries.",
+        ],
+        ("mira", Season::Summer) => &[
+            "Summer markets are loud, hot, and very profitable.",
+            "Travelers pay well for chilled drinks and bright fabrics this time of year.",
+            "I move spices at dawn in summer before the heat spoils tempers.",
+        ],
+        ("mira", Season::Winter) => &[
+            "Winter caravans are risky, but rare wares are worth the snow.",
+            "I plan routes by storm reports now. Trade is math in bad weather.",
+            "Exotic teas sell fastest in winter; everyone wants warmth in a cup.",
+        ],
+        ("mayor_rex", Season::Spring) => &[
+            "Spring means permits, planting support, and repairing winter damage around town.",
+            "I love spring council sessions. So many new projects to approve.",
+            "When the square fills with planters again, I know governance is working.",
+        ],
+        ("mayor_rex", Season::Fall) => &[
+            "Fall is budget season. We fund winter prep before the first hard frost.",
+            "Harvest reports keep the council honest and the granaries ready.",
+            "Town governance in autumn is ledgers by day, lantern inspections by dusk.",
+        ],
 
         _ => return None,
     };
-    Some(comment.to_string())
+
+    let calendar_day = SEASON_COMMENT_DAY.load(Ordering::Relaxed);
+    let idx = (calendar_day as usize) % variants.len();
+    Some(variants[idx].to_string())
 }
 
 /// Get the dialogue tier key for a given heart count.
