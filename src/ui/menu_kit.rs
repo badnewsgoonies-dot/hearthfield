@@ -13,10 +13,6 @@ use crate::shared::*;
 
 pub const BTN_NORMAL: usize = 0;
 pub const BTN_SELECTED: usize = 1;
-#[allow(dead_code)]
-pub const BTN_PRESSED: usize = 2;
-#[allow(dead_code)]
-pub const BTN_DISABLED: usize = 3;
 
 // ═══════════════════════════════════════════════════════════════════════
 // RESOURCES

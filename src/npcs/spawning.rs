@@ -188,22 +188,3 @@ pub fn spawn_npcs_for_map(
         spawned.entities.insert(npc_id.to_string(), entity);
     }
 }
-
-/// Despawn all NPC entities for a given map (called on map transition out).
-#[allow(dead_code)]
-pub fn despawn_npcs_for_map(
-    commands: &mut Commands,
-    map: MapId,
-    spawned: &mut SpawnedNpcs,
-    npc_map_tags: &Query<(Entity, &NpcMapTag)>,
-) {
-    let mut to_remove = Vec::new();
-    for (entity, tag) in npc_map_tags.iter() {
-        if tag.0 == map {
-            commands.entity(entity).despawn_recursive();
-            to_remove.push(entity);
-        }
-    }
-    // Clean up the tracking map
-    spawned.entities.retain(|_, e| !to_remove.contains(e));
-}

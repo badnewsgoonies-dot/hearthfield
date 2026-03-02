@@ -57,12 +57,6 @@ pub struct HotbarSlot {
 }
 
 #[derive(Component)]
-#[allow(dead_code)]
-pub struct HotbarSlotBackground {
-    pub index: usize,
-}
-
-#[derive(Component)]
 pub struct HotbarItemText {
     pub index: usize,
 }

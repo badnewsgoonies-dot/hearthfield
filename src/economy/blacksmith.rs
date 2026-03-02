@@ -41,20 +41,6 @@ impl ToolUpgradeQueue {
         self.pending.iter().any(|p| p.tool == tool)
     }
 
-    /// Returns a human-readable status for a tool (used by UI).
-    #[allow(dead_code)]
-    pub fn upgrade_status(&self, tool: ToolKind) -> Option<String> {
-        self.pending
-            .iter()
-            .find(|p| p.tool == tool)
-            .map(|p| {
-                if p.days_remaining == 1 {
-                    format!("{:?} upgrade ready tomorrow!", tool)
-                } else {
-                    format!("{:?} upgrade: {} days remaining", tool, p.days_remaining)
-                }
-            })
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -261,42 +247,3 @@ pub type UpgradeEntry = (
     bool,  // has_bars
     bool,  // is_upgrading
 );
-
-#[allow(dead_code)]
-pub fn list_available_upgrades(
-    player_state: &PlayerState,
-    inventory: &Inventory,
-    queue: &ToolUpgradeQueue,
-) -> Vec<UpgradeEntry> {
-    let upgradeable_tools = [
-        ToolKind::Hoe,
-        ToolKind::WateringCan,
-        ToolKind::Axe,
-        ToolKind::Pickaxe,
-        ToolKind::FishingRod,
-    ];
-
-    upgradeable_tools
-        .iter()
-        .filter_map(|&tool| {
-            let current = *player_state.tools.get(&tool)?;
-            let target = current.next()?; // None = already max
-            let gold_cost = target.upgrade_cost();
-            let (bar_id, bar_qty) = required_bars_for_tier(target)?;
-            let can_afford = player_state.gold >= gold_cost;
-            let has_bars = inventory.has(bar_id, bar_qty);
-            let is_upgrading = queue.is_upgrading(tool);
-            Some((
-                tool,
-                current,
-                target,
-                gold_cost,
-                bar_id,
-                bar_qty,
-                can_afford,
-                has_bars,
-                is_upgrading,
-            ))
-        })
-        .collect()
-}

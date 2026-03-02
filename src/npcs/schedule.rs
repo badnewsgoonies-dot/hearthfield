@@ -142,11 +142,3 @@ impl Default for ScheduleUpdateTimer {
         Self(Timer::from_seconds(5.0, TimerMode::Repeating))
     }
 }
-
-#[allow(dead_code)]
-pub fn tick_schedule_timer(
-    time: Res<Time>,
-    mut timer: ResMut<ScheduleUpdateTimer>,
-) -> bool {
-    timer.0.tick(time.delta()).just_finished()
-}

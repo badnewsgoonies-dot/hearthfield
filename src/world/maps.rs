@@ -30,12 +30,6 @@ impl MapDef {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn set_tile(&mut self, x: i32, y: i32, kind: TileKind) {
-        if x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32 {
-            self.tiles[y as usize * self.width + x as usize] = kind;
-        }
-    }
 }
 
 /// Describes an object placed on the map at load time.

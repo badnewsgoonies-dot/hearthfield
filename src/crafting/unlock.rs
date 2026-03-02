@@ -212,15 +212,3 @@ pub fn check_friendship_recipe_unlocks(
         }
     }
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// UNUSED IDS SILENCER (ensures all constants compile without dead_code warnings)
-// ──────────────────────────────────────────────────────────────────────────────
-#[allow(dead_code)]
-fn _use_constants() {
-    let _ = ALL_CRAFTING_RECIPE_IDS;
-    let _ = ALL_COOKING_RECIPE_IDS;
-    let _ = SHOP_RECIPE_IDS;
-    let _: Option<Recipe> = make_crafting_recipe("sprinkler");
-    let _: Option<Recipe> = make_cooking_recipe("fried_egg");
-}

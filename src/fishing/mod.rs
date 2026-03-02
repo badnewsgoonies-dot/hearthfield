@@ -147,11 +147,6 @@ impl FishEncyclopedia {
         }
     }
 
-    /// How many unique species have been caught.
-    #[allow(dead_code)]
-    pub fn unique_species(&self) -> usize {
-        self.entries.len()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -179,27 +174,6 @@ pub enum TackleKind {
 }
 
 impl TackleKind {
-    /// Derive tackle kind from an inventory item ID.
-    #[allow(dead_code)]
-    pub fn from_item_id(id: &str) -> Self {
-        match id {
-            "spinner" => TackleKind::Spinner,
-            "trap_bobber" => TackleKind::TrapBobber,
-            "lead_bobber" => TackleKind::LeadBobber,
-            _ => TackleKind::None,
-        }
-    }
-
-    /// User-facing description of the tackle effect.
-    #[allow(dead_code)]
-    pub fn effect_description(self) -> Option<&'static str> {
-        match self {
-            TackleKind::None => None,
-            TackleKind::Spinner => Some("Spinner: larger fish zone"),
-            TackleKind::TrapBobber => Some("Trap Bobber: slower progress drain"),
-            TackleKind::LeadBobber => Some("Lead Bobber: slower catch bar fall"),
-        }
-    }
 }
 
 // ─── Fishing State Resource ──────────────────────────────────────────────────
@@ -335,12 +309,6 @@ impl Default for FishingMinigameState {
 }
 
 impl FishingMinigameState {
-    /// Set up the minigame without skill bonuses applied (kept for compatibility).
-    #[allow(dead_code)]
-    pub fn setup(&mut self, difficulty: f32, rod_tier: ToolTier, tackle_kind: TackleKind) {
-        self.setup_with_skill(difficulty, rod_tier, tackle_kind, &skill::FishingSkill::default());
-    }
-
     /// Set up the minigame incorporating the player's fishing skill bonuses.
     ///
     /// `FishingSkill::catch_zone_bonus` expands the catch bar so experienced

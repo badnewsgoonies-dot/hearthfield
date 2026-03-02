@@ -406,35 +406,6 @@ impl WorldMap {
         }
     }
 
-    /// Check if a tile is water.
-    #[allow(dead_code)]
-    pub fn is_water(&self, x: i32, y: i32) -> bool {
-        if let Some(ref map_def) = self.map_def {
-            matches!(map_def.get_tile(x, y), TileKind::Water)
-        } else {
-            false
-        }
-    }
-
-    /// Get the tile kind at a position.
-    #[allow(dead_code)]
-    pub fn get_tile(&self, x: i32, y: i32) -> TileKind {
-        if let Some(ref map_def) = self.map_def {
-            map_def.get_tile(x, y)
-        } else {
-            TileKind::Void
-        }
-    }
-
-    /// Get the list of map transitions for the current map.
-    #[allow(dead_code)]
-    pub fn transitions(&self) -> &[MapTransition] {
-        if let Some(ref map_def) = self.map_def {
-            &map_def.transitions
-        } else {
-            &[]
-        }
-    }
 }
 
 /// Simple resource to track the currently loaded map ID.

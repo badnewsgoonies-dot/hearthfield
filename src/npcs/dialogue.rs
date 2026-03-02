@@ -7,11 +7,6 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 static SEASON_COMMENT_DAY: AtomicU8 = AtomicU8::new(1);
 
-/// Component marking an NPC that the player is adjacent to and can interact with.
-#[derive(Component, Debug)]
-#[allow(dead_code)]
-pub struct NpcInteractable;
-
 /// Resource tracking the last-interacted NPC (for gift-giving context).
 #[derive(Resource, Debug, Default)]
 pub struct ActiveNpcInteraction {
