@@ -1092,14 +1092,6 @@ pub struct QualityStack {
     pub quality: ItemQuality,
 }
 
-/// Animal purchase request from shop.
-#[derive(Event, Debug, Clone)]
-#[allow(dead_code)]
-pub struct AnimalPurchaseEvent {
-    pub animal_type: AnimalKind,
-    pub cost: u32,
-    pub name: String,
-}
 
 /// Toast notification for player feedback.
 #[derive(Event, Debug, Clone)]
@@ -1497,12 +1489,6 @@ pub enum TransitionStyle {
     Cut,
 }
 
-/// Request a screen transition with visual effect.
-#[derive(Event, Debug, Clone)]
-pub struct ScreenTransitionEvent {
-    pub to: GameState,
-    pub style: TransitionStyle,
-}
 
 // ═══════════════════════════════════════════════════════════════════════
 // INTERACTION SYSTEM

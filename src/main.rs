@@ -114,7 +114,6 @@ fn main() {
         .add_event::<HintEvent>()
         .add_event::<AchievementUnlockedEvent>()
         .add_event::<BuildingUpgradeEvent>()
-        .add_event::<ScreenTransitionEvent>()
         .add_event::<ToolImpactEvent>()
         .add_event::<ToastEvent>()
         // Input plugin (before all domain plugins)
