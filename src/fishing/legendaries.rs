@@ -73,7 +73,6 @@ pub fn is_legendary(fish_id: &str) -> bool {
 /// Return `FishDef` data for legendary fish that should be auto-inserted into
 /// the `FishRegistry` if not already present. This makes legendaries available
 /// even before the full data layer is loaded.
-#[allow(dead_code)]
 ///
 /// Each legendary uses `Rarity::Legendary` and the difficulty from the table.
 /// Location and season are derived from the table requirements.
@@ -107,7 +106,6 @@ pub fn legendary_fish_defs() -> Vec<FishDef> {
         .collect()
 }
 
-#[allow(dead_code)]
 fn legendary_display_name(fish_id: &str) -> &'static str {
     match fish_id {
         "crimson_king" => "Crimson King",
@@ -119,7 +117,6 @@ fn legendary_display_name(fish_id: &str) -> &'static str {
     }
 }
 
-#[allow(dead_code)]
 fn legendary_sell_price(fish_id: &str) -> u32 {
     match fish_id {
         "crimson_king" => 1_500,

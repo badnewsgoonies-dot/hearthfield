@@ -155,7 +155,6 @@ impl FishEncyclopedia {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CaughtFishEntry {
     pub fish_id: String,
     pub times_caught: u32,

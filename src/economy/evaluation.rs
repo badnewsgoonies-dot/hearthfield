@@ -68,6 +68,7 @@ pub fn handle_evaluation(
     unlocked_recipes: Res<UnlockedRecipes>,
     player_state: Res<PlayerState>,
     play_stats: Res<PlayStats>,
+    shipping_log: Res<ShippingLog>,
 ) {
     for _ev in trigger_events.read() {
         let previous_candles = eval_score.candles_lit;
@@ -138,10 +139,7 @@ pub fn handle_evaluation(
             total += 1;
         }
 
-        // 100+ fish caught — HarvestStats doesn't track fish directly.
-        // We check total_items_shipped as a rough proxy; if zero, we skip (safe default).
-        // TODO: Add fish_caught counter to HarvestStats or FishingStats when fishing domain expands.
-        // For now, we default to 0 fish caught so the point is not awarded until data is available.
+        // 100+ fish caught
         let fish_caught: u32 = play_stats.fish_caught as u32;
         if fish_caught >= 100 {
             categories.insert("skills_fish_100".to_string(), 1);
@@ -181,10 +179,8 @@ pub fn handle_evaluation(
         }
 
         // ── Collection (1 point) ──────────────────────────────────────────────
-        // 30+ unique items shipped — total_items_shipped is used as a proxy.
-        // TODO: Track unique item IDs shipped in EconomyStats for precise counting.
-        // Using total_items_shipped >= 30 as a safe stand-in; overestimates but not punitive.
-        if economy_stats.total_items_shipped >= 30 {
+        // 30+ unique items shipped
+        if shipping_log.shipped_items.len() >= 30 {
             categories.insert("collection_unique_30".to_string(), 1);
             total += 1;
         }
