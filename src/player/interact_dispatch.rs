@@ -110,6 +110,11 @@ pub fn dispatch_world_interaction(
             next_state.set(GameState::BuildingUpgrade);
         }
 
+        InteractionKind::KitchenStove => {
+            interaction_claimed.0 = true;
+            craft_events.send(OpenCraftingEvent { cooking_mode: true });
+        }
+
         InteractionKind::Bed => {
             interaction_claimed.0 = true;
             if calendar.hour < 18 {

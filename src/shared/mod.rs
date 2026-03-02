@@ -1465,6 +1465,7 @@ pub enum InteractionKind {
     Machine,
     BuildingUpgrade,
     Bed,
+    KitchenStove,
 }
 
 /// Marker component for entities the player can interact with via F key.

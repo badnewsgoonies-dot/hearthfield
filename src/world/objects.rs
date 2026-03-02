@@ -1633,5 +1633,18 @@ pub fn spawn_interior_decorations(
             Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
         ));
+
+        // Spawn kitchen stove interactable at (3, 1) — center of kitchen counter
+        let stove_wc = grid_to_world_center(3, 1);
+        commands.spawn((
+            InteriorDecoration,
+            WorldObject,
+            Interactable {
+                kind: InteractionKind::KitchenStove,
+                label: "Kitchen - Press F to Cook".into(),
+            },
+            Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
+            Visibility::default(),
+        ));
     }
 }
