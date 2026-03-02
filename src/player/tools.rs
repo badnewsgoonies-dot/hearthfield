@@ -71,6 +71,9 @@ pub fn tool_use(
 
     // Check stamina — disallow if insufficient.
     if player_state.stamina < cost {
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "error".to_string(),
+        });
         return;
     }
 

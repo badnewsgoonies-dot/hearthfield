@@ -244,6 +244,7 @@ pub fn add_items_to_inventory(
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for ev in pickup_events.read() {
         let max_stack = item_registry
@@ -260,6 +261,14 @@ pub fn add_items_to_inventory(
                 ev.quantity, ev.item_id
             );
         } else {
+            let name = item_registry
+                .get(&ev.item_id)
+                .map(|d| d.name.as_str())
+                .unwrap_or(&ev.item_id);
+            toast_events.send(ToastEvent {
+                message: format!("Inventory full! Couldn't pick up {}.", name),
+                duration_secs: 3.0,
+            });
             info!(
                 "[Player] Inventory full — could not pick up {} × '{}' ({} dropped)",
                 ev.quantity, ev.item_id, remaining
