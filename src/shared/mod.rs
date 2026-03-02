@@ -1092,20 +1092,6 @@ pub struct QualityStack {
     pub quality: ItemQuality,
 }
 
-/// Stamina recovery from food, sleep, or spa.
-#[derive(Event, Debug, Clone)]
-pub struct StaminaRestoreEvent {
-    pub amount: f32,
-    pub source: StaminaSource,
-}
-
-#[derive(Debug, Clone)]
-pub enum StaminaSource {
-    Food(String),
-    Sleep,
-    Spa,
-}
-
 /// Animal purchase request from shop.
 #[derive(Event, Debug, Clone)]
 #[allow(dead_code)]

@@ -116,7 +116,6 @@ fn main() {
         .add_event::<BuildingUpgradeEvent>()
         .add_event::<ScreenTransitionEvent>()
         .add_event::<ToolImpactEvent>()
-        .add_event::<StaminaRestoreEvent>()
         .add_event::<ToastEvent>()
         // Input plugin (before all domain plugins)
         .add_plugins(input::InputPlugin)

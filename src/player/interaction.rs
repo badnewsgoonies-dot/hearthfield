@@ -313,28 +313,6 @@ pub fn handle_day_end(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Stamina Recovery
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// Reads `StaminaRestoreEvent` and applies stamina recovery to the player,
-/// capped at `max_stamina`.
-pub fn handle_stamina_restore(
-    mut events: EventReader<StaminaRestoreEvent>,
-    mut player_state: ResMut<PlayerState>,
-) {
-    for ev in events.read() {
-        let before = player_state.stamina;
-        player_state.stamina =
-            (player_state.stamina + ev.amount).min(player_state.max_stamina);
-        let gained = player_state.stamina - before;
-        info!(
-            "[Player] Stamina restored {:.1} (source: {:?}) — now {:.1}/{:.1}",
-            gained, ev.source, player_state.stamina, player_state.max_stamina
-        );
-    }
-}
-
 /// Checks each frame whether stamina has reached zero at or past midnight
 /// (hour >= 24). If so, the player passes out and a `DayEndEvent` is sent.
 pub fn check_stamina_consequences(
