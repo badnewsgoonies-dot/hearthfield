@@ -888,6 +888,7 @@ pub fn update_interaction_prompt(
     player_query: Query<&LogicalPosition, With<Player>>,
     interactable_query: Query<(&Transform, &Interactable)>,
     npc_query: Query<(&Npc, &Transform)>,
+    chest_query: Query<&Transform, With<crate::world::chests::ChestMarker>>,
     npc_registry: Res<NpcRegistry>,
     mut prompt_query: Query<(&mut Text, &mut TextColor), With<HudInteractionPrompt>>,
     inventory: Res<Inventory>,
@@ -904,6 +905,14 @@ pub fn update_interaction_prompt(
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
             best_label = Some((d, format!("[F] {}", inter.label)));
+        }
+    }
+
+    // Check storage chests (use their own component, not Interactable).
+    for tf in &chest_query {
+        let d = player_pos.0.distance(tf.translation.truncate());
+        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
+            best_label = Some((d, "[F] Storage".to_string()));
         }
     }
 

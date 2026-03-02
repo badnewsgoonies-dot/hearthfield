@@ -1628,7 +1628,7 @@ pub fn spawn_interior_decorations(
             WorldObject,
             Interactable {
                 kind: InteractionKind::Bed,
-                label: "Bed - Press F to Sleep".into(),
+                label: "Sleep".into(),
             },
             Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
@@ -1641,7 +1641,7 @@ pub fn spawn_interior_decorations(
             WorldObject,
             Interactable {
                 kind: InteractionKind::KitchenStove,
-                label: "Kitchen - Press F to Cook".into(),
+                label: "Cook".into(),
             },
             Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
