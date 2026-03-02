@@ -340,3 +340,33 @@ pub fn check_stamina_consequences(
         *has_passed_out = false;
     }
 }
+
+/// Grant starter items on first entering Playing state (inventory is empty).
+/// The intro dialogue mentions "seeds in your pack" so we deliver on that promise.
+pub fn grant_starter_items(
+    mut inventory: ResMut<Inventory>,
+    item_registry: Res<ItemRegistry>,
+) {
+    // Only grant if inventory is completely empty (fresh game, not a load).
+    let has_items = inventory.slots.iter().any(|s| s.is_some());
+    if has_items {
+        return;
+    }
+
+    let starters = [
+        ("turnip_seeds", 15u8),   // Spring crop — enough for a starter plot
+        ("potato_seeds", 5),      // Second spring crop
+        ("wood", 20),             // For crafting a chest or fence
+        ("stone", 15),            // Basic materials
+    ];
+
+    for (item_id, qty) in &starters {
+        let max_stack = item_registry
+            .get(item_id)
+            .map(|def| def.stack_size)
+            .unwrap_or(99);
+        inventory.try_add(item_id, *qty, max_stack);
+    }
+
+    info!("Granted starter items to new player");
+}

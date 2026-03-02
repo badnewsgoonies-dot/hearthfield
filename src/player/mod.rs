@@ -24,7 +24,7 @@ impl Plugin for PlayerPlugin {
         // -- Spawn player when we enter Playing --
         app.add_systems(
             OnEnter(GameState::Playing),
-            spawn::spawn_player,
+            (spawn::spawn_player, interaction::grant_starter_items),
         );
 
         // -- Interaction dispatchers: run BEFORE all legacy F-key systems --
