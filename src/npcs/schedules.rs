@@ -194,7 +194,7 @@ fn mayor_rex_schedule(season: Season) -> NpcSchedule {
         weekend: vec![
             ScheduleEntry { time: 7.0,  map: MapId::Town, x: 22, y: 10 }, // home — sleeps in
             ScheduleEntry { time: 9.0,  map: MapId::Town, x: 18, y: 14 }, // leisurely plaza walk
-            ScheduleEntry { time: 11.0, map: MapId::Town, x: 26, y: 20 }, // chatting with townspeople
+            ScheduleEntry { time: 11.0, map: MapId::Town, x: 26, y: 18 }, // chatting with townspeople
             ScheduleEntry { time: 13.0, map: MapId::Town, x: 16, y: 17 }, // lunch bench
             ScheduleEntry { time: 15.0, map: afternoon_map, x: afternoon_x, y: afternoon_y }, // seasonal
             ScheduleEntry { time: 18.0, map: MapId::Town, x: 22, y: 10 }, // home
@@ -279,7 +279,7 @@ fn elena_schedule(season: Season) -> NpcSchedule {
         ScheduleEntry { time: 8.0,  map: MapId::Blacksmith, x: 4,  y: 8  }, // forge opens
         ScheduleEntry { time: 12.0, map: MapId::Blacksmith, x: 4,  y: 6  }, // lunch at anvil
         ScheduleEntry { time: 13.0, map: MapId::Blacksmith, x: 4,  y: 8  }, // back to forge
-        ScheduleEntry { time: 17.0, map: MapId::Town,       x: 24, y: 19 }, // evening walk
+        ScheduleEntry { time: 17.0, map: MapId::Town,       x: 24, y: 18 }, // evening walk
     ];
     if evening_mine {
         weekday.push(ScheduleEntry { time: 19.0, map: MapId::MineEntrance, x: 4, y: 10 }); // checks mine
@@ -294,7 +294,7 @@ fn elena_schedule(season: Season) -> NpcSchedule {
         weekend: vec![
             ScheduleEntry { time: 7.0,  map: MapId::Town,                  x: 23,      y: 15      }, // home
             ScheduleEntry { time: 9.0,  map: weekend_afternoon_map,         x: wknd_x,  y: wknd_y  }, // seasonal outing
-            ScheduleEntry { time: 11.0, map: MapId::Town,                  x: 24,      y: 19      }, // south walk
+            ScheduleEntry { time: 11.0, map: MapId::Town,                  x: 24,      y: 18      }, // south walk
             ScheduleEntry { time: 13.0, map: MapId::Town,                  x: 18,      y: 14      }, // plaza
             ScheduleEntry { time: 15.0, map: MapId::Blacksmith,             x: 4,       y: 8       }, // personal projects
             ScheduleEntry { time: 19.0, map: MapId::Town,                  x: 23,      y: 15      }, // home
@@ -402,7 +402,7 @@ fn old_tom_schedule(season: Season) -> NpcSchedule {
             ScheduleEntry { time: 21.0, map: MapId::Town,  x: 8,           y: 14          }, // sleep
         ]),
         festival_override: Some(vec![
-            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 18, y: 20 }, // festival fishing contest
+            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 18, y: 18 }, // festival fishing contest
             ScheduleEntry { time: 21.0, map: MapId::Town, x: 8,  y: 14 }, // home
         ]),
     }
@@ -479,7 +479,7 @@ fn sam_schedule(season: Season) -> NpcSchedule {
         weekend: vec![
             ScheduleEntry { time: 7.0,  map: MapId::Town,        x: 11, y: 14 }, // home
             ScheduleEntry { time: 9.0,  map: MapId::MineEntrance, x: 6,  y: 10 }, // quick check
-            ScheduleEntry { time: 11.0, map: MapId::Town,        x: 24, y: 19 }, // south walk
+            ScheduleEntry { time: 11.0, map: MapId::Town,        x: 24, y: 18 }, // south walk
             ScheduleEntry { time: 13.0, map: MapId::Town,        x: 18, y: 14 }, // plaza socializing
             ScheduleEntry { time: 15.0, map: weekend_pm_map,     x: wknd_pm_x, y: wknd_pm_y }, // seasonal outing
             ScheduleEntry { time: 19.0, map: MapId::Town,        x: 11, y: 14 }, // home
@@ -514,9 +514,9 @@ fn mira_schedule(season: Season) -> NpcSchedule {
     NpcSchedule {
         weekday: vec![
             ScheduleEntry { time: 6.0,  map: MapId::Town, x: 8,  y: 16 }, // home
-            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 8,  y: 20 }, // library opens
+            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 8,  y: 18 }, // library opens
             ScheduleEntry { time: 12.0, map: MapId::Town, x: 8,  y: 18 }, // lunch in back room
-            ScheduleEntry { time: 13.0, map: MapId::Town, x: 8,  y: 20 }, // library afternoon
+            ScheduleEntry { time: 13.0, map: MapId::Town, x: 8,  y: 18 }, // library afternoon
             ScheduleEntry { time: 16.0, map: research_map, x: res_x, y: res_y }, // seasonal research
             ScheduleEntry { time: 18.0, map: MapId::Town, x: 8,  y: 16 }, // home
             ScheduleEntry { time: 22.0, map: MapId::Town, x: 8,  y: 16 }, // sleep (reads late)
@@ -524,7 +524,7 @@ fn mira_schedule(season: Season) -> NpcSchedule {
         weekend: vec![
             ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 8,  y: 16 }, // home
             ScheduleEntry { time: 10.0, map: research_map,  x: res_x, y: res_y }, // field research
-            ScheduleEntry { time: 13.0, map: MapId::Town,   x: 8,  y: 20 }, // library analysis
+            ScheduleEntry { time: 13.0, map: MapId::Town,   x: 8,  y: 18 }, // library analysis
             ScheduleEntry { time: 16.0, map: MapId::Town,   x: 18, y: 14 }, // plaza, people-watching
             ScheduleEntry { time: 18.0, map: MapId::Town,   x: 8,  y: 16 }, // home
             ScheduleEntry { time: 22.0, map: MapId::Town,   x: 8,  y: 16 }, // sleep
@@ -532,7 +532,7 @@ fn mira_schedule(season: Season) -> NpcSchedule {
         // Faye loves rainy days — stays at library very late
         rain_override: Some(vec![
             ScheduleEntry { time: 6.0,  map: MapId::Town, x: 8,  y: 16 }, // home
-            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 8,  y: 20 }, // library all day (pure joy)
+            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 8,  y: 18 }, // library all day (pure joy)
             ScheduleEntry { time: 21.0, map: MapId::Town, x: 8,  y: 16 }, // home very late
             ScheduleEntry { time: 23.0, map: MapId::Town, x: 8,  y: 16 }, // sleep extra late
         ]),
@@ -618,7 +618,7 @@ fn lily_schedule(season: Season) -> NpcSchedule {
     NpcSchedule {
         weekday: vec![
             ScheduleEntry { time: 7.0,  map: MapId::Town, x: 10,  y: 14 }, // home
-            ScheduleEntry { time: 8.0,  map: MapId::Town, x: 22,  y: 20 }, // morning run in plaza
+            ScheduleEntry { time: 8.0,  map: MapId::Town, x: 22,  y: 18 }, // morning run in plaza
             ScheduleEntry { time: 9.0,  map: mid_morning_map, x: mid_x, y: mid_y }, // seasonal adventure
             ScheduleEntry { time: 11.0, map: afternoon_map,   x: aft_x, y: aft_y }, // mid-morning play
             ScheduleEntry { time: 13.0, map: MapId::Town, x: 10,  y: 14 }, // lunch at home
@@ -639,9 +639,9 @@ fn lily_schedule(season: Season) -> NpcSchedule {
         ],
         rain_override: Some(vec![
             ScheduleEntry { time: 7.0,  map: MapId::Town, x: 10, y: 14 }, // home (mom says no)
-            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 8,  y: 20 }, // library (forced)
+            ScheduleEntry { time: 9.0,  map: MapId::Town, x: 8,  y: 18 }, // library (forced)
             ScheduleEntry { time: 13.0, map: MapId::Town, x: 10, y: 14 }, // lunch
-            ScheduleEntry { time: 14.0, map: MapId::Town, x: 8,  y: 20 }, // library again (sulking)
+            ScheduleEntry { time: 14.0, map: MapId::Town, x: 8,  y: 18 }, // library again (sulking)
             ScheduleEntry { time: 18.0, map: MapId::Town, x: 10, y: 14 }, // home
             ScheduleEntry { time: 21.0, map: MapId::Town, x: 10, y: 14 }, // bedtime
         ]),
