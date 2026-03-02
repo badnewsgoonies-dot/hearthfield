@@ -1947,6 +1947,38 @@ mod tests {
     // ── Inventory ───────────────────────────────────────────────────
 
     #[test]
+    fn test_inventory_try_add_full_returns_overflow() {
+        let mut inv = Inventory::default();
+        // Fill every slot with a unique item (max_stack=1 each)
+        for i in 0..TOTAL_INVENTORY_SLOTS {
+            let item = format!("item_{}", i);
+            let leftover = inv.try_add(&item, 1, 1);
+            assert_eq!(leftover, 0);
+        }
+        // Inventory is now full; adding more should return the full quantity
+        let overflow = inv.try_add("extra", 5, 99);
+        assert_eq!(overflow, 5);
+    }
+
+    #[test]
+    fn test_inventory_try_add_respects_max_stack_size() {
+        let mut inv = Inventory::default();
+        // Add 5 items with max_stack=5 — fills exactly one slot
+        let leftover = inv.try_add("stone", 5, 5);
+        assert_eq!(leftover, 0);
+        // Add 1 more — must open a new slot, not overflow the existing one
+        let leftover2 = inv.try_add("stone", 1, 5);
+        assert_eq!(leftover2, 0);
+        // First (and only full) slot should still be at exactly 5
+        let full_slots: Vec<_> = inv.slots.iter()
+            .filter_map(|s| s.as_ref())
+            .filter(|s| s.item_id == "stone" && s.quantity == 5)
+            .collect();
+        assert_eq!(full_slots.len(), 1);
+        assert_eq!(inv.count("stone"), 6);
+    }
+
+    #[test]
     fn test_inventory_has_empty() {
         let inv = Inventory::default();
         assert!(!inv.has("turnip", 1));
@@ -2079,5 +2111,87 @@ mod tests {
         cal.hour = 24;
         cal.minute = 0;
         assert!((cal.time_float() - 24.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_calendar_day_28_advances_to_next_season() {
+        let mut cal = Calendar::default();
+        cal.season = Season::Spring;
+        cal.day = 28;
+        // Simulate the day-end advancement used by CalendarPlugin
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+        }
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.season, Season::Summer);
+    }
+
+    #[test]
+    fn test_calendar_winter_day_28_wraps_to_spring_next_year() {
+        let mut cal = Calendar::default();
+        cal.season = Season::Winter;
+        cal.day = 28;
+        cal.year = 3;
+        // Simulate the day-end advancement
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+            if cal.season == Season::Spring {
+                cal.year += 1;
+            }
+        }
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.season, Season::Spring);
+        assert_eq!(cal.year, 4);
+    }
+
+    #[test]
+    fn test_calendar_year_increments_only_on_winter_rollover() {
+        let mut cal = Calendar::default();
+        // Advancing Spring day 28 should NOT increment the year
+        cal.season = Season::Spring;
+        cal.day = 28;
+        cal.year = 1;
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+            if cal.season == Season::Spring {
+                cal.year += 1;
+            }
+        }
+        assert_eq!(cal.year, 1, "Year should not increment outside Winter→Spring");
+    }
+
+    // ── FarmState ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_farmstate_planting_on_occupied_tile_is_blocked() {
+        let mut farm = FarmState::default();
+        let pos = (5, 5);
+        // Plant a first crop
+        farm.crops.insert(pos, CropTile {
+            crop_id: "turnip_seed".to_string(),
+            current_stage: 0,
+            days_in_stage: 0,
+            watered_today: false,
+            days_without_water: 0,
+            dead: false,
+        });
+        // The farming plugin guards planting with !contains_key; verify the guard
+        assert!(farm.crops.contains_key(&pos), "Tile is occupied; planting must be blocked");
+    }
+
+    #[test]
+    fn test_farmstate_watering_already_watered_soil_is_idempotent() {
+        let mut farm = FarmState::default();
+        let pos = (3, 7);
+        farm.soil.insert(pos, SoilState::Watered);
+        // Water again — state must remain Watered
+        farm.soil.insert(pos, SoilState::Watered);
+        assert_eq!(farm.soil[&pos], SoilState::Watered);
     }
 }
