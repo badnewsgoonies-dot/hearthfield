@@ -906,7 +906,6 @@ pub struct GoldChangeEvent {
 pub struct GiftGivenEvent {
     pub npc_id: NpcId,
     pub item_id: ItemId,
-    #[allow(dead_code)]
     pub preference: GiftPreference,
 }
 

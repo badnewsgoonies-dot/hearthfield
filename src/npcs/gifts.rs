@@ -14,6 +14,7 @@ pub fn handle_gifts(
     calendar: Res<Calendar>,
     mut dialogue_writer: EventWriter<DialogueStartEvent>,
     mut emote_writer: EventWriter<NpcEmoteEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     for gift_event in gift_reader.read() {
@@ -44,10 +45,8 @@ pub fn handle_gifts(
             continue;
         };
 
-        // Determine gift preference
-        let preference = npc_def.gift_preferences.get(item_id)
-            .copied()
-            .unwrap_or(GiftPreference::Neutral);
+        // Use the preference already resolved by handle_gift_input
+        let preference = gift_event.preference;
 
         // Check if today is the NPC's birthday
         let is_birthday = calendar.season == npc_def.birthday_season
@@ -60,6 +59,13 @@ pub fn handle_gifts(
 
         // Apply friendship change
         relationships.add_friendship(npc_id, total_points);
+
+        // Send preference-based toast notification
+        let toast_msg = preference_toast_message(&npc_def.name, preference, total_points);
+        toast_writer.send(ToastEvent {
+            message: toast_msg,
+            duration_secs: 3.0,
+        });
 
         // Show emote bubble above NPC
         emote_writer.send(NpcEmoteEvent {
@@ -106,6 +112,17 @@ fn preference_to_points(preference: GiftPreference) -> i32 {
     }
 }
 
+/// Build the toast message shown to the player after giving a gift.
+fn preference_toast_message(npc_name: &str, preference: GiftPreference, points: i32) -> String {
+    match preference {
+        GiftPreference::Loved    => format!("{} loved your gift! \u{2665}\u{2665}\u{2665} (+{})", npc_name, points),
+        GiftPreference::Liked    => format!("{} liked your gift! \u{2665}\u{2665} (+{})", npc_name, points),
+        GiftPreference::Neutral  => format!("{} accepted your gift. (+{})", npc_name, points),
+        GiftPreference::Disliked => format!("{} didn't seem to like that... ({})", npc_name, points),
+        GiftPreference::Hated    => format!("{} hated that gift! ({})", npc_name, points),
+    }
+}
+
 /// System: handle player pressing G (or the configured gift key) while in dialogue
 /// with an NPC, using the selected hotbar item as the gift.
 ///
@@ -118,6 +135,7 @@ pub fn handle_gift_input(
     npc_query: Query<(&Npc, &Transform)>,
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
+    npc_registry: Res<NpcRegistry>,
     relationships: Res<Relationships>,
     mut gift_writer: EventWriter<GiftGivenEvent>,
     mut item_removed_writer: EventWriter<ItemRemovedEvent>,
@@ -205,11 +223,14 @@ pub fn handle_gift_input(
         quantity: 1,
     });
 
-    // Emit gift event
+    // Emit gift event with the resolved preference
+    let preference = npc_registry.npcs.get(&npc_id)
+        .and_then(|d| d.gift_preferences.get(&item_id).copied())
+        .unwrap_or(GiftPreference::Neutral);
     gift_writer.send(GiftGivenEvent {
         npc_id,
         item_id,
-        preference: GiftPreference::Neutral, // will be looked up in handle_gifts
+        preference,
     });
     interaction_claimed.0 = true;
 }
