@@ -344,6 +344,12 @@ pub fn post_daily_quests(
             } else {
                 npc_names[rng.gen_range(0..npc_names.len())].clone()
             };
+            // Resolve display name for use in titles
+            let giver_display = npc_registry
+                .npcs
+                .get(&giver)
+                .map(|d| d.name.clone())
+                .unwrap_or_else(|| giver.clone());
 
             let quest = match quest_type {
                 0 => {
@@ -353,7 +359,7 @@ pub fn post_daily_quests(
                     let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 12);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.5, giver),
+                        title: format!("{} for {}", tmpl.5, giver_display),
                         description: deliver_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Deliver {
@@ -379,7 +385,7 @@ pub fn post_daily_quests(
                     let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 18);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.5, giver),
+                        title: format!("{} for {}", tmpl.5, giver_display),
                         description: harvest_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Harvest {
@@ -404,7 +410,7 @@ pub fn post_daily_quests(
                     let gold = scaled_reward(&mut rng, tmpl.2, tmpl.1, 1, 20);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.3, giver),
+                        title: format!("{} for {}", tmpl.3, giver_display),
                         description: catch_description(&mut rng, &giver, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Catch {
@@ -429,7 +435,7 @@ pub fn post_daily_quests(
                     let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 22);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.5, giver),
+                        title: format!("{} for {}", tmpl.5, giver_display),
                         description: mine_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Mine {
@@ -461,7 +467,7 @@ pub fn post_daily_quests(
                         }
                         target
                     } else {
-                        npc_names.first().cloned().unwrap_or_else(|| "child_lily".to_string())
+                        npc_names.first().cloned().unwrap_or_else(|| TALK_NPCS[0].to_string())
                     };
                     let talk_tmpl = &TALK_TEMPLATES[rng.gen_range(0..TALK_TEMPLATES.len())];
                     let base_gold = match talk_tmpl.1 {
@@ -470,9 +476,14 @@ pub fn post_daily_quests(
                         RewardTier::Late => 580,
                     };
                     let gold = scaled_reward(&mut rng, talk_tmpl.1, base_gold, 1, 5);
+                    let target_npc_display = npc_registry
+                        .npcs
+                        .get(&target_npc)
+                        .map(|d| d.name.clone())
+                        .unwrap_or_else(|| target_npc.clone());
                     Quest {
                         id: quest_id,
-                        title: format!("{}: Visit {} for {}", talk_tmpl.0, target_npc, giver),
+                        title: format!("{}: Visit {} for {}", talk_tmpl.0, target_npc_display, giver_display),
                         description: talk_description(&mut rng, &giver, &target_npc),
                         giver: giver.clone(),
                         objective: QuestObjective::Talk {
@@ -497,7 +508,7 @@ pub fn post_daily_quests(
                     let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 25);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.5, giver),
+                        title: format!("{} for {}", tmpl.5, giver_display),
                         description: slay_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Slay {

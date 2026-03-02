@@ -1811,6 +1811,18 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         ItemDef { id: "stonefish".into(), name: "Stonefish".into(), description: "A well-camouflaged cave dweller.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 2 },
         ItemDef { id: "ice_pip".into(), name: "Ice Pip".into(), description: "A tiny fish from the deepest frozen cavern pools.".into(), category: ItemCategory::Fish, sell_price: 300, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 3 },
         ItemDef { id: "lava_eel".into(), name: "Lava Eel".into(), description: "An eel that thrives in volcanic heat. Extremely difficult to catch.".into(), category: ItemCategory::Fish, sell_price: 700, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 4 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // SPECIAL — Romance & relationship items
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "bouquet".into(), name: "Bouquet".into(), description: "A beautiful bouquet of flowers. Give to a villager you are dating.".into(), category: ItemCategory::Special, sell_price: 200, buy_price: Some(500), stack_size: 1, edible: false, energy_restore: 0.0, sprite_index: 5 },
+        ItemDef { id: "mermaid_pendant".into(), name: "Mermaid Pendant".into(), description: "A rare pendant shaped like a mermaid. Used to propose marriage.".into(), category: ItemCategory::Special, sell_price: 1000, buy_price: Some(5000), stack_size: 1, edible: false, energy_restore: 0.0, sprite_index: 6 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // FOOD — Spouse breakfast gifts
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "toast".into(), name: "Toast".into(), description: "Crispy golden toast prepared by your spouse.".into(), category: ItemCategory::Food, sell_price: 25, buy_price: None, stack_size: 99, edible: true, energy_restore: 15.0, sprite_index: 7 },
+        ItemDef { id: "porridge".into(), name: "Porridge".into(), description: "Warm creamy porridge prepared by your spouse.".into(), category: ItemCategory::Food, sell_price: 30, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 8 },
     ];
 
     for item in items {
