@@ -465,16 +465,16 @@ pub fn despawn_hud(
 
 fn map_display_name(map: MapId) -> &'static str {
     match map {
-        MapId::Farm => "The Farm",
-        MapId::Town => "Pelican Town",
-        MapId::Beach => "The Beach",
-        MapId::Forest => "Cindersap Forest",
+        MapId::Farm => "Hearthfield Farm",
+        MapId::Town => "Willowbrook",
+        MapId::Beach => "Tide Pool Beach",
+        MapId::Forest => "Briarwood Forest",
         MapId::MineEntrance => "The Mines",
         MapId::Mine => "Mine Floor",
         MapId::PlayerHouse => "Home",
-        MapId::GeneralStore => "Pierre's Shop",
-        MapId::AnimalShop => "Marnie's Ranch",
-        MapId::Blacksmith => "Clint's Blacksmith",
+        MapId::GeneralStore => "General Store",
+        MapId::AnimalShop => "Animal Shop",
+        MapId::Blacksmith => "Elena's Forge",
     }
 }
 
