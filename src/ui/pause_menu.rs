@@ -94,7 +94,7 @@ pub fn spawn_pause_menu(
                     menu_kit::spawn_menu_footer(
                         panel,
                         "WASD: Move | Space: Use Tool | F: Interact\n\
-                         [ ]: Cycle Tools | 1-9: Select Hotbar\n\
+                         R: Eat/Place | [ ]: Cycle Tools | 1-9: Hotbar\n\
                          E: Inventory | C: Crafting | Esc: Resume",
                         &theme,
                         &font,

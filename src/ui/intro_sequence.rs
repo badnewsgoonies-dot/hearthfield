@@ -57,8 +57,8 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     // Controls reference card — show after dialogue so the player sees it on the farm.
     steps.push_back(CutsceneStep::ShowText(
         "Controls: WASD = Move | Space = Use Tool | F = Interact\n\
-         [ ] = Cycle Tools | 1-9 = Select Hotbar | E = Inventory\n\
-         C = Crafting | Esc = Pause | Space to continue..."
+         R = Eat Food / Place Item | E = Inventory | C = Crafting\n\
+         [ ] = Cycle Tools | 1-9 = Select Hotbar | Esc = Pause"
             .into(),
         8.0,
     ));
