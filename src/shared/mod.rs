@@ -2022,6 +2022,13 @@ mod tests {
     }
 
     #[test]
+    fn test_inventory_try_remove_from_empty() {
+        let mut inv = Inventory::default();
+        let removed = inv.try_remove("stone", 5);
+        assert_eq!(removed, 0);
+    }
+
+    #[test]
     fn test_inventory_slot_cleared_when_empty() {
         let mut inv = Inventory::default();
         inv.try_add("turnip", 1, 99);
@@ -2075,6 +2082,29 @@ mod tests {
         rel.add_friendship("elena", 50);
         rel.add_friendship("elena", -100);
         assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
+    }
+
+    #[test]
+    fn test_add_friendship_clamps_at_max() {
+        let mut rel = Relationships::default();
+        rel.friendship.insert("elena".to_string(), MAX_FRIENDSHIP - 10);
+        rel.add_friendship("elena", 100);
+        assert_eq!(*rel.friendship.get("elena").unwrap(), MAX_FRIENDSHIP);
+    }
+
+    #[test]
+    fn test_add_friendship_clamps_at_zero() {
+        let mut rel = Relationships::default();
+        rel.friendship.insert("elena".to_string(), 10);
+        rel.add_friendship("elena", -100);
+        assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
+    }
+
+    #[test]
+    fn test_add_friendship_new_npc_starts_at_zero() {
+        let mut rel = Relationships::default();
+        rel.add_friendship("new_npc", 50);
+        assert_eq!(*rel.friendship.get("new_npc").unwrap(), 50);
     }
 
     // ── SprinklerKind ───────────────────────────────────────────────
