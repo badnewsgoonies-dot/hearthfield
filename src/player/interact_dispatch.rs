@@ -45,7 +45,7 @@ pub fn dispatch_world_interaction(
     for (tf, inter, entity) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range {
-            if best.is_none() || d < best.unwrap().0 {
+            if best.as_ref().map_or(true, |b| d < b.0) {
                 best = Some((d, inter, entity));
             }
         }

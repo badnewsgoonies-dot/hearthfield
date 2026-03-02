@@ -143,7 +143,7 @@ fn find_nearest_npc(
     let mut best: Option<(f32, String)> = None;
     for (npc, tf) in npc_query.iter() {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && (best.is_none() || d < best.as_ref().unwrap().0) {
+        if d <= range && best.as_ref().map_or(true, |b| d < b.0) {
             best = Some((d, npc.id.clone()));
         }
     }

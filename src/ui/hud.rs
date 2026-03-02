@@ -908,7 +908,7 @@ pub fn update_interaction_prompt(
     // Check interactable objects.
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && (best_label.is_none() || d < best_label.as_ref().unwrap().0) {
+        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
             best_label = Some((d, format!("[F] {}", inter.label)));
         }
     }
@@ -916,7 +916,7 @@ pub fn update_interaction_prompt(
     // Check NPCs (closer NPC takes priority).
     for (npc, tf) in &npc_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && (best_label.is_none() || d < best_label.as_ref().unwrap().0) {
+        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
             let name = npc_registry
                 .npcs
                 .get(&npc.id)
