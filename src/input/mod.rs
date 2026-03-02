@@ -154,11 +154,14 @@ fn reset_and_read_input(
 }
 
 /// Derives InputContext from GameState. ONE system, replaces all per-domain guards.
+/// When the context changes, blanks all input for one frame to prevent carryover
+/// (e.g., swinging a hoe near an NPC → Space carried into dialogue as "advance").
 fn manage_input_context(
     game_state: Res<State<GameState>>,
     mut context: ResMut<InputContext>,
+    mut input: ResMut<PlayerInput>,
 ) {
-    *context = match *game_state.get() {
+    let new_context = match *game_state.get() {
         GameState::MainMenu => InputContext::Menu,
         GameState::Playing => InputContext::Gameplay,
         GameState::Paused => InputContext::Menu,
@@ -172,4 +175,12 @@ fn manage_input_context(
         GameState::Loading => InputContext::Disabled,
         _ => InputContext::Gameplay,
     };
+
+    if new_context != *context {
+        // Context just switched — blank all input this frame to prevent
+        // keys held from the old context from firing in the new one.
+        *input = PlayerInput::default();
+    }
+
+    *context = new_context;
 }
