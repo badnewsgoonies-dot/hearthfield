@@ -202,7 +202,6 @@ impl ToolTier {
     }
 
     /// Gold cost to upgrade FROM this tier to the next.
-    #[allow(dead_code)]
     pub fn upgrade_cost_gold(&self) -> u32 {
         match self {
             ToolTier::Basic => 2000,
@@ -214,7 +213,6 @@ impl ToolTier {
     }
 
     /// Number of bars required to upgrade FROM this tier.
-    #[allow(dead_code)]
     pub fn upgrade_bars_needed(&self) -> u8 {
         match self {
             ToolTier::Basic | ToolTier::Copper | ToolTier::Iron | ToolTier::Gold => 5,
@@ -223,7 +221,6 @@ impl ToolTier {
     }
 
     /// The bar item needed to upgrade FROM this tier.
-    #[allow(dead_code)]
     pub fn upgrade_bar_item(&self) -> Option<&'static str> {
         match self {
             ToolTier::Basic => Some("copper_bar"),
@@ -614,7 +611,6 @@ impl GridPosition {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MapTransition {
     pub from_map: MapId,
     pub from_rect: (i32, i32, i32, i32), // x, y, w, h trigger area
@@ -856,7 +852,6 @@ pub struct ItemPickupEvent {
 #[derive(Event, Debug, Clone)]
 pub struct ItemRemovedEvent {
     pub item_id: ItemId,
-    #[allow(dead_code)]
     pub quantity: u8,
 }
 
@@ -1055,7 +1050,6 @@ pub enum PlayerAnimState {
 }
 
 /// Fired when a tool animation reaches its "impact" frame.
-#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolImpactEvent {
     pub tool: ToolKind,
@@ -1088,7 +1082,6 @@ impl ItemQuality {
         }
     }
 
-    #[allow(dead_code)]
     pub fn next(&self) -> Option<ItemQuality> {
         match self {
             ItemQuality::Normal => Some(ItemQuality::Silver),
@@ -1123,7 +1116,6 @@ pub struct StaminaRestoreEvent {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum StaminaSource {
     Food(String),
     Sleep,
@@ -1290,7 +1282,6 @@ pub enum QuestObjective {
 /// New quest posted on bulletin board.
 #[derive(Event, Debug, Clone)]
 pub struct QuestPostedEvent {
-    #[allow(dead_code)]
     pub quest: Quest,
 }
 
@@ -1419,7 +1410,6 @@ pub enum BuildingTier {
     Deluxe,
 }
 
-#[allow(dead_code)]
 impl BuildingTier {
     pub fn next(&self) -> Option<Self> {
         match self {
@@ -1470,7 +1460,6 @@ pub struct HintEvent {
 
 /// Achievement unlocked event.
 #[derive(Event, Debug, Clone)]
-#[allow(dead_code)]
 pub struct AchievementUnlockedEvent {
     pub achievement_id: String,
     pub name: String,
@@ -1540,7 +1529,6 @@ pub enum TransitionStyle {
 
 /// Request a screen transition with visual effect.
 #[derive(Event, Debug, Clone)]
-#[allow(dead_code)]
 pub struct ScreenTransitionEvent {
     pub to: GameState,
     pub style: TransitionStyle,
@@ -1574,7 +1562,6 @@ pub struct Interactable {
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum CutsceneStep {
     FadeOut(f32),
     FadeIn(f32),
@@ -1717,7 +1704,6 @@ impl Default for KeyBindings {
 
 /// Centralized menu styling. All menus read from this.
 #[derive(Resource, Debug, Clone)]
-#[allow(dead_code)]
 pub struct MenuTheme {
     pub bg_overlay: Color,
     pub panel_bg: Color,

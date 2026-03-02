@@ -128,10 +128,12 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
         // Place ladder openly in the upper portion
         let mut lx;
         let mut ly;
+        let mut ladder_attempts = 0;
         loop {
             lx = rng.gen_range(2..MINE_WIDTH - 2);
             ly = rng.gen_range(MINE_HEIGHT / 2..MINE_HEIGHT - 2);
-            if !occupied.contains(&(lx, ly)) {
+            ladder_attempts += 1;
+            if !occupied.contains(&(lx, ly)) || ladder_attempts >= 100 {
                 break;
             }
         }
