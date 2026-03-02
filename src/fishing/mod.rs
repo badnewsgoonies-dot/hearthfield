@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use rand::Rng;
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
 use crate::shared::*;
@@ -120,7 +121,7 @@ impl Plugin for FishingPlugin {
 // ─── Fish Encyclopedia Resource ──────────────────────────────────────────────
 
 /// Tracks every species the player has ever caught.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FishEncyclopedia {
     /// fish_id → CaughtFishEntry
     pub entries: HashMap<String, CaughtFishEntry>,
@@ -149,7 +150,7 @@ impl FishEncyclopedia {
 
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaughtFishEntry {
     pub fish_id: String,
     pub times_caught: u32,

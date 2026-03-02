@@ -1799,6 +1799,18 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         // Other obtainables
         ItemDef { id: "honey".into(), name: "Honey".into(), description: "Sweet golden honey from a bee house.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 125 },
         ItemDef { id: "crab".into(), name: "Crab".into(), description: "A small crab caught in a crab pot.".into(), category: ItemCategory::Fish, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 126 },
+
+        // Pond fish
+        ItemDef { id: "goldfish".into(), name: "Goldfish".into(), description: "A shimmering little pond fish.".into(), category: ItemCategory::Fish, sell_price: 30, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 127 },
+        ItemDef { id: "sunfish".into(), name: "Sunfish".into(), description: "A warm-weather pond dweller with bright scales.".into(), category: ItemCategory::Fish, sell_price: 45, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 128 },
+        ItemDef { id: "bullhead".into(), name: "Bullhead".into(), description: "A bottom-feeder common in still water.".into(), category: ItemCategory::Fish, sell_price: 75, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 129 },
+        ItemDef { id: "koi".into(), name: "Koi".into(), description: "An ornamental fish prized for its beauty.".into(), category: ItemCategory::Fish, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 0 },
+
+        // Mine pool fish
+        ItemDef { id: "ghostfish".into(), name: "Ghostfish".into(), description: "A translucent fish found in underground pools.".into(), category: ItemCategory::Fish, sell_price: 90, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 1 },
+        ItemDef { id: "stonefish".into(), name: "Stonefish".into(), description: "A well-camouflaged cave dweller.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 2 },
+        ItemDef { id: "ice_pip".into(), name: "Ice Pip".into(), description: "A tiny fish from the deepest frozen cavern pools.".into(), category: ItemCategory::Fish, sell_price: 300, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 3 },
+        ItemDef { id: "lava_eel".into(), name: "Lava Eel".into(), description: "An eel that thrives in volcanic heat. Extremely difficult to catch.".into(), category: ItemCategory::Fish, sell_price: 700, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 4 },
     ];
 
     for item in items {

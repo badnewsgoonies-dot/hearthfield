@@ -66,8 +66,9 @@ pub fn handle_tool_use_for_fishing(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut item_removed_events: EventWriter<ItemRemovedEvent>,
     skill: Res<FishingSkill>,
-    _toast_events: EventWriter<ToastEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     fishing_atlas: Res<super::FishingAtlas>,
+    world_map: Res<crate::world::WorldMap>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {
@@ -81,6 +82,20 @@ pub fn handle_tool_use_for_fishing(
 
         let target_x = event.target_x;
         let target_y = event.target_y;
+
+        // Guard: target tile must be water
+        let is_water = world_map
+            .map_def
+            .as_ref()
+            .map(|md| md.get_tile(target_x, target_y) == TileKind::Water)
+            .unwrap_or(false);
+        if !is_water {
+            toast_events.send(ToastEvent {
+                message: "You need to cast into water!".into(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
 
         // Detect bait type — priority ordering is handled inside detect_bait
         let bait_id = detect_bait(&inventory);

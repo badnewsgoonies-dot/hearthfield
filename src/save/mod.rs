@@ -165,6 +165,8 @@ struct ExtendedResources<'w> {
     pub play_stats: Res<'w, PlayStats>,
     pub building_levels: Res<'w, BuildingLevels>,
     pub shipping_log: Res<'w, ShippingLog>,
+    pub fish_encyclopedia: Res<'w, crate::fishing::FishEncyclopedia>,
+    pub fishing_skill: Res<'w, crate::fishing::skill::FishingSkill>,
 }
 
 /// Mutable bundle of the extended resources (for loading / new game).
@@ -182,6 +184,8 @@ struct ExtendedResourcesMut<'w> {
     pub play_stats: ResMut<'w, PlayStats>,
     pub building_levels: ResMut<'w, BuildingLevels>,
     pub shipping_log: ResMut<'w, ShippingLog>,
+    pub fish_encyclopedia: ResMut<'w, crate::fishing::FishEncyclopedia>,
+    pub fishing_skill: ResMut<'w, crate::fishing::skill::FishingSkill>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -318,6 +322,10 @@ struct FullSaveFile {
     pub building_levels: BuildingLevels,
     #[serde(default)]
     pub shipping_log: ShippingLog,
+    #[serde(default)]
+    pub fish_encyclopedia: crate::fishing::FishEncyclopedia,
+    #[serde(default)]
+    pub fishing_skill: crate::fishing::skill::FishingSkill,
 }
 
 impl FullSaveFile {
@@ -365,6 +373,8 @@ fn write_save(
     play_stats: &PlayStats,
     building_levels: &BuildingLevels,
     shipping_log: &ShippingLog,
+    fish_encyclopedia: &crate::fishing::FishEncyclopedia,
+    fishing_skill: &crate::fishing::skill::FishingSkill,
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
 
@@ -397,6 +407,8 @@ fn write_save(
         play_stats: play_stats.clone(),
         building_levels: building_levels.clone(),
         shipping_log: shipping_log.clone(),
+        fish_encyclopedia: fish_encyclopedia.clone(),
+        fishing_skill: fishing_skill.clone(),
     };
 
     let json =
@@ -443,6 +455,8 @@ fn write_save(
     _play_stats: &PlayStats,
     _building_levels: &BuildingLevels,
     _shipping_log: &ShippingLog,
+    _fish_encyclopedia: &crate::fishing::FishEncyclopedia,
+    _fishing_skill: &crate::fishing::skill::FishingSkill,
 ) -> Result<(), String> {
     Ok(())
 }
@@ -595,6 +609,8 @@ fn handle_save_request(
             &ext.play_stats,
             &ext.building_levels,
             &ext.shipping_log,
+            &ext.fish_encyclopedia,
+            &ext.fishing_skill,
         ) {
             Ok(()) => {
                 info!("Save to slot {} succeeded.", slot);
@@ -681,6 +697,8 @@ fn handle_load_request(
                 *ext.play_stats = file.play_stats;
                 *ext.building_levels = file.building_levels;
                 *ext.shipping_log = file.shipping_log;
+                *ext.fish_encyclopedia = file.fish_encyclopedia;
+                *ext.fishing_skill = file.fishing_skill;
 
                 // Force the world to reload the correct map after restoring state.
                 // Invalidate CurrentMapId so handle_map_transition doesn't skip
@@ -767,6 +785,8 @@ fn handle_new_game(
         *ext.play_stats = PlayStats::default();
         *ext.building_levels = BuildingLevels::default();
         *ext.shipping_log = ShippingLog::default();
+        *ext.fish_encyclopedia = crate::fishing::FishEncyclopedia::default();
+        *ext.fishing_skill = crate::fishing::skill::FishingSkill::default();
 
         // Starter seeds — enough for one small plot on Day 1
         inventory.try_add("turnip_seeds", 15, 99);
