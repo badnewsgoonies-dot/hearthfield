@@ -520,12 +520,12 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
 
         Recipe {
             id: "recipe_fish_stew_catfish".into(),
-            name: "Fish Stew (Catfish)".into(),
+            name: "Catfish Stew".into(),
             ingredients: vec![
                 ("catfish".into(), 1),
                 ("potato".into(), 1),
             ],
-            result: "fish_stew".into(),
+            result: "cooked_fish".into(),
             result_quantity: 1,
             is_cooking: true,
             unlocked_by_default: false,
@@ -569,19 +569,6 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
             name: "Melon Smoothie".into(),
             ingredients: vec![("melon".into(), 1)],
             result: "melon_smoothie".into(),
-            result_quantity: 1,
-            is_cooking: true,
-            unlocked_by_default: false,
-        },
-
-        Recipe {
-            id: "recipe_cheese_omelet".into(),
-            name: "Cheese Omelet".into(),
-            ingredients: vec![
-                ("egg".into(), 1),
-                ("cheese".into(), 1),
-            ],
-            result: "cheese_omelet".into(),
             result_quantity: 1,
             is_cooking: true,
             unlocked_by_default: false,
