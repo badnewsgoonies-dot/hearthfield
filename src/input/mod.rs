@@ -119,6 +119,10 @@ fn reset_and_read_input(
             input.pause = keys.just_pressed(bindings.pause);
             input.tab_pressed = keys.just_pressed(KeyCode::Tab);
 
+            // Allow E / C to toggle-close their respective menus
+            input.open_inventory = keys.just_pressed(bindings.open_inventory);
+            input.open_crafting = keys.just_pressed(bindings.open_crafting);
+
             // Quicksave / quickload available from pause menu
             input.quicksave = keys.just_pressed(KeyCode::F5);
             input.quickload = keys.just_pressed(KeyCode::F9);

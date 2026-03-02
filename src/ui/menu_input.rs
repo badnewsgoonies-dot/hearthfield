@@ -39,10 +39,24 @@ pub fn gameplay_state_transitions(
 /// If a cutscene is active and we're in Dialogue, return to Cutscene instead.
 pub fn menu_cancel_transitions(
     action: Res<MenuAction>,
+    input: Res<PlayerInput>,
     state: Res<State<GameState>>,
     mut next: ResMut<NextState<GameState>>,
     cutscene_queue: Res<CutsceneQueue>,
 ) {
+    // Toggle-close: pressing the same key that opened a menu closes it
+    match *state.get() {
+        GameState::Inventory if input.open_inventory => {
+            next.set(GameState::Playing);
+            return;
+        }
+        GameState::Crafting if input.open_crafting => {
+            next.set(GameState::Playing);
+            return;
+        }
+        _ => {}
+    }
+
     if !action.cancel {
         return;
     }
