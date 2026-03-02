@@ -21,7 +21,6 @@ pub enum GameState {
     Dialogue,
     Shop,
     Fishing,
-    #[allow(dead_code)]
     Mining,
     Crafting,
     Inventory,
@@ -243,7 +242,6 @@ impl ToolTier {
     }
 
     /// Days the blacksmith takes for any upgrade.
-    #[allow(dead_code)]
     pub fn upgrade_days(&self) -> u8 { 2 }
 }
 
@@ -688,7 +686,6 @@ impl Relationships {
 #[derive(Component, Debug, Clone)]
 pub struct Npc {
     pub id: NpcId,
-    #[allow(dead_code)]
     pub name: String,
 }
 
@@ -819,10 +816,8 @@ pub struct MineRock {
 pub struct MineMonster {
     pub kind: MineEnemy,
     pub health: f32,
-    #[allow(dead_code)]
     pub max_health: f32,
     pub damage: f32,
-    #[allow(dead_code)]
     pub speed: f32,
 }
 
@@ -867,11 +862,9 @@ pub struct DialogueEndEvent;
 
 #[derive(Event, Debug, Clone)]
 pub struct ShopTransactionEvent {
-    #[allow(dead_code)]
     pub shop_id: ShopId,
     pub item_id: ItemId,
     pub quantity: u8,
-    #[allow(dead_code)]
     pub total_cost: u32,
     pub is_purchase: bool, // true = buy, false = sell
 }
@@ -934,29 +927,7 @@ pub struct PlaySfxEvent {
 #[derive(Event, Debug, Clone)]
 pub struct PlayMusicEvent {
     pub track_id: String,
-    #[allow(dead_code)]
     pub fade_in: bool,
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// SAVE DATA
-// ═══════════════════════════════════════════════════════════════════════
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct SaveData {
-    pub version: u32,
-    pub calendar: Calendar,
-    pub player_state: PlayerState,
-    pub inventory: Inventory,
-    pub farm_state: FarmState,
-    pub animal_state: AnimalState,
-    pub relationships: Relationships,
-    pub mine_state: MineState,
-    pub unlocked_recipes: UnlockedRecipes,
-    pub shipping_bin: ShippingBin,
-    pub total_gold_earned: u64,
-    pub total_items_shipped: u64,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1413,7 +1384,6 @@ pub struct TutorialState {
 /// Contextual hint event — shows a non-intrusive tip when the player does something new.
 #[derive(Event, Debug, Clone)]
 pub struct HintEvent {
-    #[allow(dead_code)]
     pub hint_id: String,
     pub message: String,
 }
@@ -1430,12 +1400,9 @@ pub struct AchievementUnlockedEvent {
 #[derive(Event, Debug, Clone)]
 pub struct BuildingUpgradeEvent {
     pub building: BuildingKind,
-    #[allow(dead_code)]
     pub from_tier: BuildingTier,
     pub to_tier: BuildingTier,
-    #[allow(dead_code)]
     pub cost_gold: u32,
-    #[allow(dead_code)]
     pub cost_materials: Vec<(ItemId, u8)>,
 }
 
@@ -1472,20 +1439,12 @@ pub struct PlayStats {
 #[derive(Resource, Default, Debug)]
 pub struct InputBlocks(pub std::collections::HashSet<std::any::TypeId>);
 
-#[allow(dead_code)]
 impl InputBlocks {
     pub fn is_blocked(&self) -> bool { !self.0.is_empty() }
     pub fn block<T: 'static>(&mut self) { self.0.insert(std::any::TypeId::of::<T>()); }
     pub fn unblock<T: 'static>(&mut self) { self.0.remove(&std::any::TypeId::of::<T>()); }
 }
 
-/// Screen transition style.
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub enum TransitionStyle {
-    FadeBlack { duration: f32 },
-    Cut,
-}
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1718,42 +1677,6 @@ impl Default for MenuTheme {
 #[derive(Component, Debug, Clone)]
 pub struct MenuItem {
     pub index: usize,
-}
-
-/// Tracks which item is selected. Each menu manages its own cursor.
-#[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
-pub struct MenuCursor {
-    pub index: usize,
-    pub count: usize,
-}
-
-#[allow(dead_code)]
-impl MenuCursor {
-    pub fn new(count: usize) -> Self {
-        Self { index: 0, count }
-    }
-    pub fn up(&mut self) {
-        if self.count == 0 {
-            return;
-        }
-        self.index = if self.index == 0 {
-            self.count - 1
-        } else {
-            self.index - 1
-        };
-    }
-    pub fn down(&mut self) {
-        if self.count == 0 {
-            return;
-        }
-        self.index = (self.index + 1) % self.count;
-    }
-    pub fn set(&mut self, idx: usize) {
-        if idx < self.count {
-            self.index = idx;
-        }
-    }
 }
 
 /// Frame-scoped menu actions from either keyboard or pointer.
