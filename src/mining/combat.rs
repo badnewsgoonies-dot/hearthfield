@@ -32,6 +32,7 @@ pub fn handle_player_attack(
     mut enemies: Query<(Entity, &MineGridPos, &mut MineMonster)>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut monster_slain_events: EventWriter<MonsterSlainEvent>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 {
@@ -73,6 +74,16 @@ pub fn handle_player_attack(
             pickup_events.send(ItemPickupEvent {
                 item_id,
                 quantity: qty,
+            });
+
+            // Notify quest system
+            let kind_str = match kind {
+                MineEnemy::GreenSlime => "green_slime",
+                MineEnemy::Bat => "bat",
+                MineEnemy::RockCrab => "rock_crab",
+            };
+            monster_slain_events.send(MonsterSlainEvent {
+                monster_kind: kind_str.to_string(),
             });
         }
     }

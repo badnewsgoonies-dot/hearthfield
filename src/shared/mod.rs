@@ -1211,6 +1211,12 @@ pub enum QuestObjective {
     Slay { monster_kind: String, quantity: u8, slain: u8 },
 }
 
+/// A mine enemy was killed by the player.
+#[derive(Event, Debug, Clone)]
+pub struct MonsterSlainEvent {
+    pub monster_kind: String,
+}
+
 /// New quest posted on bulletin board.
 #[derive(Event, Debug, Clone)]
 pub struct QuestPostedEvent {

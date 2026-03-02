@@ -51,6 +51,7 @@ use quests::{
     post_daily_quests,
     handle_quest_accepted,
     track_quest_progress,
+    track_monster_slain,
     handle_quest_completed,
     expire_quests,
 };
@@ -125,6 +126,7 @@ impl Plugin for NpcPlugin {
                 log_quest_posted,
                 handle_quest_accepted,
                 track_quest_progress,
+                track_monster_slain,
                 handle_quest_completed,
                 expire_quests,
             )

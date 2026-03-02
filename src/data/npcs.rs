@@ -664,7 +664,7 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
         prefs.insert("bread".into(), GiftPreference::Liked);
         prefs.insert("cheese_omelette".into(), GiftPreference::Liked);
         prefs.insert("melon".into(), GiftPreference::Liked);
-        prefs.insert("wine".into(), GiftPreference::Liked);
+        prefs.insert("truffle_risotto".into(), GiftPreference::Liked);
         prefs.insert("yam".into(), GiftPreference::Liked);
         prefs.insert("coal".into(), GiftPreference::Disliked);
         prefs.insert("stone".into(), GiftPreference::Disliked);

@@ -40,6 +40,7 @@ impl Plugin for MiningPlugin {
         app.init_resource::<ElevatorUiOpen>();
         app.init_resource::<spawning::MiningAtlas>();
         app.init_resource::<spawning::EnemyAtlas>();
+        app.add_event::<MonsterSlainEvent>();
 
         // === Systems that run during Playing state ===
         app.add_systems(

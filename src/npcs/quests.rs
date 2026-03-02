@@ -120,25 +120,13 @@ const MINE_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     // Elena – processed bars
     ("copper_bar", 2, 5, 280, RewardTier::Mid, "Smelted Copper Bars"),
     ("iron_bar", 2, 4, 350, RewardTier::Mid, "Forged Iron Bars"),
-    // More gem varieties
-    ("topaz", 1, 3, 300, RewardTier::Mid, "Gem Hunt: Topaz"),
-    ("aquamarine", 1, 2, 420, RewardTier::Mid, "Gem Hunt: Aquamarine"),
-    ("silver_ore", 3, 8, 220, RewardTier::Mid, "Mining: Silver"),
 ];
 
 /// Monster quest templates: (monster_kind, quantity_range, base_gold, tier, title_prefix)
 const SLAY_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
-    ("slime", 5, 12, 160, RewardTier::Early, "Slime Extermination"),
+    ("green_slime", 5, 12, 160, RewardTier::Early, "Slime Extermination"),
     ("bat", 3, 8, 180, RewardTier::Early, "Bat Clearing"),
-    ("skeleton", 3, 6, 340, RewardTier::Mid, "Skeleton Hunt"),
-    ("ghost", 2, 5, 380, RewardTier::Mid, "Ghost Busting"),
-    ("golem", 1, 3, 560, RewardTier::Late, "Golem Smashing"),
-    // More monster variety
-    ("zombie", 3, 6, 200, RewardTier::Early, "Zombie Clearing"),
-    ("serpent", 2, 4, 400, RewardTier::Mid, "Serpent Slaying"),
-    ("witch", 1, 3, 460, RewardTier::Mid, "Witch Bounty"),
-    ("shadow_shaman", 2, 4, 520, RewardTier::Late, "Shadow Hunt"),
-    ("dwarvish_sentry", 1, 3, 580, RewardTier::Late, "Sentinel Takedown"),
+    ("rock_crab", 2, 5, 340, RewardTier::Mid, "Rock Crab Hunt"),
 ];
 
 /// Talk quest templates: (title_prefix, tier)
@@ -778,3 +766,19 @@ pub fn expire_quests(
         }
     }
 }
+
+pub fn track_monster_slain(
+    mut events: EventReader<MonsterSlainEvent>,
+    mut quest_log: ResMut<QuestLog>,
+) {
+    for event in events.read() {
+        for quest in quest_log.active.iter_mut() {
+            if let QuestObjective::Slay { ref monster_kind, quantity, ref mut slain } = quest.objective {
+                if *monster_kind == event.monster_kind && *slain < *quantity {
+                    *slain += 1;
+                }
+            }
+        }
+    }
+}
+
