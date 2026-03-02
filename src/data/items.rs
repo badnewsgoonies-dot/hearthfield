@@ -1712,6 +1712,30 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             energy_restore: 0.0,
             sprite_index: 83,
         },
+
+        // ═══════════════════════════════════════════════════════════════
+        // CRAFTABLE EQUIPMENT & STRUCTURES
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "chest".into(), name: "Chest".into(), description: "A storage chest. Place it on the farm.".into(), category: ItemCategory::Furniture, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 84 },
+        ItemDef { id: "fence".into(), name: "Fence".into(), description: "A wooden fence post.".into(), category: ItemCategory::Furniture, sell_price: 5, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 85 },
+        ItemDef { id: "wood_path".into(), name: "Wood Path".into(), description: "A wooden walkway tile.".into(), category: ItemCategory::Furniture, sell_price: 2, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 86 },
+        ItemDef { id: "stone_path".into(), name: "Stone Path".into(), description: "A cobblestone walkway tile.".into(), category: ItemCategory::Furniture, sell_price: 2, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 87 },
+        ItemDef { id: "scarecrow".into(), name: "Scarecrow".into(), description: "Keeps crows away from crops in an 8-tile radius.".into(), category: ItemCategory::Furniture, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 88 },
+        ItemDef { id: "basic_sprinkler".into(), name: "Basic Sprinkler".into(), description: "Waters 4 adjacent tiles each morning.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 89 },
+        ItemDef { id: "quality_sprinkler".into(), name: "Quality Sprinkler".into(), description: "Waters 8 surrounding tiles each morning.".into(), category: ItemCategory::Furniture, sell_price: 450, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 89 },
+        ItemDef { id: "furnace".into(), name: "Furnace".into(), description: "Smelts ore into bars. Place on farm.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 36 },
+        ItemDef { id: "preserves_jar".into(), name: "Preserves Jar".into(), description: "Turns fruits and vegetables into preserves.".into(), category: ItemCategory::Furniture, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 37 },
+        ItemDef { id: "cheese_press".into(), name: "Cheese Press".into(), description: "Turns milk into cheese.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 38 },
+        ItemDef { id: "loom".into(), name: "Loom".into(), description: "Turns wool into cloth.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 39 },
+        ItemDef { id: "keg".into(), name: "Keg".into(), description: "Turns fruits into wine and grains into beer.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 40 },
+        ItemDef { id: "lightning_rod".into(), name: "Lightning Rod".into(), description: "Captures lightning energy during storms.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 41 },
+        ItemDef { id: "mayonnaise_machine".into(), name: "Mayonnaise Machine".into(), description: "Turns eggs into mayonnaise.".into(), category: ItemCategory::Furniture, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 42 },
+        ItemDef { id: "crab_pot".into(), name: "Crab Pot".into(), description: "Place in water to catch shellfish.".into(), category: ItemCategory::Furniture, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 43 },
+        ItemDef { id: "torch".into(), name: "Torch".into(), description: "A simple light source.".into(), category: ItemCategory::Furniture, sell_price: 5, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 44 },
+        ItemDef { id: "wooden_sign".into(), name: "Wooden Sign".into(), description: "A small sign to mark your farm.".into(), category: ItemCategory::Furniture, sell_price: 10, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 46 },
+        ItemDef { id: "tapper".into(), name: "Tapper".into(), description: "Attach to trees to collect sap and syrup.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 47 },
+        ItemDef { id: "bee_house".into(), name: "Bee House".into(), description: "Produces honey. Nearby flowers affect flavor.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 48 },
+        ItemDef { id: "recycling_machine".into(), name: "Recycling Machine".into(), description: "Recycles trash into useful materials.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 49 },
     ];
 
     for item in items {
