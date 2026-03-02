@@ -66,6 +66,81 @@ pub fn food_buff_for_item(item_id: &str) -> Option<FoodBuff> {
             magnitude: 1.1,
             minutes_remaining: 90,
         }),
+        "turnip_soup" => Some(FoodBuff {
+            buff_type: BuffType::Farming,
+            magnitude: 1.15,
+            minutes_remaining: 90,
+        }),
+        "strawberry_jam" => Some(FoodBuff {
+            buff_type: BuffType::Speed,
+            magnitude: 1.1,
+            minutes_remaining: 60,
+        }),
+        "cauliflower_gratin" => Some(FoodBuff {
+            buff_type: BuffType::MaxStamina,
+            magnitude: 20.0,
+            minutes_remaining: 120,
+        }),
+        "sardine_toast" => Some(FoodBuff {
+            buff_type: BuffType::Fishing,
+            magnitude: 1.15,
+            minutes_remaining: 90,
+        }),
+        "corn_tortilla" => Some(FoodBuff {
+            buff_type: BuffType::Speed,
+            magnitude: 1.1,
+            minutes_remaining: 60,
+        }),
+        "blueberry_muffin" => Some(FoodBuff {
+            buff_type: BuffType::Luck,
+            magnitude: 1.2,
+            minutes_remaining: 90,
+        }),
+        "pumpkin_bread" => Some(FoodBuff {
+            buff_type: BuffType::Defense,
+            magnitude: 1.15,
+            minutes_remaining: 120,
+        }),
+        "cranberry_tart" => Some(FoodBuff {
+            buff_type: BuffType::Luck,
+            magnitude: 1.3,
+            minutes_remaining: 120,
+        }),
+        "yam_pudding" => Some(FoodBuff {
+            buff_type: BuffType::MaxStamina,
+            magnitude: 25.0,
+            minutes_remaining: 150,
+        }),
+        "stuffed_eggplant" => Some(FoodBuff {
+            buff_type: BuffType::Farming,
+            magnitude: 1.2,
+            minutes_remaining: 120,
+        }),
+        "coffee_pudding" => Some(FoodBuff {
+            buff_type: BuffType::Speed,
+            magnitude: 1.2,
+            minutes_remaining: 180,
+        }),
+        "smoked_eel" => Some(FoodBuff {
+            buff_type: BuffType::Fishing,
+            magnitude: 1.3,
+            minutes_remaining: 150,
+        }),
+        "truffle_pasta" => Some(FoodBuff {
+            buff_type: BuffType::Luck,
+            magnitude: 1.5,
+            minutes_remaining: 240,
+        }),
+        "tuna_tartare" => Some(FoodBuff {
+            buff_type: BuffType::Attack,
+            magnitude: 1.25,
+            minutes_remaining: 120,
+        }),
+        "eggplant_stir_fry" => Some(FoodBuff {
+            buff_type: BuffType::Mining,
+            magnitude: 1.15,
+            minutes_remaining: 90,
+        }),
         // Plain food — stamina only, no buff
         "toast" | "bread" => None,
         _ => None,
