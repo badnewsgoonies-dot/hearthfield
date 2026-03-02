@@ -92,8 +92,7 @@ fn build_test_app() -> App {
         .add_event::<PlayMusicEvent>();
 
     // ── Phase 3 Events ───────────────────────────────────────────────────
-    app.add_event::<ConsumeItemEvent>()
-        .add_event::<StaminaRestoreEvent>()
+    app.add_event::<StaminaRestoreEvent>()
         .add_event::<AnimalPurchaseEvent>()
         .add_event::<ToastEvent>();
 

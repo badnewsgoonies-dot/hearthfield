@@ -19,7 +19,7 @@ pub use recipes::{
     make_crafting_recipe, make_cooking_recipe, populate_recipe_registry,
     ALL_CRAFTING_RECIPE_IDS, ALL_COOKING_RECIPE_IDS,
 };
-pub use bench::{CraftingUiState, OpenCraftingEvent, CloseCraftingEvent, CraftItemEvent};
+pub use bench::{CraftingUiState, OpenCraftingEvent, CraftItemEvent};
 pub use unlock::UnlockRecipeEvent;
 pub use buffs::food_buff_for_item;
 
@@ -34,7 +34,6 @@ impl Plugin for CraftingPlugin {
             // Crafting-specific events
             .add_event::<CraftItemEvent>()
             .add_event::<OpenCraftingEvent>()
-            .add_event::<CloseCraftingEvent>()
             .add_event::<InsertMachineInputEvent>()
             .add_event::<CollectMachineOutputEvent>()
             .add_event::<PlaceMachineEvent>()
@@ -73,8 +72,6 @@ impl Plugin for CraftingPlugin {
             .add_systems(
                 Update,
                 (
-                    // Close crafting UI
-                    bench::handle_close_crafting,
                     // Craft (non-cooking) items
                     bench::handle_craft_item,
                     // Cook food items

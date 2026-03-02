@@ -19,8 +19,7 @@ pub mod buildings;
 
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{
-    ActiveShop, BuyRequestEvent, SellRequestEvent,
-    handle_buy, handle_sell, on_enter_shop, on_exit_shop, refresh_shop_affordability,
+    ActiveShop, on_enter_shop, on_exit_shop, refresh_shop_affordability,
 };
 use shipping::{
     ShipItemEvent, ShippingBinPreview,
@@ -57,9 +56,7 @@ impl Plugin for EconomyPlugin {
             .init_resource::<BuildingLevels>();
 
         // ── Internal Events ────────────────────────────────────────────────
-        app.add_event::<BuyRequestEvent>()
-            .add_event::<SellRequestEvent>()
-            .add_event::<ShipItemEvent>()
+        app.add_event::<ShipItemEvent>()
             .add_event::<ToolUpgradeRequestEvent>()
             .add_event::<ToolUpgradeCompleteEvent>();
 
@@ -129,9 +126,6 @@ impl Plugin for EconomyPlugin {
             (
                 // Keep affordability flags fresh each frame.
                 refresh_shop_affordability,
-                // Process buy/sell requests from the UI.
-                handle_buy,
-                handle_sell,
                 // Tool upgrades are only requested from the Blacksmith shop.
                 handle_upgrade_request,
                 // Allow exiting the shop with Escape.

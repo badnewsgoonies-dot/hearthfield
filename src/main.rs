@@ -118,7 +118,6 @@ fn main() {
         .add_event::<ToolImpactEvent>()
         .add_event::<StaminaRestoreEvent>()
         .add_event::<ToastEvent>()
-        .add_event::<ConsumeItemEvent>()
         // Input plugin (before all domain plugins)
         .add_plugins(input::InputPlugin)
         // Domain plugins

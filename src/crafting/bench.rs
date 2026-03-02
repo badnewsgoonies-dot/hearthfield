@@ -60,10 +60,6 @@ pub struct OpenCraftingEvent {
     pub cooking_mode: bool,
 }
 
-/// Send to close the crafting UI and return to Playing.
-#[derive(Event, Debug, Clone)]
-pub struct CloseCraftingEvent;
-
 /// Send to request crafting a recipe. UI sends this when the player confirms.
 #[derive(Event, Debug, Clone)]
 pub struct CraftItemEvent {
@@ -115,22 +111,6 @@ pub fn handle_open_crafting(
         );
 
         next_state.set(GameState::Crafting);
-    }
-}
-
-/// Runs in Crafting — listens for CloseCraftingEvent and returns to Playing.
-pub fn handle_close_crafting(
-    mut events: EventReader<CloseCraftingEvent>,
-    mut next_state: ResMut<NextState<GameState>>,
-    player_input: Res<PlayerInput>,
-) {
-    // Close on explicit event OR on Escape key
-    let esc_pressed = player_input.ui_cancel;
-    let has_event = events.read().next().is_some();
-
-    if esc_pressed || has_event {
-        info!("Closing crafting UI");
-        next_state.set(GameState::Playing);
     }
 }
 

@@ -2,9 +2,6 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::CollisionMap;
 
-// Default energy restored by an edible item when no registry entry is found.
-const DEFAULT_FOOD_ENERGY: f32 = 20.0;
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Map Transition Detection
 // ═══════════════════════════════════════════════════════════════════════════
@@ -334,56 +331,6 @@ pub fn handle_stamina_restore(
         info!(
             "[Player] Stamina restored {:.1} (source: {:?}) — now {:.1}/{:.1}",
             gained, ev.source, player_state.stamina, player_state.max_stamina
-        );
-    }
-}
-
-/// Reads `ConsumeItemEvent`, looks the item up in the `ItemRegistry`, removes
-/// it from inventory, and fires a `StaminaRestoreEvent` for the appropriate
-/// energy value.
-pub fn handle_consume_item(
-    mut events: EventReader<ConsumeItemEvent>,
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
-    mut stamina_restore_events: EventWriter<StaminaRestoreEvent>,
-    mut sfx_events: EventWriter<PlaySfxEvent>,
-) {
-    for ev in events.read() {
-        // Look up item definition to get the energy restore value.
-        let energy_value = if let Some(def) = item_registry.get(&ev.item_id) {
-            if def.edible {
-                def.energy_restore
-            } else {
-                // Item exists but is not edible — skip.
-                info!("[Player] Tried to consume non-edible item '{}'", ev.item_id);
-                continue;
-            }
-        } else {
-            // Item not in registry; apply a default for any unknown food-like item.
-            DEFAULT_FOOD_ENERGY
-        };
-
-        // Remove one from inventory.
-        let removed = inventory.try_remove(&ev.item_id, 1);
-        if removed == 0 {
-            info!("[Player] Cannot consume '{}' — not in inventory", ev.item_id);
-            continue;
-        }
-
-        // Send stamina restore event.
-        stamina_restore_events.send(StaminaRestoreEvent {
-            amount: energy_value,
-            source: StaminaSource::Food(ev.item_id.clone()),
-        });
-
-        // Play eat sound effect.
-        sfx_events.send(PlaySfxEvent {
-            sfx_id: "eat".to_string(),
-        });
-
-        info!(
-            "[Player] Consumed '{}' — restoring {:.1} stamina",
-            ev.item_id, energy_value
         );
     }
 }

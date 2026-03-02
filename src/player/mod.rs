@@ -56,7 +56,6 @@ impl Plugin for PlayerPlugin {
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
                 interaction::handle_stamina_restore,
-                interaction::handle_consume_item,
                 interaction::check_stamina_consequences,
                 camera::camera_follow_player
                     .after(interaction::handle_map_transition),

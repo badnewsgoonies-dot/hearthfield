@@ -1100,14 +1100,6 @@ pub struct QualityStack {
     pub quality: ItemQuality,
 }
 
-/// Eating food restores stamina/health.
-#[derive(Event, Debug, Clone)]
-pub struct ConsumeItemEvent {
-    pub item_id: String,
-    #[allow(dead_code)]
-    pub quality: ItemQuality,
-}
-
 /// Stamina recovery from food, sleep, or spa.
 #[derive(Event, Debug, Clone)]
 pub struct StaminaRestoreEvent {
