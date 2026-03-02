@@ -5,18 +5,6 @@ use crate::shared::*;
 // Constants — material requirements per tier upgrade
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// The item ID for the bar that must be consumed to reach each tier.
-/// Basic → Copper requires 5 copper bars, etc.
-fn required_bars_for_tier(target_tier: ToolTier) -> Option<(&'static str, u8)> {
-    match target_tier {
-        ToolTier::Basic => None, // Already the starting point; no upgrade into Basic.
-        ToolTier::Copper => Some(("copper_bar", 5)),
-        ToolTier::Iron => Some(("iron_bar", 5)),
-        ToolTier::Gold => Some(("gold_bar", 5)),
-        ToolTier::Iridium => Some(("iridium_bar", 5)),
-    }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Resources
 // ─────────────────────────────────────────────────────────────────────────────
@@ -140,9 +128,9 @@ pub fn handle_upgrade_request(
             continue;
         }
 
-        // Bar requirements.
-        let (bar_id, bar_qty) = match required_bars_for_tier(target_tier) {
-            Some(req) => req,
+        // Bar requirements — use shared ToolTier helpers (called on current_tier).
+        let (bar_id, bar_qty) = match current_tier.upgrade_bar_item() {
+            Some(id) => (id, current_tier.upgrade_bars_needed()),
             None => {
                 warn!("[Economy] No bar requirement defined for {:?}.", target_tier);
                 continue;
@@ -163,7 +151,6 @@ pub fn handle_upgrade_request(
         }
 
         // All checks passed — commit the upgrade cost.
-        player_state.gold -= gold_cost;
         gold_writer.send(GoldChangeEvent {
             amount: -(gold_cost as i32),
             reason: format!("Tool upgrade: {:?} → {:?}", ev.tool, target_tier),
@@ -222,7 +209,7 @@ pub fn tick_upgrade_queue(
             });
 
             toast_writer.send(ToastEvent {
-                message: format!("Your {:?} upgrade is ready! Pick it up at the Blacksmith.", tool),
+                message: format!("Your {:?} upgrade is complete — ready to use!", tool),
                 duration_secs: 4.0,
             });
 
@@ -234,16 +221,3 @@ pub fn tick_upgrade_queue(
     }
 }
 
-/// Builds the list of possible upgrades for the UI to display in the Blacksmith.
-/// Returns `(tool, current_tier, target_tier, gold_cost, bar_id, bar_qty, can_afford, has_bars, is_upgrading)`.
-pub type UpgradeEntry = (
-    ToolKind,
-    ToolTier,
-    ToolTier,
-    u32,
-    &'static str,
-    u8,
-    bool,  // can_afford
-    bool,  // has_bars
-    bool,  // is_upgrading
-);

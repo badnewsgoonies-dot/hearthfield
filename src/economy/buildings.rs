@@ -123,8 +123,7 @@ pub fn handle_building_upgrade_request(
 
         // ── All checks passed ──────────────────────────────────────────────
 
-        // Deduct gold (saturating_sub guards against underflow).
-        player_state.gold = player_state.gold.saturating_sub(gold_cost);
+        // Deduct gold via event (applied by apply_gold_changes).
         gold_writer.send(GoldChangeEvent {
             amount: -(gold_cost as i32),
             reason: format!("{:?} upgrade to {:?}", ev.building, ev.to_tier),

@@ -90,12 +90,16 @@ pub fn track_gifts_given(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// System: animals_petted (proxy via AnimalProductEvent)
+// System: animals_petted (tracks product collection, NOT petting)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Uses `AnimalProductEvent` as a proxy for animal interaction.
-/// Each product collected is treated as one animal interaction, incrementing
-/// `PlayStats::animals_petted`.
+/// Increments `PlayStats::animals_petted` on `AnimalProductEvent` (product
+/// collection).
+///
+/// NOTE: No `PetAnimalEvent` exists in the codebase. The petting logic in
+/// `src/animals/interaction.rs` sets `animal.petted_today = true` directly
+/// without firing a distinct event. Until such an event is added, this counter
+/// tracks product-collection interactions, not actual petting.
 pub fn track_animals_petted(
     mut events: EventReader<AnimalProductEvent>,
     mut stats: ResMut<PlayStats>,
@@ -123,11 +127,15 @@ pub fn track_gold_earned(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// System: recipes_cooked (proxy via EatFoodEvent)
+// System: recipes_cooked (tracks food eaten, NOT recipes cooked)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Uses `EatFoodEvent` as a proxy for cooking activity.
-/// Each food item consumed increments `PlayStats::recipes_cooked`.
+/// Increments `PlayStats::recipes_cooked` on `EatFoodEvent` (food consumption).
+///
+/// NOTE: No `CookEvent` or `RecipeCraftedEvent` exists in the codebase
+/// (confirmed absent from `src/shared/mod.rs` and `src/crafting/`). Until such
+/// an event is added, this counter tracks food-eaten events, not actual recipe
+/// cooking.
 pub fn track_recipes_cooked(
     mut events: EventReader<EatFoodEvent>,
     mut stats: ResMut<PlayStats>,
