@@ -30,6 +30,31 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
             width: 18.0,
             height: 14.0,
         },
+        AnimalKind::Goat => AnimalVisual {
+            color: Color::srgb(0.75, 0.65, 0.55),
+            width: 18.0,
+            height: 14.0,
+        },
+        AnimalKind::Duck => AnimalVisual {
+            color: Color::srgb(0.3, 0.7, 0.3),
+            width: 12.0,
+            height: 12.0,
+        },
+        AnimalKind::Rabbit => AnimalVisual {
+            color: Color::srgb(0.85, 0.75, 0.65),
+            width: 10.0,
+            height: 10.0,
+        },
+        AnimalKind::Pig => AnimalVisual {
+            color: Color::srgb(0.9, 0.7, 0.65),
+            width: 20.0,
+            height: 14.0,
+        },
+        AnimalKind::Horse => AnimalVisual {
+            color: Color::srgb(0.55, 0.35, 0.2),
+            width: 22.0,
+            height: 18.0,
+        },
         AnimalKind::Cat => AnimalVisual {
             color: Color::srgb(0.8, 0.5, 0.2),
             width: 10.0,
@@ -48,11 +73,13 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
 /// pets (cat, dog) roam a wider farm area.
 fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
     match kind {
-        AnimalKind::Chicken => (Vec2::new(-96.0, -192.0), Vec2::new(96.0, -96.0)),
-        AnimalKind::Cow | AnimalKind::Sheep => {
+        AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
+            (Vec2::new(-96.0, -192.0), Vec2::new(96.0, -96.0))
+        }
+        AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
             (Vec2::new(-192.0, -192.0), Vec2::new(-32.0, -64.0))
         }
-        AnimalKind::Cat | AnimalKind::Dog => {
+        AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
             (Vec2::new(-256.0, -256.0), Vec2::new(256.0, 256.0))
         }
     }
@@ -77,6 +104,11 @@ fn generate_animal_name(kind: AnimalKind, rng: &mut impl Rng) -> String {
     let chicken_names = ["Penny", "Goldie", "Clucky", "Nugget", "Dottie"];
     let cow_names = ["Bessie", "Daisy", "Rosie", "Mocha", "Cream"];
     let sheep_names = ["Fluffkins", "Woolie", "Cotton", "Misty", "Pearl"];
+    let goat_names = ["Clover", "Maple", "Pepper", "Ginger", "Nutmeg"];
+    let duck_names = ["Quackers", "Puddle", "Waddles", "Drake", "Feather"];
+    let rabbit_names = ["Thumper", "Clover", "Bun-Bun", "Flopsy", "Hazel"];
+    let pig_names = ["Hamlet", "Truffle", "Mud", "Bacon", "Rosie"];
+    let horse_names = ["Thunder", "Spirit", "Maple", "Blaze", "Storm"];
     let cat_names = ["Whiskers", "Mittens", "Shadow", "Luna", "Cleo"];
     let dog_names = ["Rex", "Buddy", "Scout", "Max", "Hazel"];
 
@@ -84,6 +116,11 @@ fn generate_animal_name(kind: AnimalKind, rng: &mut impl Rng) -> String {
         AnimalKind::Chicken => &chicken_names[..],
         AnimalKind::Cow => &cow_names[..],
         AnimalKind::Sheep => &sheep_names[..],
+        AnimalKind::Goat => &goat_names[..],
+        AnimalKind::Duck => &duck_names[..],
+        AnimalKind::Rabbit => &rabbit_names[..],
+        AnimalKind::Pig => &pig_names[..],
+        AnimalKind::Horse => &horse_names[..],
         AnimalKind::Cat => &cat_names[..],
         AnimalKind::Dog => &dog_names[..],
     };
@@ -114,10 +151,10 @@ pub fn handle_animal_purchase(
 
         // Building check: chickens need coop, cows/sheep need barn.
         let has_building = match kind {
-            AnimalKind::Chicken => animal_state.has_coop,
-            AnimalKind::Cow | AnimalKind::Sheep => animal_state.has_barn,
-            // Pets don't need a building.
-            AnimalKind::Cat | AnimalKind::Dog => true,
+            AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => animal_state.has_coop,
+            AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => animal_state.has_barn,
+            // Companions don't need a building.
+            AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => true,
         };
 
         if !has_building {
@@ -213,6 +250,12 @@ pub fn handle_animal_purchase(
                     s.color = Color::srgb(0.6, 0.4, 0.25); // brown tint
                     s
                 }
+                // New animal kinds: use colored rectangles until sprite sheets exist.
+                _ => Sprite {
+                    color: vis.color,
+                    custom_size: Some(Vec2::new(vis.width, vis.height)),
+                    ..default()
+                },
             }
         } else {
             Sprite {

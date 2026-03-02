@@ -72,6 +72,11 @@ pub fn handle_animal_interact(
                 AnimalKind::Chicken => "Bawk!",
                 AnimalKind::Cow => "Moo~",
                 AnimalKind::Sheep => "Baa!",
+                AnimalKind::Goat => "Meh!",
+                AnimalKind::Duck => "Quack!",
+                AnimalKind::Rabbit => "~squeak~",
+                AnimalKind::Pig => "Oink!",
+                AnimalKind::Horse => "Neigh!",
                 AnimalKind::Cat => "<3",
                 AnimalKind::Dog => "Woof!",
             };

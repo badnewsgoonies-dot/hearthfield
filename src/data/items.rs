@@ -1736,6 +1736,69 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         ItemDef { id: "tapper".into(), name: "Tapper".into(), description: "Attach to trees to collect sap and syrup.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 47 },
         ItemDef { id: "bee_house".into(), name: "Bee House".into(), description: "Produces honey. Nearby flowers affect flavor.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 48 },
         ItemDef { id: "recycling_machine".into(), name: "Recycling Machine".into(), description: "Recycles trash into useful materials.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 49 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // ANIMAL PRODUCTS (new)
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "goat_milk".into(), name: "Goat Milk".into(), description: "Fresh goat milk.".into(), category: ItemCategory::AnimalProduct, sell_price: 225, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 100 },
+        ItemDef { id: "duck_egg".into(), name: "Duck Egg".into(), description: "A spotted duck egg.".into(), category: ItemCategory::AnimalProduct, sell_price: 95, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 101 },
+        ItemDef { id: "rabbit_foot".into(), name: "Rabbit's Foot".into(), description: "A lucky charm. Loved by many villagers.".into(), category: ItemCategory::AnimalProduct, sell_price: 565, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 102 },
+        ItemDef { id: "large_cheese".into(), name: "Large Cheese".into(), description: "A wheel of aged cheese made from large milk.".into(), category: ItemCategory::ArtisanGood, sell_price: 400, buy_price: None, stack_size: 99, edible: true, energy_restore: 40.0, sprite_index: 103 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // CRAFTING MATERIALS & MONSTER DROPS (new)
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "slime_jelly".into(), name: "Slime Jelly".into(), description: "Gelatinous residue from slimes.".into(), category: ItemCategory::CraftingMaterial, sell_price: 25, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 104 },
+        ItemDef { id: "crab_shell".into(), name: "Crab Shell".into(), description: "A hard shell from a rock crab.".into(), category: ItemCategory::CraftingMaterial, sell_price: 75, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 105 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // MINERALS & PROCESSED (new)
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "geode".into(), name: "Geode".into(), description: "A hollow rock. The blacksmith can crack it open.".into(), category: ItemCategory::Mineral, sell_price: 25, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 106 },
+        ItemDef { id: "refined_quartz".into(), name: "Refined Quartz".into(), description: "Purified quartz crystal.".into(), category: ItemCategory::Mineral, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 107 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // FORAGE & NATURE (new)
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "tree_seed".into(), name: "Tree Seed".into(), description: "A seed that grows into a tree over time.".into(), category: ItemCategory::Seed, sell_price: 5, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 108 },
+        ItemDef { id: "wild_berry".into(), name: "Wild Berry".into(), description: "A tart berry foraged from bushes.".into(), category: ItemCategory::Crop, sell_price: 20, buy_price: None, stack_size: 99, edible: true, energy_restore: 15.0, sprite_index: 109 },
+
+        // ═══════════════════════════════════════════════════════════════
+        // ARTISAN GOODS — Machine outputs (preserves, wines, jellies)
+        // ═══════════════════════════════════════════════════════════════
+        ItemDef { id: "oil_maker".into(), name: "Oil Maker".into(), description: "Extracts oil from plants and truffles.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 110 },
+        ItemDef { id: "blueberry_jelly".into(), name: "Blueberry Jelly".into(), description: "Sweet preserves made from blueberries.".into(), category: ItemCategory::ArtisanGood, sell_price: 150, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 111 },
+        ItemDef { id: "strawberry_jelly".into(), name: "Strawberry Jelly".into(), description: "Bright red preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 200, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 112 },
+        ItemDef { id: "melon_jelly".into(), name: "Melon Jelly".into(), description: "Smooth, sweet melon preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 35.0, sprite_index: 113 },
+        ItemDef { id: "apple_jelly".into(), name: "Apple Jelly".into(), description: "Clear amber preserves from apples.".into(), category: ItemCategory::ArtisanGood, sell_price: 150, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 114 },
+        ItemDef { id: "ancient_jelly".into(), name: "Ancient Fruit Jelly".into(), description: "Exotic preserves with a mysterious flavor.".into(), category: ItemCategory::ArtisanGood, sell_price: 750, buy_price: None, stack_size: 99, edible: true, energy_restore: 50.0, sprite_index: 115 },
+        ItemDef { id: "blueberry_wine".into(), name: "Blueberry Wine".into(), description: "A deep purple wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 240, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 116 },
+        ItemDef { id: "strawberry_wine".into(), name: "Strawberry Wine".into(), description: "A rosé-colored fruit wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 360, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 117 },
+        ItemDef { id: "melon_wine".into(), name: "Melon Wine".into(), description: "A sweet, golden wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 500, buy_price: None, stack_size: 99, edible: true, energy_restore: 35.0, sprite_index: 118 },
+        ItemDef { id: "ancient_fruit_wine".into(), name: "Ancient Fruit Wine".into(), description: "The most prized wine in the valley.".into(), category: ItemCategory::ArtisanGood, sell_price: 1650, buy_price: None, stack_size: 99, edible: true, energy_restore: 60.0, sprite_index: 119 },
+        ItemDef { id: "truffle_oil".into(), name: "Truffle Oil".into(), description: "Rich, earthy oil pressed from truffles.".into(), category: ItemCategory::ArtisanGood, sell_price: 1065, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 120 },
+
+        // Pickled vegetables (Preserves Jar outputs)
+        ItemDef { id: "pickled_turnip".into(), name: "Pickled Turnip".into(), description: "Tangy pickled turnip.".into(), category: ItemCategory::ArtisanGood, sell_price: 60, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
+        ItemDef { id: "pickled_potato".into(), name: "Pickled Potato".into(), description: "Brined potato slices.".into(), category: ItemCategory::ArtisanGood, sell_price: 80, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 121 },
+        ItemDef { id: "pickled_cauliflower".into(), name: "Pickled Cauliflower".into(), description: "Crisp pickled florets.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 121 },
+        ItemDef { id: "pickled_pumpkin".into(), name: "Pickled Pumpkin".into(), description: "Sweet and sour pumpkin preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 120, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 121 },
+        ItemDef { id: "pickled_eggplant".into(), name: "Pickled Eggplant".into(), description: "Savory pickled eggplant.".into(), category: ItemCategory::ArtisanGood, sell_price: 70, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
+        ItemDef { id: "pickled_yam".into(), name: "Pickled Yam".into(), description: "Sweet pickled yam slices.".into(), category: ItemCategory::ArtisanGood, sell_price: 90, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 121 },
+        ItemDef { id: "pickled_tomato".into(), name: "Pickled Tomato".into(), description: "Tangy preserved tomatoes.".into(), category: ItemCategory::ArtisanGood, sell_price: 65, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
+        ItemDef { id: "pickled_corn".into(), name: "Pickled Corn".into(), description: "Sweet pickled corn kernels.".into(), category: ItemCategory::ArtisanGood, sell_price: 75, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
+
+        // Beverages (Keg outputs)
+        ItemDef { id: "beer".into(), name: "Beer".into(), description: "A refreshing wheat ale.".into(), category: ItemCategory::ArtisanGood, sell_price: 200, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 122 },
+        ItemDef { id: "pale_ale".into(), name: "Pale Ale".into(), description: "A hoppy, golden ale.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 122 },
+        ItemDef { id: "pumpkin_juice".into(), name: "Pumpkin Juice".into(), description: "A smooth, spiced juice.".into(), category: ItemCategory::ArtisanGood, sell_price: 350, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 123 },
+        ItemDef { id: "apple_cider".into(), name: "Apple Cider".into(), description: "Warm, aromatic cider.".into(), category: ItemCategory::ArtisanGood, sell_price: 250, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 123 },
+        ItemDef { id: "mead".into(), name: "Mead".into(), description: "A sweet honey wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 122 },
+        ItemDef { id: "oil".into(), name: "Oil".into(), description: "Cooking oil pressed from plants.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 124 },
+
+        // Other obtainables
+        ItemDef { id: "honey".into(), name: "Honey".into(), description: "Sweet golden honey from a bee house.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 125 },
+        ItemDef { id: "crab".into(), name: "Crab".into(), description: "A small crab caught in a crab pot.".into(), category: ItemCategory::Fish, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 126 },
     ];
 
     for item in items {

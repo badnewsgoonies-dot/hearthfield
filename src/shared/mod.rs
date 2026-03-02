@@ -532,6 +532,11 @@ pub enum AnimalKind {
     Chicken,
     Cow,
     Sheep,
+    Goat,
+    Duck,
+    Rabbit,
+    Pig,
+    Horse,
     Cat,
     Dog,
 }

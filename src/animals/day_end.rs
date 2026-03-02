@@ -227,8 +227,74 @@ pub fn handle_day_end_for_animals(
                             });
                         }
                     }
-                    AnimalKind::Cat | AnimalKind::Dog => {
-                        // Pets are companions only — no harvestable products.
+                    AnimalKind::Goat => {
+                        // Goats produce milk every 2 days.
+                        let days = wool_cd
+                            .map(|c| c.days_since_last_wool)
+                            .unwrap_or(2);
+                        if days >= 2 {
+                            animal.product_ready = true;
+                            commands
+                                .entity(entity)
+                                .insert(PendingProductQuality { quality });
+                            commands.entity(entity).insert(SheepWoolCooldown {
+                                days_since_last_wool: 0,
+                            });
+                        } else {
+                            commands.entity(entity).insert(SheepWoolCooldown {
+                                days_since_last_wool: days + 1,
+                            });
+                        }
+                    }
+                    AnimalKind::Duck => {
+                        // Ducks produce eggs every 2 days.
+                        let days = wool_cd
+                            .map(|c| c.days_since_last_wool)
+                            .unwrap_or(2);
+                        if days >= 2 {
+                            animal.product_ready = true;
+                            commands
+                                .entity(entity)
+                                .insert(PendingProductQuality { quality });
+                            commands.entity(entity).insert(SheepWoolCooldown {
+                                days_since_last_wool: 0,
+                            });
+                        } else {
+                            commands.entity(entity).insert(SheepWoolCooldown {
+                                days_since_last_wool: days + 1,
+                            });
+                        }
+                    }
+                    AnimalKind::Rabbit => {
+                        // Rabbits produce rabbit's foot every 4 days.
+                        let days = wool_cd
+                            .map(|c| c.days_since_last_wool)
+                            .unwrap_or(4);
+                        if days >= 4 {
+                            animal.product_ready = true;
+                            commands
+                                .entity(entity)
+                                .insert(PendingProductQuality { quality });
+                            commands.entity(entity).insert(SheepWoolCooldown {
+                                days_since_last_wool: 0,
+                            });
+                        } else {
+                            commands.entity(entity).insert(SheepWoolCooldown {
+                                days_since_last_wool: days + 1,
+                            });
+                        }
+                    }
+                    AnimalKind::Pig => {
+                        // Pigs find truffles daily when outdoors and happy.
+                        if animal.happiness >= 50 {
+                            animal.product_ready = true;
+                            commands
+                                .entity(entity)
+                                .insert(PendingProductQuality { quality });
+                        }
+                    }
+                    AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
+                        // Companions — no harvestable products.
                     }
                 }
             }

@@ -819,6 +819,35 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
             is_cooking: true,
             unlocked_by_default: false, // Learned from NPC: Old Tom (hearts 8)
         },
+
+        // ── Processing Recipes (non-cooking) ──────────────────────────────────
+        Recipe {
+            id: "recipe_wheat_flour".into(),
+            name: "Wheat Flour".into(),
+            ingredients: vec![("wheat".into(), 1)],
+            result: "wheat_flour".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
+        Recipe {
+            id: "recipe_sugar".into(),
+            name: "Sugar".into(),
+            ingredients: vec![("wheat_flour".into(), 1)],
+            result: "sugar".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
+        Recipe {
+            id: "recipe_rice".into(),
+            name: "Rice".into(),
+            ingredients: vec![("wheat".into(), 2)],
+            result: "rice".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
     ];
 
     for recipe in recipes {

@@ -62,9 +62,13 @@ pub fn handle_product_collection(
             AnimalKind::Chicken => ("egg", "Egg"),
             AnimalKind::Cow => ("milk", "Milk"),
             AnimalKind::Sheep => ("wool", "Wool"),
-            // Cats and dogs are pets — they have no harvestable product.
-            // product_ready should never be true for pets, but guard anyway.
-            _ => continue,
+            AnimalKind::Goat => ("goat_milk", "Goat Milk"),
+            AnimalKind::Duck => ("duck_egg", "Duck Egg"),
+            AnimalKind::Rabbit => ("rabbit_foot", "Rabbit's Foot"),
+            AnimalKind::Pig => ("truffle", "Truffle"),
+            // Cats, dogs, and horses are companions — no harvestable product.
+            // product_ready should never be true for these, but guard anyway.
+            AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => continue,
         };
 
         // Read the quality that was decided at day-end; fall back to Normal if
@@ -118,6 +122,10 @@ pub fn handle_product_collection(
             AnimalKind::Chicken => "Got Egg!",
             AnimalKind::Cow => "Got Milk!",
             AnimalKind::Sheep => "Got Wool!",
+            AnimalKind::Goat => "Got Goat Milk!",
+            AnimalKind::Duck => "Got Duck Egg!",
+            AnimalKind::Rabbit => "Got Rabbit's Foot!",
+            AnimalKind::Pig => "Found Truffle!",
             _ => "Collected!",
         };
 
@@ -194,9 +202,13 @@ pub fn update_product_indicators(
         // but here we show what *kind* of product is available (not quality,
         // since quality is only revealed on collection).
         let color = match animal.kind {
-            AnimalKind::Chicken => Color::srgb(1.0, 1.0, 0.5), // yellow — egg
-            AnimalKind::Cow => Color::srgb(1.0, 1.0, 1.0),     // white — milk
-            AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),   // pale blue — wool
+            AnimalKind::Chicken => Color::srgb(1.0, 1.0, 0.5),   // yellow — egg
+            AnimalKind::Cow => Color::srgb(1.0, 1.0, 1.0),       // white — milk
+            AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),     // pale blue — wool
+            AnimalKind::Goat => Color::srgb(0.95, 0.9, 0.8),     // cream — goat milk
+            AnimalKind::Duck => Color::srgb(0.7, 0.9, 0.7),      // soft green — duck egg
+            AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),    // lavender — foot
+            AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),      // brown — truffle
             _ => Color::srgb(1.0, 1.0, 1.0),
         };
 

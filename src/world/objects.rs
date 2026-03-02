@@ -260,10 +260,10 @@ impl WorldObjectKind {
     /// - Bush: 2 fiber + seasonal berry
     pub fn drops(self) -> Vec<(&'static str, u8)> {
         match self {
-            WorldObjectKind::Tree => vec![("wood", 4), ("tree_seed", 1)],
-            WorldObjectKind::Stump => vec![("hardwood", 2)],
-            WorldObjectKind::Log => vec![("hardwood", 4)],
-            WorldObjectKind::Bush => vec![("fiber", 2), ("wild_berry", 1)],
+            WorldObjectKind::Tree => vec![("wood", 4), ("sap", 2), ("hardwood", 1), ("tree_seed", 1)],
+            WorldObjectKind::Stump => vec![("hardwood", 2), ("sap", 1)],
+            WorldObjectKind::Log => vec![("hardwood", 4), ("sap", 1)],
+            WorldObjectKind::Bush => vec![("fiber", 3), ("wild_berry", 1)],
             WorldObjectKind::Rock => vec![("stone", 3), ("copper_ore", 1)],
             WorldObjectKind::LargeRock => vec![("stone", 5), ("copper_ore", 2), ("geode", 1)],
         }

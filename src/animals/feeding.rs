@@ -44,8 +44,9 @@ pub fn handle_feed_trough_interact(
             if !matches!(
                 animal.kind,
                 AnimalKind::Chicken | AnimalKind::Cow | AnimalKind::Sheep
+                    | AnimalKind::Goat | AnimalKind::Duck | AnimalKind::Rabbit | AnimalKind::Pig
             ) {
-                // Pets (Cat, Dog) eat on their own and do not need hay.
+                // Companions (Cat, Dog, Horse) don't need hay.
                 continue;
             }
 

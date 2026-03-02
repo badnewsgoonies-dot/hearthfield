@@ -95,10 +95,14 @@ fn enemy_loot(kind: MineEnemy) -> (String, u8) {
     match kind {
         MineEnemy::GreenSlime => {
             let roll: f64 = rng.gen();
-            if roll < 0.3 {
+            if roll < 0.25 {
+                ("slime".to_string(), rng.gen_range(1..=3))
+            } else if roll < 0.45 {
                 ("slime_jelly".to_string(), rng.gen_range(1..=2))
-            } else if roll < 0.5 {
+            } else if roll < 0.6 {
                 ("copper_ore".to_string(), 1)
+            } else if roll < 0.75 {
+                ("sap".to_string(), rng.gen_range(1..=2))
             } else {
                 ("stone".to_string(), rng.gen_range(1..=3))
             }

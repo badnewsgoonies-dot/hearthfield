@@ -13,6 +13,11 @@ pub enum MachineType {
     Loom,
     Keg,
     OilMaker,
+    MayonnaiseMachine,
+    Tapper,
+    BeeHouse,
+    RecyclingMachine,
+    CrabPot,
 }
 
 impl MachineType {
@@ -25,6 +30,11 @@ impl MachineType {
             MachineType::Loom => 24.0,
             MachineType::Keg => 72.0,
             MachineType::OilMaker => 24.0,
+            MachineType::MayonnaiseMachine => 24.0,
+            MachineType::Tapper => 168.0,       // 7 days × 24h
+            MachineType::BeeHouse => 96.0,      // 4 days × 24h
+            MachineType::RecyclingMachine => 24.0,
+            MachineType::CrabPot => 24.0,
         }
     }
 
@@ -36,6 +46,11 @@ impl MachineType {
             MachineType::Loom => "Loom",
             MachineType::Keg => "Keg",
             MachineType::OilMaker => "Oil Maker",
+            MachineType::MayonnaiseMachine => "Mayonnaise Machine",
+            MachineType::Tapper => "Tapper",
+            MachineType::BeeHouse => "Bee House",
+            MachineType::RecyclingMachine => "Recycling Machine",
+            MachineType::CrabPot => "Crab Pot",
         }
     }
 }
@@ -49,6 +64,11 @@ fn machine_atlas_index(machine_type: MachineType) -> usize {
         MachineType::CheesePress => 25,
         MachineType::Loom => 26,
         MachineType::OilMaker => 19,
+        MachineType::MayonnaiseMachine => 20,
+        MachineType::Tapper => 21,
+        MachineType::BeeHouse => 27,
+        MachineType::RecyclingMachine => 28,
+        MachineType::CrabPot => 29,
     }
 }
 
@@ -97,6 +117,7 @@ pub fn resolve_machine_output(machine: MachineType, input: &str) -> Option<(Item
             "copper_ore" => Some(("copper_bar".to_string(), 1)),
             "iron_ore"   => Some(("iron_bar".to_string(), 1)),
             "gold_ore"   => Some(("gold_bar".to_string(), 1)),
+            "iridium_ore" => Some(("iridium_bar".to_string(), 1)),
             "coal"       => Some(("coal".to_string(), 1)), // passthrough (no-op but valid)
             "quartz"     => Some(("refined_quartz".to_string(), 1)),
             _            => None,
@@ -148,6 +169,37 @@ pub fn resolve_machine_output(machine: MachineType, input: &str) -> Option<(Item
             "truffle"   => Some(("truffle_oil".to_string(), 1)),
             _           => None,
         },
+        MachineType::MayonnaiseMachine => match input {
+            "egg"       => Some(("mayonnaise".to_string(), 1)),
+            "large_egg" => Some(("mayonnaise".to_string(), 2)),
+            "duck_egg"  => Some(("mayonnaise".to_string(), 2)),
+            _           => None,
+        },
+        MachineType::Tapper => match input {
+            // Tapper outputs are time-based, not input-based.
+            // For the machine system, just accept sap as a "prime" input.
+            "sap"       => Some(("maple_syrup".to_string(), 1)),
+            "hardwood"  => Some(("oak_resin".to_string(), 1)),
+            "wood"      => Some(("pine_tar".to_string(), 1)),
+            _           => None,
+        },
+        MachineType::BeeHouse => match input {
+            // Bee houses produce honey without specific input.
+            "honey"     => Some(("honey".to_string(), 1)),
+            _           => Some(("honey".to_string(), 1)),
+        },
+        MachineType::RecyclingMachine => match input {
+            "trash"     => Some(("stone".to_string(), 3)),
+            "driftwood" => Some(("wood".to_string(), 3)),
+            "old_glasses" => Some(("refined_quartz".to_string(), 1)),
+            "newspaper" => Some(("cloth".to_string(), 1)),
+            _           => None,
+        },
+        MachineType::CrabPot => match input {
+            // Crab pots use bait and produce random shellfish.
+            "bait"      => Some(("crab".to_string(), 1)),
+            _           => None,
+        },
     }
 }
 
@@ -185,13 +237,18 @@ pub struct CollectMachineOutputEvent {
 /// the item is not a placeable machine.
 pub fn item_to_machine_type(item_id: &str) -> Option<MachineType> {
     match item_id {
-        "furnace"      => Some(MachineType::Furnace),
-        "preserves_jar" => Some(MachineType::PreservesJar),
-        "cheese_press" => Some(MachineType::CheesePress),
-        "loom"         => Some(MachineType::Loom),
-        "keg"          => Some(MachineType::Keg),
-        "oil_maker"    => Some(MachineType::OilMaker),
-        _              => None,
+        "furnace"             => Some(MachineType::Furnace),
+        "preserves_jar"       => Some(MachineType::PreservesJar),
+        "cheese_press"        => Some(MachineType::CheesePress),
+        "loom"                => Some(MachineType::Loom),
+        "keg"                 => Some(MachineType::Keg),
+        "oil_maker"           => Some(MachineType::OilMaker),
+        "mayonnaise_machine"  => Some(MachineType::MayonnaiseMachine),
+        "tapper"              => Some(MachineType::Tapper),
+        "bee_house"           => Some(MachineType::BeeHouse),
+        "recycling_machine"   => Some(MachineType::RecyclingMachine),
+        "crab_pot"            => Some(MachineType::CrabPot),
+        _                     => None,
     }
 }
 
