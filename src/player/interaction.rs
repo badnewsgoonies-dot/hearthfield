@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use crate::shared::*;
-use crate::world::TransitionZone;
 use super::CollisionMap;
 
 // Default energy restored by an edible item when no registry entry is found.

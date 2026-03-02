@@ -434,7 +434,12 @@ impl FishingMinigameState {
             // Too short to be meaningful — don't award perfect bonus
             return false;
         }
-        let ratio = self.overlap_time_total / self.minigame_total_time;
+        let total_time = self.minigame_total_time;
+        let ratio = if total_time > 0.0 {
+            self.overlap_time_total / total_time
+        } else {
+            0.0
+        };
         ratio >= 0.90
     }
 }

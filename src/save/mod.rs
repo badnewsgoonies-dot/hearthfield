@@ -11,6 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::shared::*;
 use crate::economy::buildings::BuildingLevels;
+use crate::shared::ShippingLog;
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC TYPES
@@ -163,6 +164,7 @@ struct ExtendedResources<'w> {
     pub tutorial_state: Res<'w, TutorialState>,
     pub play_stats: Res<'w, PlayStats>,
     pub building_levels: Res<'w, BuildingLevels>,
+    pub shipping_log: Res<'w, ShippingLog>,
 }
 
 /// Mutable bundle of the extended resources (for loading / new game).
@@ -179,6 +181,7 @@ struct ExtendedResourcesMut<'w> {
     pub tutorial_state: ResMut<'w, TutorialState>,
     pub play_stats: ResMut<'w, PlayStats>,
     pub building_levels: ResMut<'w, BuildingLevels>,
+    pub shipping_log: ResMut<'w, ShippingLog>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -315,6 +318,8 @@ struct FullSaveFile {
     pub play_stats: PlayStats,
     #[serde(default)]
     pub building_levels: BuildingLevels,
+    #[serde(default)]
+    pub shipping_log: ShippingLog,
 }
 
 impl FullSaveFile {
@@ -361,6 +366,7 @@ fn write_save(
     tutorial_state: &TutorialState,
     play_stats: &PlayStats,
     building_levels: &BuildingLevels,
+    shipping_log: &ShippingLog,
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
 
@@ -392,6 +398,7 @@ fn write_save(
         tutorial_state: tutorial_state.clone(),
         play_stats: play_stats.clone(),
         building_levels: building_levels.clone(),
+        shipping_log: shipping_log.clone(),
     };
 
     let json =
@@ -437,6 +444,7 @@ fn write_save(
     _tutorial_state: &TutorialState,
     _play_stats: &PlayStats,
     _building_levels: &BuildingLevels,
+    _shipping_log: &ShippingLog,
 ) -> Result<(), String> {
     Ok(())
 }
@@ -588,6 +596,7 @@ fn handle_save_request(
             &ext.tutorial_state,
             &ext.play_stats,
             &ext.building_levels,
+            &ext.shipping_log,
         ) {
             Ok(()) => {
                 info!("Save to slot {} succeeded.", slot);
@@ -671,6 +680,7 @@ fn handle_load_request(
                 *ext.tutorial_state = file.tutorial_state;
                 *ext.play_stats = file.play_stats;
                 *ext.building_levels = file.building_levels;
+                *ext.shipping_log = file.shipping_log;
 
                 info!("Load from slot {} succeeded.", slot);
                 complete_events.send(LoadCompleteEvent {
@@ -740,6 +750,7 @@ fn handle_new_game(
         *ext.tutorial_state = TutorialState::default();
         *ext.play_stats = PlayStats::default();
         *ext.building_levels = BuildingLevels::default();
+        *ext.shipping_log = ShippingLog::default();
 
         // Starter seeds — enough for one small plot on Day 1
         inventory.try_add("turnip_seeds", 15, 99);

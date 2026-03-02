@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use crate::npcs::spawning::NpcSpriteData;
-use crate::npcs::definitions::{npc_color, npc_sprite_file};
+use crate::npcs::definitions::npc_sprite_file;
 use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
