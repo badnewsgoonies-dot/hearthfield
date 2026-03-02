@@ -13,69 +13,86 @@ use rand::Rng;
 // Quest template pools — used by post_daily_quests to generate variety
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Delivery quest templates: (item_id, quantity_range, base_gold, title_prefix)
-const DELIVER_TEMPLATES: &[(&str, u8, u8, u32, &str)] = &[
-    ("wood", 5, 15, 150, "Lumber Delivery"),
-    ("stone", 5, 10, 120, "Stone Shipment"),
-    ("iron_ore", 3, 8, 200, "Iron Needed"),
-    ("copper_ore", 3, 8, 160, "Copper Request"),
-    ("gold_ore", 2, 5, 300, "Gold Rush"),
-    ("coal", 3, 8, 140, "Coal for Winter"),
-    ("fiber", 5, 15, 100, "Fiber Collection"),
-    ("hardwood", 3, 8, 250, "Hardwood Wanted"),
-    ("clay", 3, 8, 130, "Clay Gathering"),
-    ("sap", 5, 10, 110, "Sap Harvest"),
+#[derive(Clone, Copy)]
+enum RewardTier {
+    Early,
+    Mid,
+    Late,
+}
+
+/// Delivery quest templates: (item_id, quantity_range, base_gold, tier, title_prefix)
+const DELIVER_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
+    ("wood", 5, 15, 120, RewardTier::Early, "Lumber Delivery"),
+    ("stone", 5, 10, 130, RewardTier::Early, "Stone Shipment"),
+    ("fiber", 5, 15, 110, RewardTier::Early, "Fiber Collection"),
+    ("sap", 5, 10, 140, RewardTier::Early, "Sap Harvest"),
+    ("copper_ore", 3, 8, 260, RewardTier::Mid, "Copper Request"),
+    ("coal", 3, 8, 280, RewardTier::Mid, "Coal for Winter"),
+    ("iron_ore", 3, 8, 320, RewardTier::Mid, "Iron Needed"),
+    ("hardwood", 3, 8, 360, RewardTier::Mid, "Hardwood Wanted"),
+    ("gold_ore", 2, 5, 520, RewardTier::Late, "Gold Rush"),
+    ("diamond", 1, 2, 600, RewardTier::Late, "Precious Delivery"),
 ];
 
-/// Harvest quest templates: (crop_id, quantity_range, base_gold, title_prefix)
-const HARVEST_TEMPLATES: &[(&str, u8, u8, u32, &str)] = &[
-    ("turnip", 3, 8, 180, "Turnip Harvest"),
-    ("potato", 3, 6, 200, "Potato Bounty"),
-    ("strawberry", 2, 5, 250, "Strawberry Picking"),
-    ("tomato", 3, 6, 220, "Tomato Request"),
-    ("melon", 1, 3, 300, "Melon Delivery"),
-    ("pumpkin", 1, 3, 350, "Pumpkin Order"),
-    ("corn", 3, 6, 200, "Corn Collection"),
-    ("carrot", 3, 8, 170, "Carrot Haul"),
-    ("cabbage", 2, 5, 190, "Cabbage Needed"),
-    ("eggplant", 2, 5, 210, "Eggplant Request"),
+/// Harvest quest templates: (crop_id, quantity_range, base_gold, tier, title_prefix)
+const HARVEST_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
+    ("turnip", 3, 8, 130, RewardTier::Early, "Turnip Harvest"),
+    ("potato", 3, 6, 160, RewardTier::Early, "Potato Bounty"),
+    ("tomato", 3, 6, 170, RewardTier::Early, "Tomato Request"),
+    ("corn", 3, 6, 180, RewardTier::Early, "Corn Collection"),
+    ("strawberry", 2, 5, 320, RewardTier::Mid, "Strawberry Picking"),
+    ("eggplant", 2, 5, 340, RewardTier::Mid, "Eggplant Request"),
+    ("cauliflower", 2, 4, 360, RewardTier::Mid, "Cauliflower Needed"),
+    ("melon", 1, 3, 520, RewardTier::Late, "Melon Delivery"),
+    ("pumpkin", 1, 3, 560, RewardTier::Late, "Pumpkin Order"),
+    ("cranberry", 3, 6, 540, RewardTier::Late, "Cranberry Harvest"),
 ];
 
-/// Fish quest templates: (fish_id, base_gold, title_prefix)
-const CATCH_TEMPLATES: &[(&str, u32, &str)] = &[
-    ("bass", 200, "Bass Bounty"),
-    ("trout", 220, "Trout Wanted"),
-    ("salmon", 280, "Salmon Run"),
-    ("catfish", 250, "Catfish Challenge"),
-    ("carp", 180, "Carp Request"),
-    ("perch", 190, "Perch Hunt"),
-    ("pike", 300, "Pike Quest"),
-    ("sturgeon", 400, "Sturgeon Search"),
-    ("eel", 350, "Eel Expedition"),
-    ("sunfish", 160, "Sunfish Catch"),
+/// Fish quest templates: (fish_id, base_gold, tier, title_prefix)
+const CATCH_TEMPLATES: &[(&str, u32, RewardTier, &str)] = &[
+    ("bass", 130, RewardTier::Early, "Bass Bounty"),
+    ("trout", 150, RewardTier::Early, "Trout Wanted"),
+    ("carp", 140, RewardTier::Early, "Carp Request"),
+    ("perch", 160, RewardTier::Early, "Perch Hunt"),
+    ("herring", 170, RewardTier::Early, "Herring Catch"),
+    ("salmon", 320, RewardTier::Mid, "Salmon Run"),
+    ("catfish", 340, RewardTier::Mid, "Catfish Challenge"),
+    ("pike", 360, RewardTier::Mid, "Pike Quest"),
+    ("eel", 380, RewardTier::Mid, "Eel Expedition"),
+    ("tuna", 420, RewardTier::Mid, "Tuna Search"),
+    ("sturgeon", 560, RewardTier::Late, "Sturgeon Search"),
+    ("swordfish", 650, RewardTier::Late, "Swordfish Hunt"),
+    ("anglerfish", 720, RewardTier::Late, "Abyssal Catch"),
 ];
 
-/// Mine quest templates: (item_id, quantity_range, base_gold, title_prefix)
-const MINE_TEMPLATES: &[(&str, u8, u8, u32, &str)] = &[
-    ("iron_ore", 3, 10, 200, "Mining: Iron"),
-    ("copper_ore", 3, 10, 160, "Mining: Copper"),
-    ("gold_ore", 2, 5, 350, "Mining: Gold"),
-    ("amethyst", 1, 3, 400, "Gem Hunt: Amethyst"),
-    ("topaz", 1, 3, 380, "Gem Hunt: Topaz"),
-    ("emerald", 1, 2, 500, "Gem Hunt: Emerald"),
-    ("ruby", 1, 2, 550, "Gem Hunt: Ruby"),
-    ("diamond", 1, 1, 750, "Gem Hunt: Diamond"),
-    ("quartz", 2, 5, 250, "Quartz Collection"),
-    ("coal", 5, 12, 180, "Coal Expedition"),
+/// Mine quest templates: (item_id, quantity_range, base_gold, tier, title_prefix)
+const MINE_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
+    ("copper_ore", 3, 10, 150, RewardTier::Early, "Mining: Copper"),
+    ("iron_ore", 3, 10, 180, RewardTier::Early, "Mining: Iron"),
+    ("coal", 5, 12, 140, RewardTier::Early, "Coal Expedition"),
+    ("quartz", 2, 5, 170, RewardTier::Early, "Quartz Collection"),
+    ("gold_ore", 2, 5, 330, RewardTier::Mid, "Mining: Gold"),
+    ("amethyst", 1, 3, 380, RewardTier::Mid, "Gem Hunt: Amethyst"),
+    ("emerald", 1, 2, 460, RewardTier::Mid, "Gem Hunt: Emerald"),
+    ("ruby", 1, 2, 500, RewardTier::Mid, "Gem Hunt: Ruby"),
+    ("diamond", 1, 1, 700, RewardTier::Late, "Gem Hunt: Diamond"),
+    ("gold_bar", 1, 2, 620, RewardTier::Late, "Smelter Contract"),
 ];
 
-/// Monster quest templates: (monster_kind, quantity_range, base_gold, title_prefix)
-const SLAY_TEMPLATES: &[(&str, u8, u8, u32, &str)] = &[
-    ("slime", 5, 12, 250, "Slime Extermination"),
-    ("bat", 3, 8, 200, "Bat Clearing"),
-    ("skeleton", 3, 6, 300, "Skeleton Hunt"),
-    ("ghost", 2, 5, 350, "Ghost Busting"),
-    ("golem", 1, 3, 400, "Golem Smashing"),
+/// Monster quest templates: (monster_kind, quantity_range, base_gold, tier, title_prefix)
+const SLAY_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
+    ("slime", 5, 12, 160, RewardTier::Early, "Slime Extermination"),
+    ("bat", 3, 8, 180, RewardTier::Early, "Bat Clearing"),
+    ("skeleton", 3, 6, 340, RewardTier::Mid, "Skeleton Hunt"),
+    ("ghost", 2, 5, 380, RewardTier::Mid, "Ghost Busting"),
+    ("golem", 1, 3, 560, RewardTier::Late, "Golem Smashing"),
+];
+
+/// Talk quest templates: (title_prefix, tier)
+const TALK_TEMPLATES: &[(&str, RewardTier)] = &[
+    ("Neighbor Check-in", RewardTier::Early),
+    ("Personal Message", RewardTier::Mid),
+    ("Delicate Mediation", RewardTier::Late),
 ];
 
 /// NPC IDs used for Talk quests.
@@ -92,6 +109,123 @@ fn make_quest_id(day: u8, season: &Season, year: u32, index: u8) -> String {
 /// Map a Season to its u8 index for the `accepted_day` tuple.
 fn season_to_idx(season: &Season) -> u8 {
     season.index() as u8
+}
+
+fn reward_bounds(tier: RewardTier) -> (u32, u32) {
+    match tier {
+        RewardTier::Early => (100, 300),
+        RewardTier::Mid => (300, 600),
+        RewardTier::Late => (500, 1000),
+    }
+}
+
+fn scaled_reward(
+    rng: &mut impl Rng,
+    tier: RewardTier,
+    base_gold: u32,
+    quantity: u8,
+    per_unit: u32,
+) -> u32 {
+    let variance = rng.gen_range(0..=80);
+    let raw = base_gold + (quantity as u32) * per_unit + variance;
+    let (min_gold, max_gold) = reward_bounds(tier);
+    raw.clamp(min_gold, max_gold)
+}
+
+fn deliver_description(rng: &mut impl Rng, giver: &str, quantity: u8, item_id: &str) -> String {
+    match rng.gen_range(0..3) {
+        0 => format!(
+            "{} needs {} {}. Bring them to the quest board.",
+            giver, quantity, item_id
+        ),
+        1 => format!(
+            "Supply run: deliver {} {} to {} before dusk.",
+            quantity, item_id, giver
+        ),
+        _ => format!(
+            "{} posted an order for {} {}. Drop them off at town hall.",
+            giver, quantity, item_id
+        ),
+    }
+}
+
+fn harvest_description(rng: &mut impl Rng, giver: &str, quantity: u8, crop_id: &str) -> String {
+    match rng.gen_range(0..3) {
+        0 => format!(
+            "{} is looking for {} freshly harvested {}.",
+            giver, quantity, crop_id
+        ),
+        1 => format!(
+            "{} asked for a farmer's bundle: {} {} picked today.",
+            giver, quantity, crop_id
+        ),
+        _ => format!(
+            "Festival prep request from {}: bring {} ripe {}.",
+            giver, quantity, crop_id
+        ),
+    }
+}
+
+fn catch_description(rng: &mut impl Rng, giver: &str, fish_id: &str) -> String {
+    match rng.gen_range(0..3) {
+        0 => format!("{} wants a fresh {}. Cast your line!", giver, fish_id),
+        1 => format!(
+            "{} needs one {} for tonight's meal. Deliver it while it's fresh.",
+            giver, fish_id
+        ),
+        _ => format!(
+            "Fishing order from {}: catch and deliver a {}.",
+            giver, fish_id
+        ),
+    }
+}
+
+fn mine_description(rng: &mut impl Rng, giver: &str, quantity: u8, item_id: &str) -> String {
+    match rng.gen_range(0..3) {
+        0 => format!("{} needs {} {} from the mines.", giver, quantity, item_id),
+        1 => format!(
+            "Mine contract for {}: extract {} {} and report back.",
+            giver, quantity, item_id
+        ),
+        _ => format!(
+            "{} placed a materials order for {} {} from deep levels.",
+            giver, quantity, item_id
+        ),
+    }
+}
+
+fn talk_description(rng: &mut impl Rng, giver: &str, target_npc: &str) -> String {
+    match rng.gen_range(0..3) {
+        0 => format!(
+            "{} wants you to check on {}. Give {} a gift to complete.",
+            giver, target_npc, target_npc
+        ),
+        1 => format!(
+            "{} needs a messenger. Visit {} and offer a gift.",
+            giver, target_npc
+        ),
+        _ => format!(
+            "Please speak with {} on behalf of {} and bring a small gift.",
+            target_npc, giver
+        ),
+    }
+}
+
+fn slay_description(rng: &mut impl Rng, giver: &str, quantity: u8, monster_kind: &str) -> String {
+    match rng.gen_range(0..3) {
+        0 => format!(
+            "{} wants you to defeat {} {}s in the mines.",
+            giver, quantity, monster_kind
+        ),
+        1 => format!(
+            "Safety request from {}: clear out {} {}s underground.",
+            giver, quantity, monster_kind
+        ),
+        _ => format!(
+            "{} posted a bounty on {} {}s. Return when the mine is safer.",
+            giver, quantity, monster_kind
+        ),
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -169,14 +303,11 @@ pub fn post_daily_quests(
                     // Deliver quest
                     let tmpl = &DELIVER_TEMPLATES[rng.gen_range(0..DELIVER_TEMPLATES.len())];
                     let qty = rng.gen_range(tmpl.1..=tmpl.2);
-                    let gold = tmpl.3 + (qty as u32) * 10;
+                    let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 12);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.4, giver),
-                        description: format!(
-                            "{} needs {} {}. Bring them to the quest board.",
-                            giver, qty, tmpl.0
-                        ),
+                        title: format!("{} for {}", tmpl.5, giver),
+                        description: deliver_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Deliver {
                             item_id: tmpl.0.to_string(),
@@ -198,14 +329,11 @@ pub fn post_daily_quests(
                     // Harvest quest
                     let tmpl = &HARVEST_TEMPLATES[rng.gen_range(0..HARVEST_TEMPLATES.len())];
                     let qty = rng.gen_range(tmpl.1..=tmpl.2);
-                    let gold = tmpl.3 + (qty as u32) * 15;
+                    let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 18);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.4, giver),
-                        description: format!(
-                            "{} is looking for {} freshly harvested {}.",
-                            giver, qty, tmpl.0
-                        ),
+                        title: format!("{} for {}", tmpl.5, giver),
+                        description: harvest_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Harvest {
                             crop_id: tmpl.0.to_string(),
@@ -226,14 +354,11 @@ pub fn post_daily_quests(
                 2 => {
                     // Catch fish quest
                     let tmpl = &CATCH_TEMPLATES[rng.gen_range(0..CATCH_TEMPLATES.len())];
-                    let gold = tmpl.1 + rng.gen_range(0..100);
+                    let gold = scaled_reward(&mut rng, tmpl.2, tmpl.1, 1, 20);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.2, giver),
-                        description: format!(
-                            "{} wants a fresh {}. Cast your line!",
-                            giver, tmpl.0
-                        ),
+                        title: format!("{} for {}", tmpl.3, giver),
+                        description: catch_description(&mut rng, &giver, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Catch {
                             fish_id: tmpl.0.to_string(),
@@ -254,14 +379,11 @@ pub fn post_daily_quests(
                     // Mine quest
                     let tmpl = &MINE_TEMPLATES[rng.gen_range(0..MINE_TEMPLATES.len())];
                     let qty = rng.gen_range(tmpl.1..=tmpl.2);
-                    let gold = tmpl.3 + (qty as u32) * 20;
+                    let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 22);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.4, giver),
-                        description: format!(
-                            "{} needs {} {} from the mines.",
-                            giver, qty, tmpl.0
-                        ),
+                        title: format!("{} for {}", tmpl.5, giver),
+                        description: mine_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Mine {
                             item_id: tmpl.0.to_string(),
@@ -294,14 +416,17 @@ pub fn post_daily_quests(
                     } else {
                         npc_names.first().cloned().unwrap_or_else(|| "child_lily".to_string())
                     };
-                    let gold = rng.gen_range(80..=200);
+                    let talk_tmpl = &TALK_TEMPLATES[rng.gen_range(0..TALK_TEMPLATES.len())];
+                    let base_gold = match talk_tmpl.1 {
+                        RewardTier::Early => 120,
+                        RewardTier::Mid => 340,
+                        RewardTier::Late => 580,
+                    };
+                    let gold = scaled_reward(&mut rng, talk_tmpl.1, base_gold, 1, 5);
                     Quest {
                         id: quest_id,
-                        title: format!("Visit {} for {}", target_npc, giver),
-                        description: format!(
-                            "{} wants you to check on {}. Give {} a gift to complete.",
-                            giver, target_npc, target_npc
-                        ),
+                        title: format!("{}: Visit {} for {}", talk_tmpl.0, target_npc, giver),
+                        description: talk_description(&mut rng, &giver, &target_npc),
                         giver: giver.clone(),
                         objective: QuestObjective::Talk {
                             npc_name: target_npc,
@@ -322,14 +447,11 @@ pub fn post_daily_quests(
                     // Slay monsters quest
                     let tmpl = &SLAY_TEMPLATES[rng.gen_range(0..SLAY_TEMPLATES.len())];
                     let qty = rng.gen_range(tmpl.1..=tmpl.2);
-                    let gold = tmpl.3 + (qty as u32) * 25;
+                    let gold = scaled_reward(&mut rng, tmpl.4, tmpl.3, qty, 25);
                     Quest {
                         id: quest_id,
-                        title: format!("{} for {}", tmpl.4, giver),
-                        description: format!(
-                            "{} wants you to defeat {} {}s in the mines.",
-                            giver, qty, tmpl.0
-                        ),
+                        title: format!("{} for {}", tmpl.5, giver),
+                        description: slay_description(&mut rng, &giver, qty, tmpl.0),
                         giver: giver.clone(),
                         objective: QuestObjective::Slay {
                             monster_kind: tmpl.0.to_string(),
