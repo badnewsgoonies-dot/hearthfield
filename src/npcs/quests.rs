@@ -646,10 +646,10 @@ pub fn handle_quest_completed(
         if let Some(idx) = quest_index {
             let quest = quest_log.active.remove(idx);
 
-            // Award gold
-            if quest.reward_gold > 0 {
+            // Award gold (use the amount carried by the event, set at completion time)
+            if event.reward_gold > 0 {
                 gold_writer.send(GoldChangeEvent {
-                    amount: quest.reward_gold as i32,
+                    amount: event.reward_gold as i32,
                     reason: format!("Quest completed: {}", quest.title),
                 });
             }
@@ -671,7 +671,7 @@ pub fn handle_quest_completed(
             toast_writer.send(ToastEvent {
                 message: format!(
                     "Quest complete: {}! +{}g",
-                    quest.title, quest.reward_gold
+                    quest.title, event.reward_gold
                 ),
                 duration_secs: 4.0,
             });

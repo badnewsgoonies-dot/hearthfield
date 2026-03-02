@@ -1257,7 +1257,6 @@ pub struct QuestAcceptedEvent {
 #[derive(Event, Debug, Clone)]
 pub struct QuestCompletedEvent {
     pub quest_id: String,
-    #[allow(dead_code)]
     pub reward_gold: u32,
 }
 
