@@ -11,7 +11,6 @@ use super::hud::ItemAtlasData;
 pub struct InventoryScreenRoot;
 
 #[derive(Component)]
-#[allow(dead_code)]
 pub struct InventoryGridSlot {
     pub index: usize,
 }

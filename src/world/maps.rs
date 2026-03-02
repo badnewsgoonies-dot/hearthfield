@@ -7,7 +7,6 @@ use crate::shared::*;
 
 /// Complete definition of a game map.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct MapDef {
     pub id: MapId,
     pub width: usize,

@@ -38,7 +38,6 @@ const HINTS: &[HintDef] = &[
 // HELPER — check if a crop is fully grown
 // ═══════════════════════════════════════════════════════════════════════
 
-#[allow(dead_code)]
 fn is_crop_ready(crop_tile: &CropTile, crop_registry: &CropRegistry) -> bool {
     if crop_tile.dead {
         return false;

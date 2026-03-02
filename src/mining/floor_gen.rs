@@ -14,7 +14,6 @@ pub const MINE_HEIGHT: i32 = 24;
 
 /// Describes a single generated floor before it is spawned into the ECS.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct FloorBlueprint {
     pub floor: u8,
     pub rocks: Vec<RockBlueprint>,

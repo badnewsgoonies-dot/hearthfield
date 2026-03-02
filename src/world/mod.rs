@@ -461,7 +461,6 @@ pub struct MapTile;
 
 /// Marker component for transition zone entities.
 #[derive(Component, Debug)]
-#[allow(dead_code)]
 pub struct TransitionZone {
     pub to_map: MapId,
     pub to_x: i32,

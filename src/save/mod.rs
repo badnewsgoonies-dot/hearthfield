@@ -17,7 +17,6 @@ use crate::shared::ShippingLog;
 // PUBLIC TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
-#[allow(dead_code)]
 pub const SAVE_VERSION: u32 = 2;
 pub const NUM_SAVE_SLOTS: usize = 3;
 
@@ -259,7 +258,6 @@ fn ensure_saves_dir() -> Result<(), std::io::Error> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[allow(dead_code)]
 fn current_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -268,7 +266,6 @@ fn current_timestamp() -> u64 {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[allow(dead_code)]
 fn current_timestamp() -> u64 {
     0
 }

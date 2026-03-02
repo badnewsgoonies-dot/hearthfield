@@ -26,7 +26,6 @@ pub use rendering::*;
 
 /// Marks an entity as the feed-trough object on the farm.
 #[derive(Component, Debug, Clone)]
-#[allow(dead_code)]
 pub struct FeedTrough {
     pub grid_x: i32,
     pub grid_y: i32,

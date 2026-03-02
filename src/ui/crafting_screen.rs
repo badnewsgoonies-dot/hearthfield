@@ -10,7 +10,6 @@ use super::hud::ItemAtlasData;
 pub struct CraftingScreenRoot;
 
 #[derive(Component)]
-#[allow(dead_code)]
 pub struct CraftingRecipeIcon {
     pub index: usize,
 }
