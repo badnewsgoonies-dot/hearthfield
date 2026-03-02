@@ -29,12 +29,26 @@ pub fn handle_feed_trough_interact(
     mut commands: Commands,
     mut removed_events: EventReader<ItemRemovedEvent>,
     mut animal_query: Query<(Entity, &mut Animal, &LogicalPosition)>,
-    _trough_query: Query<&FeedTrough>,
+    trough_query: Query<&FeedTrough>,
+    player_query: Query<&GridPosition, With<Player>>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
+    let Ok(player_gp) = player_query.get_single() else {
+        return;
+    };
+
+    // Check if the player is adjacent (Manhattan distance ≤ 2) to any feed trough.
+    let near_trough = trough_query.iter().any(|trough| {
+        (trough.grid_x - player_gp.x).abs() + (trough.grid_y - player_gp.y).abs() <= 2
+    });
+
     for ev in removed_events.read() {
         if ev.item_id != "hay" {
+            continue;
+        }
+
+        if !near_trough {
             continue;
         }
 

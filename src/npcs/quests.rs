@@ -144,8 +144,8 @@ const TALK_TEMPLATES: &[(&str, RewardTier)] = &[
 
 /// NPC IDs used for Talk quests.
 const TALK_NPCS: &[&str] = &[
-    "mayor_thomas", "elena", "marcus", "dr_iris", "old_pete",
-    "chef_rosa", "miner_gil", "librarian_faye", "farmer_dale", "child_lily",
+    "margaret", "marco", "lily", "old_tom", "elena",
+    "mira", "doc", "mayor_rex", "sam", "nora",
 ];
 
 /// Generates a unique quest ID from day, season, year, and an index.
@@ -770,15 +770,31 @@ pub fn expire_quests(
 pub fn track_monster_slain(
     mut events: EventReader<MonsterSlainEvent>,
     mut quest_log: ResMut<QuestLog>,
+    mut completed_writer: EventWriter<QuestCompletedEvent>,
 ) {
+    let mut newly_completed: Vec<(String, u32)> = Vec::new();
+
     for event in events.read() {
         for quest in quest_log.active.iter_mut() {
             if let QuestObjective::Slay { ref monster_kind, quantity, ref mut slain } = quest.objective {
                 if *monster_kind == event.monster_kind && *slain < *quantity {
                     *slain += 1;
+                    if *slain >= *quantity {
+                        newly_completed.push((quest.id.clone(), quest.reward_gold));
+                    }
                 }
             }
         }
+    }
+
+    newly_completed.sort_by(|a, b| a.0.cmp(&b.0));
+    newly_completed.dedup_by(|a, b| a.0 == b.0);
+
+    for (quest_id, reward_gold) in newly_completed {
+        completed_writer.send(QuestCompletedEvent {
+            quest_id,
+            reward_gold,
+        });
     }
 }
 

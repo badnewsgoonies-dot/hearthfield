@@ -117,10 +117,7 @@ pub fn build_dialogue_lines(
     let is_birthday =
         calendar.season == npc_def.birthday_season && calendar.day == npc_def.birthday_day;
     if is_birthday {
-        lines.push(format!(
-            "Oh! Today is my birthday! I can't believe you remembered, {}!",
-            npc_def.name
-        ));
+        lines.push("Oh! Today is my birthday! I can't believe you remembered!".to_string());
     }
 
     // --- Contextual: weather comment (prepend one line) ---
@@ -303,15 +300,35 @@ fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
             "Long summer evenings mean I can squeeze in one more song before dark.",
         ],
 
+        ("lily", Season::Fall) => &[
+            "Falling leaves make the best crunchy carpet — I could play outside all day!",
+            "The garden goes to sleep for fall, but the colors make everything magical.",
+            "I'm collecting the prettiest leaves I can find. Nature's confetti!",
+        ],
+        ("margaret", Season::Summer) => &[
+            "Summer means berry picking — and berry-filled pastries! The bakery smells incredible.",
+            "Long days are perfect for slow-rise doughs. Heat does half the work for me.",
+            "I'm testing a new summer tart recipe with fresh peaches. Stop by and try one!",
+        ],
         ("margaret", Season::Fall) => &[
             "Fall means pumpkin loaves and cinnamon rolls. My ovens hardly get a break.",
             "Cool air helps my sourdough crust set just right.",
             "Apple season keeps me elbow-deep in pie dough from dawn to closing.",
         ],
+        ("old_tom", Season::Spring) => &[
+            "Spring's when the fish wake up hungry. Best time of year to cast a line.",
+            "Snow melt fills the river fast in spring. The trout love the cold fresh water.",
+            "I'm at the lake before sunrise most spring mornings. Early casts, big catches.",
+        ],
         ("old_tom", Season::Fall) => &[
             "Cooler water, hungry fish. Fall's one of the best times to cast a line.",
             "Autumn wind on the lake means steady bites if you stay patient.",
             "Fish school near the reeds in fall. Cast quiet and let the line drift.",
+        ],
+        ("doc", Season::Summer) => &[
+            "Stay hydrated out there! Heat exhaustion sneaks up on you faster than you'd think.",
+            "My top summer health tip: shade, water, and rest during peak afternoon heat.",
+            "Summer's beautiful, but it's my busiest season for heatstroke cases. Please be careful.",
         ],
         ("doc", Season::Fall) => &[
             "I spend fall preparing medicine stocks now, before winter illnesses arrive.",
@@ -358,6 +375,11 @@ fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
             "Cold season keeps me busy. Stock up on hot soup and rest.",
             "Frost and flu arrive together. Gloves, sleep, and warm tea are good medicine.",
             "If your cough lingers past a week, stop by. Don't wait it out.",
+        ],
+        ("elena", Season::Fall) => &[
+            "Fall harvest means everyone needs tools sharpened before the big push. Busy weeks ahead.",
+            "The leaves turning colors remind me of a forge fire. Reds, oranges, gold — beautiful.",
+            "I love autumn light at the forge. Long shadows and cool air make for clean work.",
         ],
         ("elena", Season::Winter) => &[
             "Quiet at the forge. Good time to practice new techniques.",

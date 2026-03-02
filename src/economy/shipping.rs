@@ -94,6 +94,7 @@ pub fn process_shipping_bin_on_day_end(
     item_registry: Res<ItemRegistry>,
     mut gold_writer: EventWriter<GoldChangeEvent>,
     mut stats: ResMut<EconomyStats>,
+    mut shipping_log: ResMut<ShippingLog>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
@@ -112,9 +113,18 @@ pub fn process_shipping_bin_on_day_end(
                 .map(|def| def.sell_price)
                 .unwrap_or(1); // fallback: 1g for unknown items
 
+            // TODO: Apply ItemQuality::sell_multiplier() here once ShippingBin tracks quality.
+            // InventorySlot (used by ShippingBin) has no quality field; QualityStack does.
+            // To fix: replace ShippingBin.items: Vec<InventorySlot> with Vec<QualityStack>,
+            // update place_in_shipping_bin to preserve quality from the harvested item,
+            // then multiply: (sell_price as f32 * quality.sell_multiplier()) as u32.
             let slot_value = sell_price.saturating_mul(slot.quantity as u32);
             total_value = total_value.saturating_add(slot_value);
             items_shipped += slot.quantity as u64;
+
+            // Record this item_id in the shipping log so evaluation can track unique items shipped.
+            *shipping_log.shipped_items.entry(slot.item_id.clone()).or_insert(0) +=
+                slot.quantity as u32;
 
             sale_details.push(format!(
                 "{} × '{}' = {}g",
@@ -161,6 +171,7 @@ pub fn calculate_bin_value(shipping_bin: &ShippingBin, item_registry: &ItemRegis
                 .get(&slot.item_id)
                 .map(|def| def.sell_price)
                 .unwrap_or(1);
+            // TODO: Apply ItemQuality::sell_multiplier() once ShippingBin uses QualityStack.
             sell_price.saturating_mul(slot.quantity as u32)
         })
         .fold(0u32, |acc, v| acc.saturating_add(v))

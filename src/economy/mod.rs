@@ -20,6 +20,7 @@ pub mod buildings;
 use gold::{apply_gold_changes, EconomyStats};
 use shop::{
     ActiveShop, on_enter_shop, on_exit_shop, refresh_shop_affordability,
+    handle_shop_transaction_gold,
 };
 use shipping::{
     ShipItemEvent, ShippingBinPreview,
@@ -133,6 +134,8 @@ impl Plugin for EconomyPlugin {
                 // Gold changes can also arrive while in the shop
                 // (e.g., from another concurrent event — keep it consistent).
                 apply_gold_changes,
+                // Track buy/sell transactions in EconomyStats and PlayStats via GoldChangeEvent.
+                handle_shop_transaction_gold,
             )
                 .run_if(in_state(GameState::Shop)),
         );

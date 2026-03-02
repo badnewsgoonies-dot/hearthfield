@@ -105,6 +105,29 @@ pub fn on_exit_shop(
     }
 }
 
+/// Converts ShopTransactionEvents into GoldChangeEvents so that
+/// EconomyStats and PlayStats correctly track gold spent/earned in shops.
+/// The shop UI already mutates player.gold directly; this fires the event
+/// alongside that mutation purely for stats tracking.
+pub fn handle_shop_transaction_gold(
+    mut tx_events: EventReader<ShopTransactionEvent>,
+    mut gold_writer: EventWriter<GoldChangeEvent>,
+) {
+    for ev in tx_events.read() {
+        if ev.is_purchase {
+            gold_writer.send(GoldChangeEvent {
+                amount: -(ev.total_cost as i32),
+                reason: format!("shop buy: {}", ev.item_id),
+            });
+        } else {
+            gold_writer.send(GoldChangeEvent {
+                amount: ev.total_cost as i32,
+                reason: format!("shop sell: {}", ev.item_id),
+            });
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
