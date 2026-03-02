@@ -1464,6 +1464,7 @@ pub enum InteractionKind {
     CraftingBench,
     Machine,
     BuildingUpgrade,
+    Bed,
 }
 
 /// Marker component for entities the player can interact with via F key.

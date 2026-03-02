@@ -288,8 +288,8 @@ pub fn handle_day_end(
         // Restore health fully.
         player_state.health = player_state.max_health;
 
-        let bed_gx = 5;
-        let bed_gy = 8;
+        let bed_gx = 12;
+        let bed_gy = 4;
 
         // Send MapTransitionEvent so the world domain loads PlayerHouse tiles.
         if player_state.current_map != MapId::PlayerHouse {

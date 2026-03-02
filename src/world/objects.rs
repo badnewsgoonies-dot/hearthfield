@@ -1619,4 +1619,19 @@ pub fn spawn_interior_decorations(
             ));
         }
     }
+
+    // Spawn bed interactable for PlayerHouse
+    if player_state.current_map == MapId::PlayerHouse {
+        let bed_wc = grid_to_world_center(12, 2);
+        commands.spawn((
+            InteriorDecoration,
+            WorldObject,
+            Interactable {
+                kind: InteractionKind::Bed,
+                label: "Bed - Press F to Sleep".into(),
+            },
+            Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
+            Visibility::default(),
+        ));
+    }
 }

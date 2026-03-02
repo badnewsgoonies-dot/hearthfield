@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use crate::shared::*;
 use super::{PlayerSpriteData, ActionSpriteData, DistanceAnimator};
 
-/// Starting grid position on the farm (roughly center of the farmable area).
-const SPAWN_GRID_X: i32 = 10;
-const SPAWN_GRID_Y: i32 = 10;
+/// Starting grid position inside the player's house (center of living room).
+const SPAWN_GRID_X: i32 = 8;
+const SPAWN_GRID_Y: i32 = 8;
 
 /// Spawn the player entity with all necessary components.
 /// Runs once on `OnEnter(GameState::Playing)`.
@@ -15,11 +15,14 @@ pub fn spawn_player(
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut sprite_data: ResMut<PlayerSpriteData>,
     mut action_data: ResMut<ActionSpriteData>,
+    mut player_state: ResMut<PlayerState>,
 ) {
     // Guard: don't double-spawn if returning to Playing state.
     if !existing.is_empty() {
         return;
     }
+
+    player_state.current_map = MapId::PlayerHouse;
 
     let spawn = grid_to_world_center(SPAWN_GRID_X, SPAWN_GRID_Y);
     let world_x = spawn.x;
