@@ -279,6 +279,10 @@ pub struct PlayerState {
     pub tools: HashMap<ToolKind, ToolTier>,
     pub gold: u32,
     pub current_map: MapId,
+    #[serde(default)]
+    pub save_grid_x: i32,
+    #[serde(default)]
+    pub save_grid_y: i32,
 }
 
 impl Default for PlayerState {
@@ -300,6 +304,8 @@ impl Default for PlayerState {
             tools,
             gold: 500,
             current_map: MapId::PlayerHouse,
+            save_grid_x: 8,
+            save_grid_y: 8,
         }
     }
 }

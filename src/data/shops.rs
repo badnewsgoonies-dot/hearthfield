@@ -167,6 +167,41 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 2_000,
             season_available: None,
         },
+        ShopListing {
+            item_id: "animal_goat".into(),
+            price: 2_000,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "animal_duck".into(),
+            price: 1_200,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "animal_rabbit".into(),
+            price: 4_000,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "animal_pig".into(),
+            price: 8_000,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "animal_horse".into(),
+            price: 10_000,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "animal_cat".into(),
+            price: 500,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "animal_dog".into(),
+            price: 500,
+            season_available: None,
+        },
 
         // ── Buildings ─────────────────────────────────────────────
         // Coop: required before buying chickens

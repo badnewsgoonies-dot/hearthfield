@@ -167,6 +167,8 @@ struct ExtendedResources<'w> {
     pub shipping_log: Res<'w, ShippingLog>,
     pub fish_encyclopedia: Res<'w, crate::fishing::FishEncyclopedia>,
     pub fishing_skill: Res<'w, crate::fishing::skill::FishingSkill>,
+    pub harvest_stats: Res<'w, crate::economy::stats::HarvestStats>,
+    pub animal_product_stats: Res<'w, crate::economy::stats::AnimalProductStats>,
 }
 
 /// Mutable bundle of the extended resources (for loading / new game).
@@ -186,6 +188,8 @@ struct ExtendedResourcesMut<'w> {
     pub shipping_log: ResMut<'w, ShippingLog>,
     pub fish_encyclopedia: ResMut<'w, crate::fishing::FishEncyclopedia>,
     pub fishing_skill: ResMut<'w, crate::fishing::skill::FishingSkill>,
+    pub harvest_stats: ResMut<'w, crate::economy::stats::HarvestStats>,
+    pub animal_product_stats: ResMut<'w, crate::economy::stats::AnimalProductStats>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -326,6 +330,10 @@ struct FullSaveFile {
     pub fish_encyclopedia: crate::fishing::FishEncyclopedia,
     #[serde(default)]
     pub fishing_skill: crate::fishing::skill::FishingSkill,
+    #[serde(default)]
+    pub harvest_stats: crate::economy::stats::HarvestStats,
+    #[serde(default)]
+    pub animal_product_stats: crate::economy::stats::AnimalProductStats,
 }
 
 impl FullSaveFile {
@@ -375,6 +383,8 @@ fn write_save(
     shipping_log: &ShippingLog,
     fish_encyclopedia: &crate::fishing::FishEncyclopedia,
     fishing_skill: &crate::fishing::skill::FishingSkill,
+    harvest_stats: &crate::economy::stats::HarvestStats,
+    animal_product_stats: &crate::economy::stats::AnimalProductStats,
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
 
@@ -409,6 +419,8 @@ fn write_save(
         shipping_log: shipping_log.clone(),
         fish_encyclopedia: fish_encyclopedia.clone(),
         fishing_skill: fishing_skill.clone(),
+        harvest_stats: harvest_stats.clone(),
+        animal_product_stats: animal_product_stats.clone(),
     };
 
     let json =
@@ -457,6 +469,8 @@ fn write_save(
     _shipping_log: &ShippingLog,
     _fish_encyclopedia: &crate::fishing::FishEncyclopedia,
     _fishing_skill: &crate::fishing::skill::FishingSkill,
+    _harvest_stats: &crate::economy::stats::HarvestStats,
+    _animal_product_stats: &crate::economy::stats::AnimalProductStats,
 ) -> Result<(), String> {
     Ok(())
 }
@@ -568,7 +582,7 @@ fn handle_save_request(
     mut cache: ResMut<SaveSlotInfoCache>,
     mut active_slot: ResMut<ActiveSaveSlot>,
     calendar: Res<Calendar>,
-    player_state: Res<PlayerState>,
+    mut player_state: ResMut<PlayerState>,
     inventory: Res<Inventory>,
     farm_state: Res<FarmState>,
     animal_state: Res<AnimalState>,
@@ -578,10 +592,17 @@ fn handle_save_request(
     shipping_bin: Res<ShippingBin>,
     statistics: Res<GameStatistics>,
     ext: ExtendedResources,
+    player_grid_q: Query<&GridPosition, With<Player>>,
 ) {
     for ev in save_events.read() {
         let slot = ev.slot;
         active_slot.slot = slot;
+
+        // Sync player grid position into PlayerState before serializing
+        if let Ok(gp) = player_grid_q.get_single() {
+            player_state.save_grid_x = gp.x;
+            player_state.save_grid_y = gp.y;
+        }
 
         info!("Saving to slot {}...", slot);
 
@@ -611,6 +632,8 @@ fn handle_save_request(
             &ext.shipping_log,
             &ext.fish_encyclopedia,
             &ext.fishing_skill,
+            &ext.harvest_stats,
+            &ext.animal_product_stats,
         ) {
             Ok(()) => {
                 info!("Save to slot {} succeeded.", slot);
@@ -699,17 +722,15 @@ fn handle_load_request(
                 *ext.shipping_log = file.shipping_log;
                 *ext.fish_encyclopedia = file.fish_encyclopedia;
                 *ext.fishing_skill = file.fishing_skill;
+                *ext.harvest_stats = file.harvest_stats;
+                *ext.animal_product_stats = file.animal_product_stats;
 
                 // Force the world to reload the correct map after restoring state.
                 // Invalidate CurrentMapId so handle_map_transition doesn't skip
                 // the reload when the player was already on this map.
                 current_map_id.map_id = MapId::Mine; // dummy value to force mismatch
-                let (spawn_x, spawn_y) = match player_state.current_map {
-                    MapId::PlayerHouse => (8, 8),
-                    MapId::Farm => (16, 4),
-                    MapId::Town => (14, 10),
-                    _ => (8, 8),
-                };
+                let spawn_x = player_state.save_grid_x;
+                let spawn_y = player_state.save_grid_y;
                 map_events.send(MapTransitionEvent {
                     to_map: player_state.current_map,
                     to_x: spawn_x,
@@ -787,6 +808,8 @@ fn handle_new_game(
         *ext.shipping_log = ShippingLog::default();
         *ext.fish_encyclopedia = crate::fishing::FishEncyclopedia::default();
         *ext.fishing_skill = crate::fishing::skill::FishingSkill::default();
+        *ext.harvest_stats = crate::economy::stats::HarvestStats::default();
+        *ext.animal_product_stats = crate::economy::stats::AnimalProductStats::default();
 
         // Starter seeds — enough for one small plot on Day 1
         inventory.try_add("turnip_seeds", 15, 99);
