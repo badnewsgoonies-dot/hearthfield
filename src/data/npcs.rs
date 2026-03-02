@@ -806,22 +806,22 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
 
         let schedule = NpcSchedule {
             weekday: vec![
-                ScheduleEntry { time: 6.0,  map: MapId::Farm,   x: 50, y: 50 },
+                ScheduleEntry { time: 6.0,  map: MapId::Farm,   x: 15, y: 14 },
                 ScheduleEntry { time: 9.0,  map: MapId::Town,   x: 5,  y: 5  },
-                ScheduleEntry { time: 12.0, map: MapId::Farm,   x: 48, y: 48 },
+                ScheduleEntry { time: 12.0, map: MapId::Farm,   x: 14, y: 13 },
                 ScheduleEntry { time: 16.0, map: MapId::Town,   x: 8,  y: 8  },
-                ScheduleEntry { time: 19.0, map: MapId::Farm,   x: 50, y: 50 },
+                ScheduleEntry { time: 19.0, map: MapId::Farm,   x: 15, y: 14 },
             ],
             weekend: vec![
-                ScheduleEntry { time: 6.0,  map: MapId::Farm,   x: 50, y: 50 },
+                ScheduleEntry { time: 6.0,  map: MapId::Farm,   x: 15, y: 14 },
                 ScheduleEntry { time: 11.0, map: MapId::Town,   x: 10, y: 15 },
                 ScheduleEntry { time: 15.0, map: MapId::Forest, x: 5,  y: 5  },
-                ScheduleEntry { time: 19.0, map: MapId::Farm,   x: 50, y: 50 },
+                ScheduleEntry { time: 19.0, map: MapId::Farm,   x: 15, y: 14 },
             ],
             rain_override: Some(vec![
-                ScheduleEntry { time: 6.0,  map: MapId::Farm,   x: 50, y: 50 },
+                ScheduleEntry { time: 6.0,  map: MapId::Farm,   x: 15, y: 14 },
                 ScheduleEntry { time: 10.0, map: MapId::Town,   x: 8,  y: 8  },
-                ScheduleEntry { time: 19.0, map: MapId::Farm,   x: 50, y: 50 },
+                ScheduleEntry { time: 19.0, map: MapId::Farm,   x: 15, y: 14 },
             ]),
             festival_override: None,
         };

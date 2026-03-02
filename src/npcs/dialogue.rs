@@ -224,9 +224,9 @@ fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
         ("sam", Weather::Stormy)      => "This storm has ENERGY. I'm writing it into my next song.",
         ("sam", Weather::Snowy)       => "Snow muffles everything. The silence is almost musical.",
 
-        ("nora", Weather::Rainy)      => "Good rain. The soil needed this.",
-        ("nora", Weather::Stormy)     => "I've got tarps over the seedlings. Should hold.",
-        ("nora", Weather::Snowy)      => "Winter rest is important. For the land and for us.",
+        ("nora", Weather::Rainy)      => "Steady rain like this fattens the crops better than any fancy fertilizer.",
+        ("nora", Weather::Stormy)     => "Storm's coming in hard. My old bones felt it before the clouds did.",
+        ("nora", Weather::Snowy)      => "Snow's our warning bell. Best finish winter prep before the drifts get deep.",
 
         _ => return None,
     };
@@ -238,17 +238,29 @@ fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
 fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
     let comment = match (npc_id, season) {
         ("lily", Season::Spring)       => "Spring! SPRING! Everything is blooming and I can't stop smiling!",
+        ("elena", Season::Spring)      => "Spring orders are piling up at the forge. Hoes, shears, and plow tips all day.",
+        ("doc", Season::Spring)        => "Pollen season again. Keep handkerchiefs nearby and don't ignore those allergies.",
+        ("sam", Season::Spring)        => "Birdsong, thawing creeks, fresh air... spring hands me melodies for free.",
         ("nora", Season::Spring)       => "Planting season. Best time of the year if you ask me.",
         ("margaret", Season::Spring)   => "Egg Festival's coming up! I've been working on a new recipe.",
 
+        ("lily", Season::Summer)       => "Summer flowers are dramatic in the best way. Big petals, bright colors, zero shyness!",
+        ("elena", Season::Summer)      => "The forge is brutal in summer. You learn fast, work smart, and drink water.",
+        ("nora", Season::Summer)       => "Summer crops don't wait for anyone. Sunrise to sunset, there's always field work.",
         ("old_tom", Season::Summer)    => "Summer means the big fish come in. You should try the deep water.",
         ("marco", Season::Summer)      => "Summer produce is incredible. Tomatoes, peppers, corn...",
         ("mayor_rex", Season::Summer)  => "The town festival is the highlight of my year. Planning is underway!",
 
+        ("margaret", Season::Fall)     => "Fall means pumpkin loaves and cinnamon rolls. My ovens hardly get a break.",
+        ("old_tom", Season::Fall)      => "Cooler water, hungry fish. Fall's one of the best times to cast a line.",
+        ("doc", Season::Fall)          => "I spend fall preparing medicine stocks now, before winter illnesses arrive.",
         ("nora", Season::Fall)         => "Harvest time. Nothing beats the smell of fresh-cut wheat.",
         ("mira", Season::Fall)         => "The fall colours draw me back here every year. Worth the trip.",
         ("sam", Season::Fall)          => "Something about autumn puts me in a songwriting mood.",
 
+        ("margaret", Season::Winter)   => "Winter calls for comfort food. Stews, pies, and warm bread from dawn to dusk.",
+        ("lily", Season::Winter)       => "The greenhouse keeps my winter blooms alive. Tiny summer in a glass house!",
+        ("mayor_rex", Season::Winter)  => "Winter festival planning is in full swing. Logistics now, celebration later!",
         ("old_tom", Season::Winter)    => "Mending nets by the fire. A fisherman's winter ritual.",
         ("doc", Season::Winter)        => "Cold season keeps me busy. Stock up on hot soup and rest.",
         ("elena", Season::Winter)      => "Quiet at the forge. Good time to practice new techniques.",
