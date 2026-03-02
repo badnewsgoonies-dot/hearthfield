@@ -299,7 +299,7 @@ impl Default for PlayerState {
             equipped_tool: ToolKind::Hoe,
             tools,
             gold: 500,
-            current_map: MapId::Farm,
+            current_map: MapId::PlayerHouse,
         }
     }
 }

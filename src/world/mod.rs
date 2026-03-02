@@ -628,6 +628,7 @@ fn spawn_initial_map(
     mut world_map: ResMut<WorldMap>,
     mut current_map_id: ResMut<CurrentMapId>,
     calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
     asset_server: Res<AssetServer>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut terrain_atlases: ResMut<TerrainAtlases>,
@@ -649,7 +650,7 @@ fn spawn_initial_map(
 
     load_map(
         &mut commands,
-        MapId::Farm,
+        player_state.current_map,
         &mut world_map,
         &mut current_map_id,
         calendar.season,

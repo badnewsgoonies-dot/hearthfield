@@ -701,7 +701,7 @@ fn generate_player_house() -> MapDef {
             from_map: MapId::PlayerHouse,
             from_rect: (7, 15, 2, 1),
             to_map: MapId::Farm,
-            to_pos: (31, 2),
+            to_pos: (16, 1),  // just south of house door at (15,0)
         },
     ];
 
@@ -762,7 +762,7 @@ fn generate_general_store() -> MapDef {
             from_map: MapId::GeneralStore,
             from_rect: (5, 11, 2, 1),
             to_map: MapId::Town,
-            to_pos: (8, 5),
+            to_pos: (6, 3),  // just south of store entrance at (5,2)
         },
     ];
 
