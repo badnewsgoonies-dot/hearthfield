@@ -625,6 +625,213 @@ pub fn populate_recipes(registry: &mut RecipeRegistry) {
             is_cooking: true,
             unlocked_by_default: false,
         },
+
+        // ── 15 New Seasonal Cooking Recipes ───────────────────────────
+
+        // Spring
+        Recipe {
+            id: "recipe_strawberry_jam".into(),
+            name: "Strawberry Jam".into(),
+            ingredients: vec![
+                ("strawberry".into(), 3),
+                ("sugar".into(), 1),
+            ],
+            result: "strawberry_jam".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Margaret (hearts 3)
+        },
+
+        Recipe {
+            id: "recipe_cauliflower_gratin".into(),
+            name: "Cauliflower Gratin".into(),
+            ingredients: vec![
+                ("cauliflower".into(), 2),
+                ("cheese".into(), 1),
+                ("milk".into(), 1),
+            ],
+            result: "cauliflower_gratin".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Elena (hearts 5)
+        },
+
+        Recipe {
+            id: "recipe_turnip_soup".into(),
+            name: "Turnip Soup".into(),
+            ingredients: vec![
+                ("turnip".into(), 2),
+                ("milk".into(), 1),
+            ],
+            result: "turnip_soup".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Mira (hearts 2)
+        },
+
+        // Summer
+        Recipe {
+            id: "recipe_blueberry_muffin".into(),
+            name: "Blueberry Muffin".into(),
+            ingredients: vec![
+                ("blueberry".into(), 2),
+                ("wheat".into(), 1),
+                ("egg".into(), 1),
+                ("sugar".into(), 1),
+            ],
+            result: "blueberry_muffin".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Lily (hearts 4)
+        },
+
+        Recipe {
+            id: "recipe_eggplant_stir_fry".into(),
+            name: "Eggplant Stir Fry".into(),
+            ingredients: vec![
+                ("eggplant".into(), 2),
+                ("tomato".into(), 1),
+            ],
+            result: "eggplant_stir_fry".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Marco (hearts 4)
+        },
+
+        Recipe {
+            id: "recipe_sardine_toast".into(),
+            name: "Sardine Toast".into(),
+            ingredients: vec![
+                ("sardine".into(), 2),
+                ("wheat".into(), 1),
+            ],
+            result: "sardine_toast".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Old Tom (hearts 3)
+        },
+
+        Recipe {
+            id: "recipe_corn_tortilla".into(),
+            name: "Corn Tortilla".into(),
+            ingredients: vec![("corn".into(), 2)],
+            result: "corn_tortilla".into(),
+            result_quantity: 2,
+            is_cooking: true,
+            unlocked_by_default: true,
+        },
+
+        // Fall
+        Recipe {
+            id: "recipe_pumpkin_bread".into(),
+            name: "Pumpkin Bread".into(),
+            ingredients: vec![
+                ("pumpkin".into(), 1),
+                ("wheat".into(), 2),
+                ("egg".into(), 1),
+            ],
+            result: "pumpkin_bread".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Nora (hearts 5)
+        },
+
+        Recipe {
+            id: "recipe_cranberry_tart".into(),
+            name: "Cranberry Tart".into(),
+            ingredients: vec![
+                ("cranberry".into(), 2),
+                ("wheat_flour".into(), 1),
+                ("sugar".into(), 1),
+                ("egg".into(), 1),
+            ],
+            result: "cranberry_tart".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from Fall Harvest Festival
+        },
+
+        Recipe {
+            id: "recipe_yam_pudding".into(),
+            name: "Yam Pudding".into(),
+            ingredients: vec![
+                ("yam".into(), 2),
+                ("milk".into(), 1),
+                ("sugar".into(), 1),
+            ],
+            result: "yam_pudding".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Sam (hearts 4)
+        },
+
+        Recipe {
+            id: "recipe_stuffed_eggplant".into(),
+            name: "Stuffed Eggplant".into(),
+            ingredients: vec![
+                ("eggplant".into(), 1),
+                ("tomato".into(), 1),
+                ("cheese".into(), 1),
+                ("rice".into(), 1),
+            ],
+            result: "stuffed_eggplant".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Marco (hearts 7)
+        },
+
+        // Winter / All-season
+        Recipe {
+            id: "recipe_coffee_pudding".into(),
+            name: "Coffee Pudding".into(),
+            ingredients: vec![
+                ("coffee".into(), 2),
+                ("milk".into(), 1),
+                ("sugar".into(), 1),
+            ],
+            result: "coffee_pudding".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from General Store (bought)
+        },
+
+        Recipe {
+            id: "recipe_smoked_eel".into(),
+            name: "Smoked Eel".into(),
+            ingredients: vec![("eel".into(), 2)],
+            result: "smoked_eel".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Old Tom (hearts 6)
+        },
+
+        Recipe {
+            id: "recipe_truffle_pasta".into(),
+            name: "Truffle Pasta".into(),
+            ingredients: vec![
+                ("truffle".into(), 1),
+                ("wheat_flour".into(), 2),
+                ("milk".into(), 1),
+            ],
+            result: "truffle_pasta".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Elena (hearts 9)
+        },
+
+        Recipe {
+            id: "recipe_tuna_tartare".into(),
+            name: "Tuna Tartare".into(),
+            ingredients: vec![
+                ("tuna".into(), 1),
+                ("rice".into(), 1),
+                ("maple_syrup".into(), 1),
+            ],
+            result: "tuna_tartare".into(),
+            result_quantity: 1,
+            is_cooking: true,
+            unlocked_by_default: false, // Learned from NPC: Old Tom (hearts 8)
+        },
     ];
 
     for recipe in recipes {
