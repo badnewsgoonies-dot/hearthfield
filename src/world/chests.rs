@@ -228,8 +228,8 @@ pub fn interact_with_chest(
         return;
     }
 
-    // Must be on the farm map (chests only placed there).
-    if player_state.current_map != MapId::Farm {
+    // Must be on the farm map or player house.
+    if player_state.current_map != MapId::Farm && player_state.current_map != MapId::PlayerHouse {
         return;
     }
 

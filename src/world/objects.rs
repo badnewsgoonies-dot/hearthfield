@@ -1646,5 +1646,35 @@ pub fn spawn_interior_decorations(
             Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
         ));
+
+        // Spawn a built-in storage chest at (14, 4) — the dresser area
+        let chest_wc = grid_to_world_center(14, 4);
+        let chest_sprite = if furniture.loaded {
+            let mut s = Sprite::from_atlas_image(
+                furniture.image.clone(),
+                TextureAtlas {
+                    layout: furniture.layout.clone(),
+                    index: 21,
+                },
+            );
+            s.custom_size = Some(Vec2::splat(TILE_SIZE));
+            s
+        } else {
+            Sprite {
+                color: Color::srgb(0.6, 0.4, 0.2),
+                custom_size: Some(Vec2::splat(TILE_SIZE)),
+                ..default()
+            }
+        };
+        commands.spawn((
+            InteriorDecoration,
+            WorldObject,
+            crate::world::chests::ChestMarker,
+            StorageChest::new(36, 14, 4),
+            chest_sprite,
+            Transform::from_xyz(chest_wc.x, chest_wc.y, Z_ENTITY_BASE),
+            YSorted,
+            Visibility::default(),
+        ));
     }
 }
