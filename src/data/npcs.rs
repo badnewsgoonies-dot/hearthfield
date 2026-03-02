@@ -87,7 +87,7 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             weekend: vec![
                 ScheduleEntry { time: 8.0,  map: MapId::Town,         x: 8,  y: 10 },
                 ScheduleEntry { time: 11.0, map: MapId::Town,         x: 14, y: 12 },
-                ScheduleEntry { time: 14.0, map: MapId::Beach,        x: 5,  y: 20 },
+                ScheduleEntry { time: 14.0, map: MapId::Beach,        x: 5,  y: 13 },
                 ScheduleEntry { time: 19.0, map: MapId::GeneralStore, x: 2,  y: 2  },
             ],
             rain_override: Some(vec![
@@ -240,22 +240,22 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
 
         let schedule = NpcSchedule {
             weekday: vec![
-                ScheduleEntry { time: 7.0,  map: MapId::Town,   x: 5,  y: 20 },
+                ScheduleEntry { time: 7.0,  map: MapId::Town,   x: 5,  y: 18 },
                 ScheduleEntry { time: 9.0,  map: MapId::Forest, x: 10, y: 8  },
                 ScheduleEntry { time: 12.0, map: MapId::Town,   x: 7,  y: 18 },
-                ScheduleEntry { time: 16.0, map: MapId::Town,   x: 5,  y: 20 },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 5,  y: 20 },
+                ScheduleEntry { time: 16.0, map: MapId::Town,   x: 5,  y: 18 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 5,  y: 18 },
             ],
             weekend: vec![
                 ScheduleEntry { time: 8.0,  map: MapId::Beach,  x: 15, y: 8  },
                 ScheduleEntry { time: 12.0, map: MapId::Town,   x: 7,  y: 18 },
                 ScheduleEntry { time: 16.0, map: MapId::Forest, x: 12, y: 6  },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 5,  y: 20 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 5,  y: 18 },
             ],
             rain_override: Some(vec![
-                ScheduleEntry { time: 7.0,  map: MapId::Town,   x: 5,  y: 20 },
+                ScheduleEntry { time: 7.0,  map: MapId::Town,   x: 5,  y: 18 },
                 ScheduleEntry { time: 14.0, map: MapId::Town,   x: 8,  y: 12 },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 5,  y: 20 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 5,  y: 18 },
             ]),
             festival_override: None,
         };
@@ -322,19 +322,19 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
 
         let schedule = NpcSchedule {
             weekday: vec![
-                ScheduleEntry { time: 5.0,  map: MapId::Beach,  x: 20, y: 15 },
-                ScheduleEntry { time: 12.0, map: MapId::Town,   x: 15, y: 25 },
+                ScheduleEntry { time: 5.0,  map: MapId::Beach,  x: 20, y: 13 },
+                ScheduleEntry { time: 12.0, map: MapId::Town,   x: 15, y: 18 },
                 ScheduleEntry { time: 15.0, map: MapId::Beach,  x: 18, y: 10 },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 15, y: 25 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 15, y: 18 },
             ],
             weekend: vec![
-                ScheduleEntry { time: 5.0,  map: MapId::Beach,  x: 20, y: 15 },
+                ScheduleEntry { time: 5.0,  map: MapId::Beach,  x: 20, y: 13 },
                 ScheduleEntry { time: 14.0, map: MapId::Beach,  x: 22, y: 12 },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 15, y: 25 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 15, y: 18 },
             ],
             rain_override: Some(vec![
-                ScheduleEntry { time: 6.0,  map: MapId::Town,   x: 15, y: 25 },
-                ScheduleEntry { time: 22.0, map: MapId::Town,   x: 15, y: 25 },
+                ScheduleEntry { time: 6.0,  map: MapId::Town,   x: 15, y: 18 },
+                ScheduleEntry { time: 22.0, map: MapId::Town,   x: 15, y: 18 },
             ]),
             festival_override: None,
         };
@@ -483,18 +483,18 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
         let schedule = NpcSchedule {
             weekday: vec![
                 ScheduleEntry { time: 8.0,  map: MapId::GeneralStore, x: 8, y: 4  },
-                ScheduleEntry { time: 12.0, map: MapId::Town,         x: 18, y: 20 },
+                ScheduleEntry { time: 12.0, map: MapId::Town,         x: 18, y: 18 },
                 ScheduleEntry { time: 15.0, map: MapId::GeneralStore, x: 8, y: 4  },
-                ScheduleEntry { time: 19.0, map: MapId::Town,         x: 20, y: 22 },
+                ScheduleEntry { time: 19.0, map: MapId::Town,         x: 20, y: 18 },
             ],
             weekend: vec![
-                ScheduleEntry { time: 9.0,  map: MapId::Town,   x: 15, y: 25 },
+                ScheduleEntry { time: 9.0,  map: MapId::Town,   x: 15, y: 18 },
                 ScheduleEntry { time: 13.0, map: MapId::Beach,  x: 8,  y: 5  },
-                ScheduleEntry { time: 18.0, map: MapId::Town,   x: 20, y: 22 },
+                ScheduleEntry { time: 18.0, map: MapId::Town,   x: 20, y: 18 },
             ],
             rain_override: Some(vec![
                 ScheduleEntry { time: 8.0,  map: MapId::GeneralStore, x: 8, y: 4  },
-                ScheduleEntry { time: 20.0, map: MapId::Town,         x: 20, y: 22 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,         x: 20, y: 18 },
             ]),
             festival_override: None,
         };
@@ -641,25 +641,25 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
 
         let schedule = NpcSchedule {
             weekday: vec![
-                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 30, y: 5  },
+                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 28, y: 5  },
                 ScheduleEntry { time: 10.0, map: MapId::Town,   x: 28, y: 8  },
                 ScheduleEntry { time: 13.0, map: MapId::Town,   x: 25, y: 12 },
-                ScheduleEntry { time: 17.0, map: MapId::Town,   x: 30, y: 5  },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 30, y: 5  },
+                ScheduleEntry { time: 17.0, map: MapId::Town,   x: 28, y: 5  },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 28, y: 5  },
             ],
             weekend: vec![
                 ScheduleEntry { time: 10.0, map: MapId::Town,   x: 15, y: 10 },
                 ScheduleEntry { time: 14.0, map: MapId::Beach,  x: 20, y: 8  },
-                ScheduleEntry { time: 18.0, map: MapId::Town,   x: 30, y: 5  },
+                ScheduleEntry { time: 18.0, map: MapId::Town,   x: 28, y: 5  },
             ],
             rain_override: Some(vec![
-                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 30, y: 5  },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 30, y: 5  },
+                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 28, y: 5  },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 28, y: 5  },
             ]),
             festival_override: Some(vec![
                 ScheduleEntry { time: 9.0,  map: MapId::Town,   x: 20, y: 15 },
                 ScheduleEntry { time: 12.0, map: MapId::Town,   x: 18, y: 12 },
-                ScheduleEntry { time: 22.0, map: MapId::Town,   x: 30, y: 5  },
+                ScheduleEntry { time: 22.0, map: MapId::Town,   x: 28, y: 5  },
             ]),
         };
 
@@ -694,16 +694,19 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             "I'm going to be a rock star someday. Just wait and see.".into(),
         ]);
         heart_dialogue.insert(3, vec![
-            "You're actually pretty cool for an adult. Most adults just tell me to study.".into(),
-            "I wrote a song about farming. It's... actually kind of good?".into(),
+            "You're actually pretty cool for an adult. Most adults just tell me to keep it down.".into(),
+            "I tried writing riffs while watching the waves at the beach. It sounded better than anything in my room.".into(),
+            "If I show you my demo sometime, don't laugh, okay?".into(),
         ]);
         heart_dialogue.insert(6, vec![
-            "Mom says I should give up music and do something practical. But you believe in me, right?".into(),
-            "I played my song at the festival. People actually clapped. I think I'm gonna cry.".into(),
+            "When you bring me a gem, I keep it by my amp for luck before I practice.".into(),
+            "Some nights I stay up until sunrise trying to nail one song exactly right.".into(),
+            "You listening without judging helps more than you know.".into(),
         ]);
         heart_dialogue.insert(9, vec![
-            "You're my hero, you know that? No, seriously. You never gave up on anything.".into(),
-            "When I'm famous, I'm writing an album called Hearthfield. This is where it started.".into(),
+            "I still dream about leaving town for big stages and loud crowds... I really do.".into(),
+            "But when I play out by your farm and the ocean wind kicks in, part of me wants to stay right here.".into(),
+            "Maybe growing up is figuring out what to carry with you, no matter where you end up.".into(),
         ]);
 
         let npc = NpcDef {
@@ -725,21 +728,21 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
 
         let schedule = NpcSchedule {
             weekday: vec![
-                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 10, y: 30 },
-                ScheduleEntry { time: 10.0, map: MapId::Town,   x: 12, y: 28 },
+                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 10, y: 18 },
+                ScheduleEntry { time: 10.0, map: MapId::Town,   x: 12, y: 18 },
                 ScheduleEntry { time: 14.0, map: MapId::Beach,  x: 10, y: 10 },
-                ScheduleEntry { time: 18.0, map: MapId::Town,   x: 10, y: 30 },
-                ScheduleEntry { time: 21.0, map: MapId::Town,   x: 10, y: 30 },
+                ScheduleEntry { time: 18.0, map: MapId::Town,   x: 10, y: 18 },
+                ScheduleEntry { time: 21.0, map: MapId::Town,   x: 10, y: 18 },
             ],
             weekend: vec![
                 ScheduleEntry { time: 9.0,  map: MapId::Beach,  x: 12, y: 12 },
-                ScheduleEntry { time: 13.0, map: MapId::Town,   x: 14, y: 25 },
+                ScheduleEntry { time: 13.0, map: MapId::Town,   x: 14, y: 18 },
                 ScheduleEntry { time: 16.0, map: MapId::Forest, x: 8,  y: 15 },
-                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 10, y: 30 },
+                ScheduleEntry { time: 20.0, map: MapId::Town,   x: 10, y: 18 },
             ],
             rain_override: Some(vec![
-                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 10, y: 30 },
-                ScheduleEntry { time: 21.0, map: MapId::Town,   x: 10, y: 30 },
+                ScheduleEntry { time: 8.0,  map: MapId::Town,   x: 10, y: 18 },
+                ScheduleEntry { time: 21.0, map: MapId::Town,   x: 10, y: 18 },
             ]),
             festival_override: None,
         };
@@ -775,16 +778,19 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             "My grandfather farmed this valley for forty years. Good land, this.".into(),
         ]);
         heart_dialogue.insert(3, vec![
-            "You made a mistake with your watering schedule last Tuesday. But you fixed it. Good.".into(),
-            "Come ask me if you're unsure about anything. I've seen every crop disease there is.".into(),
+            "You've got a good eye now. You notice soil before leaves, like an old hand.".into(),
+            "If your cauliflower starts yellowing at the edges, come get me before sundown.".into(),
+            "Don't be shy about asking. The land teaches best when we listen together.".into(),
         ]);
         heart_dialogue.insert(6, vec![
-            "I was worried when the old farm sat empty. This valley needed that land.".into(),
-            "Here's my seed vault passphrase. I trust you with it now. Don't make me regret it.".into(),
+            "I worried when that farm sat empty. Too many good fields get forgotten.".into(),
+            "You brought life back to it, row by row. That took grit.".into(),
+            "I've started setting aside my best seeds for you each season. Feels right.".into(),
         ]);
         heart_dialogue.insert(9, vec![
-            "You farm like my grandfather did. With patience and respect. That's rare.".into(),
-            "When I go, this valley'll have you to look after it. That makes me content.".into(),
+            "My grandfather broke this ground with a mule and a hand plow, and my mother kept it through three drought years.".into(),
+            "Every fence post, every orchard row, somebody in my family bled for it.".into(),
+            "Seeing you tend this valley with steady hands gives me real peace, child. You're part of its history now.".into(),
         ]);
 
         let npc = NpcDef {
