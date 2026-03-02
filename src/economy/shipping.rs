@@ -95,6 +95,7 @@ pub fn process_shipping_bin_on_day_end(
     mut gold_writer: EventWriter<GoldChangeEvent>,
     mut stats: ResMut<EconomyStats>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
 ) {
     for _ev in day_end_events.read() {
         if shipping_bin.items.is_empty() {
@@ -134,6 +135,11 @@ pub fn process_shipping_bin_on_day_end(
             total_value,
             sale_details.join(", ")
         );
+
+        // Notify the player of their earnings
+        toast_writer.send(ToastEvent {
+            message: format!("Shipping: earned {}g from {} items", total_value, items_shipped),
+        });
 
         sfx_writer.send(PlaySfxEvent {
             sfx_id: "day_end_coins".to_string(),
