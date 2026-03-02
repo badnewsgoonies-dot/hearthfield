@@ -12,6 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::shared::*;
 use crate::economy::buildings::BuildingLevels;
 use crate::shared::ShippingLog;
+use crate::world::CurrentMapId;
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC TYPES
@@ -624,6 +625,7 @@ fn handle_save_request(
 fn handle_load_request(
     mut load_events: EventReader<LoadRequestEvent>,
     mut complete_events: EventWriter<LoadCompleteEvent>,
+    mut map_events: EventWriter<MapTransitionEvent>,
     mut active_slot: ResMut<ActiveSaveSlot>,
     mut calendar: ResMut<Calendar>,
     mut player_state: ResMut<PlayerState>,
@@ -636,6 +638,7 @@ fn handle_load_request(
     mut shipping_bin: ResMut<ShippingBin>,
     mut statistics: ResMut<GameStatistics>,
     mut ext: ExtendedResourcesMut,
+    mut current_map_id: ResMut<CurrentMapId>,
 ) {
     for ev in load_events.read() {
         let slot = ev.slot;
@@ -678,6 +681,22 @@ fn handle_load_request(
                 *ext.play_stats = file.play_stats;
                 *ext.building_levels = file.building_levels;
                 *ext.shipping_log = file.shipping_log;
+
+                // Force the world to reload the correct map after restoring state.
+                // Invalidate CurrentMapId so handle_map_transition doesn't skip
+                // the reload when the player was already on this map.
+                current_map_id.map_id = MapId::Mine; // dummy value to force mismatch
+                let (spawn_x, spawn_y) = match player_state.current_map {
+                    MapId::PlayerHouse => (8, 8),
+                    MapId::Farm => (16, 4),
+                    MapId::Town => (14, 10),
+                    _ => (8, 8),
+                };
+                map_events.send(MapTransitionEvent {
+                    to_map: player_state.current_map,
+                    to_x: spawn_x,
+                    to_y: spawn_y,
+                });
 
                 info!("Load from slot {} succeeded.", slot);
                 complete_events.send(LoadCompleteEvent {
