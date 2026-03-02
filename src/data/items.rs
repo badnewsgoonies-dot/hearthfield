@@ -1022,7 +1022,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 48.0,
-            sprite_index: 130,
+            sprite_index: 95,
         },
         ItemDef {
             id: "melon_smoothie".into(),
@@ -1034,7 +1034,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 44.0,
-            sprite_index: 131,
+            sprite_index: 102,
         },
         ItemDef {
             id: "cheese_omelet".into(),
@@ -1046,7 +1046,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 46.0,
-            sprite_index: 132,
+            sprite_index: 93,
         },
         ItemDef {
             id: "truffle_risotto".into(),
@@ -1058,7 +1058,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 72.0,
-            sprite_index: 133,
+            sprite_index: 101,
         },
         ItemDef {
             id: "blueberry_pie".into(),
@@ -1070,7 +1070,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 52.0,
-            sprite_index: 134,
+            sprite_index: 103,
         },
         ItemDef {
             id: "cranberry_sauce".into(),
@@ -1082,7 +1082,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 36.0,
-            sprite_index: 135,
+            sprite_index: 97,
         },
         ItemDef {
             id: "pumpkin_soup".into(),
