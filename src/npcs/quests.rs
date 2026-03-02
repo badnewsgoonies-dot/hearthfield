@@ -32,6 +32,27 @@ const DELIVER_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("hardwood", 3, 8, 360, RewardTier::Mid, "Hardwood Wanted"),
     ("gold_ore", 2, 5, 520, RewardTier::Late, "Gold Rush"),
     ("diamond", 1, 2, 600, RewardTier::Late, "Precious Delivery"),
+    // Margaret – baked goods & ingredients
+    ("egg", 3, 8, 150, RewardTier::Early, "Egg Delivery"),
+    ("milk", 3, 6, 160, RewardTier::Early, "Fresh Milk Run"),
+    ("bread", 2, 4, 180, RewardTier::Early, "Bread Order"),
+    ("fried_egg", 2, 4, 200, RewardTier::Early, "Breakfast Platter"),
+    ("pancakes", 2, 4, 250, RewardTier::Mid, "Pancake Platter"),
+    ("cookie", 3, 6, 280, RewardTier::Mid, "Cookie Batch"),
+    ("cake", 1, 3, 340, RewardTier::Mid, "Cake Request"),
+    // Marco – cooking ingredients & prepared food
+    ("pizza", 1, 3, 320, RewardTier::Mid, "Pizza Night"),
+    ("spaghetti", 1, 3, 310, RewardTier::Mid, "Pasta Delivery"),
+    // Elena – smelted bars
+    ("copper_bar", 2, 5, 300, RewardTier::Mid, "Copper Bars Needed"),
+    ("iron_bar", 2, 4, 380, RewardTier::Mid, "Iron Bars Wanted"),
+    ("gold_bar", 1, 2, 580, RewardTier::Late, "Gold Bars Order"),
+    // Mira – exotic & rare goods
+    ("ancient_fruit", 1, 2, 650, RewardTier::Late, "Ancient Relic Fruit"),
+    // Nora – animal products
+    ("wool", 2, 5, 200, RewardTier::Early, "Wool Wanted"),
+    // Sam – random fun items
+    ("baked_potato", 3, 6, 170, RewardTier::Early, "Baked Potato Stack"),
 ];
 
 /// Harvest quest templates: (crop_id, quantity_range, base_gold, tier, title_prefix)
@@ -46,6 +67,17 @@ const HARVEST_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("melon", 1, 3, 520, RewardTier::Late, "Melon Delivery"),
     ("pumpkin", 1, 3, 560, RewardTier::Late, "Pumpkin Order"),
     ("cranberry", 3, 6, 540, RewardTier::Late, "Cranberry Harvest"),
+    // Lily – flowers / seasonal crops
+    ("blueberry", 3, 6, 180, RewardTier::Early, "Blueberry Picking"),
+    // Nora – staple crops
+    ("wheat", 4, 8, 150, RewardTier::Early, "Wheat Bundle"),
+    ("yam", 2, 5, 200, RewardTier::Mid, "Yam Harvest"),
+    // Marco / Mira – premium ingredients
+    ("coffee", 2, 4, 320, RewardTier::Mid, "Coffee Beans"),
+    // Mira – exotic produce
+    ("ancient_fruit", 1, 2, 580, RewardTier::Late, "Ancient Fruit Harvest"),
+    // Mayor Rex – town event staples
+    ("pumpkin", 2, 4, 500, RewardTier::Late, "Festival Pumpkin Order"),
 ];
 
 /// Fish quest templates: (fish_id, base_gold, tier, title_prefix)
@@ -63,6 +95,14 @@ const CATCH_TEMPLATES: &[(&str, u32, RewardTier, &str)] = &[
     ("sturgeon", 560, RewardTier::Late, "Sturgeon Search"),
     ("swordfish", 650, RewardTier::Late, "Swordfish Hunt"),
     ("anglerfish", 720, RewardTier::Late, "Abyssal Catch"),
+    // Old Tom – common catches he wants fresh
+    ("sardine", 110, RewardTier::Early, "Sardine Request"),
+    ("herring", 140, RewardTier::Early, "Smoked Herring Run"),
+    // Marco – seafood for the kitchen
+    ("trout", 160, RewardTier::Early, "Pan-Fried Trout"),
+    ("salmon", 300, RewardTier::Mid, "Salmon Fillet"),
+    // Doc – rare medicinal fish
+    ("sturgeon", 500, RewardTier::Late, "Sturgeon for Research"),
 ];
 
 /// Mine quest templates: (item_id, quantity_range, base_gold, tier, title_prefix)
@@ -77,6 +117,13 @@ const MINE_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("ruby", 1, 2, 500, RewardTier::Mid, "Gem Hunt: Ruby"),
     ("diamond", 1, 1, 700, RewardTier::Late, "Gem Hunt: Diamond"),
     ("gold_bar", 1, 2, 620, RewardTier::Late, "Smelter Contract"),
+    // Elena – processed bars
+    ("copper_bar", 2, 5, 280, RewardTier::Mid, "Smelted Copper Bars"),
+    ("iron_bar", 2, 4, 350, RewardTier::Mid, "Forged Iron Bars"),
+    // More gem varieties
+    ("topaz", 1, 3, 300, RewardTier::Mid, "Gem Hunt: Topaz"),
+    ("aquamarine", 1, 2, 420, RewardTier::Mid, "Gem Hunt: Aquamarine"),
+    ("silver_ore", 3, 8, 220, RewardTier::Mid, "Mining: Silver"),
 ];
 
 /// Monster quest templates: (monster_kind, quantity_range, base_gold, tier, title_prefix)
@@ -86,6 +133,12 @@ const SLAY_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("skeleton", 3, 6, 340, RewardTier::Mid, "Skeleton Hunt"),
     ("ghost", 2, 5, 380, RewardTier::Mid, "Ghost Busting"),
     ("golem", 1, 3, 560, RewardTier::Late, "Golem Smashing"),
+    // More monster variety
+    ("zombie", 3, 6, 200, RewardTier::Early, "Zombie Clearing"),
+    ("serpent", 2, 4, 400, RewardTier::Mid, "Serpent Slaying"),
+    ("witch", 1, 3, 460, RewardTier::Mid, "Witch Bounty"),
+    ("shadow_shaman", 2, 4, 520, RewardTier::Late, "Shadow Hunt"),
+    ("dwarvish_sentry", 1, 3, 580, RewardTier::Late, "Sentinel Takedown"),
 ];
 
 /// Talk quest templates: (title_prefix, tier)
@@ -93,6 +146,12 @@ const TALK_TEMPLATES: &[(&str, RewardTier)] = &[
     ("Neighbor Check-in", RewardTier::Early),
     ("Personal Message", RewardTier::Mid),
     ("Delicate Mediation", RewardTier::Late),
+    // NPC-flavored talk quests
+    ("Baker's Errand", RewardTier::Early),
+    ("Chef's Inquiry", RewardTier::Early),
+    ("Mayor's Summons", RewardTier::Mid),
+    ("Doctor's Request", RewardTier::Mid),
+    ("Festival Coordination", RewardTier::Late),
 ];
 
 /// NPC IDs used for Talk quests.
