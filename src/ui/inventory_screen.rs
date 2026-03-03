@@ -35,6 +35,10 @@ pub struct InventorySlotBg {
     pub index: usize,
 }
 
+/// Marker for the description text node at the bottom of the inventory panel.
+#[derive(Component)]
+pub struct InventoryDescText;
+
 /// Tracks which slot is currently selected/hovered in the inventory UI
 #[derive(Resource, Default)]
 pub struct InventoryUiState {
@@ -74,7 +78,7 @@ pub fn spawn_inventory_screen(
                 .spawn((
                     Node {
                         width: Val::Px(620.0),
-                        height: Val::Px(320.0),
+                        height: Val::Px(360.0),
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
                         padding: UiRect::all(Val::Px(16.0)),
@@ -99,7 +103,7 @@ pub fn spawn_inventory_screen(
 
                     // Hint text
                     panel.spawn((
-                        Text::new("WASD/Arrows: Move | Esc: Close"),
+                        Text::new("WASD/Arrows: Move | Enter: Use | Esc: Close"),
                         TextFont {
                             font: font.clone(),
                             font_size: 12.0,
@@ -196,6 +200,21 @@ pub fn spawn_inventory_screen(
                                 }
                             });
                     }
+                    // Description line — updated by update_inventory_slots
+                    panel.spawn((
+                        InventoryDescText,
+                        Text::new(""),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 11.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.75, 0.75, 0.55)),
+                        Node {
+                            width: Val::Percent(100.0),
+                            ..default()
+                        },
+                    ));
                 });
         });
 }
@@ -217,10 +236,12 @@ pub fn despawn_inventory_screen(
 pub fn update_inventory_slots(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
+    ui_state: Option<Res<InventoryUiState>>,
     _atlas_data: Res<ItemAtlasData>,
-    mut item_text_query: Query<(&InventorySlotItemName, &mut Text), Without<InventorySlotQuantity>>,
-    mut qty_text_query: Query<(&InventorySlotQuantity, &mut Text), Without<InventorySlotItemName>>,
+    mut item_text_query: Query<(&InventorySlotItemName, &mut Text), (Without<InventorySlotQuantity>, Without<InventoryDescText>)>,
+    mut qty_text_query: Query<(&InventorySlotQuantity, &mut Text), (Without<InventorySlotItemName>, Without<InventoryDescText>)>,
     mut icon_query: Query<(&InventorySlotIcon, &mut ImageNode, &mut Visibility)>,
+    mut desc_query: Query<&mut Text, With<InventoryDescText>>,
 ) {
     // Update icons
     for (icon, mut img, mut vis) in &mut icon_query {
@@ -273,6 +294,21 @@ pub fn update_inventory_slots(
             }
         }
     }
+
+    // Update description text for hovered slot
+    let cursor = ui_state.as_ref().map(|s| s.cursor_slot).unwrap_or(0);
+    let desc = if cursor < inventory.slots.len() {
+        inventory.slots[cursor]
+            .as_ref()
+            .and_then(|s| item_registry.get(&s.item_id))
+            .map(|def| def.description.clone())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+    for mut text in &mut desc_query {
+        **text = desc.clone();
+    }
 }
 
 pub fn update_inventory_cursor(
@@ -294,6 +330,11 @@ pub fn update_inventory_cursor(
 pub fn inventory_navigation(
     action: Res<MenuAction>,
     mut ui_state: Option<ResMut<InventoryUiState>>,
+    inventory: Res<Inventory>,
+    item_registry: Res<ItemRegistry>,
+    mut player_state: ResMut<PlayerState>,
+    mut eat_food_events: EventWriter<EatFoodEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
     let cur = ui_state.cursor_slot;
@@ -319,5 +360,52 @@ pub fn inventory_navigation(
         if row > 0 {
             ui_state.cursor_slot = (row - 1) * 12 + col;
         }
+    }
+
+    if action.activate {
+        if cur < inventory.slots.len() {
+            if let Some(ref slot) = inventory.slots[cur] {
+                if let Some(def) = item_registry.get(&slot.item_id) {
+                    match def.category {
+                        ItemCategory::Tool => {
+                            if let Some(tool) = tool_kind_from_item_id(&def.id) {
+                                player_state.equipped_tool = tool;
+                            } else {
+                                toast_events.send(ToastEvent {
+                                    message: "Cannot use this item.".to_string(),
+                                    duration_secs: 2.0,
+                                });
+                            }
+                        }
+                        ItemCategory::Food => {
+                            eat_food_events.send(EatFoodEvent {
+                                item_id: def.id.clone(),
+                                stamina_restore: def.energy_restore,
+                                buff: None,
+                            });
+                        }
+                        _ => {
+                            toast_events.send(ToastEvent {
+                                message: "Cannot use this item.".to_string(),
+                                duration_secs: 2.0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Maps a tool item ID to its corresponding ToolKind.
+fn tool_kind_from_item_id(item_id: &str) -> Option<ToolKind> {
+    match item_id {
+        "hoe" => Some(ToolKind::Hoe),
+        "watering_can" => Some(ToolKind::WateringCan),
+        "axe" => Some(ToolKind::Axe),
+        "pickaxe" => Some(ToolKind::Pickaxe),
+        "fishing_rod" => Some(ToolKind::FishingRod),
+        "scythe" => Some(ToolKind::Scythe),
+        _ => None,
     }
 }
