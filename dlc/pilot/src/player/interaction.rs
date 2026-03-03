@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 
 /// Check for edge-of-map zone transitions and F-key interactions.
+#[allow(clippy::too_many_arguments)]
 pub fn check_interactions(
     input: Res<PlayerInput>,
     grid_pos: Res<GridPosition>,

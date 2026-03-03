@@ -149,7 +149,7 @@ pub fn check_rank_decay(
         });
     }
 
-    if days_idle >= 7 && days_idle < 14 && !activity.decay_warned {
+    if (7..14).contains(&days_idle) && !activity.decay_warned {
         activity.decay_warned = true;
         toast_events.send(ToastEvent {
             message: "You haven't flown in a while. Your skills may get rusty!".to_string(),

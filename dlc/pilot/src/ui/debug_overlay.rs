@@ -7,8 +7,9 @@ use crate::shared::*;
 pub struct DebugOverlayRoot;
 
 #[derive(Component)]
-struct DebugText;
+pub struct DebugText;
 
+#[allow(clippy::too_many_arguments)]
 pub fn toggle_debug_overlay(
     mut commands: Commands,
     input: Res<PlayerInput>,
@@ -96,6 +97,7 @@ fn update_debug_text(
 }
 
 /// Standalone system that refreshes debug overlay text each frame when visible.
+#[allow(clippy::too_many_arguments)]
 pub fn update_debug_overlay_text(
     overlay: Res<DebugOverlay>,
     root_q: Query<Entity, With<DebugOverlayRoot>>,

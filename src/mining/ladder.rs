@@ -10,6 +10,7 @@ use crate::shared::*;
 use super::components::*;
 
 /// System: detect when the player stands on the revealed ladder and descend.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_ladder_interaction(
     mut mine_state: ResMut<MineState>,
     mut active_floor: ResMut<ActiveFloor>,
@@ -73,7 +74,7 @@ pub fn handle_ladder_interaction(
             }
 
             // Unlock elevator every 5 floors
-            if next_floor % 5 == 0 && !mine_state.elevator_floors.contains(&next_floor) {
+            if next_floor.is_multiple_of(5) && !mine_state.elevator_floors.contains(&next_floor) {
                 mine_state.elevator_floors.push(next_floor);
                 mine_state.elevator_floors.sort();
             }
@@ -89,6 +90,7 @@ pub fn handle_ladder_interaction(
 }
 
 /// System: detect when the player steps on the exit tile to leave the mine.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_mine_exit(
     mut mine_state: ResMut<MineState>,
     mut active_floor: ResMut<ActiveFloor>,
@@ -145,6 +147,7 @@ pub fn handle_mine_exit(
 /// For simplicity, pressing number keys 1-4 selects elevator stops.
 /// The elevator UI is managed by the UI domain; here we just handle the
 /// selection input when ElevatorUiOpen is true.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_elevator_selection(
     mut mine_state: ResMut<MineState>,
     mut floor_req: ResMut<FloorSpawnRequest>,

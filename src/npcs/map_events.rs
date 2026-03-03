@@ -14,6 +14,7 @@ pub struct GiftDecayTracker {
 }
 
 /// System: handle MapTransitionEvent — despawn old map NPCs, spawn new map NPCs.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_map_transition(
     mut commands: Commands,
     mut transition_reader: EventReader<MapTransitionEvent>,

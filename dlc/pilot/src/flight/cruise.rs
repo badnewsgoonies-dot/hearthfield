@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+#[allow(clippy::too_many_arguments)]
 pub fn update_flight(
     time: Res<Time>,
     input: Res<PlayerInput>,

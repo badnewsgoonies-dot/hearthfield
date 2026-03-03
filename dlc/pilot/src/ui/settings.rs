@@ -224,6 +224,7 @@ fn spawn_section_label(commands: &mut Commands, parent: Entity, font: &UiFontHan
     commands.entity(parent).add_child(id);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_slider_row(
     commands: &mut Commands,
     parent: Entity,

@@ -12,6 +12,7 @@ use super::components::*;
 /// System: listen for MapTransitionEvent targeting the Mine.
 /// When the player enters the mine, set InMine, configure floor, and either
 /// show elevator UI (if unlocked floors exist) or spawn floor 1.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_mine_entry(
     mut map_events: EventReader<MapTransitionEvent>,
     mut mine_state: ResMut<MineState>,
@@ -60,6 +61,7 @@ pub fn handle_mine_entry(
 
 /// System: handle DayEndEvent — if the player is in the mine at end of day,
 /// they pass out and get sent back to the PlayerHouse with penalties.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_day_end_in_mine(
     mut day_events: EventReader<DayEndEvent>,
     mut mine_state: ResMut<MineState>,

@@ -63,6 +63,7 @@ impl FishingSkill {
     }
 
     /// Apply the catch-zone bonus to a catch-bar half-height.
+    #[allow(dead_code)]
     pub fn apply_catch_zone(&self, base_half: f32) -> f32 {
         base_half * (1.0 + self.catch_zone_bonus)
     }

@@ -233,6 +233,7 @@ pub fn interact_facility(
     facility_state.pending_action = Some(action);
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn process_facility_action(
     mut facility_state: ResMut<FacilityState>,
     mut gold: ResMut<Gold>,

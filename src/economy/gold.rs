@@ -53,12 +53,13 @@ pub fn apply_gold_changes(
 }
 
 /// Format a gold amount as a display string (e.g. "1,234g").
+#[allow(dead_code)]
 pub fn format_gold(amount: u32) -> String {
     let s = amount.to_string();
     let mut result = String::new();
     let digits: Vec<char> = s.chars().collect();
     for (i, ch) in digits.iter().enumerate() {
-        if i > 0 && (digits.len() - i) % 3 == 0 {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
             result.push(',');
         }
         result.push(*ch);

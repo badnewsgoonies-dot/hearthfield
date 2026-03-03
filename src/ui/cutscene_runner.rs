@@ -79,6 +79,7 @@ pub fn activate_pending_cutscene(
 /// The main cutscene driver. Reads the front of the queue, executes
 /// the current step, and pops it when complete. Processes exactly ONE
 /// step per frame to avoid race conditions with dialogue handoffs.
+#[allow(clippy::too_many_arguments)]
 pub fn run_cutscene_queue(
     time: Res<Time>,
     mut commands: Commands,

@@ -93,7 +93,7 @@ pub struct AirportStatusMap {
 
 impl AirportStatusMap {
     pub fn is_open(&self, id: &AirportId) -> bool {
-        self.statuses.get(id).map_or(true, |s| s.open)
+        self.statuses.get(id).is_none_or(|s| s.open)
     }
 }
 
@@ -176,7 +176,7 @@ pub fn check_airport_status(
     let to_reopen: Vec<AirportId> = status_map
         .statuses
         .iter()
-        .filter(|(_, s)| !s.open && s.reopen_day.map_or(false, |d| d <= today))
+        .filter(|(_, s)| !s.open && s.reopen_day.is_some_and(|d| d <= today))
         .map(|(id, _)| *id)
         .collect();
 

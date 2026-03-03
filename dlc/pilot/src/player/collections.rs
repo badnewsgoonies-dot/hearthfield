@@ -339,7 +339,7 @@ pub fn generate_trade_offers(
             }
 
             // Simple trade opportunity notification
-            if !collections.has(&format!("patch_{}", npc_id.split('_').last().unwrap_or("unknown")))
+            if !collections.has(&format!("patch_{}", npc_id.split('_').next_back().unwrap_or("unknown")))
             {
                 toast_events.send(ToastEvent {
                     message: format!("💬 {} might have a rare collectible to trade...", npc_id),

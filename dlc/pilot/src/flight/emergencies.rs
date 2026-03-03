@@ -353,11 +353,7 @@ pub fn update_emergency_timers(
     let timed_out = if let Some(ref mut active) = emergency_state.active_emergency {
         if !active.resolved {
             active.time_remaining -= dt;
-            if active.time_remaining <= 0.0 {
-                true
-            } else {
-                false
-            }
+            active.time_remaining <= 0.0
         } else {
             false
         }
@@ -381,7 +377,7 @@ pub fn update_emergency_timers(
     let should_clear = emergency_state
         .active_emergency
         .as_ref()
-        .map_or(false, |e| e.resolved);
+        .is_some_and(|e| e.resolved);
     if should_clear {
         emergency_state.active_emergency = None;
     }

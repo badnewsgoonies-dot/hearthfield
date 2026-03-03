@@ -172,6 +172,7 @@ pub fn handle_bouquet(
 
 /// Process ProposalEvent. Validates prerequisites and sets the NPC to Engaged,
 /// scheduling the wedding in 3 days.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_proposal(
     mut proposal_reader: EventReader<ProposalEvent>,
     npc_registry: Res<NpcRegistry>,
@@ -485,7 +486,7 @@ fn water_random_crops(farm_state: &mut FarmState, count: usize) {
                 && farm_state
                     .soil
                     .get(pos)
-                    .map_or(false, |s| *s == SoilState::Tilled)
+                    .is_some_and(|s| *s == SoilState::Tilled)
         })
         .map(|(pos, _)| *pos)
         .collect();

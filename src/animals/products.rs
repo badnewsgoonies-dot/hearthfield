@@ -22,6 +22,7 @@ use super::day_end::PendingProductQuality;
 
 const INTERACT_RANGE: f32 = 32.0;
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_product_collection(
     mut commands: Commands,
     player_input: Res<PlayerInput>,

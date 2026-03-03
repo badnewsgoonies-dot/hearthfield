@@ -30,6 +30,7 @@ const STAMINA_REGEN_PER_SEC: f32 = 3.0;
 const TIRED_SPEED_MULT: f32 = 0.6;
 const INDOOR_SPEED_MULT: f32 = 0.85;
 
+#[allow(clippy::too_many_arguments)]
 pub fn player_movement(
     time: Res<Time>,
     input: Res<PlayerInput>,

@@ -82,6 +82,7 @@ fn save_path(slot: usize) -> std::path::PathBuf {
 // ─── Save (two-phase) ───────────────────────────────────────────────────────
 
 /// Phase 1: read events + gather all resource data into `PendingSave`.
+#[allow(clippy::too_many_arguments)]
 fn save_gather(
     mut events: EventReader<SaveRequestEvent>,
     calendar: Res<Calendar>,
@@ -186,6 +187,7 @@ fn load_read(
 }
 
 /// Phase 2: overwrite all resources from loaded data, fire transition event.
+#[allow(clippy::too_many_arguments)]
 fn load_apply(
     mut pending: ResMut<PendingLoad>,
     mut calendar: ResMut<Calendar>,

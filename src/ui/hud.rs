@@ -881,6 +881,7 @@ pub fn update_objective_display(
 
 /// Shows a contextual interaction prompt when the player is near an
 /// interactable object or NPC.
+#[allow(clippy::too_many_arguments)]
 pub fn update_interaction_prompt(
     player_query: Query<&LogicalPosition, With<Player>>,
     interactable_query: Query<(&Transform, &Interactable)>,
@@ -900,7 +901,7 @@ pub fn update_interaction_prompt(
     // Check interactable objects.
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
+        if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
             best_label = Some((d, format!("[F] {}", inter.label)));
         }
     }
@@ -908,7 +909,7 @@ pub fn update_interaction_prompt(
     // Check storage chests (use their own component, not Interactable).
     for tf in &chest_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
+        if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
             best_label = Some((d, "[F] Storage".to_string()));
         }
     }
@@ -916,7 +917,7 @@ pub fn update_interaction_prompt(
     // Check NPCs (closer NPC takes priority).
     for (npc, tf) in &npc_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
+        if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
             let name = npc_registry
                 .npcs
                 .get(&npc.id)

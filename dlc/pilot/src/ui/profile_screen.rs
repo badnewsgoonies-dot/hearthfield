@@ -57,6 +57,7 @@ fn compute_skill(skill_index: usize, pilot: &PilotState, stats: &PlayStats) -> f
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_profile_screen(
     mut commands: Commands,
     font: Res<UiFontHandle>,
@@ -90,7 +91,7 @@ pub fn spawn_profile_screen(
         font_size: 14.0,
         ..default()
     };
-    let header_style = TextFont {
+    let _header_style = TextFont {
         font: font.0.clone(),
         font_size: 18.0,
         ..default()

@@ -230,6 +230,7 @@ pub fn despawn_cutscene_overlay(
 
 /// Main cutscene runner — processes the current `ActiveCutscene` step and
 /// advances to the next on completion or player input.
+#[allow(clippy::too_many_arguments)]
 pub fn run_cutscene(
     time: Res<Time>,
     mut active: ResMut<ActiveCutscene>,
@@ -241,7 +242,7 @@ pub fn run_cutscene(
     mut play_music: EventWriter<PlayMusicEvent>,
     mut play_sfx: EventWriter<PlaySfxEvent>,
     mut weather_change: EventWriter<WeatherChangeEvent>,
-    mut day_end: EventWriter<DayEndEvent>,
+    _day_end: EventWriter<DayEndEvent>,
     mut zone_transition: EventWriter<ZoneTransitionEvent>,
 ) {
     if active.steps.is_empty() {

@@ -210,7 +210,7 @@ pub fn evaluate_crew_abilities(
 pub fn apply_xp_bonus(
     bonuses: Res<CrewBonuses>,
     mut xp_events: EventReader<XpGainEvent>,
-    mut boosted_xp: EventWriter<XpGainEvent>,
+    _boosted_xp: EventWriter<XpGainEvent>,
 ) {
     if bonuses.xp_multiplier <= 1.0 && bonuses.landing_xp_bonus <= 0.0 {
         return;

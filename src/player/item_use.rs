@@ -9,6 +9,7 @@ use crate::shared::*;
 // Domain event imports — use pub re-exports from domain mod.rs.
 use crate::crafting::PlaceMachineEvent;
 
+#[allow(clippy::too_many_arguments)]
 pub fn dispatch_item_use(
     player_input: Res<PlayerInput>,
     player_state: Res<PlayerState>,
@@ -31,7 +32,7 @@ pub fn dispatch_item_use(
     }
 
     let slot_idx = inventory.selected_slot;
-    let Some(ref slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
+    let Some(slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
         return;
     };
     let Some(def) = item_registry.get(&slot.item_id) else {
@@ -128,7 +129,6 @@ pub fn dispatch_item_use(
                 duration_secs: 2.0,
             });
         }
-        return;
     }
 }
 
@@ -143,7 +143,7 @@ fn find_nearest_npc(
     let mut best: Option<(f32, String)> = None;
     for (npc, tf) in npc_query.iter() {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best.as_ref().map_or(true, |b| d < b.0) {
+        if d <= range && best.as_ref().is_none_or(|b| d < b.0) {
             best = Some((d, npc.id.clone()));
         }
     }

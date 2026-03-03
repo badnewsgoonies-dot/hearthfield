@@ -28,7 +28,7 @@ fn reset_and_read_input(
         keys.get_just_pressed().next().is_some() || mouse.get_just_pressed().next().is_some();
 
     match *context {
-        InputContext::Disabled => return,
+        InputContext::Disabled => (),
 
         InputContext::Gameplay => {
             let mut axis = Vec2::ZERO;

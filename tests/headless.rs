@@ -473,6 +473,7 @@ fn test_shipping_bin_sells_on_day_end() {
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
+    app.init_resource::<ShippingLog>();
     app.add_event::<ToolUpgradeCompleteEvent>();
 
     // Register the two systems we need: shipping sell + gold application
@@ -554,6 +555,7 @@ fn test_empty_shipping_bin_no_gold_change() {
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
+    app.init_resource::<ShippingLog>();
     app.add_event::<ToolUpgradeCompleteEvent>();
 
     app.add_systems(
@@ -922,6 +924,7 @@ fn test_multi_day_shipping_accumulation() {
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
+    app.init_resource::<ShippingLog>();
     app.add_event::<ToolUpgradeCompleteEvent>();
 
     app.add_systems(
@@ -1501,9 +1504,12 @@ fn test_building_tier_next() {
 fn test_building_upgrade_request_deducts_gold() {
     let mut app = build_test_app();
     app.init_resource::<BuildingLevels>();
+    app.init_resource::<EconomyStats>();
     app.add_systems(
         Update,
-        handle_building_upgrade_request.run_if(in_state(GameState::Playing)),
+        (handle_building_upgrade_request, apply_gold_changes)
+            .chain()
+            .run_if(in_state(GameState::Playing)),
     );
     enter_playing_state(&mut app);
 
@@ -1637,9 +1643,12 @@ fn test_tool_upgrade_request_queues() {
     app.add_event::<ToolUpgradeRequestEvent>();
     app.add_event::<ToolUpgradeCompleteEvent>();
     app.init_resource::<ActiveShop>();
+    app.init_resource::<EconomyStats>();
     app.add_systems(
         Update,
-        handle_upgrade_request.run_if(in_state(GameState::Playing)),
+        (handle_upgrade_request, apply_gold_changes)
+            .chain()
+            .run_if(in_state(GameState::Playing)),
     );
     enter_playing_state(&mut app);
 
@@ -2183,6 +2192,7 @@ fn test_evaluation_scores_categories() {
     let mut app = build_test_app();
     app.init_resource::<EconomyStats>();
     app.init_resource::<HarvestStats>();
+    app.init_resource::<ShippingLog>();
     app.add_systems(Update, handle_evaluation.run_if(in_state(GameState::Playing)));
     enter_playing_state(&mut app);
 
@@ -2210,6 +2220,7 @@ fn test_evaluation_sets_candles() {
     let mut app = build_test_app();
     app.init_resource::<EconomyStats>();
     app.init_resource::<HarvestStats>();
+    app.init_resource::<ShippingLog>();
     app.add_systems(Update, handle_evaluation.run_if(in_state(GameState::Playing)));
     enter_playing_state(&mut app);
 
@@ -2250,8 +2261,15 @@ fn test_evaluation_sets_candles() {
             });
         }
     }
-    // total_items_shipped >= 50 -> 2 points
+    // total_items_shipped >= 50 -> 1 point (farm_items_shipped_50)
     app.world_mut().resource_mut::<EconomyStats>().total_items_shipped = 55;
+    // 30+ unique items shipped -> 1 point (collection_unique_30)
+    {
+        let mut log = app.world_mut().resource_mut::<ShippingLog>();
+        for i in 0..30 {
+            log.shipped_items.insert(format!("item_{}", i), 1);
+        }
+    }
     // 10 quests completed -> 1 point
     {
         let mut quest_log = app.world_mut().resource_mut::<QuestLog>();

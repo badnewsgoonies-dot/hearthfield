@@ -150,15 +150,11 @@ pub fn pause_menu_navigation(
         }
     }
 
-    if action.move_down {
-        if state.cursor < PAUSE_OPTIONS.len() - 1 {
-            state.cursor += 1;
-        }
+    if action.move_down && state.cursor < PAUSE_OPTIONS.len() - 1 {
+        state.cursor += 1;
     }
-    if action.move_up {
-        if state.cursor > 0 {
-            state.cursor -= 1;
-        }
+    if action.move_up && state.cursor > 0 {
+        state.cursor -= 1;
     }
 
     if action.activate {

@@ -14,6 +14,7 @@ use super::{
 /// Detect when the player presses the interact key (F) while holding a seed
 /// item in their selected hotbar slot, then emit a PlantSeedEvent at the player's
 /// current grid tile (or the tile the player is facing).
+#[allow(clippy::too_many_arguments)]
 pub fn detect_seed_use(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -110,6 +111,7 @@ pub fn detect_seed_use(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Listen for PlantSeedEvent and actually plant the crop.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_plant_seed(
     mut plant_events: EventReader<PlantSeedEvent>,
     mut farm_state: ResMut<FarmState>,

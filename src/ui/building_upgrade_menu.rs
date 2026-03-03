@@ -23,12 +23,14 @@ pub struct BuildingRow {
 }
 
 /// Marker for the name/status text of each row.
+#[allow(dead_code)]
 #[derive(Component)]
 pub struct BuildingRowText {
     pub index: usize,
 }
 
 /// Marker for the cost text of each row.
+#[allow(dead_code)]
 #[derive(Component)]
 pub struct BuildingRowCost {
     pub index: usize,
@@ -445,6 +447,7 @@ pub fn building_upgrade_navigation(
 }
 
 /// Updates row highlight colours to track the cursor position.
+#[allow(clippy::type_complexity)]
 pub fn update_building_upgrade_display(
     ui_state: Option<Res<BuildingUpgradeMenuState>>,
     mut row_query: Query<(&BuildingRow, &mut BackgroundColor)>,

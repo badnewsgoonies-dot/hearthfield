@@ -542,6 +542,7 @@ pub fn handle_collect_machine_output(
 /// Handles PlaceMachineEvent — spawns a ProcessingMachine entity at the given farm grid tile.
 /// Consumes the machine item from the player's inventory and registers the entity in
 /// ProcessingMachineRegistry so that other systems can look it up by position.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_place_machine(
     mut commands: Commands,
     mut events: EventReader<PlaceMachineEvent>,

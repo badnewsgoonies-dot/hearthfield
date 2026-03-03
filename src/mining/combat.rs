@@ -26,6 +26,7 @@ fn player_attack_damage(tier: ToolTier) -> f32 {
 }
 
 /// System: player attacks an enemy with the pickaxe.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_player_attack(
     mut commands: Commands,
     mut tool_events: EventReader<ToolUseEvent>,
@@ -184,7 +185,7 @@ pub fn enemy_ai_movement(
 
         for (nx, ny) in candidates {
             // Check bounds (stay within walkable area)
-            if nx < 1 || nx >= MINE_WIDTH - 1 || ny < 1 || ny >= MINE_HEIGHT - 1 {
+            if !(1..MINE_WIDTH - 1).contains(&nx) || !(1..MINE_HEIGHT - 1).contains(&ny) {
                 continue;
             }
             // Don't walk into rocks
@@ -258,6 +259,7 @@ pub fn enemy_attack_player(
 
 /// System: check if the player's health has reached zero (knockout).
 /// On knockout, exit the mine, set health to a fraction, and lose some gold.
+#[allow(clippy::too_many_arguments)]
 pub fn check_player_knockout(
     mut player_state: ResMut<PlayerState>,
     mut mine_state: ResMut<MineState>,

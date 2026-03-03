@@ -88,6 +88,7 @@ pub fn place_in_shipping_bin(
 
 /// Fires on DayEndEvent: sells everything in the shipping bin, adds gold, clears bin.
 /// This is the primary income source for the player.
+#[allow(clippy::too_many_arguments)]
 pub fn process_shipping_bin_on_day_end(
     mut day_end_events: EventReader<DayEndEvent>,
     mut shipping_bin: ResMut<ShippingBin>,

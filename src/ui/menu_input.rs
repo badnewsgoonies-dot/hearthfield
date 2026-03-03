@@ -80,7 +80,6 @@ pub fn hotbar_input_handler(input: Res<PlayerInput>, mut inventory: ResMut<Inven
     // tool_slot maps 1-9 keys → Some(0..8)
     if let Some(slot) = input.tool_slot {
         inventory.selected_slot = slot as usize;
-        return;
     }
 
     // Also support 0, -, = keys for slots 9-11 via tool_next/tool_prev as fallback

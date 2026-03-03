@@ -3,11 +3,12 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+#[allow(clippy::too_many_arguments)]
 pub fn check_achievements(
     pilot_state: Res<PilotState>,
     play_stats: Res<PlayStats>,
-    fleet: Res<Fleet>,
-    relationships: Res<Relationships>,
+    _fleet: Res<Fleet>,
+    _relationships: Res<Relationships>,
     gold: Res<Gold>,
     mut achievements: ResMut<Achievements>,
     mut achievement_events: EventWriter<AchievementUnlockedEvent>,

@@ -2,6 +2,8 @@
 //!
 //! Main entry point. Registers all resources, events, states, and plugins.
 
+#![allow(dead_code, unused_imports, clippy::upper_case_acronyms)]
+
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 

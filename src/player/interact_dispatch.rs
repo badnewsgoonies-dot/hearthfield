@@ -13,6 +13,7 @@ use crate::crafting::{
     OpenCraftingEvent, CollectMachineOutputEvent, InsertMachineInputEvent, ProcessingMachine,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn dispatch_world_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -47,10 +48,8 @@ pub fn dispatch_world_interaction(
     let mut best: Option<(f32, &Interactable, Entity)> = None;
     for (tf, inter, entity) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range {
-            if best.as_ref().map_or(true, |b| d < b.0) {
-                best = Some((d, inter, entity));
-            }
+        if d <= range && best.as_ref().is_none_or(|b| d < b.0) {
+            best = Some((d, inter, entity));
         }
     }
 
@@ -61,7 +60,7 @@ pub fn dispatch_world_interaction(
     match interactable.kind {
         InteractionKind::ShippingBin => {
             let slot_idx = inventory.selected_slot;
-            let Some(ref slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
+            let Some(slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
                 interaction_claimed.0 = true;
                 toast_events.send(ToastEvent {
                     message: "No item selected to ship.".into(),
@@ -92,7 +91,7 @@ pub fn dispatch_world_interaction(
                     });
                 } else {
                     let slot_idx = inventory.selected_slot;
-                    if let Some(ref slot) =
+                    if let Some(slot) =
                         inventory.slots.get(slot_idx).and_then(|s| s.as_ref())
                     {
                         machine_insert_events.send(InsertMachineInputEvent {

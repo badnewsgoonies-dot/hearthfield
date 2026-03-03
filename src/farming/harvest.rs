@@ -47,6 +47,7 @@ pub fn detect_harvest_input(
 // Process harvest attempt
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_harvest_attempt(
     mut harvest_events: EventReader<HarvestAttemptEvent>,
     mut farm_state: ResMut<FarmState>,
@@ -120,7 +121,7 @@ fn try_harvest_at(
 
     // Harvest!
     let quality = roll_harvest_quality();
-    let quantity: u8 = if def.regrows { 1 } else { 1 }; // base quantity always 1
+    let quantity: u8 = 1; // base quantity always 1
 
     item_pickup_events.send(ItemPickupEvent {
         item_id: def.harvest_id.clone(),

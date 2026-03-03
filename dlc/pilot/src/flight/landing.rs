@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_landing(
     input: Res<PlayerInput>,
     mut flight_state: ResMut<FlightState>,
@@ -35,7 +36,7 @@ pub fn evaluate_landing(
         let grade = evaluate_landing_quality(&flight_state);
         let grade_str = format!("{:?}", grade);
         let xp_bonus = grade.xp_bonus();
-        let rep_change = grade.reputation_change();
+        let _rep_change = grade.reputation_change();
 
         // Mission rewards
         let (gold, base_xp) = if let Some(ref active) = mission_board.active {

@@ -279,8 +279,8 @@ pub fn tick_buff_durations(
     let mut expired_labels: Vec<String> = Vec::new();
 
     for buff in active_buffs.buffs.iter_mut() {
-        let decrement = elapsed.min(buff.minutes_remaining as u32) as u32;
-        buff.minutes_remaining = buff.minutes_remaining.saturating_sub(decrement as u32);
+        let decrement = elapsed.min(buff.minutes_remaining);
+        buff.minutes_remaining = buff.minutes_remaining.saturating_sub(decrement);
         if buff.minutes_remaining == 0 {
             expired_labels.push(buff_type_label(buff.buff_type).to_string());
         }

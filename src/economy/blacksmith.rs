@@ -42,6 +42,7 @@ pub struct ToolUpgradeRequestEvent {
 }
 
 /// Fired when an upgrade completes (for UI notification).
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolUpgradeCompleteEvent {
     pub tool: ToolKind,
@@ -71,6 +72,7 @@ pub fn drain_upgrade_complete(mut events: EventReader<ToolUpgradeCompleteEvent>)
 /// On success:
 ///   - Deducts gold and bars
 ///   - Adds to ToolUpgradeQueue (2-day timer)
+#[allow(clippy::too_many_arguments)]
 pub fn handle_upgrade_request(
     mut upgrade_events: EventReader<ToolUpgradeRequestEvent>,
     player_state: ResMut<PlayerState>,

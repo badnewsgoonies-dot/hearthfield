@@ -42,6 +42,7 @@ pub fn spawn_hud(mut commands: Commands, font: Res<UiFontHandle>) {
         });
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn update_hud(
     pilot: Res<PilotState>,
     gold: Res<Gold>,

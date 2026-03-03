@@ -25,15 +25,9 @@ use super::maps::WorldObjectKind;
 
 /// Tracks which season the last tint pass was applied for.
 /// Initialised to `None` so the first Playing frame always triggers a tint.
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct SeasonalTintApplied {
     pub season: Option<Season>,
-}
-
-impl Default for SeasonalTintApplied {
-    fn default() -> Self {
-        Self { season: None }
-    }
 }
 
 /// Accumulates fractional frames so we spawn exactly 1 leaf per 60 frames on
@@ -126,6 +120,7 @@ fn object_tint(season: Season) -> Color {
 /// change events, and map transitions (when the resource is not reset — the
 /// new season is still in the Calendar so the first frame of the new map
 /// will pick it up automatically).
+#[allow(clippy::type_complexity)]
 pub fn apply_seasonal_tint(
     calendar: Res<Calendar>,
     mut tint_applied: ResMut<SeasonalTintApplied>,

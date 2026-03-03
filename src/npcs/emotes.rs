@@ -24,6 +24,7 @@ pub struct EmoteAtlas {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// The kind of emote to display above an NPC.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum EmoteKind {
     Heart,       // loved gift

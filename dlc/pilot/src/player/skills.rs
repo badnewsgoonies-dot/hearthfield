@@ -85,7 +85,7 @@ impl SkillState {
             self.xp -= self.xp_to_next;
             self.level += 1;
             // XP curve: each level requires progressively more
-            self.xp_to_next = 100 + (self.level as u32) * 20;
+            self.xp_to_next = 100 + self.level * 20;
         }
         if self.level >= 100 {
             self.xp = 0;

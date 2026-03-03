@@ -116,6 +116,7 @@ pub fn handle_open_crafting(
 
 /// Runs in Crafting (non-cooking mode) — processes a CraftItemEvent.
 /// Validates ingredients, consumes them, produces the result item.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_craft_item(
     mut events: EventReader<CraftItemEvent>,
     mut inventory: ResMut<Inventory>,

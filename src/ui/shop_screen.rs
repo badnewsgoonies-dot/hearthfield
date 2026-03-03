@@ -79,6 +79,7 @@ pub struct ShopUiState {
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_shop_screen(
     mut commands: Commands,
     shop_data: Res<ShopData>,
@@ -103,7 +104,7 @@ pub fn spawn_shop_screen(
         .filter(|listing| {
             listing
                 .season_available
-                .map_or(true, |s| s == calendar.season)
+                .is_none_or(|s| s == calendar.season)
         })
         .collect();
 
@@ -298,20 +299,18 @@ fn build_sell_list(
     item_registry: &ItemRegistry,
 ) -> Vec<(ItemId, String, u32, u8)> {
     let mut result = Vec::new();
-    for slot in &inventory.slots {
-        if let Some(ref s) = slot {
-            // Check if we already have this item in the sell list
-            if result.iter().any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &s.item_id) {
-                continue;
-            }
-            let name = item_registry
-                .get(&s.item_id)
-                .map(|d| d.name.clone())
-                .unwrap_or_else(|| s.item_id.clone());
-            let price = item_registry.get(&s.item_id).map(|d| d.sell_price).unwrap_or(1);
-            let total_qty = inventory.count(&s.item_id) as u8;
-            result.push((s.item_id.clone(), name, price, total_qty));
+    for slot in inventory.slots.iter().flatten() {
+        // Check if we already have this item in the sell list
+        if result.iter().any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &slot.item_id) {
+            continue;
         }
+        let name = item_registry
+            .get(&slot.item_id)
+            .map(|d| d.name.clone())
+            .unwrap_or_else(|| slot.item_id.clone());
+        let price = item_registry.get(&slot.item_id).map(|d| d.sell_price).unwrap_or(1);
+        let total_qty = inventory.count(&slot.item_id) as u8;
+        result.push((slot.item_id.clone(), name, price, total_qty));
     }
     result
 }
@@ -368,6 +367,7 @@ pub fn despawn_shop_screen(
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_shop_display(
     ui_state: Option<Res<ShopUiState>>,
     item_registry: Res<ItemRegistry>,
@@ -508,6 +508,7 @@ pub fn update_shop_display(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn shop_navigation(
     action: Res<MenuAction>,
     player_input: Res<PlayerInput>,
@@ -530,15 +531,11 @@ pub fn shop_navigation(
     };
 
     // Navigation
-    if action.move_down {
-        if max_items > 0 && ui_state.cursor < max_items - 1 {
-            ui_state.cursor += 1;
-        }
+    if action.move_down && max_items > 0 && ui_state.cursor < max_items - 1 {
+        ui_state.cursor += 1;
     }
-    if action.move_up {
-        if ui_state.cursor > 0 {
-            ui_state.cursor -= 1;
-        }
+    if action.move_up && ui_state.cursor > 0 {
+        ui_state.cursor -= 1;
     }
 
     // Cycle modes: Tab

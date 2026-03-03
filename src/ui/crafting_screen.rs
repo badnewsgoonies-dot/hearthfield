@@ -12,6 +12,7 @@ pub struct CraftingScreenRoot;
 
 #[derive(Component)]
 pub struct CraftingRecipeIcon {
+    #[allow(dead_code)]
     pub index: usize,
 }
 
@@ -221,6 +222,7 @@ pub fn despawn_crafting_screen(
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_crafting_display(
     ui_state: Option<Res<CraftingUiState>>,
     recipe_registry: Res<RecipeRegistry>,
@@ -311,29 +313,23 @@ pub fn crafting_navigation(
 
     let max = ui_state.visible_recipes.len();
 
-    if action.move_down {
-        if max > 0 && ui_state.cursor < max - 1 {
-            ui_state.cursor += 1;
-        }
+    if action.move_down && max > 0 && ui_state.cursor < max - 1 {
+        ui_state.cursor += 1;
     }
-    if action.move_up {
-        if ui_state.cursor > 0 {
-            ui_state.cursor -= 1;
-        }
+    if action.move_up && ui_state.cursor > 0 {
+        ui_state.cursor -= 1;
     }
 
-    if action.activate {
-        if ui_state.cursor < ui_state.visible_recipes.len() {
-            let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
-            if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {
-                if can_craft_recipe(recipe, &inventory) {
-                    craft_events.send(crate::crafting::CraftItemEvent { recipe_id: recipe_id.clone() });
-                    ui_state.status_message = "Crafting...".to_string();
-                    ui_state.status_timer = 2.0;
-                } else {
-                    ui_state.status_message = "Not enough materials!".to_string();
-                    ui_state.status_timer = 2.0;
-                }
+    if action.activate && ui_state.cursor < ui_state.visible_recipes.len() {
+        let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
+        if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {
+            if can_craft_recipe(recipe, &inventory) {
+                craft_events.send(crate::crafting::CraftItemEvent { recipe_id: recipe_id.clone() });
+                ui_state.status_message = "Crafting...".to_string();
+                ui_state.status_timer = 2.0;
+            } else {
+                ui_state.status_message = "Not enough materials!".to_string();
+                ui_state.status_timer = 2.0;
             }
         }
     }

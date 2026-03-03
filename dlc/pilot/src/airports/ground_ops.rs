@@ -139,7 +139,7 @@ impl GroundOpsState {
     pub fn taxi_complete(&self) -> bool {
         self.taxi_route
             .as_ref()
-            .map_or(true, |r| self.current_taxi_step >= r.steps.len())
+            .is_none_or(|r| self.current_taxi_step >= r.steps.len())
     }
 
     pub fn turnaround_complete(&self) -> bool {

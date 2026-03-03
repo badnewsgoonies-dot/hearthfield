@@ -177,7 +177,7 @@ pub fn birthday_gift_bonus(
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     for ev in gift_events.read() {
-        let birthday_key = format!("{}_{}", ev.npc_id, calendar.day);
+        let _birthday_key = format!("{}_{}", ev.npc_id, calendar.day);
         let is_birthday = CREW_BIRTHDAYS
             .iter()
             .any(|&(id, day)| id == ev.npc_id && day == calendar.day);
@@ -212,7 +212,7 @@ pub fn birthday_gift_bonus(
 pub fn check_crew_conflicts(
     time: Res<Time>,
     mut event_state: ResMut<CrewEventState>,
-    relationships: Res<Relationships>,
+    _relationships: Res<Relationships>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     event_state.event_check_timer += time.delta_secs();
@@ -371,9 +371,9 @@ pub fn check_holiday_events(
 pub fn check_mentorship(
     mut day_end_events: EventReader<DayEndEvent>,
     relationships: Res<Relationships>,
-    mut event_state: ResMut<CrewEventState>,
+    _event_state: ResMut<CrewEventState>,
     mut xp_events: EventWriter<XpGainEvent>,
-    mut toast_events: EventWriter<ToastEvent>,
+    _toast_events: EventWriter<ToastEvent>,
 ) {
     for _ev in day_end_events.read() {
         // Instructor Chen mentorship at high friendship

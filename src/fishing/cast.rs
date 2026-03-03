@@ -57,6 +57,7 @@ fn detect_bait(inventory: &Inventory) -> Option<String> {
 
 /// Listen for ToolUseEvent with FishingRod.
 /// When the player uses the fishing rod, start the fishing sequence.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_tool_use_for_fishing(
     mut tool_events: EventReader<ToolUseEvent>,
     mut fishing_state: ResMut<FishingState>,
@@ -238,6 +239,7 @@ pub fn update_bite_timer(
 
 /// Handle the reaction window: player must press Space to start the minigame.
 /// If the reaction window expires, the fish escapes.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_bite_reaction_window(
     mut fishing_state: ResMut<FishingState>,
     mut minigame_state: ResMut<FishingMinigameState>,

@@ -17,7 +17,7 @@ pub fn handle_dialogue_start(
         };
 
         let friendship = relationships.friendship_level(&ev.npc_id);
-        let tier = relationships.friendship_tier(&ev.npc_id);
+        let _tier = relationships.friendship_tier(&ev.npc_id);
 
         // Select dialogue based on friendship and time
         let greeting = if friendship >= 50 {

@@ -2,6 +2,8 @@
 //!
 //! Built on Bevy 0.15, using the same plugin-per-domain architecture as Hearthfield.
 
+#![allow(dead_code, unused_imports, clippy::upper_case_acronyms)]
+
 mod shared;
 pub mod input;
 pub mod player;

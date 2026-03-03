@@ -195,6 +195,7 @@ pub fn spawn_weather_particles(
 }
 
 /// Move weather particles each frame and despawn those that fall below the camera.
+#[allow(clippy::type_complexity)]
 pub fn update_weather_particles(
     mut commands: Commands,
     time: Res<Time>,

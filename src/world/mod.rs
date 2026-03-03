@@ -348,7 +348,7 @@ fn tile_atlas_info(
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Tracks the currently loaded map and provides collision/walkability queries.
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct WorldMap {
     /// The current map definition.
     pub map_def: Option<MapDef>,
@@ -358,17 +358,6 @@ pub struct WorldMap {
     pub width: usize,
     /// Map height in tiles.
     pub height: usize,
-}
-
-impl Default for WorldMap {
-    fn default() -> Self {
-        Self {
-            map_def: None,
-            solid_tiles: HashSet::new(),
-            width: 0,
-            height: 0,
-        }
-    }
 }
 
 impl WorldMap {
@@ -479,6 +468,7 @@ fn tile_color(kind: TileKind, season: Season) -> Color {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Load a map by ID: populate WorldMap resource and spawn tile entities.
+#[allow(clippy::too_many_arguments)]
 fn load_map(
     commands: &mut Commands,
     map_id: MapId,
@@ -596,6 +586,7 @@ fn despawn_map(
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Spawn the initial farm map when the game enters Playing state.
+#[allow(clippy::too_many_arguments)]
 fn spawn_initial_map(
     mut commands: Commands,
     mut world_map: ResMut<WorldMap>,
@@ -634,6 +625,7 @@ fn spawn_initial_map(
 }
 
 /// Handle MapTransitionEvent: despawn current map, load new one.
+#[allow(clippy::too_many_arguments)]
 fn handle_map_transition(
     mut commands: Commands,
     mut events: EventReader<MapTransitionEvent>,

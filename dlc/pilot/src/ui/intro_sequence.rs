@@ -131,6 +131,7 @@ pub fn despawn_intro(mut commands: Commands, query: Query<Entity, With<IntroOver
 
 /// Main intro runner — sequences through intro phases. Timed phases auto-
 /// advance; interactive phases require player input.
+#[allow(clippy::too_many_arguments)]
 pub fn run_intro(
     time: Res<Time>,
     mut intro: ResMut<IntroState>,

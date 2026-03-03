@@ -5,9 +5,9 @@
 //!
 //! * `handle_place_sprinkler` — validates and processes `PlaceSprinklerEvent`
 //! * `auto_water_sprinklers`  — runs on `DayEndEvent`, waters tiles via kind-aware
-//!                              range/diagonal logic (replaces legacy 3×3 for Phase 4)
+//!   range/diagonal logic (replaces legacy 3×3 for Phase 4)
 //! * `remove_sprinkler`       — listens for pickaxe/interact tool use on a sprinkler
-//!                              tile and returns it to inventory
+//!   tile and returns it to inventory
 //!
 //! All shared types are imported via `crate::shared::*`.  No imports from any other
 //! domain are permitted.

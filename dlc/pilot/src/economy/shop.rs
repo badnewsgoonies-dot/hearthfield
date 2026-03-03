@@ -52,6 +52,7 @@ pub fn is_airport_exclusive(airport: AirportId, item_id: &str) -> bool {
     airport_premium_items(airport).iter().any(|(id, _)| *id == item_id)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_purchase(
     mut events: EventReader<PurchaseEvent>,
     mut gold: ResMut<Gold>,
@@ -150,7 +151,7 @@ pub fn restock_shop(
 
         for listing in active_shop.listings.iter_mut() {
             if let Some(stock) = &mut listing.stock {
-                let base_stock = 3 + ((day * 7 + listing.price) % 5) as u32;
+                let base_stock = 3 + (day * 7 + listing.price) % 5;
                 *stock = base_stock;
             }
         }

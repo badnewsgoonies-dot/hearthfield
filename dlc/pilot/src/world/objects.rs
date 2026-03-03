@@ -278,6 +278,7 @@ pub fn spawn_extended_zone_objects(
 }
 
 /// Handle player interaction with extended objects.
+#[allow(clippy::too_many_arguments)]
 pub fn interact_extended_object(
     player_input: Res<PlayerInput>,
     mut interaction_claimed: ResMut<InteractionClaimed>,

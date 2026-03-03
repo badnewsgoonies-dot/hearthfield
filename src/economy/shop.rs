@@ -14,6 +14,7 @@ pub struct ActiveShop {
 }
 
 /// A single entry in the current shop, enriched with item info for the UI.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ActiveListing {
     pub item_id: ItemId,
@@ -31,6 +32,7 @@ pub struct ActiveListing {
 /// Detects MapTransitionEvents for shop maps and:
 ///   1. Transitions GameState to GameState::Shop
 ///   2. Populates ActiveShop with season-filtered listings
+#[allow(clippy::too_many_arguments)]
 pub fn on_enter_shop(
     mut map_events: EventReader<MapTransitionEvent>,
     shop_data: Res<ShopData>,
@@ -150,7 +152,7 @@ fn build_listings(
             // Keep items that are always available OR available this season.
             listing
                 .season_available
-                .map_or(true, |s| s == current_season)
+                .is_none_or(|s| s == current_season)
         })
         .filter_map(|listing| {
             let def = item_registry.get(&listing.item_id)?;

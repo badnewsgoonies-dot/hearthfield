@@ -143,7 +143,7 @@ pub fn purchase_insurance(
     pilot_state: Res<PilotState>,
     mut insurance: ResMut<InsuranceState>,
     fleet: Res<Fleet>,
-    mut gold_events: EventWriter<GoldChangeEvent>,
+    _gold_events: EventWriter<GoldChangeEvent>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     for ev in purchase_events.read() {

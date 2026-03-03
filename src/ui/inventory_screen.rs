@@ -12,6 +12,7 @@ pub struct InventoryScreenRoot;
 
 #[derive(Component)]
 pub struct InventoryGridSlot {
+    #[allow(dead_code)]
     pub index: usize,
 }
 
@@ -233,6 +234,7 @@ pub fn despawn_inventory_screen(
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_inventory_slots(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
@@ -341,55 +343,45 @@ pub fn inventory_navigation(
     let col = cur % 12;
     let row = cur / 12;
 
-    if action.move_right {
-        if col < 11 {
-            ui_state.cursor_slot = row * 12 + col + 1;
-        }
+    if action.move_right && col < 11 {
+        ui_state.cursor_slot = row * 12 + col + 1;
     }
-    if action.move_left {
-        if col > 0 {
-            ui_state.cursor_slot = row * 12 + col - 1;
-        }
+    if action.move_left && col > 0 {
+        ui_state.cursor_slot = row * 12 + col - 1;
     }
-    if action.move_down {
-        if row < 2 {
-            ui_state.cursor_slot = (row + 1) * 12 + col;
-        }
+    if action.move_down && row < 2 {
+        ui_state.cursor_slot = (row + 1) * 12 + col;
     }
-    if action.move_up {
-        if row > 0 {
-            ui_state.cursor_slot = (row - 1) * 12 + col;
-        }
+    if action.move_up && row > 0 {
+        ui_state.cursor_slot = (row - 1) * 12 + col;
     }
 
-    if action.activate {
-        if cur < inventory.slots.len() {
-            if let Some(ref slot) = inventory.slots[cur] {
-                if let Some(def) = item_registry.get(&slot.item_id) {
-                    match def.category {
-                        ItemCategory::Tool => {
-                            if let Some(tool) = tool_kind_from_item_id(&def.id) {
-                                player_state.equipped_tool = tool;
-                            } else {
-                                toast_events.send(ToastEvent {
-                                    message: "Cannot use this item.".to_string(),
-                                    duration_secs: 2.0,
-                                });
-                            }
-                        }
-                        ItemCategory::Food => {
-                            eat_food_events.send(EatFoodEvent {
-                                item_id: def.id.clone(),
-                                stamina_restore: def.energy_restore,
-                                buff: None,
-                            });
-                        }
-                        _ => {
+    if action.activate && cur < inventory.slots.len() {
+        if let Some(ref slot) = inventory.slots[cur] {
+            if let Some(def) = item_registry.get(&slot.item_id) {
+                match def.category {
+                    ItemCategory::Tool => {
+                        if let Some(tool) = tool_kind_from_item_id(&def.id) {
+                            player_state.equipped_tool = tool;
+                        } else {
                             toast_events.send(ToastEvent {
                                 message: "Cannot use this item.".to_string(),
                                 duration_secs: 2.0,
                             });
                         }
+                    }
+                    ItemCategory::Food => {
+                        eat_food_events.send(EatFoodEvent {
+                            item_id: def.id.clone(),
+                            stamina_restore: def.energy_restore,
+                            buff: None,
+                        });
+                    }
+                    _ => {
+                        toast_events.send(ToastEvent {
+                            message: "Cannot use this item.".to_string(),
+                            duration_secs: 2.0,
+                        });
                     }
                 }
             }

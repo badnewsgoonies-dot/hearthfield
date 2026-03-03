@@ -33,6 +33,7 @@ pub fn tool_cycle(
 
 /// Use the currently equipped tool on the tile the player is facing.
 /// Sends a `ToolUseEvent` and a `StaminaDrainEvent` when successful.
+#[allow(clippy::too_many_arguments)]
 pub fn tool_use(
     time: Res<Time>,
     player_input: Res<PlayerInput>,

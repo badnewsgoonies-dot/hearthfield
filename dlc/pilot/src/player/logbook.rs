@@ -180,7 +180,7 @@ pub fn record_flight(
 /// Enforce logbook requirements for rank advancement.
 pub fn check_logbook_rank_requirement(
     logbook: Res<Logbook>,
-    pilot_state: Res<PilotState>,
+    _pilot_state: Res<PilotState>,
     mut toast_events: EventWriter<ToastEvent>,
     mut rank_up_events: EventReader<RankUpEvent>,
 ) {

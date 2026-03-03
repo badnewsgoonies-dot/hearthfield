@@ -352,7 +352,7 @@ pub fn get_special_missions() -> Vec<MissionDef> {
 /// Initialize special mission state when a special mission is accepted.
 pub fn init_special_mission(
     mut mission_accepted: EventReader<MissionAcceptedEvent>,
-    mission_board: Res<MissionBoard>,
+    _mission_board: Res<MissionBoard>,
     mut state: ResMut<SpecialMissionState>,
 ) {
     for ev in mission_accepted.read() {
@@ -545,7 +545,7 @@ fn update_photo_waypoints(
             continue;
         }
         if distance_flown >= wp.distance_from_start_nm {
-            let alt_ok = wp.required_altitude_ft.map_or(true, |req| {
+            let alt_ok = wp.required_altitude_ft.is_none_or(|req| {
                 (flight_state.altitude_ft - req).abs() <= wp.altitude_tolerance_ft
             });
             if alt_ok {

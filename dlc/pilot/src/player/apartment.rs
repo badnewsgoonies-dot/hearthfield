@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use std::collections::HashMap;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA TYPES
@@ -135,7 +134,7 @@ impl ApartmentState {
             .map_or(0, |f| f.tier)
     }
 
-    pub fn hotel_room(airport: AirportId) -> Self {
+    pub fn hotel_room(_airport: AirportId) -> Self {
         Self {
             furniture: vec![
                 FurnitureItem { kind: FurnitureKind::Bed, tier: 0, grid_x: 2, grid_y: 1 },
@@ -154,10 +153,11 @@ impl ApartmentState {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Interact with apartment furniture based on player proximity and input.
+#[allow(clippy::too_many_arguments)]
 pub fn interact_furniture(
     player_input: Res<PlayerInput>,
     grid_pos: Res<GridPosition>,
-    mut apartment: ResMut<ApartmentState>,
+    apartment: Res<ApartmentState>,
     mut pilot_state: ResMut<PilotState>,
     mut toast_events: EventWriter<ToastEvent>,
     mut day_end_events: EventWriter<DayEndEvent>,

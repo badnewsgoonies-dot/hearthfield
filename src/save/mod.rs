@@ -95,15 +95,9 @@ pub struct NewGameEvent {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Tracks which save slot is currently active.
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct ActiveSaveSlot {
     pub slot: u8,
-}
-
-impl Default for ActiveSaveSlot {
-    fn default() -> Self {
-        Self { slot: 0 }
-    }
 }
 
 /// Cached metadata for all 3 save slots, refreshed on load screen.
@@ -357,6 +351,7 @@ impl FullSaveFile {
 // ═══════════════════════════════════════════════════════════════════════
 
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(clippy::too_many_arguments)]
 fn write_save(
     slot: u8,
     calendar: &Calendar,
@@ -576,6 +571,7 @@ fn track_items_shipped(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_save_request(
     mut save_events: EventReader<SaveRequestEvent>,
     mut complete_events: EventWriter<SaveCompleteEvent>,
@@ -661,6 +657,7 @@ fn handle_save_request(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_load_request(
     mut load_events: EventReader<LoadRequestEvent>,
     mut complete_events: EventWriter<LoadCompleteEvent>,
@@ -761,6 +758,7 @@ fn handle_load_request(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_new_game(
     mut new_game_events: EventReader<NewGameEvent>,
     mut active_slot: ResMut<ActiveSaveSlot>,

@@ -40,7 +40,7 @@ pub fn spawn_crew_for_zone(
         return;
     }
 
-    let is_weekend = matches!(
+    let _is_weekend = matches!(
         calendar.day_of_week,
         DayOfWeek::Saturday | DayOfWeek::Sunday
     );

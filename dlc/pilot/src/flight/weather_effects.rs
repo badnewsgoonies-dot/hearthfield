@@ -62,7 +62,7 @@ fn temperature_at_altitude(ground_temp_c: f32, altitude_ft: f32) -> f32 {
 
 // Icing conditions: between -20°C and 0°C in visible moisture
 fn icing_rate(temp_c: f32, weather: Weather) -> f32 {
-    if temp_c > 0.0 || temp_c < -20.0 {
+    if !(-20.0..=0.0).contains(&temp_c) {
         return 0.0;
     }
     let moisture = match weather {

@@ -182,6 +182,7 @@ pub fn start_egg_hunt(
 
 /// Checks player proximity to each egg entity; despawns collected eggs
 /// and awards the player when the timer expires.
+#[allow(clippy::too_many_arguments)]
 pub fn collect_eggs(
     time: Res<Time>,
     mut festival: ResMut<FestivalState>,
@@ -272,6 +273,7 @@ pub fn collect_eggs(
 
 /// The player contributes their currently selected hotbar item to the
 /// communal luau soup.  Quality determines NPC friendship gain.
+#[allow(clippy::too_many_arguments)]
 pub fn start_luau(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -370,6 +372,7 @@ pub fn start_luau(
 /// The player submits a crop item for judging.  Score is calculated from
 /// the crop's sell price.  If the score beats a threshold the player
 /// wins a gold prize.
+#[allow(clippy::too_many_arguments)]
 pub fn start_harvest_festival(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -542,6 +545,7 @@ pub fn setup_winter_star(
 /// When the player presses E in Town on Winter 25, the held item is
 /// given to the assigned NPC.  The player then receives a random gift
 /// from their assigned giver NPC.
+#[allow(clippy::too_many_arguments)]
 pub fn winter_star_give_gift(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,

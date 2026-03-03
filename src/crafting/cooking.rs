@@ -20,6 +20,7 @@ const FISH_IDS: &[&str] = &[
 ///   1. Requires the player to have a kitchen (house upgrade flag).
 ///   2. Handles the "any_fish" wildcard ingredient.
 ///   3. Produces food items that restore stamina.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_cook_item(
     mut events: EventReader<CraftItemEvent>,
     mut inventory: ResMut<Inventory>,
@@ -81,15 +82,13 @@ pub fn handle_cook_item(
             .iter()
             .any(|(id, _)| id == "any_fish");
 
-        if has_any_fish_ingredient {
-            if fish_item.is_none() {
-                warn!("Cannot cook '{}' — no fish in inventory", recipe.name);
-                ui_state.set_feedback("Need fish to cook this recipe!".to_string());
-                sfx_events.send(PlaySfxEvent {
-                    sfx_id: "craft_fail".to_string(),
-                });
-                continue;
-            }
+        if has_any_fish_ingredient && fish_item.is_none() {
+            warn!("Cannot cook '{}' — no fish in inventory", recipe.name);
+            ui_state.set_feedback("Need fish to cook this recipe!".to_string());
+            sfx_events.send(PlaySfxEvent {
+                sfx_id: "craft_fail".to_string(),
+            });
+            continue;
         }
 
         // Consume normal ingredients

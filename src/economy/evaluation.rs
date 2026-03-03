@@ -52,6 +52,7 @@ pub fn check_evaluation_trigger(
 ///
 /// Also handles re-evaluation: if already evaluated, compares candle count and
 /// toasts whether the player gained candles since last time.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_evaluation(
     mut trigger_events: EventReader<EvaluationTriggerEvent>,
     mut eval_score: ResMut<EvaluationScore>,

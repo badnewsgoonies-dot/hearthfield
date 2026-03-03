@@ -7,8 +7,9 @@ use crate::shared::*;
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum ClearanceStatus {
+    #[default]
     None,
     Requested,
     Cleared,
@@ -17,11 +18,6 @@ pub enum ClearanceStatus {
     Denied,
 }
 
-impl Default for ClearanceStatus {
-    fn default() -> Self {
-        ClearanceStatus::None
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ApproachType {
@@ -233,7 +229,7 @@ fn go_around_msg(icao: &str) -> String {
     )
 }
 
-fn handoff_msg(icao: &str, from: &AtcFrequency, to: &AtcFrequency) -> String {
+fn handoff_msg(icao: &str, _from: &AtcFrequency, to: &AtcFrequency) -> String {
     format!(
         "{}, contact {} on {}. Good day.",
         icao,

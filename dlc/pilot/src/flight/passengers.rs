@@ -202,7 +202,7 @@ pub fn update_passenger_mood(
 
 /// Automatic cabin announcements at phase changes.
 pub fn auto_cabin_announcements(
-    flight_state: Res<FlightState>,
+    _flight_state: Res<FlightState>,
     weather: Res<WeatherState>,
     mut cabin: ResMut<CabinState>,
     mut phase_events: EventReader<FlightPhaseChangeEvent>,

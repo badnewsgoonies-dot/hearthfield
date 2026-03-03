@@ -38,6 +38,7 @@ const HINTS: &[HintDef] = &[
 // HELPER — check if a crop is fully grown
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(dead_code)]
 fn is_crop_ready(crop_tile: &CropTile, crop_registry: &CropRegistry) -> bool {
     if crop_tile.dead {
         return false;
@@ -54,6 +55,7 @@ fn is_crop_ready(crop_tile: &CropTile, crop_registry: &CropRegistry) -> bool {
 // SYSTEM — check contextual hints each frame
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments)]
 pub fn check_tutorial_hints(
     mut tutorial: ResMut<TutorialState>,
     mut hint_writer: EventWriter<HintEvent>,

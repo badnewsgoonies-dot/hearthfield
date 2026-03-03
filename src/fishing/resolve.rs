@@ -25,6 +25,7 @@ use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_
 ///
 /// `bait_id` is the specific bait item ID used for this cast (e.g. "wild_bait"),
 /// or `None` if no bait was equipped. This determines the treasure bonus.
+#[allow(clippy::too_many_arguments)]
 pub fn catch_fish(
     fishing_state: &mut FishingState,
     next_state: &mut NextState<GameState>,

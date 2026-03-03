@@ -11,6 +11,7 @@ use std::collections::HashMap;
 // GAME STATE — top-level state machine
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, States, Default)]
 pub enum GameState {
     #[default]
@@ -146,18 +147,13 @@ impl Calendar {
 // PLAYER
 // ═══════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Facing {
     Up,
+    #[default]
     Down,
     Left,
     Right,
-}
-
-impl Default for Facing {
-    fn default() -> Self {
-        Facing::Down
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -201,6 +197,7 @@ impl ToolTier {
     }
 
     /// Gold cost to upgrade FROM this tier to the next.
+    #[allow(dead_code)]
     pub fn upgrade_cost_gold(&self) -> u32 {
         match self {
             ToolTier::Basic => 2000,
@@ -242,6 +239,7 @@ impl ToolTier {
     }
 
     /// Days the blacksmith takes for any upgrade.
+    #[allow(dead_code)]
     pub fn upgrade_days(&self) -> u8 { 2 }
 }
 
@@ -619,6 +617,7 @@ impl GridPosition {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct MapTransition {
     pub from_map: MapId,
@@ -694,6 +693,7 @@ impl Relationships {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct Npc {
     pub id: NpcId,
@@ -823,6 +823,7 @@ pub struct MineRock {
     pub drop_quantity: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct MineMonster {
     pub kind: MineEnemy,
@@ -855,6 +856,7 @@ pub struct ItemPickupEvent {
     pub quantity: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ItemRemovedEvent {
     pub item_id: ItemId,
@@ -871,6 +873,7 @@ pub struct DialogueStartEvent {
 #[derive(Event, Debug, Clone)]
 pub struct DialogueEndEvent;
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ShopTransactionEvent {
     pub shop_id: ShopId,
@@ -935,6 +938,7 @@ pub struct PlaySfxEvent {
     pub sfx_id: String,
 }
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct PlayMusicEvent {
     pub track_id: String,
@@ -1023,6 +1027,7 @@ pub enum PlayerAnimState {
 }
 
 /// Fired when a tool animation reaches its "impact" frame.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolImpactEvent {
     pub tool: ToolKind,
@@ -1055,6 +1060,7 @@ impl ItemQuality {
         }
     }
 
+    #[allow(dead_code)]
     pub fn next(&self) -> Option<ItemQuality> {
         match self {
             ItemQuality::Normal => Some(ItemQuality::Silver),
@@ -1367,6 +1373,7 @@ impl BuildingTier {
             BuildingTier::Deluxe => None,
         }
     }
+    #[allow(dead_code)]
     pub fn capacity(&self) -> usize {
         match self {
             BuildingTier::None => 0,
@@ -1399,6 +1406,7 @@ pub struct TutorialState {
 }
 
 /// Contextual hint event — shows a non-intrusive tip when the player does something new.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct HintEvent {
     pub hint_id: String,
@@ -1406,6 +1414,7 @@ pub struct HintEvent {
 }
 
 /// Achievement unlocked event.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct AchievementUnlockedEvent {
     pub achievement_id: String,
@@ -1414,6 +1423,7 @@ pub struct AchievementUnlockedEvent {
 }
 
 /// Building upgrade request.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct BuildingUpgradeEvent {
     pub building: BuildingKind,
@@ -1458,7 +1468,9 @@ pub struct InputBlocks(pub std::collections::HashSet<std::any::TypeId>);
 
 impl InputBlocks {
     pub fn is_blocked(&self) -> bool { !self.0.is_empty() }
+    #[allow(dead_code)]
     pub fn block<T: 'static>(&mut self) { self.0.insert(std::any::TypeId::of::<T>()); }
+    #[allow(dead_code)]
     pub fn unblock<T: 'static>(&mut self) { self.0.remove(&std::any::TypeId::of::<T>()); }
 }
 
@@ -1493,6 +1505,7 @@ pub struct Interactable {
 }
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum CutsceneStep {
     FadeOut(f32),
@@ -1635,6 +1648,7 @@ impl Default for KeyBindings {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Centralized menu styling. All menus read from this.
+#[allow(dead_code)]
 #[derive(Resource, Debug, Clone)]
 pub struct MenuTheme {
     pub bg_overlay: Color,

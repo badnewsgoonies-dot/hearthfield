@@ -64,53 +64,50 @@ pub fn animate_tool_use(
     if !action_data.loaded { return; }
 
     for (entity, mut movement, mut sprite, logical_pos) in query.iter_mut() {
-        match movement.anim_state {
-            PlayerAnimState::ToolUse { tool, frame, total_frames } => {
-                if frame == 0 {
-                    // First frame: swap atlas to action sheet
-                    sprite.image = action_data.image.clone();
-                    if let Some(atlas) = &mut sprite.texture_atlas {
-                        atlas.layout = action_data.layout.clone();
-                        atlas.index = action_atlas_index(tool, 0);
-                    }
-                }
-
-                // Emit impact event on frame 2 — target the faced tile, not the player's tile
-                if frame == 2 {
-                    let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
-                    let (px, py) = (g.x, g.y);
-                    let (dx, dy) = facing_offset(&movement.facing);
-                    impact_events.send(ToolImpactEvent {
-                        tool,
-                        grid_x: px + dx,
-                        grid_y: py + dy,
-                        player: entity,
-                    });
-                }
-
-                let new_frame = frame + 1;
-
-                if new_frame >= total_frames {
-                    // Animation complete — swap back to walk atlas
-                    sprite.image = walk_sprites.image.clone();
-                    if let Some(atlas) = &mut sprite.texture_atlas {
-                        atlas.layout = walk_sprites.layout.clone();
-                        atlas.index = 0;
-                    }
-                    movement.anim_state = PlayerAnimState::Idle;
-                } else {
-                    // Advance frame
-                    if let Some(atlas) = &mut sprite.texture_atlas {
-                        atlas.index = action_atlas_index(tool, new_frame as usize);
-                    }
-                    movement.anim_state = PlayerAnimState::ToolUse {
-                        tool,
-                        frame: new_frame,
-                        total_frames,
-                    };
+        if let PlayerAnimState::ToolUse { tool, frame, total_frames } = movement.anim_state {
+            if frame == 0 {
+                // First frame: swap atlas to action sheet
+                sprite.image = action_data.image.clone();
+                if let Some(atlas) = &mut sprite.texture_atlas {
+                    atlas.layout = action_data.layout.clone();
+                    atlas.index = action_atlas_index(tool, 0);
                 }
             }
-            _ => {}
+
+            // Emit impact event on frame 2 — target the faced tile, not the player's tile
+            if frame == 2 {
+                let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+                let (px, py) = (g.x, g.y);
+                let (dx, dy) = facing_offset(&movement.facing);
+                impact_events.send(ToolImpactEvent {
+                    tool,
+                    grid_x: px + dx,
+                    grid_y: py + dy,
+                    player: entity,
+                });
+            }
+
+            let new_frame = frame + 1;
+
+            if new_frame >= total_frames {
+                // Animation complete — swap back to walk atlas
+                sprite.image = walk_sprites.image.clone();
+                if let Some(atlas) = &mut sprite.texture_atlas {
+                    atlas.layout = walk_sprites.layout.clone();
+                    atlas.index = 0;
+                }
+                movement.anim_state = PlayerAnimState::Idle;
+            } else {
+                // Advance frame
+                if let Some(atlas) = &mut sprite.texture_atlas {
+                    atlas.index = action_atlas_index(tool, new_frame as usize);
+                }
+                movement.anim_state = PlayerAnimState::ToolUse {
+                    tool,
+                    frame: new_frame,
+                    total_frames,
+                };
+            }
         }
     }
 }

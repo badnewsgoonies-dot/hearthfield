@@ -14,6 +14,7 @@ pub struct ActiveNpcInteraction {
 }
 
 /// System: detect player pressing F (interact) near an NPC and start dialogue.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_npc_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -466,7 +467,7 @@ pub fn build_gift_response_lines(
     is_birthday: bool,
 ) -> Vec<String> {
     let birthday_prefix = if is_birthday {
-        format!("Oh! Is it really for me? And on my birthday! ")
+        "Oh! Is it really for me? And on my birthday! ".to_string()
     } else {
         String::new()
     };

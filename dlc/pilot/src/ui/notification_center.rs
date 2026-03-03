@@ -163,7 +163,7 @@ pub fn notify_gold_milestones(
     for _evt in events.read() {
         let milestones = [1000, 5000, 10000, 50000, 100000, 500000, 1000000];
         for &m in &milestones {
-            if gold.amount >= m && gold.amount - m as u32 <= 500 {
+            if gold.amount >= m && gold.amount - m <= 500 {
                 center.add(
                     format!("Financial Milestone: {m} gold!"),
                     format!("Your balance has reached {m} gold. Keep it up, pilot!"),
