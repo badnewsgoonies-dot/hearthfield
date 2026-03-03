@@ -431,18 +431,6 @@ impl Default for CurrentMapId {
 #[derive(Component, Debug)]
 pub struct MapTile;
 
-/// Marker component for transition zone entities.
-#[derive(Component, Debug)]
-pub struct TransitionZone {
-    pub to_map: MapId,
-    pub to_x: i32,
-    pub to_y: i32,
-    pub rect_x: i32,
-    pub rect_y: i32,
-    pub rect_w: i32,
-    pub rect_h: i32,
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // TILE COLORS (fallback for Void tiles and season change)
 // ═══════════════════════════════════════════════════════════════════════
@@ -522,22 +510,6 @@ fn load_map(
     // Spawn tile sprites using texture atlases
     spawn_tile_sprites(commands, &map_def, season, atlases);
 
-    // Spawn transition zone markers
-    for transition in &map_def.transitions {
-        commands.spawn((
-            MapTile, // Despawn with the rest of the map
-            TransitionZone {
-                to_map: transition.to_map,
-                to_x: transition.to_pos.0,
-                to_y: transition.to_pos.1,
-                rect_x: transition.from_rect.0,
-                rect_y: transition.from_rect.1,
-                rect_w: transition.from_rect.2,
-                rect_h: transition.from_rect.3,
-            },
-        ));
-    }
-
     // Spawn world objects with atlas sprites
     let object_placements = map_def.objects.clone();
     spawn_world_objects(commands, &object_placements, world_map, object_atlases, season);
@@ -612,10 +584,10 @@ fn despawn_map(
     object_query: &Query<Entity, With<WorldObject>>,
 ) {
     for entity in tile_query.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     for entity in object_query.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -669,7 +641,6 @@ fn handle_map_transition(
     object_query: Query<Entity, With<WorldObject>>,
     mut world_map: ResMut<WorldMap>,
     mut current_map_id: ResMut<CurrentMapId>,
-    mut player_state: ResMut<PlayerState>,
     calendar: Res<Calendar>,
     asset_server: Res<AssetServer>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -685,9 +656,6 @@ fn handle_map_transition(
 
         // Despawn current map
         despawn_map(&mut commands, &tile_query, &object_query);
-
-        // Update player's current map
-        player_state.current_map = event.to_map;
 
         // Ensure atlases are loaded (in case they weren't yet)
         ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);

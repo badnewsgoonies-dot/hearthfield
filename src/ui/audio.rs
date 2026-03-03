@@ -200,7 +200,11 @@ pub fn switch_music_on_map_change(
             MapId::Mine => "mine",
             MapId::Forest => "forest",
             MapId::Beach => "beach",
-            _ => continue,
+            MapId::MineEntrance => "forest",
+            MapId::PlayerHouse
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith => "indoor",
         };
         music_events.send(PlayMusicEvent {
             track_id: track.to_string(),

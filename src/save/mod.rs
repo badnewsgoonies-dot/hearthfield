@@ -728,7 +728,12 @@ fn handle_load_request(
                 // Force the world to reload the correct map after restoring state.
                 // Invalidate CurrentMapId so handle_map_transition doesn't skip
                 // the reload when the player was already on this map.
-                current_map_id.map_id = MapId::Mine; // dummy value to force mismatch
+                // Pick a dummy that differs from the saved map.
+                current_map_id.map_id = if player_state.current_map == MapId::Mine {
+                    MapId::Farm
+                } else {
+                    MapId::Mine
+                };
                 let spawn_x = player_state.save_grid_x;
                 let spawn_y = player_state.save_grid_y;
                 map_events.send(MapTransitionEvent {
