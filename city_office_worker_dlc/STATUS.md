@@ -1,31 +1,45 @@
 # City Office Worker DLC - STATUS
 
 Last updated: 2026-03-03  
-Current wave: Wave 4 - Contract Closure  
-Wave state: Completed (state machine + event payload + DaySummary rollover + quality gates)
+Current rotation: R2 - Deterministic Foundation  
+Rotation state: Completed (R0 baseline + R1 module split + R2 deterministic tests)
 
-## Gate Dashboard
+## OES-v1 Target
 
-| Gate | Wave 4 target | Current evidence | Status |
+OES-v1 (Origin-Equivalent State v1) means architecture parity, 200+ tests, deterministic replay/autoplay coverage, and green quality gates (`check`/`test`/`clippy -D warnings`).
+
+## Rotation Gate Dashboard
+
+| Gate | Rotation target | Current evidence | Status |
 |---|---|---|---|
-| G1 Compile | `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes | Passed on 2026-03-03 after Wave 4 integration | PASS |
-| G2 State Machine | Contract states + legal transitions (`Boot -> MainMenu -> InDay -> DaySummary -> InDay`, pause/unpause) | `OfficeGameState` + transition systems wired in `src/game/{mod.rs,systems.rs}` | PASS |
-| G3 Event Backbone | `EndDayRequested -> DayAdvanced { new_day_index }` with debounce | Tests: `end_day_request_advances_once_and_emits_summary_once`, `day_advanced_does_not_emit_without_end_day_request`, `duplicate_end_day_requests_are_debounced` | PASS |
-| G4 DaySummary Authority | Salary/reputation rollover handled in `DaySummary` flow | Systems: `apply_day_summary_rollover`, `transition_day_summary_to_inday`; test: `day_summary_rollover_applies_and_transitions_back_to_inday` | PASS |
-| G5 Ordering Contract | `Input -> Time -> TaskGeneration -> TaskResolution -> Interruptions -> Economy -> StateTransitions -> Ui` | `OfficeSimSet` order chained in `src/game/mod.rs` | PASS |
-| G6 Quality | `cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings` pass | All four commands passed locally on 2026-03-03 | PASS |
+| G0 Baseline | Measurable origin-vs-DLC parity profile frozen | `research/parity_baseline_matrix.md` | PASS |
+| G1 Module Topology | Monolithic systems split into lane modules | `src/game/systems/{bootstrap,input,tasks,interruptions,day_cycle,visuals,task_board}.rs` | PASS |
+| G2 Event Backbone | `EndDayRequested -> DayAdvanced { new_day_index }` remains deterministic | Existing day-transition tests remain green | PASS |
+| G3 Determinism Replay | Fixed-seed 3-day replay stable across runs | `fixed_seed_three_day_replay_is_deterministic` | PASS |
+| G4 Seeded Endurance | 5-day seeded autoplay completes without panic | `five_day_seeded_autoplay_completes_without_panic` | PASS |
+| G5 Quality | `fmt/check/test/clippy -D warnings` all pass | All commands passed locally on 2026-03-03 | PASS |
 
-## Remaining Blockers (Post-Wave 4)
+## Current Snapshot
 
-1. Persistence contract is still pending (`OfficeClock`/`TaskBoard`/seed round-trip and mid-day load invariants).
-2. Deterministic 3-day replay and 5-day autoplay no-panic tests are still pending.
-3. Contract naming cleanup (`DayClock` vs. `OfficeClock`) remains for a later refactor.
+1. Source lines (`src/**/*.rs`): 1,978.
+2. Test count (`cargo test -- --list`): 8.
+3. Clippy strictness: PASS at `-D warnings` in DLC.
 
-## Immediate Next Actions
+## Remaining Blockers Toward OES-v1
 
-1. Add save/load snapshot support for contract-required fields and invariants.
-2. Add fixed-seed multi-day replay and autoplay regression tests.
-3. Move TaskBoard from bridge mode to contract-authoritative progression once persistence tests are green.
+1. Domain breadth gap vs origin remains large (single `game` domain vs origin multi-domain tree).
+2. Persistence contract is still pending (`OfficeClock`/`TaskBoard` round-trip and mid-day load invariants).
+3. Task lifecycle invariants are only partially expressed in tests.
+4. Content scale and social/progression depth are still early-stage.
 
-Alignment note:
-- `docs/model is the orchestrator draft 13.docx` has been reviewed; current process remains aligned with contract-first waves, file-owned scope discipline, and integration gating.
+## Next Rotation (R3)
+
+1. Task lifecycle event chain and invariant hardening.
+2. Save/load skeleton for task identity round-trip.
+3. Expand deterministic suite around completion/failure exclusivity.
+
+Evidence index:
+- `research/parity_baseline_matrix.md`
+- `research/rotation_ledger.md`
+- `research/wave3_audit_checklist.md`
+- `research/wave3_audit_report.md`

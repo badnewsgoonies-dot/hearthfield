@@ -1,17 +1,17 @@
-# City Office Worker DLC - TASKS (Wave 1)
+# City Office Worker DLC - TASKS (Rolling Rotations)
 
-Wave objective: deliver a stable playable core day loop aligned to `CONTRACT.md`.
+Objective: run long-horizon rotating lanes until OES-v1 parity is reached.
 
 ## Lane Rules
 
-1. Each lane may edit only its allowlisted files.
-2. Cross-lane behavior changes are coordinated through events/resources defined in `CONTRACT.md`.
-3. If a lane needs a file outside its allowlist, hand off to Integrator lane.
-4. A lane is only done when its acceptance criteria and command checks pass.
+1. Each lane edits only allowlisted files.
+2. All shared vocabulary must match `CONTRACT.md`.
+3. Integrator lane owns merge, gate runs, and status updates.
+4. A lane is done only when acceptance criteria and quality gates pass.
 
-## Lane Assignments
+## Active Rotation: R3 (Planned)
 
-### Lane INT - Integrator and Contract Wiring
+### Lane INT - Integrator
 
 Allowlist:
 - `city_office_worker_dlc/src/main.rs`
@@ -19,76 +19,56 @@ Allowlist:
 - `city_office_worker_dlc/src/game/resources.rs`
 - `city_office_worker_dlc/src/game/events.rs`
 - `city_office_worker_dlc/src/game/components.rs`
-- `city_office_worker_dlc/src/game/systems.rs` (only until split is complete)
+- `city_office_worker_dlc/src/game/systems/**`
+- `city_office_worker_dlc/STATUS.md`
+- `city_office_worker_dlc/DECISIONS.md`
 
 Acceptance criteria:
-- `OfficeGameState` is wired and governs `InDay` vs `DaySummary` scheduling.
-- Shared resource/event names used in runtime match Wave 1 contract vocabulary.
-- System order remains deterministic and documented in code.
-- `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes.
+1. No contract drift between systems, resources, and events.
+2. System ordering remains deterministic.
+3. Gate suite is green before handoff.
 
-### Lane TIME - Office Clock and Day Transitions
+### Lane TASK - Task Lifecycle Hardening
 
 Allowlist:
-- `city_office_worker_dlc/src/game/office_time/**`
-- `city_office_worker_dlc/tests/wave1_time_state.rs`
+- `city_office_worker_dlc/src/game/systems/tasks.rs`
+- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
+- `city_office_worker_dlc/src/game/events.rs`
+- `city_office_worker_dlc/src/game/resources.rs`
+- `city_office_worker_dlc/src/game/systems/tests.rs`
 
 Acceptance criteria:
-- Day starts from configured start minute and ends at configured end minute.
-- End-of-day trigger is emitted at most once per day.
-- Clock progression is deterministic for fixed action sequence inputs.
-- Time/state tests pass.
+1. Explicit lifecycle states for task completion/failure transitions.
+2. Completed and failed sets remain disjoint and deterministic.
+3. Duplicate terminal transitions are rejected by tests.
 
-### Lane TASKS - Intake, Progress, Completion, Failure
+### Lane SAVE - Persistence Skeleton
 
 Allowlist:
-- `city_office_worker_dlc/src/game/tasks/**`
-- `city_office_worker_dlc/tests/wave1_tasks.rs`
+- `city_office_worker_dlc/src/game/save/**`
+- `city_office_worker_dlc/src/game/resources.rs`
+- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
+- `city_office_worker_dlc/src/game/systems/tests.rs`
 
 Acceptance criteria:
-- Task intake generates contract task kinds/priorities with unique IDs.
-- Task progress stays within `[0.0, 1.0]` and completion is `progress >= 1.0`.
-- Missed deadlines produce task failure exactly once.
-- Duplicate task IDs are rejected by tests.
+1. Snapshot round-trip preserves `TaskId` identity.
+2. Mid-day load does not regenerate active tasks.
+3. Save/load tests run headless and deterministic.
 
-### Lane ECON - Day Outcome, Salary, Reputation
+### Lane INV - Investigation/Audit
 
 Allowlist:
-- `city_office_worker_dlc/src/game/economy/**`
-- `city_office_worker_dlc/tests/wave1_economy.rs`
+- `city_office_worker_dlc/research/**`
+- `city_office_worker_dlc/STATUS.md`
 
 Acceptance criteria:
-- End-of-day computes `DayOutcome` from completed/failed work.
-- Salary/reputation/stress rollover is applied only in `DaySummary`.
-- Stat bounds are enforced after every economy update.
-- Economy tests pass.
+1. Update parity delta report with exact remaining blockers.
+2. Provide executable acceptance checks for the next rotation.
+3. Record any waivers with owners and follow-up tasks.
 
-### Lane UI - Task Board and End-of-Day Summary Presentation
+## Rotation Exit Criteria
 
-Allowlist:
-- `city_office_worker_dlc/src/game/ui/**`
-- `city_office_worker_dlc/assets/ui/**` (if needed)
-
-Acceptance criteria:
-- Player can open/close task board and view active task state.
-- End-of-day summary shows payout, completed, failed, and stat deltas.
-- UI reflects current day/time/task pressure without panics.
-
-### Lane TEST - Deterministic Headless Simulation and Tooling
-
-Allowlist:
-- `city_office_worker_dlc/tests/headless_wave1.rs`
-- `city_office_worker_dlc/tests/common/**`
-- `city_office_worker_dlc/tools/scope_guard.sh`
-
-Acceptance criteria:
-- Fixed-seed 3-day replay produces identical outcomes across runs.
-- 5-day autoplay completes with panic count = 0.
-- Scope guard script reports non-allowlisted edits and exits non-zero.
-- `cargo test --manifest-path city_office_worker_dlc/Cargo.toml` passes.
-
-## Wave 1 Exit Criteria (All Lanes)
-
-1. G1/G3/G4/G5 gates in `STATUS.md` are all PASS.
-2. No lane retains out-of-allowlist edits at handoff.
-3. Contract drift list is empty for Wave 1 surface area.
+1. `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes.
+2. `cargo test --manifest-path city_office_worker_dlc/Cargo.toml` passes.
+3. `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml --all-targets -- -D warnings` passes.
+4. Scope guard confirms allowlist compliance.

@@ -65,3 +65,19 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Audit findings flagged ambiguous ownership between end-of-day detection, advancement, and rollover side effects.
 - Decision: Keep `EndDayRequested -> DayAdvanced { new_day_index }` emission in `InDay` (`finalize_end_day_request`), but apply salary/reputation rollover only in DaySummary systems (`apply_day_summary_rollover`, `transition_day_summary_to_inday`).
 - Why: This preserves deterministic event flow, keeps debounce behavior intact, and makes DaySummary the only state mutating rollover outcomes.
+
+## ADR-009 - Split Simulation Systems into Lane Modules
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: A single `systems.rs` file became a merge hotspot and blocked multi-lane rotation throughput.
+- Decision: Decompose systems into `src/game/systems/` modules (`bootstrap`, `input`, `tasks`, `interruptions`, `day_cycle`, `visuals`, `task_board`) with a re-exporting `mod.rs`.
+- Why: This enables clearer ownership boundaries, lower merge conflict risk, and easier wave-by-wave audits.
+
+## ADR-010 - Use Seeded Replay and Autoplay as Rotation Gates
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Deterministic behavior must be proven continuously before content scale-up.
+- Decision: Add fixed-seed replay and seeded autoplay tests (`fixed_seed_three_day_replay_is_deterministic`, `five_day_seeded_autoplay_completes_without_panic`) as required early-rotation gates.
+- Why: These tests make behavior drift visible immediately and provide reproducible regression signals for future waves.
