@@ -51,7 +51,7 @@ pub fn spawn_pause_menu(
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
-            BackgroundColor(theme.bg_overlay),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
         ))
         .with_children(|parent| {
             // Panel
@@ -90,15 +90,19 @@ pub fn spawn_pause_menu(
                         TextColor(Color::srgb(0.95, 0.75, 0.45)),
                     ));
 
-                    // Hint + Controls reference
-                    menu_kit::spawn_menu_footer(
-                        panel,
-                        "WASD: Move | Space: Use Tool | F: Interact\n\
-                         R: Eat/Place | [ ]: Cycle Tools | 1-9: Hotbar\n\
-                         E: Inventory | C: Crafting | Esc: Resume",
-                        &theme,
-                        &font,
-                    );
+                    // Controls reminder
+                    panel.spawn((
+                        Text::new(
+                            "WASD: Move | F: Interact | Space: Use Tool | I: Inventory | C: Craft | Esc: Pause",
+                        ),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 11.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgba(0.7, 0.7, 0.7, 0.8)),
+                        PickingBehavior::IGNORE,
+                    ));
                 });
         });
 }

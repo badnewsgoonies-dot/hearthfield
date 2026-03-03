@@ -16,6 +16,8 @@ pub struct ScreenFade {
     pub speed: f32,
     /// Whether a fade is actively running
     pub active: bool,
+    /// Seconds to hold at full black before fading back in
+    pub hold_timer: f32,
 }
 
 impl Default for ScreenFade {
@@ -23,8 +25,9 @@ impl Default for ScreenFade {
         Self {
             alpha: 0.0,
             target_alpha: 0.0,
-            speed: 3.0,
+            speed: 2.5,
             active: false,
+            hold_timer: 0.0,
         }
     }
 }
@@ -54,7 +57,8 @@ pub fn trigger_fade_on_transition(
 ) {
     for _event in events.read() {
         fade.target_alpha = 1.0;
-        fade.speed = 4.0;
+        fade.speed = 2.5;
+        fade.hold_timer = 0.1;
         fade.active = true;
     }
 }
@@ -74,9 +78,13 @@ pub fn update_fade(
 
     if diff.abs() < 0.01 {
         fade.alpha = fade.target_alpha;
-        // If we've faded to black, start fading back
+        // If we've faded to black, hold briefly then fade back in
         if fade.target_alpha >= 0.99 {
-            fade.target_alpha = 0.0;
+            if fade.hold_timer > 0.0 {
+                fade.hold_timer -= dt;
+            } else {
+                fade.target_alpha = 0.0;
+            }
         } else {
             fade.active = false;
         }
