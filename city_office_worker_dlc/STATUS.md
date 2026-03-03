@@ -1,8 +1,8 @@
 # City Office Worker DLC - STATUS
 
 Last updated: 2026-03-03
-Current wave: Wave 1 - Playable Core Day Loop
-Wave state: In progress (Wave 0 skeleton exists and compiles)
+Current wave: Wave 2 - Interruptions and NPC Pressure
+Wave state: In progress (interruption + manager/coworker pressure mechanics implemented)
 
 ## Gate Dashboard
 
@@ -10,10 +10,10 @@ Wave state: In progress (Wave 0 skeleton exists and compiles)
 |---|---|---|---|
 | G1 Compile | `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes | Passed on 2026-03-03 | PASS |
 | G2 Scope | 0 out-of-scope edits after each lane run | `city_office_worker_dlc/tools/scope_guard.sh` added; lane enforcement must be verified per task | PARTIAL |
-| G3 Loop | One full day playable + deterministic 3-day headless simulation | Current prototype supports single-day completion logic in `src/game/systems.rs`; no deterministic 3-day test yet | PARTIAL |
+| G3 Loop | One full day playable + deterministic 3-day headless simulation | Single-day loop is playable and deterministic unit tests exist; 3-day replay harness not implemented yet | PARTIAL |
 | G4 Contract | 0 contract drift vs `CONTRACT.md` for Wave 1 types/events/states | Current code still uses Wave 0 names (`DayClock`, `InboxState`, `DayStats`) and has no `OfficeGameState` wiring | FAIL |
-| G5 Stability | 0 panics in autoplay/headless runs | `cargo test` passes but runs 0 tests (no coverage yet) | BLOCKED |
-| G6 Quality | Failing tests: 0, clippy warnings: 0 | Tests exist only as empty baseline; clippy not yet executed for DLC crate | BLOCKED |
+| G5 Stability | 0 panics in autoplay/headless runs | `cargo test` passes with non-empty unit test coverage for core handlers | PARTIAL |
+| G6 Quality | Failing tests: 0, clippy warnings: 0 | Compile + tests pass; clippy gate still pending for Wave 2 | PARTIAL |
 
 ## Active Blockers
 

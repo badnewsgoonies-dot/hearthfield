@@ -10,6 +10,8 @@ fn main() {
     // I -> interruption (+stress, -focus, +12 minutes)
     // 1 -> resolve interruption calmly (+focus, -stress)
     // 2 -> panic response (-focus, +stress)
+    // M -> manager check-in (+stress, +reputation, +8 minutes)
+    // H -> help coworker (-focus, -stress, +reputation, +6 minutes)
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.08, 0.08, 0.11)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {

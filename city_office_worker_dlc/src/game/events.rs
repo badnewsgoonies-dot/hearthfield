@@ -15,6 +15,12 @@ pub struct ResolveCalmlyEvent;
 #[derive(Event, Debug, Default)]
 pub struct PanicResponseEvent;
 
+#[derive(Event, Debug, Default)]
+pub struct ManagerCheckInEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CoworkerHelpEvent;
+
 #[derive(Event, Debug)]
 pub struct WaitEvent {
     pub minutes: u32,
@@ -33,7 +39,10 @@ pub struct EndOfDayEvent {
     pub calm_responses: u32,
     pub panic_responses: u32,
     pub unresolved_interruptions: u32,
+    pub manager_checkins: u32,
+    pub coworker_helps: u32,
     pub final_energy: i32,
     pub final_stress: i32,
     pub final_focus: i32,
+    pub final_reputation: i32,
 }

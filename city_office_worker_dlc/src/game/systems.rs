@@ -2,11 +2,11 @@ use bevy::prelude::*;
 
 use crate::game::components::{InboxAvatar, OfficeWorker, WorkerAvatar};
 use crate::game::events::{
-    CoffeeBreakEvent, EndOfDayEvent, InterruptionEvent, PanicResponseEvent, ProcessInboxEvent,
-    ResolveCalmlyEvent, WaitEvent,
+    CoffeeBreakEvent, CoworkerHelpEvent, EndOfDayEvent, InterruptionEvent, ManagerCheckInEvent,
+    PanicResponseEvent, ProcessInboxEvent, ResolveCalmlyEvent, WaitEvent,
 };
 use crate::game::resources::{
-    format_clock, DayClock, DayStats, InboxState, OfficeRules, PlayerMindState,
+    format_clock, DayClock, DayStats, InboxState, OfficeRules, PlayerCareerState, PlayerMindState,
 };
 
 pub fn setup_scene(
@@ -15,6 +15,7 @@ pub fn setup_scene(
     mut inbox: ResMut<InboxState>,
     mut clock: ResMut<DayClock>,
     mut mind: ResMut<PlayerMindState>,
+    mut career: ResMut<PlayerCareerState>,
     mut stats: ResMut<DayStats>,
 ) {
     inbox.remaining_items = rules.starting_inbox_items;
@@ -23,6 +24,9 @@ pub fn setup_scene(
     mind.stress = rules.starting_stress.clamp(0, rules.max_stress);
     mind.focus = rules.starting_focus.clamp(0, rules.max_focus);
     mind.pending_interruptions = 0;
+    career.reputation = rules
+        .starting_reputation
+        .clamp(-rules.max_reputation, rules.max_reputation);
     stats.processed_items = 0;
     stats.coffee_breaks = 0;
     stats.wait_actions = 0;
@@ -30,6 +34,8 @@ pub fn setup_scene(
     stats.interruptions_triggered = 0;
     stats.calm_responses = 0;
     stats.panic_responses = 0;
+    stats.manager_checkins = 0;
+    stats.coworker_helps = 0;
 
     commands.spawn((Camera2d,));
     commands.spawn((
@@ -47,12 +53,13 @@ pub fn setup_scene(
     ));
 
     println!(
-        "Day {} starts at {} with {} inbox items. Stress: {}, focus: {}.",
+        "Day {} starts at {} with {} inbox items. Stress: {}, focus: {}, reputation: {}.",
         clock.day_number,
         format_clock(clock.current_minute),
         inbox.remaining_items,
         mind.stress,
-        mind.focus
+        mind.focus,
+        career.reputation
     );
 }
 
@@ -64,6 +71,8 @@ pub fn collect_player_input(
     mut interruption_writer: EventWriter<InterruptionEvent>,
     mut calm_writer: EventWriter<ResolveCalmlyEvent>,
     mut panic_writer: EventWriter<PanicResponseEvent>,
+    mut manager_writer: EventWriter<ManagerCheckInEvent>,
+    mut coworker_writer: EventWriter<CoworkerHelpEvent>,
     mut wait_writer: EventWriter<WaitEvent>,
 ) {
     if keyboard.just_pressed(KeyCode::KeyP) {
@@ -80,6 +89,12 @@ pub fn collect_player_input(
     }
     if keyboard.just_pressed(KeyCode::Digit2) {
         panic_writer.send(PanicResponseEvent);
+    }
+    if keyboard.just_pressed(KeyCode::KeyM) {
+        manager_writer.send(ManagerCheckInEvent);
+    }
+    if keyboard.just_pressed(KeyCode::KeyH) {
+        coworker_writer.send(CoworkerHelpEvent);
     }
     if keyboard.just_pressed(KeyCode::KeyN) {
         wait_writer.send(WaitEvent {
@@ -176,6 +191,77 @@ pub fn handle_panic_response_requests(
         info!(
             "Panicked response -> focus: {} -> {}, stress: {} -> {}, pending: {}",
             before_focus, mind.focus, before_stress, mind.stress, mind.pending_interruptions
+        );
+    }
+}
+
+pub fn handle_manager_checkin_requests(
+    mut requests: EventReader<ManagerCheckInEvent>,
+    rules: Res<OfficeRules>,
+    mut clock: ResMut<DayClock>,
+    mut stats: ResMut<DayStats>,
+    mut mind: ResMut<PlayerMindState>,
+    mut career: ResMut<PlayerCareerState>,
+) {
+    for _ in requests.read() {
+        if clock.ended {
+            continue;
+        }
+
+        let before_stress = mind.stress;
+        let before_rep = career.reputation;
+
+        clock.advance(rules.manager_checkin_minutes);
+        mind.stress =
+            (mind.stress + rules.manager_checkin_stress_increase).clamp(0, rules.max_stress);
+        career.reputation = (career.reputation + rules.manager_checkin_reputation_gain)
+            .clamp(-rules.max_reputation, rules.max_reputation);
+        stats.manager_checkins = stats.manager_checkins.saturating_add(1);
+
+        info!(
+            "Manager check-in -> stress: {} -> {}, reputation: {} -> {}, clock: {}",
+            before_stress,
+            mind.stress,
+            before_rep,
+            career.reputation,
+            format_clock(clock.current_minute)
+        );
+    }
+}
+
+pub fn handle_coworker_help_requests(
+    mut requests: EventReader<CoworkerHelpEvent>,
+    rules: Res<OfficeRules>,
+    mut clock: ResMut<DayClock>,
+    mut stats: ResMut<DayStats>,
+    mut mind: ResMut<PlayerMindState>,
+    mut career: ResMut<PlayerCareerState>,
+) {
+    for _ in requests.read() {
+        if clock.ended {
+            continue;
+        }
+
+        let before_focus = mind.focus;
+        let before_stress = mind.stress;
+        let before_rep = career.reputation;
+
+        clock.advance(rules.coworker_help_minutes);
+        mind.focus = (mind.focus - rules.coworker_help_focus_cost).clamp(0, rules.max_focus);
+        mind.stress = (mind.stress - rules.coworker_help_stress_relief).clamp(0, rules.max_stress);
+        career.reputation = (career.reputation + rules.coworker_help_reputation_gain)
+            .clamp(-rules.max_reputation, rules.max_reputation);
+        stats.coworker_helps = stats.coworker_helps.saturating_add(1);
+
+        info!(
+            "Helped coworker -> focus: {} -> {}, stress: {} -> {}, reputation: {} -> {}, clock: {}",
+            before_focus,
+            mind.focus,
+            before_stress,
+            mind.stress,
+            before_rep,
+            career.reputation,
+            format_clock(clock.current_minute)
         );
     }
 }
@@ -281,6 +367,7 @@ pub fn check_end_of_day(
     inbox: Res<InboxState>,
     stats: Res<DayStats>,
     mind: Res<PlayerMindState>,
+    career: Res<PlayerCareerState>,
     worker_query: Query<&OfficeWorker>,
     mut end_day_writer: EventWriter<EndOfDayEvent>,
 ) {
@@ -309,9 +396,12 @@ pub fn check_end_of_day(
         calm_responses: stats.calm_responses,
         panic_responses: stats.panic_responses,
         unresolved_interruptions: mind.pending_interruptions,
+        manager_checkins: stats.manager_checkins,
+        coworker_helps: stats.coworker_helps,
         final_energy,
         final_stress: mind.stress,
         final_focus: mind.focus,
+        final_reputation: career.reputation,
     });
 }
 
@@ -334,6 +424,8 @@ pub fn print_end_of_day_summary(mut events: EventReader<EndOfDayEvent>) {
             "Unresolved interruptions: {}",
             summary.unresolved_interruptions
         );
+        println!("Manager check-ins: {}", summary.manager_checkins);
+        println!("Coworker helps: {}", summary.coworker_helps);
         println!(
             "Failed process attempts: {}",
             summary.failed_process_attempts
@@ -341,6 +433,7 @@ pub fn print_end_of_day_summary(mut events: EventReader<EndOfDayEvent>) {
         println!("Final energy: {}", summary.final_energy);
         println!("Final stress: {}", summary.final_stress);
         println!("Final focus: {}", summary.final_focus);
+        println!("Final reputation: {}", summary.final_reputation);
         println!("=============================================");
     }
 }
@@ -378,4 +471,134 @@ pub fn update_visuals(
 
     let tone = 0.2 - (0.11 * progress);
     clear_color.0 = Color::srgb(tone, tone * 0.95, tone * 1.1);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Resource, Copy, Clone)]
+    struct TestWorkerEntity(Entity);
+
+    #[derive(Resource, Default)]
+    struct EndEventCount(u32);
+
+    fn count_end_of_day_events(
+        mut events: EventReader<EndOfDayEvent>,
+        mut count: ResMut<EndEventCount>,
+    ) {
+        for _ in events.read() {
+            count.0 += 1;
+        }
+    }
+
+    fn build_test_app() -> App {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+
+        app.init_resource::<OfficeRules>()
+            .init_resource::<InboxState>()
+            .init_resource::<DayClock>()
+            .init_resource::<PlayerMindState>()
+            .init_resource::<PlayerCareerState>()
+            .init_resource::<DayStats>()
+            .add_event::<ProcessInboxEvent>()
+            .add_event::<CoffeeBreakEvent>()
+            .add_event::<InterruptionEvent>()
+            .add_event::<ResolveCalmlyEvent>()
+            .add_event::<PanicResponseEvent>()
+            .add_event::<ManagerCheckInEvent>()
+            .add_event::<CoworkerHelpEvent>()
+            .add_event::<WaitEvent>()
+            .add_event::<EndOfDayEvent>()
+            .init_resource::<EndEventCount>();
+
+        let worker = app.world_mut().spawn(OfficeWorker { energy: 100 }).id();
+        app.world_mut().insert_resource(TestWorkerEntity(worker));
+        app
+    }
+
+    #[test]
+    fn process_event_updates_energy_inbox_and_clock() {
+        let mut app = build_test_app();
+        app.add_systems(Update, handle_process_requests);
+
+        app.world_mut().send_event(ProcessInboxEvent);
+        app.update();
+
+        let worker_entity = app.world().resource::<TestWorkerEntity>().0;
+        let worker = app
+            .world()
+            .get::<OfficeWorker>(worker_entity)
+            .expect("worker should exist");
+        let inbox = app.world().resource::<InboxState>();
+        let clock = app.world().resource::<DayClock>();
+        let stats = app.world().resource::<DayStats>();
+
+        assert_eq!(worker.energy, 88);
+        assert_eq!(inbox.remaining_items, 17);
+        assert_eq!(clock.current_minute, 9 * 60 + 15);
+        assert_eq!(stats.processed_items, 1);
+    }
+
+    #[test]
+    fn interruption_and_npc_pressure_events_are_deterministic() {
+        let mut app = build_test_app();
+        app.add_systems(
+            Update,
+            (
+                handle_interruption_requests,
+                handle_resolve_calmly_requests,
+                handle_panic_response_requests,
+                handle_manager_checkin_requests,
+                handle_coworker_help_requests,
+            ),
+        );
+
+        app.world_mut().send_event(InterruptionEvent);
+        app.update();
+        app.world_mut().send_event(ResolveCalmlyEvent);
+        app.update();
+        app.world_mut().send_event(InterruptionEvent);
+        app.update();
+        app.world_mut().send_event(PanicResponseEvent);
+        app.update();
+        app.world_mut().send_event(ManagerCheckInEvent);
+        app.update();
+        app.world_mut().send_event(CoworkerHelpEvent);
+        app.update();
+
+        let mind = app.world().resource::<PlayerMindState>();
+        let career = app.world().resource::<PlayerCareerState>();
+        let stats = app.world().resource::<DayStats>();
+
+        assert_eq!(mind.pending_interruptions, 0);
+        assert_eq!(stats.interruptions_triggered, 2);
+        assert_eq!(stats.calm_responses, 1);
+        assert_eq!(stats.panic_responses, 1);
+        assert_eq!(stats.manager_checkins, 1);
+        assert_eq!(stats.coworker_helps, 1);
+        assert_eq!(career.reputation, 5);
+        assert_eq!(mind.stress, 54);
+        assert_eq!(mind.focus, 55);
+    }
+
+    #[test]
+    fn end_of_day_event_emits_once() {
+        let mut app = build_test_app();
+        app.add_systems(Update, (check_end_of_day, count_end_of_day_events).chain());
+
+        let day_end = app.world().resource::<OfficeRules>().day_end_minute;
+        {
+            let mut clock = app.world_mut().resource_mut::<DayClock>();
+            clock.current_minute = day_end;
+            clock.ended = false;
+        }
+
+        app.update();
+        assert_eq!(app.world().resource::<EndEventCount>().0, 1);
+
+        app.update();
+        assert_eq!(app.world().resource::<EndEventCount>().0, 1);
+    }
 }

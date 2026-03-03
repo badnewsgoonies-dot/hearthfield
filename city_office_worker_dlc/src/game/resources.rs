@@ -5,6 +5,7 @@ pub struct OfficeRules {
     pub max_energy: i32,
     pub max_stress: i32,
     pub max_focus: i32,
+    pub max_reputation: i32,
     pub process_energy_cost: i32,
     pub process_minutes: u32,
     pub coffee_restore: i32,
@@ -17,8 +18,16 @@ pub struct OfficeRules {
     pub calm_stress_relief: i32,
     pub panic_stress_increase: i32,
     pub panic_focus_loss: i32,
+    pub manager_checkin_minutes: u32,
+    pub manager_checkin_stress_increase: i32,
+    pub manager_checkin_reputation_gain: i32,
+    pub coworker_help_minutes: u32,
+    pub coworker_help_focus_cost: i32,
+    pub coworker_help_stress_relief: i32,
+    pub coworker_help_reputation_gain: i32,
     pub starting_stress: i32,
     pub starting_focus: i32,
+    pub starting_reputation: i32,
     pub day_start_minute: u32,
     pub day_end_minute: u32,
     pub starting_inbox_items: u32,
@@ -30,6 +39,7 @@ impl Default for OfficeRules {
             max_energy: 100,
             max_stress: 100,
             max_focus: 100,
+            max_reputation: 100,
             process_energy_cost: 12,
             process_minutes: 15,
             coffee_restore: 25,
@@ -42,8 +52,16 @@ impl Default for OfficeRules {
             calm_stress_relief: 9,
             panic_stress_increase: 11,
             panic_focus_loss: 7,
+            manager_checkin_minutes: 8,
+            manager_checkin_stress_increase: 10,
+            manager_checkin_reputation_gain: 2,
+            coworker_help_minutes: 6,
+            coworker_help_focus_cost: 6,
+            coworker_help_stress_relief: 4,
+            coworker_help_reputation_gain: 3,
             starting_stress: 18,
             starting_focus: 76,
+            starting_reputation: 0,
             day_start_minute: 9 * 60,
             day_end_minute: 17 * 60,
             starting_inbox_items: 18,
@@ -104,6 +122,17 @@ impl Default for PlayerMindState {
     }
 }
 
+#[derive(Resource, Debug)]
+pub struct PlayerCareerState {
+    pub reputation: i32,
+}
+
+impl Default for PlayerCareerState {
+    fn default() -> Self {
+        Self { reputation: 0 }
+    }
+}
+
 #[derive(Resource, Debug, Default)]
 pub struct DayStats {
     pub processed_items: u32,
@@ -113,6 +142,8 @@ pub struct DayStats {
     pub interruptions_triggered: u32,
     pub calm_responses: u32,
     pub panic_responses: u32,
+    pub manager_checkins: u32,
+    pub coworker_helps: u32,
 }
 
 pub fn format_clock(total_minutes: u32) -> String {
