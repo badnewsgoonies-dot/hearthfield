@@ -120,6 +120,18 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             season_available: Some(Season::Summer),
         },
 
+        // ── Relationship / Gift Items ─────────────────────────────
+        ShopListing {
+            item_id: "bouquet".into(),
+            price: 500,
+            season_available: None,
+        },
+        ShopListing {
+            item_id: "mermaid_pendant".into(),
+            price: 5_000,
+            season_available: None,
+        },
+
         // ── Recipes for Sale (represented as special items) ───────
         // Note: actual recipe unlock is handled by the economy domain;
         // here we list them at their purchasing prices. The economy

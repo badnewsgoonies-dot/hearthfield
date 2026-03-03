@@ -152,6 +152,8 @@ pub fn handle_animal_purchase(
     animal_state: Res<AnimalState>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     sprite_data: Res<AnimalSpriteData>,
+    animal_query: Query<&Animal>,
+    mut toast_writer: EventWriter<ToastEvent>,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -179,6 +181,52 @@ pub fn handle_animal_purchase(
                 kind
             );
             continue;
+        }
+
+        // Cap enforcement per housing type.
+        match kind {
+            AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
+                let count = animal_query.iter().filter(|a| matches!(a.kind,
+                    AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit
+                )).count();
+                let max = (animal_state.coop_level as usize) * 4;
+                if count >= max {
+                    toast_writer.send(ToastEvent {
+                        message: "Your coop is full! Upgrade to house more animals.".to_string(),
+                        duration_secs: 3.0,
+                    });
+                    continue;
+                }
+            }
+            AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
+                let count = animal_query.iter().filter(|a| matches!(a.kind,
+                    AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig
+                )).count();
+                let max = (animal_state.barn_level as usize) * 4;
+                if count >= max {
+                    toast_writer.send(ToastEvent {
+                        message: "Your barn is full! Upgrade to house more animals.".to_string(),
+                        duration_secs: 3.0,
+                    });
+                    continue;
+                }
+            }
+            AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
+                let already_has = animal_query.iter().any(|a| a.kind == kind);
+                if already_has {
+                    let name = match kind {
+                        AnimalKind::Horse => "horse",
+                        AnimalKind::Cat => "cat",
+                        AnimalKind::Dog => "dog",
+                        _ => unreachable!(),
+                    };
+                    toast_writer.send(ToastEvent {
+                        message: format!("You already have a {}!", name),
+                        duration_secs: 3.0,
+                    });
+                    continue;
+                }
+            }
         }
 
         let (pen_min, pen_max) = pen_bounds_for(kind);

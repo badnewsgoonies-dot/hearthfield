@@ -6,6 +6,7 @@
 use bevy::prelude::*;
 use crate::economy::buildings::BuildingLevels;
 use crate::shared::*;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // LOCAL TYPES
@@ -185,6 +186,7 @@ pub fn spawn_building_upgrade_menu(
     mut commands: Commands,
     building_levels: Res<BuildingLevels>,
     house_state: Res<HouseState>,
+    font_handle: Res<UiFontHandle>,
 ) {
     let entries = build_entries(&building_levels, &house_state);
 
@@ -228,6 +230,7 @@ pub fn spawn_building_upgrade_menu(
                     panel.spawn((
                         Text::new("BUILDING UPGRADES"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 22.0,
                             ..default()
                         },
@@ -239,6 +242,7 @@ pub fn spawn_building_upgrade_menu(
                         BuildingUpgradeStatusText,
                         Text::new(""),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 13.0,
                             ..default()
                         },
@@ -293,6 +297,7 @@ pub fn spawn_building_upgrade_menu(
                                     BuildingRowText { index: i },
                                     Text::new(row_text),
                                     TextFont {
+                                        font: font_handle.0.clone(),
                                         font_size: 14.0,
                                         ..default()
                                     },
@@ -309,6 +314,7 @@ pub fn spawn_building_upgrade_menu(
                                     BuildingRowCost { index: i },
                                     Text::new(entry.status_line.clone()),
                                     TextFont {
+                                        font: font_handle.0.clone(),
                                         font_size: 12.0,
                                         ..default()
                                     },
@@ -321,6 +327,7 @@ pub fn spawn_building_upgrade_menu(
                     panel.spawn((
                         Text::new("Up/Down: Select | Enter: Upgrade | Esc: Close"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 11.0,
                             ..default()
                         },
@@ -348,6 +355,7 @@ pub fn building_upgrade_navigation(
     action: Res<MenuAction>,
     mut ui_state: Option<ResMut<BuildingUpgradeMenuState>>,
     player_state: Res<PlayerState>,
+    inventory: Res<Inventory>,
     mut upgrade_writer: EventWriter<BuildingUpgradeEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
@@ -391,6 +399,22 @@ pub fn building_upgrade_navigation(
             ui_state.status_message = format!(
                 "Not enough gold! Need {}g, have {}g.",
                 entry.cost_gold, player_state.gold
+            );
+            ui_state.status_timer = 2.5;
+            return;
+        }
+
+        // Check materials
+        let missing: Vec<String> = entry
+            .cost_materials
+            .iter()
+            .filter(|&&(mat, qty)| !inventory.has(mat, qty))
+            .map(|&(mat, qty)| format!("{} {}", qty, mat))
+            .collect();
+        if !missing.is_empty() {
+            ui_state.status_message = format!(
+                "Not enough materials! Need {}.",
+                missing.join(", ")
             );
             ui_state.status_timer = 2.5;
             return;

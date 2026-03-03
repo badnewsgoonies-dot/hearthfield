@@ -46,7 +46,7 @@ pub struct ChestUiState {
     pub cursor: usize,
 }
 
-const VISIBLE_SLOTS: usize = 12;
+const VISIBLE_SLOTS: usize = 36;
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN
@@ -71,7 +71,7 @@ fn spawn_chest_ui(commands: &mut Commands, font: Handle<Font>) {
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.55)),
-            GlobalZIndex(100),
+            GlobalZIndex(50),
         ))
         .with_children(|root| {
             // Two panels side by side

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 use super::hud::ItemAtlasData;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -52,6 +53,7 @@ pub fn spawn_crafting_screen(
     unlocked_recipes: Res<UnlockedRecipes>,
     item_registry: Res<ItemRegistry>,
     atlas_data: Res<ItemAtlasData>,
+    font_handle: Res<UiFontHandle>,
 ) {
     // Gather visible recipes: show all unlocked (or all if unlocked list is empty for development)
     let visible: Vec<String> = if unlocked_recipes.ids.is_empty() {
@@ -105,6 +107,7 @@ pub fn spawn_crafting_screen(
                     panel.spawn((
                         Text::new("CRAFTING"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 22.0,
                             ..default()
                         },
@@ -116,6 +119,7 @@ pub fn spawn_crafting_screen(
                         CraftingStatusText,
                         Text::new(""),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 13.0,
                             ..default()
                         },
@@ -170,6 +174,7 @@ pub fn spawn_crafting_screen(
                                     CraftingRecipeName { index: i },
                                     Text::new(""),
                                     TextFont {
+                                        font: font_handle.0.clone(),
                                         font_size: 14.0,
                                         ..default()
                                     },
@@ -179,6 +184,7 @@ pub fn spawn_crafting_screen(
                                     CraftingRecipeMaterials { index: i },
                                     Text::new(""),
                                     TextFont {
+                                        font: font_handle.0.clone(),
                                         font_size: 11.0,
                                         ..default()
                                     },
@@ -191,6 +197,7 @@ pub fn spawn_crafting_screen(
                     panel.spawn((
                         Text::new("Up/Down: Select | Enter: Craft | Esc: Close"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 11.0,
                             ..default()
                         },

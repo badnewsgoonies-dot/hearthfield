@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 use crate::economy::blacksmith::ToolUpgradeRequestEvent;
 use super::hud::ItemAtlasData;
+use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -88,6 +89,7 @@ pub fn spawn_shop_screen(
     active_shop: Res<crate::economy::shop::ActiveShop>,
     upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
     atlas_data: Res<ItemAtlasData>,
+    font_handle: Res<UiFontHandle>,
 ) {
     // Use the shop_id set by the economy system when opening the shop.
     let shop_id = active_shop.shop_id.unwrap_or(ShopId::GeneralStore);
@@ -170,6 +172,7 @@ pub fn spawn_shop_screen(
                                 ShopTitle,
                                 Text::new("GENERAL STORE"),
                                 TextFont {
+                                    font: font_handle.0.clone(),
                                     font_size: 22.0,
                                     ..default()
                                 },
@@ -180,6 +183,7 @@ pub fn spawn_shop_screen(
                                 ShopGoldDisplay,
                                 Text::new(format!("{} G", player.gold)),
                                 TextFont {
+                                    font: font_handle.0.clone(),
                                     font_size: 18.0,
                                     ..default()
                                 },
@@ -192,6 +196,7 @@ pub fn spawn_shop_screen(
                         ShopModeText,
                         Text::new("[Tab] Mode: BUY"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 14.0,
                             ..default()
                         },
@@ -253,6 +258,7 @@ pub fn spawn_shop_screen(
                                         ShopItemName { index: i },
                                         Text::new(""),
                                         TextFont {
+                                            font: font_handle.0.clone(),
                                             font_size: 14.0,
                                             ..default()
                                         },
@@ -262,6 +268,7 @@ pub fn spawn_shop_screen(
                                         ShopItemPrice { index: i },
                                         Text::new(""),
                                         TextFont {
+                                            font: font_handle.0.clone(),
                                             font_size: 14.0,
                                             ..default()
                                         },
@@ -276,6 +283,7 @@ pub fn spawn_shop_screen(
                         ShopHintText,
                         Text::new("Up/Down: Select | Enter: Confirm | Tab: Toggle Mode | Esc: Close"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 11.0,
                             ..default()
                         },
@@ -590,6 +598,8 @@ pub fn shop_navigation(
                             total_cost: listing.price,
                             is_purchase: true,
                         });
+                        // Refresh sell list so it reflects the newly added item
+                        ui_state.sell_items = build_sell_list(&inventory, &item_registry);
                     }
                 }
             }

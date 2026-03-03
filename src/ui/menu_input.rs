@@ -33,6 +33,9 @@ pub fn gameplay_state_transitions(
     if input.open_inventory {
         next.set(GameState::Inventory);
     }
+    if input.open_crafting {
+        next.set(GameState::Crafting);
+    }
 }
 
 /// Universal "cancel goes back to Playing" for overlay menus.

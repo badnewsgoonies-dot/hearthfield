@@ -137,7 +137,7 @@ pub fn spawn_dialogue_box(
                                 image: portrait_image,
                                 texture_atlas: Some(TextureAtlas {
                                     layout: npc_sprites.layout.clone(),
-                                    index: 0, // front-facing standing frame
+                                    index: ui_state.as_ref().and_then(|s| s.portrait_index).unwrap_or(0) as usize,
                                 }),
                                 ..default()
                             },
