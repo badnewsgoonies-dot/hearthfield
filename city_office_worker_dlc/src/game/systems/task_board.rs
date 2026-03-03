@@ -1,51 +1,158 @@
 use crate::game::resources::{OfficeTask, TaskBoard, TaskId, TaskKind, TaskPriority};
 
+#[derive(Clone, Copy)]
+struct TaskTemplate {
+    kind: TaskKind,
+    priority: TaskPriority,
+    base_focus: i32,
+    base_stress: i32,
+    base_reward_money: i32,
+    base_reward_reputation: i32,
+    deadline_window_minutes: u32,
+}
+
+const TASK_TEMPLATES: [TaskTemplate; 12] = [
+    TaskTemplate {
+        kind: TaskKind::DataEntry,
+        priority: TaskPriority::Low,
+        base_focus: 22,
+        base_stress: 2,
+        base_reward_money: 8,
+        base_reward_reputation: 0,
+        deadline_window_minutes: 12,
+    },
+    TaskTemplate {
+        kind: TaskKind::DataEntry,
+        priority: TaskPriority::Medium,
+        base_focus: 34,
+        base_stress: 3,
+        base_reward_money: 11,
+        base_reward_reputation: 1,
+        deadline_window_minutes: 28,
+    },
+    TaskTemplate {
+        kind: TaskKind::Filing,
+        priority: TaskPriority::Low,
+        base_focus: 26,
+        base_stress: 2,
+        base_reward_money: 9,
+        base_reward_reputation: 0,
+        deadline_window_minutes: 16,
+    },
+    TaskTemplate {
+        kind: TaskKind::Filing,
+        priority: TaskPriority::High,
+        base_focus: 52,
+        base_stress: 5,
+        base_reward_money: 16,
+        base_reward_reputation: 2,
+        deadline_window_minutes: 58,
+    },
+    TaskTemplate {
+        kind: TaskKind::EmailTriage,
+        priority: TaskPriority::Medium,
+        base_focus: 38,
+        base_stress: 3,
+        base_reward_money: 12,
+        base_reward_reputation: 1,
+        deadline_window_minutes: 32,
+    },
+    TaskTemplate {
+        kind: TaskKind::EmailTriage,
+        priority: TaskPriority::Critical,
+        base_focus: 66,
+        base_stress: 8,
+        base_reward_money: 22,
+        base_reward_reputation: 3,
+        deadline_window_minutes: 118,
+    },
+    TaskTemplate {
+        kind: TaskKind::PermitReview,
+        priority: TaskPriority::Medium,
+        base_focus: 44,
+        base_stress: 4,
+        base_reward_money: 13,
+        base_reward_reputation: 1,
+        deadline_window_minutes: 36,
+    },
+    TaskTemplate {
+        kind: TaskKind::PermitReview,
+        priority: TaskPriority::High,
+        base_focus: 58,
+        base_stress: 6,
+        base_reward_money: 18,
+        base_reward_reputation: 2,
+        deadline_window_minutes: 74,
+    },
+    TaskTemplate {
+        kind: TaskKind::DataEntry,
+        priority: TaskPriority::Critical,
+        base_focus: 62,
+        base_stress: 7,
+        base_reward_money: 21,
+        base_reward_reputation: 3,
+        deadline_window_minutes: 102,
+    },
+    TaskTemplate {
+        kind: TaskKind::Filing,
+        priority: TaskPriority::Medium,
+        base_focus: 40,
+        base_stress: 4,
+        base_reward_money: 12,
+        base_reward_reputation: 1,
+        deadline_window_minutes: 40,
+    },
+    TaskTemplate {
+        kind: TaskKind::EmailTriage,
+        priority: TaskPriority::High,
+        base_focus: 56,
+        base_stress: 6,
+        base_reward_money: 17,
+        base_reward_reputation: 2,
+        deadline_window_minutes: 66,
+    },
+    TaskTemplate {
+        kind: TaskKind::PermitReview,
+        priority: TaskPriority::Critical,
+        base_focus: 70,
+        base_stress: 9,
+        base_reward_money: 24,
+        base_reward_reputation: 3,
+        deadline_window_minutes: 126,
+    },
+];
+
 fn task_id_for_slot(day_number: u32, slot_index: u32) -> TaskId {
     TaskId(((day_number as u64) << 32) | (slot_index as u64 + 1))
 }
 
+fn task_template_for_slot(day_number: u32, slot_index: u32) -> TaskTemplate {
+    // Deterministic content rotation across days and slots.
+    let index = ((day_number as usize).wrapping_mul(7) + (slot_index as usize).wrapping_mul(13))
+        % TASK_TEMPLATES.len();
+    TASK_TEMPLATES[index]
+}
+
+fn day_difficulty_tier(day_number: u32) -> i32 {
+    // Increase roughly every three days to keep progression readable.
+    ((day_number.saturating_sub(1) / 3) as i32).min(10)
+}
+
 fn inbox_task(day_number: u32, slot_index: u32, day_end_minute: u32) -> OfficeTask {
-    let priority = match slot_index % 4 {
-        0 => TaskPriority::Medium,
-        1 => TaskPriority::High,
-        2 => TaskPriority::Low,
-        _ => TaskPriority::Critical,
-    };
-    let required_focus = match priority {
-        TaskPriority::Low => 24,
-        TaskPriority::Medium => 42,
-        TaskPriority::High => 58,
-        TaskPriority::Critical => 72,
-    };
-    let stress_impact = match priority {
-        TaskPriority::Low => 2,
-        TaskPriority::Medium => 3,
-        TaskPriority::High => 5,
-        TaskPriority::Critical => 8,
-    };
-    let reward_money = match priority {
-        TaskPriority::Low => 9,
-        TaskPriority::Medium => 12,
-        TaskPriority::High => 17,
-        TaskPriority::Critical => 22,
-    };
-    let reward_reputation = match priority {
-        TaskPriority::Low => 0,
-        TaskPriority::Medium => 1,
-        TaskPriority::High => 2,
-        TaskPriority::Critical => 3,
-    };
-    let deadline_window = match priority {
-        TaskPriority::Low => 0,
-        TaskPriority::Medium => 30,
-        TaskPriority::High => 60,
-        TaskPriority::Critical => 120,
-    };
+    let template = task_template_for_slot(day_number, slot_index);
+    let tier = day_difficulty_tier(day_number);
+    let required_focus = template.base_focus + tier * 2 + (slot_index % 3) as i32;
+    let stress_impact = template.base_stress + (tier / 3);
+    let reward_money = template.base_reward_money + tier * 2 + template.priority.rank() as i32;
+    let reward_reputation = template.base_reward_reputation + tier / 4;
+    let deadline_window = template
+        .deadline_window_minutes
+        .saturating_add(tier.max(0) as u32 * 3);
 
     OfficeTask {
         id: task_id_for_slot(day_number, slot_index),
-        kind: TaskKind::DataEntry,
-        priority,
+        kind: template.kind,
+        priority: template.priority,
         required_focus,
         stress_impact,
         reward_money,

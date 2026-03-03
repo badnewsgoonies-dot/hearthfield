@@ -18,7 +18,7 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 - [x] **R3**: Task lifecycle events + snapshot save skeleton + identity round-trip tests.
 
 - [x] **R4**: Durable save slots + load flow + schema migration stubs.
-- [ ] **R5**: Rich task progression/deadline semantics with full terminal-state invariants.
+- [x] **R5**: Rich task progression/deadline semantics with full terminal-state invariants.
 - [ ] **R6**: Economy/progression depth (salary curves, penalties, upgrades/perks).
 - [ ] **R7**: Social domain decomposition (coworkers, manager arcs, affinity/progression hooks).
 - [ ] **R8**: UI/HUD expansion for summary, task board, progression readability.
@@ -49,5 +49,8 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 - [x] Continue **R5** slice A: richer task progression deltas + deterministic assertions.
 - [x] Continue **R5** slice B: deadline-breach failure path + terminal exclusivity coverage.
 - [x] Continue **R5** slice C: economy/progression hook expansion with replay-safe tests.
-- [ ] Continue **R5** slice D: publish social/progression parity decomposition packet for **R6** planning.
-- [ ] Continue **R5** slice E: expand task/economy content templates on top of stabilized semantics.
+- [x] Continue **R5** slice D: publish social/progression parity decomposition packet for **R6** planning.
+- [x] Continue **R5** slice E: expand task/economy content templates on top of stabilized semantics.
+- [ ] Start **R6** slice A: persistent coworker roster and affinity state scaffolding.
+- [ ] Start **R6** slice B: deterministic social scenario templates with replay tests.
+- [ ] Start **R6** slice C: progression unlock table with persistence coverage.

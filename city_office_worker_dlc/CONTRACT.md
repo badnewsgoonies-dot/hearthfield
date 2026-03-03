@@ -271,3 +271,45 @@ Before implementation changes that alter shared behavior:
 3. Update any affected tests.
 
 No worker should introduce alternate names for contract concepts without updating this file.
+
+## 10) R5 Addendum (Economy + Startup Hardening)
+
+Additional frozen resources:
+
+```rust
+#[derive(Resource, Debug, Clone)]
+pub struct OfficeEconomyRules {
+    pub base_salary_per_task: i32,
+    pub failure_penalty_per_task: i32,
+    pub level_salary_bonus: i32,
+    pub streak_bonus_per_day: i32,
+    pub max_streak_bonus_days: u32,
+    pub burnout_stress_threshold: i32,
+    pub burnout_salary_penalty: i32,
+    pub xp_per_completed_task: u32,
+    pub xp_penalty_per_failed_task: u32,
+    pub xp_per_manager_checkin: u32,
+    pub xp_per_coworker_help: u32,
+    pub reputation_per_diplomacy_perk: i32,
+    pub stress_relief_per_resilience_perk: i32,
+    pub process_energy_discount_per_efficiency_perk: i32,
+    pub max_perk_level: u8,
+}
+
+#[derive(Resource, Debug, Clone)]
+pub struct CareerProgression {
+    pub level: u32,
+    pub xp: u32,
+    pub success_streak: u32,
+    pub burnout_days: u32,
+    pub efficiency_perk: u8,
+    pub resilience_perk: u8,
+    pub diplomacy_perk: u8,
+}
+```
+
+Additional invariants:
+1. `setup_scene` must be idempotent for first-seconds singleton entities (`Camera2d`, worker, inbox avatar).
+2. Task-board seed generation must provide deterministic content variety (all task kinds and priority tiers across a normal workday board).
+3. Day outcome preview and rollover must remain deterministic for fixed seed and fixed action script.
+4. Save/load must round-trip progression state (`CareerProgression`) without schema drift.

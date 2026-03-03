@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -1458,4 +1459,57 @@ fn setup_scene_is_idempotent_for_first_seconds_entities() {
     assert_eq!(worker_avatar_count, 1);
     assert_eq!(inbox_avatar_count, 1);
     assert_eq!(camera_count, 1);
+}
+
+#[test]
+fn seeded_task_board_content_pack_has_kind_and_priority_variety() {
+    let board = super::task_board::seed_task_board(9, 18, 17 * 60);
+    let kinds: HashSet<_> = board.active.iter().map(|task| task.kind).collect();
+    let priorities: HashSet<_> = board.active.iter().map(|task| task.priority).collect();
+
+    assert!(kinds.len() >= 4, "expected all task kinds in content pack");
+    assert!(
+        priorities.len() >= 4,
+        "expected all priority tiers in content pack"
+    );
+}
+
+#[test]
+fn seeded_task_board_scales_task_economy_with_day_progression() {
+    let early = super::task_board::seed_task_board(1, 18, 17 * 60);
+    let late = super::task_board::seed_task_board(15, 18, 17 * 60);
+
+    let early_avg_reward = early
+        .active
+        .iter()
+        .map(|task| task.reward_money)
+        .sum::<i32>() as f32
+        / early.active.len() as f32;
+    let late_avg_reward = late
+        .active
+        .iter()
+        .map(|task| task.reward_money)
+        .sum::<i32>() as f32
+        / late.active.len() as f32;
+    let early_avg_focus = early
+        .active
+        .iter()
+        .map(|task| task.required_focus)
+        .sum::<i32>() as f32
+        / early.active.len() as f32;
+    let late_avg_focus = late
+        .active
+        .iter()
+        .map(|task| task.required_focus)
+        .sum::<i32>() as f32
+        / late.active.len() as f32;
+
+    assert!(
+        late_avg_reward > early_avg_reward,
+        "late-day task rewards should scale upward"
+    );
+    assert!(
+        late_avg_focus > early_avg_focus,
+        "late-day task focus requirements should scale upward"
+    );
 }

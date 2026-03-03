@@ -95,7 +95,7 @@ Delivered:
 
 Gate result: PASS (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`).
 
-## R5 - Task/Economy Semantics + Process Hardening (In Progress 2026-03-03)
+## R5 - Task/Economy Semantics + Process Hardening (Completed 2026-03-03)
 
 Scope:
 1. Add richer task progress/deadline failure semantics and deterministic coverage.
@@ -113,8 +113,22 @@ Orchestration adjustments adopted from `research/r5_origin_commit_patterns.md`:
 4. Keep infra/build changes isolated from gameplay/content slices.
 5. Reserve a hardening checkpoint before the next feature burst.
 
-Current status:
-1. Task/deadline semantics, save-drift hardening, and economy/progression hooks are landed (progress deltas, deadline failure handling, load-state reconciliation, slot ownership semantics, terminal-set normalization hardening, streak/burnout salary modifiers, XP leveling, and auto-perk assignment).
+Delivered:
+1. Task/deadline semantics, save-drift hardening, and economy/progression hooks landed (progress deltas, deadline failure handling, load-state reconciliation, slot ownership semantics, terminal-set normalization hardening, streak/burnout salary modifiers, XP leveling, and auto-perk assignment).
 2. Startup-first reliability hardening landed: `setup_scene` is idempotent for early-frame singleton entities (camera/worker/inbox), reducing first-seconds drift/soft-lock risk from duplicate spawns.
-3. Gate checkpoint PASS on 2026-03-03 (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`) with 23 passing tests.
-4. Remaining R5 work is parity decomposition packet publication and content-scale expansion on top of stabilized semantics.
+3. Task content-pack expansion landed with deterministic multi-kind/multi-priority template rotation and day-scaled reward/focus curves.
+4. Social/progression decomposition packet published: `research/r5_social_progression_parity_packet.md`.
+5. Test count raised from 19 to 25.
+
+Gate result: PASS (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`).
+
+## R6 - Social/Progression Expansion (In Progress 2026-03-03)
+
+Scope:
+1. Add persistent coworker/manager relationship state and deterministic social scenario templates.
+2. Add progression unlock catalog and milestone persistence hooks.
+3. Extend replay/endurance checks to cover social/progression state evolution.
+
+Entry conditions:
+1. R0-R5 artifacts present and green.
+2. First-seconds stability and save/load drift hardening remain green.

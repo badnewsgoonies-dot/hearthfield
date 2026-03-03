@@ -17,14 +17,16 @@ Objective: run long-horizon rotating lanes until OES-v1 parity is reached.
 4. Any contract delta must ship with wiring updates and at least one deterministic/headless regression in the same PR.
 5. Keep infra/build changes separate from gameplay/content changes.
 
-## Last Completed Rotation: R4
+## Last Completed Rotation: R5
 
 Delivered:
-1. Durable save-slot file I/O with `SaveSlotRequest` and `LoadSlotRequest`.
-2. Snapshot migration path (`v0 -> v1`) with schema-version guardrails.
-3. Regression coverage for save roundtrip, migration, and no-regeneration load flow drift.
+1. Durable save/load and migration hardening completed, including load-state reconciliation and terminal-set hygiene.
+2. Task progression/deadline semantics completed with deterministic invariant coverage.
+3. Economy/progression hooks landed (streak/burnout salary modifiers, XP/leveling, auto-perk progression).
+4. Startup-first reliability hardening completed (idempotent first-seconds scene setup).
+5. Social/progression parity packet published for R6 planning.
 
-## Active Rotation: R5 (In Progress)
+## Active Rotation: R6 (In Progress)
 
 ### Lane INT - Integrator
 
@@ -83,6 +85,33 @@ Acceptance criteria:
 1. Salary/penalty/reputation deltas are tunable and deterministic under replay.
 2. Progression hooks can be extended without breaking save compatibility.
 3. Regression tests cover reward and penalty edge cases.
+
+### Lane SOC - Social State and Scenarios
+
+Allowlist:
+- `city_office_worker_dlc/src/game/resources.rs`
+- `city_office_worker_dlc/src/game/events.rs`
+- `city_office_worker_dlc/src/game/systems/interruptions.rs`
+- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
+- `city_office_worker_dlc/src/game/systems/tests.rs`
+
+Acceptance criteria:
+1. Persistent coworker/manager relationship state exists with bounded normalization.
+2. Deterministic social scenario templates are selected by seed/day and affect outcomes.
+3. Save/load roundtrip preserves social state without replay drift.
+
+### Lane PROG - Unlock Catalog
+
+Allowlist:
+- `city_office_worker_dlc/src/game/resources.rs`
+- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
+- `city_office_worker_dlc/src/game/save/mod.rs`
+- `city_office_worker_dlc/src/game/systems/tests.rs`
+
+Acceptance criteria:
+1. Unlock table maps progression milestones to deterministic gameplay benefits.
+2. Unlock state is persisted and migration-safe.
+3. Deterministic tests verify unlock timing for fixed seeds/scripts.
 
 ### Lane INV - Investigation/Audit
 

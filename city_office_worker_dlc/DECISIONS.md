@@ -121,3 +121,11 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Early-session failures (duplicate singleton spawns, soft-lock risk in opening seconds) can invalidate all late-game work; R5 also needed concrete economy/progression depth without introducing nondeterminism.
 - Decision: Make startup scene setup idempotent for worker/inbox/camera singletons, and introduce deterministic economy/progression primitives (salary curve with streak/burnout modifiers, XP leveling, and auto-assigned perk tracks).
 - Why: This keeps the first playable seconds resilient while adding mid-run progression depth that remains replay-safe and testable.
+
+## ADR-016 - Use Deterministic Task Content Packs Before Narrative Scale-Up
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Content scale needed to grow without introducing RNG drift or breaking replay assertions.
+- Decision: Replace single-pattern task generation with deterministic template packs spanning all task kinds/priorities and day-based difficulty/economy scaling, then gate with explicit variety and scaling tests.
+- Why: This increases gameplay variety and progression texture while preserving reproducibility required for long-horizon regression testing.

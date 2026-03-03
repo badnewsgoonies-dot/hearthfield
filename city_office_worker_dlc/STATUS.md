@@ -1,8 +1,8 @@
 # City Office Worker DLC - STATUS
 
 Last updated: 2026-03-03  
-Current rotation: R5 - Task/Economy Semantics + Parity Decomposition  
-Rotation state: In progress (task/deadline semantics, economy/progression hooks, and startup-stability hardening landed; parity decomposition/content scale still pending)
+Current rotation: R6 - Social/Progression Expansion  
+Rotation state: In progress (R5 complete; R6 social-state/content/unlock decomposition queued)
 
 ## OES-v1 Target
 
@@ -23,25 +23,26 @@ OES-v1 (Origin-Equivalent State v1) means architecture parity, 200+ tests, deter
 | G8 Migration Stub | Legacy v0 payloads migrate into v1 schema | `migrate_v0_snapshot_to_v1_preserves_core_fields_and_ids` | PASS |
 | G9 Quality | `fmt/check/test/clippy -D warnings` all pass | Full gate run passed on 2026-03-03 after R5 economy/startup slice | PASS |
 | G10 First-Seconds Stability | Startup scene remains idempotent, preventing duplicate singleton entities in early frames | `setup_scene_is_idempotent_for_first_seconds_entities` | PASS |
+| G11 Content Pack Scaling | Seeded task board now rotates multi-kind/multi-priority templates with day-scaling reward/focus curves | `seeded_task_board_content_pack_has_kind_and_priority_variety` + `seeded_task_board_scales_task_economy_with_day_progression` | PASS |
 
 ## Current Snapshot
 
-1. Source lines (`src/**/*.rs`): 4,095.
-2. Test count (`cargo test -- --list`): 23.
+1. Source lines (`src/**/*.rs`): 4,256.
+2. Test count (`cargo test -- --list`): 25.
 3. Clippy strictness: PASS at `-D warnings` in DLC.
 
 ## Remaining Blockers Toward OES-v1
 
 1. Domain breadth gap vs origin remains large (single `game` domain vs origin multi-domain tree).
-2. Task system still needs broader content-driven generation depth and richer template variety.
-3. Social arcs and progression breadth still trail origin parity targets.
-4. Content scale and world/navigation parity are still early-stage.
+2. Social arcs and progression breadth still trail origin parity targets.
+3. Content scale beyond task templates (events/dialogue/scenario branches) remains early-stage.
+4. World/navigation parity is still early-stage.
 
-## R5 Focus (In Progress)
+## R6 Focus (In Progress)
 
-1. Publish social/progression parity packet for downstream decomposition rotations.
-2. Extend task/economy content scale (more templates/scenarios) on top of the stabilized core semantics.
-3. Continue endurance and balancing expansion while preserving deterministic replay baselines.
+1. Land persistent coworker/manager relationship state and deterministic social scenario packs.
+2. Add explicit progression unlock catalog with save/load and replay invariants.
+3. Expand endurance and balancing coverage while preserving deterministic replay baselines.
 
 ## Process Guardrails (Active for R5)
 
@@ -52,6 +53,7 @@ OES-v1 (Origin-Equivalent State v1) means architecture parity, 200+ tests, deter
 Evidence index:
 - `research/parity_baseline_matrix.md`
 - `research/r5_origin_commit_patterns.md`
+- `research/r5_social_progression_parity_packet.md`
 - `research/rotation_ledger.md`
 - `research/wave3_audit_checklist.md`
 - `research/wave3_audit_report.md`
