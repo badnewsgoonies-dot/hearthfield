@@ -530,7 +530,7 @@ pub fn handle_tool_use_on_objects(
                         }
 
                         // If it was a tree, leave a stump
-                        if obj_data.kind == WorldObjectKind::Tree {
+                        if matches!(obj_data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine) {
                             let stump_data = WorldObjectData {
                                 kind: WorldObjectKind::Stump,
                                 health: WorldObjectKind::Stump.max_health(),
