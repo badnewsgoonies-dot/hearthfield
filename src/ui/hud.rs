@@ -603,15 +603,12 @@ pub fn update_stamina_bar(
     for (mut node, mut bg) in &mut query {
         let ratio = (player.stamina / player.max_stamina).clamp(0.0, 1.0);
         node.width = Val::Percent(ratio * 100.0);
-        // Color gradient: green > yellow > red as stamina decreases
-        let color = if ratio > 0.5 {
-            // Green to yellow
-            let t = (ratio - 0.5) * 2.0;
-            Color::srgb(0.2 + 0.8 * (1.0 - t), 0.85, 0.3 * t)
+        let color = if ratio > 0.6 {
+            Color::srgb(0.2, 0.8, 0.2)
+        } else if ratio >= 0.3 {
+            Color::srgb(0.9, 0.7, 0.1)
         } else {
-            // Yellow to red
-            let t = ratio * 2.0;
-            Color::srgb(0.9, 0.85 * t, 0.1 * t)
+            Color::srgb(0.9, 0.2, 0.2)
         };
         *bg = BackgroundColor(color);
     }
