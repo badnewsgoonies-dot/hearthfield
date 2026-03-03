@@ -62,10 +62,12 @@ impl Plugin for PlayerPlugin {
                 .run_if(in_state(GameState::Playing)),
         );
 
-        // -- DayEnd handling runs regardless of sub-state so we never miss it --
+        // -- DayEnd handling: only runs in Playing state to ensure world/NPC
+        // handlers (also gated on Playing) process the MapTransitionEvent --
         app.add_systems(
             Update,
-            interaction::handle_day_end,
+            interaction::handle_day_end
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }

@@ -77,8 +77,9 @@ fn music_path(track_id: &str) -> Option<&'static str> {
         "fall" => Some("audio/music/pixel_3.ogg"),
         "winter" => Some("audio/music/pixel_4.ogg"),
         "town" => Some("audio/music/pixel_5.ogg"),
-        "mine" => Some("audio/music/pixel_6.ogg"),
+        "mine" | "mine_ambient" => Some("audio/music/pixel_6.ogg"),
         "forest" => Some("audio/music/pixel_7.ogg"),
+        "indoor" => Some("audio/music/pixel_1.ogg"),
         "beach" => Some("audio/music/pixel_8.ogg"),
         "menu" => Some("audio/music/pixel_9.ogg"),
         "night" => Some("audio/music/pixel_10.ogg"),
@@ -200,7 +201,11 @@ pub fn switch_music_on_map_change(
             MapId::Mine => "mine",
             MapId::Forest => "forest",
             MapId::Beach => "beach",
-            _ => continue,
+            MapId::MineEntrance => "forest",
+            MapId::PlayerHouse
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith => "indoor",
         };
         music_events.send(PlayMusicEvent {
             track_id: track.to_string(),

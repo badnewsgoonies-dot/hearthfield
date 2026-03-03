@@ -22,6 +22,7 @@ pub struct ObjectAtlases {
     pub grass_biome_layout: Handle<TextureAtlasLayout>,
     pub fences_image: Handle<Image>,
     pub fences_layout: Handle<TextureAtlasLayout>,
+    // Tree sprites atlas (32×48 cells, seasonal variants)
     pub tree_sprites_image: Handle<Image>,
     pub tree_sprites_layout: Handle<TextureAtlasLayout>,
     // Building tilesets (Sprout Lands)

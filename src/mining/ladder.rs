@@ -19,6 +19,7 @@ pub fn handle_ladder_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     mut tool_use_events: EventReader<ToolUseEvent>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
@@ -50,6 +51,13 @@ pub fn handle_ladder_interaction(
 
             // Cap at floor 20
             if next_floor > 20 {
+                sfx_events.send(PlaySfxEvent {
+                    sfx_id: "ui_deny".to_string(),
+                });
+                toast_events.send(ToastEvent {
+                    message: "You've reached the deepest floor.".to_string(),
+                    duration_secs: 2.0,
+                });
                 return;
             }
 

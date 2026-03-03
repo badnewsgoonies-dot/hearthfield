@@ -14,6 +14,9 @@ pub struct MapDef {
     /// Row-major tile data: tiles[y * width + x]
     pub tiles: Vec<TileKind>,
     /// Transition zones linking to other maps.
+    /// Transition zone data for documentation purposes.
+    /// NOTE: Actual transitions are handled by `edge_transition()` in
+    /// `src/player/interaction.rs`, not by these definitions.
     pub transitions: Vec<MapTransition>,
     /// Initial world object placements (trees, rocks, etc.)
     pub objects: Vec<ObjectPlacement>,
@@ -50,6 +53,27 @@ pub enum WorldObjectKind {
     Bush,
     LargeRock,
     Log,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DEFAULT SPAWN POSITIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Returns a safe default spawn position for each map (e.g., for cutscene
+/// teleports or fallback positioning).
+pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
+    match map_id {
+        MapId::Farm => (16, 12),
+        MapId::Town => (12, 8),
+        MapId::Beach => (10, 6),
+        MapId::Forest => (8, 8),
+        MapId::MineEntrance => (7, 6),
+        MapId::Mine => (12, 12),
+        MapId::PlayerHouse => (8, 8),
+        MapId::GeneralStore => (6, 8),
+        MapId::AnimalShop => (6, 8),
+        MapId::Blacksmith => (6, 8),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════

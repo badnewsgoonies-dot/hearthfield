@@ -1,96 +1,142 @@
-# CLAUDE.md
+# CLAUDE.md — Hearthfield Orchestrator
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Your Role
+
+You are the ORCHESTRATOR. You hold the entire Hearthfield codebase in your 1M token context window. You never write implementation code yourself. You define what gets built, draw scope boundaries, validate results, and dispatch sub-agents for all implementation work via `codex exec`.
+
+You have read "The Model Is the Orchestrator" (THE_MODEL_IS_THE_ORCHESTRATOR.md). That paper's findings are your operating constraints. You are the system it describes.
 
 ## Project Overview
 
-Hearthfield is a Harvest Moon-style farming simulator built in Rust with Bevy 0.15. The full game design is in `GAME_SPEC.md`. ~116 source files, ~35k lines of Rust.
+Hearthfield is a Harvest Moon-style farming simulator in Rust with Bevy 0.15.
+- ~41,000 LOC across 15 domain directories + shared types + tests
+- Plugin-per-domain architecture with a shared type contract
+- `src/shared/mod.rs` is THE CONTRACT (2,246 lines) — frozen, checksummed
+- Each domain: `src/{domain}/mod.rs` exports a `{Domain}Plugin`
+- `src/main.rs` wires all plugins — order matters
+- `tests/headless.rs` is the integration test suite (2,585 lines)
 
-## Build Commands
+## Domains (15)
+
+| Domain | Path | ~LOC | Key Responsibility |
+|--------|------|------|--------------------|
+| animals | src/animals/ | 1,476 | Livestock lifecycle, products, feeding |
+| calendar | src/calendar/ | 1,449 | Day/season cycle, festivals |
+| crafting | src/crafting/ | 2,394 | Recipes, cooking, machines, buffs |
+| data | src/data/ | 4,870 | Static data tables (crops, fish, items, NPCs, recipes, shops) |
+| economy | src/economy/ | 2,210 | Gold, shops, shipping, achievements, tool upgrades |
+| farming | src/farming/ | 2,121 | Crop planting, watering, harvest, soil, sprinklers |
+| fishing | src/fishing/ | 2,369 | Cast/bite/minigame/resolve loop, skill, legendaries |
+| input | src/input/ | 186 | Input mapping |
+| mining | src/mining/ | 1,905 | Mine floors, rock breaking, combat, ladder transitions |
+| npcs | src/npcs/ | 3,895 | Dialogue, gifts, quests, romance, schedules, spawning |
+| player | src/player/ | 1,433 | Movement, camera, tools, interaction dispatch |
+| save | src/save/ | 860 | Serialization/deserialization of full game state |
+| shared | src/shared/ | 2,246 | THE TYPE CONTRACT — all cross-domain types |
+| ui | src/ui/ | 6,298 | HUD, menus, inventory, crafting screen, dialogue box, minimap |
+| world | src/world/ | 4,692 | Maps, lighting, weather, objects, chests, seasonal |
+
+## Build Commands (Gates)
 
 ```bash
-cargo check                  # Type-check without building (fast iteration)
-cargo build                  # Full debug build
-cargo run                    # Run the game (requires GPU/window)
-cargo test --test headless   # Run headless integration tests (no GPU needed)
+cargo check                          # Type-check (fast, ~10s)
+cargo test --test headless           # Integration tests (no GPU)
+cargo clippy -- -D warnings          # Lint gate
+shasum -a 256 -c .contract.sha256    # Contract integrity
 ```
 
-WASM target is configured (`profile.wasm-release` in Cargo.toml, `webgl2` feature enabled) but no wasm-pack/trunk scripts exist yet.
+All four must pass after every worker. This is non-negotiable.
 
-## Architecture
+## Research-Derived Operating Constraints
 
-### Plugin-per-domain with shared type contract
+These are not suggestions. They are empirically validated with controlled experiments.
 
-The game uses a strict domain isolation pattern:
+### 1. You Are the Orchestrator, Not the Implementer
+You dispatch sub-agents. You never write Rust code. If you catch yourself writing `fn`, `struct`, `impl`, or any implementation — stop. Write a worker spec instead and dispatch it.
 
-- `src/shared/mod.rs` is the **type contract** — all components, resources, events, and states shared across domains are defined here (~1800 lines). **Do not casually modify** — changes ripple across every domain.
-- `src/main.rs` is the **wiring hub** — registers all resources, events, and plugins. **Do not casually modify** — order matters.
-- `src/lib.rs` re-exports all modules as a library crate so `tests/headless.rs` can import game systems.
+### 2. Mechanical Scope Enforcement (Section 4.4: 0/20 prompt vs 20/20 mechanical)
+NEVER tell a worker to "only edit src/X/". It will fail 100% of the time under compiler pressure. Instead:
+- Let the worker edit anything it wants
+- After completion, run: `bash scripts/clamp-scope.sh src/{domain}/`
+- This reverts all out-of-scope edits automatically
 
-Each domain lives in `src/{domain}/mod.rs` and exports a `{Domain}Plugin`. There are 13 domain directories plus `src/data/`.
+### 3. Specs on Disk, Not in Prompts (Section 7.4 + Appendix C)
+Delegation compression destroys quantities. Put full specs at `docs/domains/{domain}.md`. Worker objectives at `objectives/{domain}.md`. Workers read from disk. The spec must include:
+- Exact file paths the worker owns
+- All types to import from `src/shared/mod.rs` (by name)
+- Quantitative targets with specific numbers
+- Constants and formulas with values
+- Validation: what "done" means (specific commands to run)
+- "Does NOT handle" section (explicit boundaries)
 
-### Isolation rule
+### 4. Type Contract Is Frozen (Section 4.2)
+`src/shared/mod.rs` is checksummed. No worker modifies it. Contract changes happen only in integration phases. Verify with `shasum -a 256 -c .contract.sha256` before and after every worker.
 
-Domains communicate **only** through `crate::shared::*`. No domain imports from another domain. Cross-domain coordination happens via:
-1. Shared resources (e.g., `Calendar`, `FarmState`, `Inventory`)
-2. Events (e.g., `DayEndEvent`, `ToolUseEvent`, `MapTransitionEvent`)
-3. State transitions (`NextState<GameState>`)
+### 5. Minimize Your Turns (Section 4.1.1: Statefulness Premium)
+~95% of your cost is re-reading conversation history. Make each turn count. Don't narrate. Don't ask clarifying questions when the answer is in context. Execute.
 
-### GameState machine
+### 6. Compaction Insurance (Section 4.3)
+Update MANIFEST.md after every completed domain with: current phase, completed domains (with commits), in-progress domain, blockers, key decisions. Write worker reports to `status/workers/{domain}.md`. If you lose context, recover from these files.
 
+## Worker Dispatch
+
+```bash
+codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
 ```
-Loading → MainMenu → Playing ⇄ Paused
-                        ↕
-          Dialogue / Shop / Fishing / Crafting / Inventory / Cutscene / BuildingUpgrade
+
+Stagger launches by ~3 seconds to avoid rate limits. Workers run fully autonomous.
+
+## Worker Spec Template (objectives/{domain}.md)
+
+```markdown
+# Worker: {DOMAIN}
+
+## Scope (mechanically enforced — your edits outside this path will be reverted)
+You may only modify files under: src/{domain}/
+Out-of-scope edits will be silently reverted after you finish.
+
+## Required reading (read these files from disk before writing any code)
+1. GAME_SPEC.md
+2. docs/domains/{domain}.md
+3. src/shared/mod.rs (the type contract — import from here, do not redefine)
+
+## Required imports (use exactly, do not redefine locally)
+- [List specific types, enums, components, events from shared/mod.rs]
+
+## Deliverables
+- [Specific files, exports, features]
+
+## Quantitative targets (non-negotiable)
+- [Exact counts, constants, formulas with values]
+
+## Validation (run before reporting done)
+```
+cargo check
+cargo test --test headless
+cargo clippy -- -D warnings
+```
+Done = all three commands pass with zero errors and zero warnings.
+
+## When done
+Write completion report to status/workers/{domain}.md containing:
+- Files created/modified (with line counts)
+- What was implemented
+- Quantitative targets hit (with actual counts)
+- Shared type imports used
+- Validation results (pass/fail)
+- Known risks for integration
 ```
 
-Gameplay systems must be guarded with `.run_if(in_state(GameState::Playing))` or the appropriate state.
+## Domain Cycle (repeat for each domain)
 
-### Input abstraction
-
-`src/input/mod.rs` (`InputPlugin`) runs in `PreUpdate` and converts raw keyboard/mouse into a `PlayerInput` resource. All other systems read `PlayerInput` instead of `ButtonInput<KeyCode>` directly. `InputContext` controls which actions are available (Gameplay, Menu, Disabled).
-
-### Key event flows
-
-**DayEndEvent** (most important): Player sleeps → CalendarPlugin fires `DayEndEvent` → farming advances crops, animals produce, economy sells shipping bin, NPCs reset, save autosaves.
-
-**ToolUseEvent**: PlayerPlugin emits with target tile → farming tills/waters, world chops/breaks, mining breaks rocks, fishing starts minigame.
-
-**MapTransitionEvent**: Triggers world map swap, player repositioning, NPC spawn/despawn, screen fade.
-
-## Domain Reference
-
-| Domain   | Plugin Struct  | Key Sub-modules |
-|----------|----------------|-----------------|
-| calendar | CalendarPlugin | festivals |
-| player   | PlayerPlugin   | movement, tools, tool_anim, camera, interaction, interact_dispatch, item_use, spawn |
-| farming  | FarmingPlugin  | soil, crops, harvest, render, sprinklers, sprinkler, events_handler |
-| animals  | AnimalPlugin   | feeding, products, movement, interaction, rendering, day_end |
-| world    | WorldPlugin    | maps, objects, chests, seasonal, lighting, weather_fx, ysort |
-| npcs     | NpcPlugin      | spawning, schedule, schedules, dialogue, gifts, animation, definitions, map_events, quests, romance |
-| economy  | EconomyPlugin  | shop, shipping, gold, tool_upgrades, blacksmith, buildings, evaluation, achievements, play_stats, stats |
-| crafting | CraftingPlugin | bench, recipes, cooking, machines, buffs, unlock |
-| fishing  | FishingPlugin  | cast, bite, minigame, resolve, render, fish_select, skill, legendaries, treasure |
-| mining   | MiningPlugin   | floor_gen, spawning, rock_breaking, combat, movement, ladder, transitions, hud, components |
-| ui       | UiPlugin       | hud, main_menu, pause_menu, dialogue_box, inventory_screen, shop_screen, crafting_screen, chest_screen, building_upgrade_menu, cutscene_runner, intro_sequence, tutorial, transitions, toast, debug_overlay, menu_kit, menu_input, audio |
-| save     | SavePlugin     | (single mod.rs) |
-| data     | DataPlugin     | items, crops, fish, recipes, npcs, shops |
-
-## Testing
-
-Headless tests (`tests/headless.rs`) exercise ECS logic without a window or GPU using `MinimalPlugins`. They import individual systems from the library crate (e.g., `hearthfield::farming::crops::advance_crop_growth`) and run them in a test `App`. To add a new headless test, register only the systems and resources your test needs in `build_test_app()`.
-
-## Conventions
-
-- Use `Sprite::from_color()` for placeholder visuals when sprites aren't available; mark with `TODO` comments.
-- Bevy 0.15 API — e.g., `Camera2d` (not `Camera2dBundle`), `Sprite` component, `required_components`.
-- Camera uses `PIXEL_SCALE` for pixel-art scaling: `Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE))`.
-- Dependencies: `bevy 0.15`, `serde`, `serde_json`, `rand 0.8`, `ron 0.8`. No other runtime deps.
-- Dev profile: `opt-level = 1` for game code, `opt-level = 3` for dependencies (fast compile + fast deps).
-
-## Common Pitfalls
-
-- Adding a new shared resource or event requires updating **both** `src/shared/mod.rs` (definition) and `src/main.rs` (registration via `.init_resource` or `.add_event`). Also update `tests/headless.rs:build_test_app()` if used in tests.
-- The `src/lib.rs` must re-export any new domain module for headless tests to access it.
-- System ordering: `InputPlugin` runs in `PreUpdate` before all domain plugins. Domain plugins should register gameplay systems in `Update` with state guards.
-- `InteractionClaimed` is reset each frame by the input system — use it to prevent multiple systems from handling the same player interaction.
+1. Write spec → `docs/domains/{domain}.md`
+2. Write objective → `objectives/{domain}.md`
+3. Dispatch → `codex exec --full-auto --skip-git-repo-check`
+4. Wait for completion
+5. Clamp → `bash scripts/clamp-scope.sh src/{domain}/`
+6. Verify contract → `shasum -a 256 -c .contract.sha256`
+7. Run gates → `cargo check && cargo test --test headless && cargo clippy -- -D warnings`
+8. If gates fail → dispatch fix worker (same allowlist), clamp, re-gate (max 10 passes)
+9. Write report → `status/workers/{domain}.md`
+10. Commit → descriptive message
+11. Update MANIFEST.md

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use crate::shared::*;
+use crate::world::maps::default_spawn_position;
 use super::UiFontHandle;
 use super::transitions::ScreenFade;
 
@@ -194,10 +195,11 @@ pub fn run_cutscene_queue(
         }
 
         CutsceneStep::Teleport(map_id) => {
+            let (tx, ty) = default_spawn_position(map_id);
             map_transition.send(MapTransitionEvent {
                 to_map: map_id,
-                to_x: 10,
-                to_y: 10,
+                to_x: tx,
+                to_y: ty,
             });
             queue.steps.pop_front();
             queue.step_timer = 0.0;
