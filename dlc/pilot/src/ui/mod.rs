@@ -20,15 +20,18 @@ pub mod logbook_screen;
 pub mod map_screen;
 pub mod crew_screen;
 pub mod achievement_screen;
+pub mod cutscene_runner;
+pub mod intro_sequence;
 pub mod notification_center;
 pub mod profile_screen;
+pub mod radio_screen;
+pub mod tutorial;
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<notification_center::NotificationCenter>()
-            .add_systems(Startup, load_font)
+        app.add_systems(Startup, load_font)
             .add_systems(
                 Update,
                 (
@@ -87,16 +90,6 @@ impl Plugin for UiPlugin {
                 Update,
                 mission_screen::handle_mission_screen_input
                     .run_if(in_state(GameState::MissionBoard)),
-            )
-            .add_systems(
-                Update,
-                (
-                    notification_center::notify_mission_complete,
-                    notification_center::notify_rank_up,
-                    notification_center::notify_friendship_milestone,
-                    notification_center::notify_gold_milestones,
-                    notification_center::notify_achievement,
-                ),
             );
     }
 }

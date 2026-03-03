@@ -23,8 +23,6 @@ impl Plugin for PlayerPlugin {
             .init_resource::<logbook::Logbook>()
             .init_resource::<skills::PilotSkills>()
             .init_resource::<reputation::Reputation>()
-            .init_resource::<journal::Journal>()
-            .init_resource::<collections::Collections>()
             .add_systems(OnEnter(GameState::Playing), spawn::spawn_player)
             .add_systems(
                 Update,
@@ -43,21 +41,6 @@ impl Plugin for PlayerPlugin {
                     skills::flight_school_training.run_if(in_state(GameState::Playing)),
                     reputation::update_reputation_on_flight.run_if(in_state(GameState::Playing)),
                     reputation::reputation_decay.run_if(in_state(GameState::Playing)),
-                ),
-            )
-            .add_systems(
-                Update,
-                (
-                    journal::record_first_airport_visit.run_if(in_state(GameState::Playing)),
-                    journal::record_first_emergency.run_if(in_state(GameState::Playing)),
-                    journal::record_rank_promotion.run_if(in_state(GameState::Playing)),
-                    journal::record_achievement.run_if(in_state(GameState::Playing)),
-                    journal::check_journal_milestones.run_if(in_state(GameState::Playing)),
-                    journal::write_custom_entry.run_if(in_state(GameState::Playing)),
-                    collections::auto_collect_stamp.run_if(in_state(GameState::Playing)),
-                    collections::purchase_collectible.run_if(in_state(GameState::Playing)),
-                    collections::check_collection_completion.run_if(in_state(GameState::Playing)),
-                    collections::generate_trade_offers.run_if(in_state(GameState::Playing)),
                 ),
             );
     }
