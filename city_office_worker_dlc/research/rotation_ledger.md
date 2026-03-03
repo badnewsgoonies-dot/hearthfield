@@ -47,13 +47,33 @@ Delivered:
 
 Gate result: PASS.
 
-## Next Rotation (R3 Planned)
+## R3 - Task Lifecycle and Save Skeleton (Completed 2026-03-03)
+
+Goals:
+1. Add explicit task lifecycle event surface (`TaskAccepted`, `TaskProgressed`, `TaskCompleted`, `TaskFailed`).
+2. Enforce task terminal-state invariants in code/tests.
+3. Land persistence skeleton with identity-preserving snapshot round-trip behavior.
+
+Delivered:
+1. Lifecycle events added in `src/game/events.rs` and wired in plugin.
+2. `TaskBoard` lifecycle helpers added (`complete_task`, `fail_task`, disjoint terminal protections).
+3. Day-end flow emits `TaskFailed` for unresolved tasks.
+4. Snapshot module added at `src/game/save/mod.rs` with capture/serialize/deserialize/apply helpers.
+5. DaySummary persistence hook added (`persist_day_summary_snapshot`).
+6. Tests added:
+   - `completed_task_cannot_fail_later_same_day`
+   - `snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen`
+7. Test count raised from 8 to 10.
+
+Gate result: PASS (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`).
+
+## Next Rotation (R4 Planned)
 
 Scope:
-1. Task lifecycle hardening (`TaskAccepted`, `TaskProgressed`, `TaskCompleted`, `TaskFailed`) as first-class flow.
-2. Completion/failure exclusivity + terminal disjointness invariants.
-3. Save/load skeleton for task identity round-trip.
+1. Promote snapshot skeleton to durable save-slot file flow + migration stubs.
+2. Add richer task progress/deadline failure semantics and deterministic coverage.
+3. Produce social/progression parity decomposition packet for subsequent waves.
 
 Entry conditions:
-1. R0-R2 artifacts present and green.
-2. No open regression in day-state transitions.
+1. R0-R3 artifacts present and green.
+2. No open regressions in day-state transitions, replay, or snapshot identity tests.

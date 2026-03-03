@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod components;
 pub mod events;
 pub mod resources;
+pub mod save;
 pub mod systems;
 
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -42,8 +43,13 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::TaskBoard>()
             .init_resource::<resources::DayOutcome>()
             .init_resource::<resources::DayStats>()
+            .init_resource::<save::OfficeSaveStore>()
             .add_event::<events::EndDayRequested>()
             .add_event::<events::DayAdvanced>()
+            .add_event::<events::TaskAccepted>()
+            .add_event::<events::TaskProgressed>()
+            .add_event::<events::TaskCompleted>()
+            .add_event::<events::TaskFailed>()
             .add_event::<events::ProcessInboxEvent>()
             .add_event::<events::CoffeeBreakEvent>()
             .add_event::<events::InterruptionEvent>()
@@ -114,6 +120,7 @@ impl Plugin for CityOfficeWorkerPlugin {
                 Update,
                 (
                     systems::apply_day_summary_rollover,
+                    save::persist_day_summary_snapshot,
                     systems::transition_day_summary_to_inday,
                 )
                     .chain()

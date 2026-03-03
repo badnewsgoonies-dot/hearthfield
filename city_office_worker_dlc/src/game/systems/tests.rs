@@ -5,11 +5,14 @@ use super::*;
 use crate::game::events::{
     CoffeeBreakEvent, CoworkerHelpEvent, DayAdvanced, EndDayRequested, EndOfDayEvent,
     InterruptionEvent, ManagerCheckInEvent, PanicResponseEvent, ProcessInboxEvent,
-    ResolveCalmlyEvent, WaitEvent,
+    ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
     DayClock, DayOutcome, DayStats, InboxState, OfficeRules, OfficeRunConfig, PlayerCareerState,
     PlayerMindState, TaskBoard, WorkerStats,
+};
+use crate::game::save::{
+    apply_snapshot, capture_snapshot, deserialize_snapshot, serialize_snapshot, OfficeSaveStore,
 };
 
 #[derive(Resource, Copy, Clone)]
@@ -163,9 +166,13 @@ fn build_test_app() -> App {
         .init_resource::<PlayerCareerState>()
         .init_resource::<DayOutcome>()
         .init_resource::<DayStats>()
+        .init_resource::<OfficeSaveStore>()
         .init_resource::<TaskBoard>()
         .add_event::<EndDayRequested>()
         .add_event::<DayAdvanced>()
+        .add_event::<TaskProgressed>()
+        .add_event::<TaskCompleted>()
+        .add_event::<TaskFailed>()
         .add_event::<ProcessInboxEvent>()
         .add_event::<CoffeeBreakEvent>()
         .add_event::<InterruptionEvent>()
@@ -498,4 +505,93 @@ fn five_day_seeded_autoplay_completes_without_panic() {
     assert!(summaries
         .iter()
         .all(|summary| summary.finished_minute >= 9 * 60));
+}
+
+#[test]
+fn completed_task_cannot_fail_later_same_day() {
+    let mut app = build_test_app();
+    let mut board = app.world_mut().resource_mut::<TaskBoard>();
+    let task_id = board.active.first().expect("seeded task should exist").id;
+
+    assert!(board.complete_task(task_id));
+    assert!(!board.fail_task(task_id));
+    assert!(board.is_completed(task_id));
+    assert!(!board.is_failed(task_id));
+}
+
+#[test]
+fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        (handle_process_requests, sync_taskboard_bridge).chain(),
+    );
+
+    app.world_mut().send_event(ProcessInboxEvent);
+    app.update();
+
+    let (snapshot_json, original_active_ids, original_completed_ids, original_failed_ids) = {
+        let clock = app.world().resource::<DayClock>();
+        let worker_stats = app.world().resource::<WorkerStats>();
+        let task_board = app.world().resource::<TaskBoard>();
+        let run_config = app.world().resource::<OfficeRunConfig>();
+        let inbox = app.world().resource::<InboxState>();
+
+        let snapshot = capture_snapshot(clock, worker_stats, task_board, run_config, inbox);
+        let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
+        (
+            json,
+            task_board.active_task_ids(),
+            task_board.completed_today.clone(),
+            task_board.failed_today.clone(),
+        )
+    };
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 99;
+        clock.current_minute = 0;
+        clock.ended = true;
+    }
+    {
+        let mut inbox = app.world_mut().resource_mut::<InboxState>();
+        inbox.remaining_items = 0;
+    }
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today.clear();
+        board.failed_today.clear();
+    }
+
+    let snapshot =
+        deserialize_snapshot(&snapshot_json).expect("snapshot deserialization should succeed");
+    let mut clock = app.world().resource::<DayClock>().clone();
+    let mut worker_stats = app.world().resource::<WorkerStats>().clone();
+    let mut board = app.world().resource::<TaskBoard>().clone();
+    let mut run_config = app.world().resource::<OfficeRunConfig>().clone();
+    let mut inbox = app.world().resource::<InboxState>().clone();
+
+    apply_snapshot(
+        &snapshot,
+        &mut clock,
+        &mut worker_stats,
+        &mut board,
+        &mut run_config,
+        &mut inbox,
+    )
+    .expect("snapshot apply should succeed");
+
+    app.world_mut().insert_resource(clock);
+    app.world_mut().insert_resource(worker_stats);
+    app.world_mut().insert_resource(board);
+    app.world_mut().insert_resource(run_config);
+    app.world_mut().insert_resource(inbox);
+
+    app.update();
+
+    let restored_board = app.world().resource::<TaskBoard>();
+    assert_eq!(restored_board.active_task_ids(), original_active_ids);
+    assert_eq!(restored_board.completed_today, original_completed_ids);
+    assert_eq!(restored_board.failed_today, original_failed_ids);
 }

@@ -81,3 +81,19 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Deterministic behavior must be proven continuously before content scale-up.
 - Decision: Add fixed-seed replay and seeded autoplay tests (`fixed_seed_three_day_replay_is_deterministic`, `five_day_seeded_autoplay_completes_without_panic`) as required early-rotation gates.
 - Why: These tests make behavior drift visible immediately and provide reproducible regression signals for future waves.
+
+## ADR-011 - Task Lifecycle Events and Terminal-State Guardrails
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Task progression was implicit and could not be audited as a first-class event flow.
+- Decision: Introduce `TaskAccepted`, `TaskProgressed`, `TaskCompleted`, and `TaskFailed` events, and add `TaskBoard` lifecycle helpers (`complete_task`, `fail_task`) that reject terminal-state conflicts.
+- Why: This provides explicit lifecycle semantics and prevents completed tasks from later failing in the same day.
+
+## ADR-012 - Add Versioned Save Snapshot Skeleton Early
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Persistence invariants are a release-critical parity requirement, but durable slots are a later-wave concern.
+- Decision: Land `OfficeSaveSnapshot` v1 capture/serialize/deserialize/apply scaffolding plus a DaySummary persistence hook, with identity-focused tests before full save-slot UX.
+- Why: This de-risks persistence by validating core state fidelity (`TaskId` round-trip and no mid-day task regeneration) before broader save-system expansion.

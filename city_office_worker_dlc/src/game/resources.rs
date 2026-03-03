@@ -137,6 +137,14 @@ impl TaskBoard {
         self.active.iter().any(|task| task.id == task_id)
     }
 
+    pub fn is_completed(&self, task_id: TaskId) -> bool {
+        self.completed_today.contains(&task_id)
+    }
+
+    pub fn is_failed(&self, task_id: TaskId) -> bool {
+        self.failed_today.contains(&task_id)
+    }
+
     pub fn try_add_task(&mut self, task: OfficeTask) -> bool {
         if self.has_active_task(task.id) {
             return false;
@@ -144,6 +152,40 @@ impl TaskBoard {
 
         self.active.push(task.normalized());
         true
+    }
+
+    pub fn complete_task(&mut self, task_id: TaskId) -> bool {
+        if self.is_completed(task_id) || self.is_failed(task_id) {
+            return false;
+        }
+
+        let Some(index) = self.active.iter().position(|task| task.id == task_id) else {
+            return false;
+        };
+
+        self.active.remove(index);
+        self.completed_today.push(task_id);
+        self.normalize();
+        true
+    }
+
+    pub fn fail_task(&mut self, task_id: TaskId) -> bool {
+        if self.is_completed(task_id) || self.is_failed(task_id) {
+            return false;
+        }
+
+        let Some(index) = self.active.iter().position(|task| task.id == task_id) else {
+            return false;
+        };
+
+        self.active.remove(index);
+        self.failed_today.push(task_id);
+        self.normalize();
+        true
+    }
+
+    pub fn active_task_ids(&self) -> Vec<TaskId> {
+        self.active.iter().map(|task| task.id).collect()
     }
 
     pub fn normalize(&mut self) {
@@ -320,7 +362,7 @@ impl Default for OfficeRules {
     }
 }
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Clone)]
 pub struct InboxState {
     pub remaining_items: u32,
 }
@@ -333,7 +375,7 @@ impl Default for InboxState {
     }
 }
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Clone)]
 pub struct DayClock {
     pub day_number: u32,
     pub current_minute: u32,

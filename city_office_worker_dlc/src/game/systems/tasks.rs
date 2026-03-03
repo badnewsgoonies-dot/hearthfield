@@ -2,17 +2,22 @@ use bevy::prelude::*;
 
 use super::task_board::sync_task_board_active_with_inbox;
 use crate::game::components::OfficeWorker;
-use crate::game::events::{CoffeeBreakEvent, ProcessInboxEvent, WaitEvent};
+use crate::game::events::{
+    CoffeeBreakEvent, ProcessInboxEvent, TaskCompleted, TaskProgressed, WaitEvent,
+};
 use crate::game::resources::{
     format_clock, DayClock, DayStats, InboxState, OfficeRules, TaskBoard,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_process_requests(
     mut requests: EventReader<ProcessInboxEvent>,
     rules: Res<OfficeRules>,
     mut clock: ResMut<DayClock>,
     mut inbox: ResMut<InboxState>,
     mut stats: ResMut<DayStats>,
+    mut task_progressed_writer: EventWriter<TaskProgressed>,
+    mut task_completed_writer: EventWriter<TaskCompleted>,
     mut worker_query: Query<&mut OfficeWorker>,
     mut task_board: Option<ResMut<TaskBoard>>,
 ) {
@@ -43,12 +48,22 @@ pub fn handle_process_requests(
         inbox.remaining_items -= 1;
         stats.processed_items += 1;
         if let Some(task_board) = task_board.as_deref_mut() {
-            sync_task_board_active_with_inbox(
-                task_board,
-                clock.day_number,
-                inbox.remaining_items,
-                rules.day_end_minute,
-            );
+            if let Some(task_id) = task_board.active.first().map(|task| task.id) {
+                task_progressed_writer.send(TaskProgressed {
+                    task_id,
+                    delta: 1.0,
+                });
+                if task_board.complete_task(task_id) {
+                    task_completed_writer.send(TaskCompleted { task_id });
+                }
+            } else {
+                sync_task_board_active_with_inbox(
+                    task_board,
+                    clock.day_number,
+                    inbox.remaining_items,
+                    rules.day_end_minute,
+                );
+            }
         }
 
         info!(

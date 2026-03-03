@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::game::components::OfficeWorker;
-use crate::game::events::{DayAdvanced, EndDayRequested, EndOfDayEvent};
+use crate::game::events::{DayAdvanced, EndDayRequested, EndOfDayEvent, TaskFailed};
 use crate::game::resources::{
     format_clock, DayClock, DayOutcome, DayStats, InboxState, OfficeRules, OfficeRunConfig,
     PlayerCareerState, PlayerMindState, TaskBoard, WorkerStats,
@@ -82,6 +82,7 @@ pub fn finalize_end_day_request(
     mut next_state: ResMut<NextState<OfficeGameState>>,
     mut day_advanced_writer: EventWriter<DayAdvanced>,
     mut end_of_day_writer: EventWriter<EndOfDayEvent>,
+    mut task_failed_writer: EventWriter<TaskFailed>,
     mut clock: ResMut<DayClock>,
     inbox: Res<InboxState>,
     stats: Res<DayStats>,
@@ -97,7 +98,10 @@ pub fn finalize_end_day_request(
         }
 
         clock.ended = true;
-        fail_remaining_task_board_work(&mut task_board);
+        let newly_failed_tasks = fail_remaining_task_board_work(&mut task_board);
+        for task_id in newly_failed_tasks {
+            task_failed_writer.send(TaskFailed { task_id });
+        }
         *day_outcome = build_day_outcome(&stats, &task_board);
 
         let summary = EndOfDayEvent {

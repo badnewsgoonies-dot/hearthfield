@@ -1,3 +1,4 @@
+use crate::game::resources::TaskId;
 use bevy::prelude::*;
 
 #[derive(Event, Debug, Default)]
@@ -32,6 +33,31 @@ pub struct EndDayRequested;
 #[derive(Event, Debug, Clone, Copy)]
 pub struct DayAdvanced {
     pub new_day_index: u32,
+}
+
+#[derive(Event, Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub struct TaskAccepted {
+    pub task_id: TaskId,
+}
+
+#[derive(Event, Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub struct TaskProgressed {
+    pub task_id: TaskId,
+    pub delta: f32,
+}
+
+#[derive(Event, Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub struct TaskCompleted {
+    pub task_id: TaskId,
+}
+
+#[derive(Event, Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub struct TaskFailed {
+    pub task_id: TaskId,
 }
 
 #[derive(Event, Debug)]

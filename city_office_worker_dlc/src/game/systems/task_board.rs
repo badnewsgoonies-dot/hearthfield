@@ -38,9 +38,10 @@ pub(crate) fn sync_task_board_active_with_inbox(
     let target_len = inbox_items as usize;
 
     while task_board.active.len() > target_len {
-        if let Some(task) = task_board.active.pop() {
-            task_board.completed_today.push(task.id);
-        }
+        let Some(task_id) = task_board.active.last().map(|task| task.id) else {
+            break;
+        };
+        let _ = task_board.complete_task(task_id);
     }
 
     while task_board.active.len() < target_len {
@@ -51,9 +52,14 @@ pub(crate) fn sync_task_board_active_with_inbox(
     task_board.normalize();
 }
 
-pub(crate) fn fail_remaining_task_board_work(task_board: &mut TaskBoard) {
-    for task in task_board.active.drain(..) {
-        task_board.failed_today.push(task.id);
+pub(crate) fn fail_remaining_task_board_work(task_board: &mut TaskBoard) -> Vec<TaskId> {
+    let remaining_ids: Vec<TaskId> = task_board.active.iter().map(|task| task.id).collect();
+    let mut newly_failed = Vec::new();
+    for task_id in remaining_ids {
+        if task_board.fail_task(task_id) {
+            newly_failed.push(task_id);
+        }
     }
     task_board.normalize();
+    newly_failed
 }
