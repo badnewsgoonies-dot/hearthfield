@@ -277,7 +277,7 @@ mod tests {
     #[test]
     fn test_non_birthday_multiplier() {
         let base = preference_to_points(GiftPreference::Liked);
-        let normal_total = base * 1;
+        let normal_total = base;
         assert_eq!(normal_total, 45);
     }
 }

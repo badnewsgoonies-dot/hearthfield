@@ -646,10 +646,7 @@ mod tests {
 
     #[test]
     fn test_is_festival_day() {
-        let mut cal = Calendar::default();
-
-        cal.season = Season::Spring;
-        cal.day = 13;
+        let mut cal = Calendar { season: Season::Spring, day: 13, ..Default::default() };
         assert!(cal.is_festival_day());
 
         cal.season = Season::Summer;
@@ -679,16 +676,13 @@ mod tests {
 
     #[test]
     fn test_time_float() {
-        let mut cal = Calendar::default();
-        cal.hour = 14;
-        cal.minute = 30;
+        let cal = Calendar { hour: 14, minute: 30, ..Default::default() };
         assert!((cal.time_float() - 14.5).abs() < 0.001);
     }
 
     #[test]
     fn test_day_advancement_within_season() {
-        let mut cal = Calendar::default();
-        cal.day = 5;
+        let mut cal = Calendar { day: 5, ..Default::default() };
         // Simulate day end: advance day within season
         cal.day += 1;
         assert_eq!(cal.day, 6);
@@ -697,9 +691,7 @@ mod tests {
 
     #[test]
     fn test_season_change_at_day_28() {
-        let mut cal = Calendar::default();
-        cal.day = 28;
-        cal.season = Season::Spring;
+        let mut cal = Calendar { day: 28, season: Season::Spring, ..Default::default() };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -712,10 +704,7 @@ mod tests {
 
     #[test]
     fn test_year_increment_after_winter() {
-        let mut cal = Calendar::default();
-        cal.day = 28;
-        cal.season = Season::Winter;
-        cal.year = 1;
+        let mut cal = Calendar { day: 28, season: Season::Winter, year: 1, ..Default::default() };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -732,16 +721,14 @@ mod tests {
 
     #[test]
     fn test_day_of_week_day_7() {
-        let mut cal = Calendar::default();
-        cal.day = 7;
+        let cal = Calendar { day: 7, ..Default::default() };
         // Day 7 => total_days_elapsed = 6, 6 % 7 = 6 => Sunday
         assert_eq!(cal.day_of_week(), DayOfWeek::Sunday);
     }
 
     #[test]
     fn test_day_of_week_day_8_wraps() {
-        let mut cal = Calendar::default();
-        cal.day = 8;
+        let cal = Calendar { day: 8, ..Default::default() };
         // Day 8 => total_days_elapsed = 7, 7 % 7 = 0 => Monday
         assert_eq!(cal.day_of_week(), DayOfWeek::Monday);
     }

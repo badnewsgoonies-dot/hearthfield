@@ -23,12 +23,12 @@ use skywarden::economy::progression::{
 };
 use skywarden::flight::cruise::update_flight;
 use skywarden::flight::navigation::{
-    calculate_route, update_navigation, reset_navigation, NavigationState,
+    calculate_route, update_navigation, NavigationState,
 };
-use skywarden::flight::landing::evaluate_landing;
+
 use skywarden::missions::board::{refresh_mission_board, handle_mission_accepted};
-use skywarden::missions::tracking::{track_active_mission, handle_mission_complete};
-use skywarden::crew::gifts::{handle_gift_given, reset_daily_gifts};
+use skywarden::missions::tracking::handle_mission_complete;
+use skywarden::crew::gifts::handle_gift_given;
 use skywarden::crew::relationships::{
     friendship_decay, RelationshipDetails,
 };
@@ -1299,9 +1299,7 @@ fn test_rank_requirements_check() {
     assert_eq!(req.min_flights, 5);
     assert_eq!(req.min_xp, 100);
 
-    let mut pilot = PilotState::default();
-    pilot.rank = PilotRank::Student;
-    pilot.xp = 50; // Not enough
+    let mut pilot = PilotState { rank: PilotRank::Student, xp: 50, ..Default::default() }; // Not enough
     assert!(
         !meets_rank_requirements(&pilot),
         "Should not meet requirements with insufficient XP"
@@ -1324,12 +1322,14 @@ fn test_rank_cannot_exceed_ace() {
         "Ace should be the highest rank with no next"
     );
 
-    let mut pilot = PilotState::default();
-    pilot.rank = PilotRank::Ace;
-    pilot.xp = 99999;
-    pilot.total_flights = 9999;
-    pilot.total_flight_hours = 9999.0;
-    pilot.reputation = 100.0;
+    let pilot = PilotState {
+        rank: PilotRank::Ace,
+        xp: 99999,
+        total_flights: 9999,
+        total_flight_hours: 9999.0,
+        reputation: 100.0,
+        ..Default::default()
+    };
     assert!(
         !meets_rank_requirements(&pilot),
         "Should not meet requirements when already at max rank"
@@ -1401,11 +1401,12 @@ fn test_airport_distance_symmetric() {
 
 #[test]
 fn test_collision_map_bounds() {
-    let mut map = CollisionMap::default();
-    map.initialised = true;
-    map.width = 10;
-    map.height = 10;
-    map.blocked = vec![vec![false; 10]; 10];
+    let mut map = CollisionMap {
+        initialised: true,
+        width: 10,
+        height: 10,
+        blocked: vec![vec![false; 10]; 10],
+    };
 
     assert!(!map.is_blocked(5, 5), "Should not be blocked");
     assert!(map.is_blocked(-1, 5), "Out of bounds should be blocked");
@@ -1511,8 +1512,7 @@ fn test_checklist_default() {
 
 #[test]
 fn test_night_detection() {
-    let mut cal = Calendar::default();
-    cal.hour = 14;
+    let mut cal = Calendar { hour: 14, ..Default::default() };
     assert!(!cal.is_night(), "2 PM should not be night");
 
     cal.hour = 22;

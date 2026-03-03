@@ -393,7 +393,7 @@ mod tests {
     fn test_wild_bait_double_catch_roll_returns_bool() {
         // Just verify it returns a bool and doesn't panic
         let result = wild_bait_double_catch_roll();
-        assert!(result || !result);
+        let _ = result; // just verify it returns without panic
     }
 
     #[test]

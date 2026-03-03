@@ -2069,7 +2069,7 @@ mod tests {
         inv.try_remove("turnip", 1);
         // After removing all, the slot should be None
         let turnip_slots: Vec<_> = inv.slots.iter()
-            .filter(|s| s.as_ref().map_or(false, |s| s.item_id == "turnip"))
+            .filter(|s| s.as_ref().is_some_and(|s| s.item_id == "turnip"))
             .collect();
         assert!(turnip_slots.is_empty());
     }
@@ -2170,17 +2170,13 @@ mod tests {
 
     #[test]
     fn test_calendar_time_float_midnight() {
-        let mut cal = Calendar::default();
-        cal.hour = 24;
-        cal.minute = 0;
+        let cal = Calendar { hour: 24, minute: 0, ..Calendar::default() };
         assert!((cal.time_float() - 24.0).abs() < f32::EPSILON);
     }
 
     #[test]
     fn test_calendar_day_28_advances_to_next_season() {
-        let mut cal = Calendar::default();
-        cal.season = Season::Spring;
-        cal.day = 28;
+        let mut cal = Calendar { season: Season::Spring, day: 28, ..Calendar::default() };
         // Simulate the day-end advancement used by CalendarPlugin
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -2193,10 +2189,7 @@ mod tests {
 
     #[test]
     fn test_calendar_winter_day_28_wraps_to_spring_next_year() {
-        let mut cal = Calendar::default();
-        cal.season = Season::Winter;
-        cal.day = 28;
-        cal.year = 3;
+        let mut cal = Calendar { season: Season::Winter, day: 28, year: 3, ..Calendar::default() };
         // Simulate the day-end advancement
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -2213,11 +2206,8 @@ mod tests {
 
     #[test]
     fn test_calendar_year_increments_only_on_winter_rollover() {
-        let mut cal = Calendar::default();
         // Advancing Spring day 28 should NOT increment the year
-        cal.season = Season::Spring;
-        cal.day = 28;
-        cal.year = 1;
+        let mut cal = Calendar { season: Season::Spring, day: 28, year: 1, ..Calendar::default() };
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
             cal.day = 1;

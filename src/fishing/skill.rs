@@ -148,8 +148,7 @@ mod tests {
 
     #[test]
     fn test_fishing_skill_level_zero_bonuses() {
-        let mut skill = FishingSkill::default();
-        skill.total_catches = 0;
+        let mut skill = FishingSkill { total_catches: 0, ..FishingSkill::default() };
         skill.recalculate();
         assert_eq!(skill.level, 0);
         assert!((skill.bite_speed_bonus).abs() < f32::EPSILON);
@@ -158,8 +157,7 @@ mod tests {
 
     #[test]
     fn test_fishing_skill_recalculate_level_1() {
-        let mut skill = FishingSkill::default();
-        skill.total_catches = 10;
+        let mut skill = FishingSkill { total_catches: 10, ..FishingSkill::default() };
         skill.recalculate();
         assert_eq!(skill.level, 1);
         assert!((skill.bite_speed_bonus - 0.05).abs() < f32::EPSILON);
@@ -168,9 +166,8 @@ mod tests {
 
     #[test]
     fn test_fishing_skill_max_level_cap() {
-        let mut skill = FishingSkill::default();
         // 200 catches = level 20, but bonuses should cap at level 10 values
-        skill.total_catches = 200;
+        let mut skill = FishingSkill { total_catches: 200, ..FishingSkill::default() };
         skill.recalculate();
         assert_eq!(skill.level, 20);
         // bite_speed_bonus caps at 0.5
@@ -188,8 +185,7 @@ mod tests {
 
     #[test]
     fn test_apply_bite_speed_with_bonus() {
-        let mut skill = FishingSkill::default();
-        skill.total_catches = 10; // level 1 -> 0.05 bonus
+        let mut skill = FishingSkill { total_catches: 10, ..FishingSkill::default() }; // level 1 -> 0.05 bonus
         skill.recalculate();
         let result = skill.apply_bite_speed(10.0);
         // 10.0 * (1.0 - 0.05) = 9.5
@@ -198,8 +194,7 @@ mod tests {
 
     #[test]
     fn test_apply_bite_speed_zero_input() {
-        let mut skill = FishingSkill::default();
-        skill.total_catches = 50;
+        let mut skill = FishingSkill { total_catches: 50, ..FishingSkill::default() };
         skill.recalculate();
         let result = skill.apply_bite_speed(0.0);
         assert!((result).abs() < f32::EPSILON, "0 input should produce 0 output");
@@ -207,8 +202,7 @@ mod tests {
 
     #[test]
     fn test_apply_catch_zone_with_bonus() {
-        let mut skill = FishingSkill::default();
-        skill.total_catches = 20; // level 2 -> 0.06 catch zone bonus
+        let mut skill = FishingSkill { total_catches: 20, ..FishingSkill::default() }; // level 2 -> 0.06 catch zone bonus
         skill.recalculate();
         let result = skill.apply_catch_zone(50.0);
         // 50.0 * (1.0 + 0.06) = 53.0

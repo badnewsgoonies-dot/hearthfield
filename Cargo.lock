@@ -1378,6 +1378,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "city_office_worker_dlc"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "clang-sys"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3543,6 +3552,17 @@ checksum = "8e1c44ad1f6c5bdd4eefed8326711b7dbda9ea45dfd36068c427d332aa382cbe"
 dependencies = [
  "bytemuck",
  "read-fonts",
+]
+
+[[package]]
+name = "skywarden"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rand",
+ "ron",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
