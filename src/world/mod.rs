@@ -451,10 +451,10 @@ pub struct TransitionZone {
 fn tile_color(kind: TileKind, season: Season) -> Color {
     match kind {
         TileKind::Grass => match season {
-            Season::Spring => Color::srgb(0.3, 0.72, 0.32),
-            Season::Summer => Color::srgb(0.35, 0.68, 0.28),
-            Season::Fall => Color::srgb(0.6, 0.5, 0.25),
-            Season::Winter => Color::srgb(0.75, 0.82, 0.88),
+            Season::Spring => Color::srgb(0.28, 0.71, 0.25),
+            Season::Summer => Color::srgb(0.22, 0.65, 0.20),
+            Season::Fall => Color::srgb(0.63, 0.55, 0.24),
+            Season::Winter => Color::srgb(0.75, 0.82, 0.78),
         },
         TileKind::Dirt => match season {
             Season::Spring => Color::srgb(0.6, 0.45, 0.3),
@@ -465,10 +465,10 @@ fn tile_color(kind: TileKind, season: Season) -> Color {
         TileKind::TilledSoil => Color::srgb(0.45, 0.32, 0.2),
         TileKind::WateredSoil => Color::srgb(0.3, 0.22, 0.15),
         TileKind::Water => match season {
-            Season::Spring => Color::srgb(0.2, 0.4, 0.82),
-            Season::Summer => Color::srgb(0.22, 0.42, 0.78),
-            Season::Fall => Color::srgb(0.18, 0.35, 0.7),
-            Season::Winter => Color::srgb(0.5, 0.65, 0.82),
+            Season::Spring => Color::srgb(0.14, 0.35, 0.57),
+            Season::Summer => Color::srgb(0.16, 0.38, 0.55),
+            Season::Fall => Color::srgb(0.12, 0.30, 0.50),
+            Season::Winter => Color::srgb(0.35, 0.50, 0.65),
         },
         TileKind::Sand => Color::srgb(0.9, 0.85, 0.6),
         TileKind::Stone => match season {
@@ -477,8 +477,8 @@ fn tile_color(kind: TileKind, season: Season) -> Color {
         },
         TileKind::WoodFloor => Color::srgb(0.65, 0.5, 0.3),
         TileKind::Path => match season {
-            Season::Winter => Color::srgb(0.78, 0.75, 0.72),
-            _ => Color::srgb(0.7, 0.65, 0.5),
+            Season::Winter => Color::srgb(0.72, 0.68, 0.62),
+            _ => Color::srgb(0.69, 0.55, 0.37),
         },
         TileKind::Bridge => Color::srgb(0.55, 0.42, 0.25),
         TileKind::Void => Color::srgb(0.08, 0.08, 0.1),
