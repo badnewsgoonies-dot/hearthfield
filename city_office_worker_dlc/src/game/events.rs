@@ -1,0 +1,39 @@
+use bevy::prelude::*;
+
+#[derive(Event, Debug, Default)]
+pub struct ProcessInboxEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CoffeeBreakEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct InterruptionEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ResolveCalmlyEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct PanicResponseEvent;
+
+#[derive(Event, Debug)]
+pub struct WaitEvent {
+    pub minutes: u32,
+}
+
+#[derive(Event, Debug)]
+pub struct EndOfDayEvent {
+    pub day_number: u32,
+    pub finished_minute: u32,
+    pub processed_items: u32,
+    pub remaining_items: u32,
+    pub coffee_breaks: u32,
+    pub wait_actions: u32,
+    pub failed_process_attempts: u32,
+    pub interruptions_triggered: u32,
+    pub calm_responses: u32,
+    pub panic_responses: u32,
+    pub unresolved_interruptions: u32,
+    pub final_energy: i32,
+    pub final_stress: i32,
+    pub final_focus: i32,
+}
