@@ -22,6 +22,9 @@ pub struct ObjectAtlases {
     pub grass_biome_layout: Handle<TextureAtlasLayout>,
     pub fences_image: Handle<Image>,
     pub fences_layout: Handle<TextureAtlasLayout>,
+    // Tree spritesheet (32×48 cells, 4 cols × 2 rows: deciduous + pine, seasonal)
+    pub tree_sprites_image: Handle<Image>,
+    pub tree_sprites_layout: Handle<TextureAtlasLayout>,
     // Building tilesets (Sprout Lands)
     pub house_walls_image: Handle<Image>,
     pub house_walls_layout: Handle<TextureAtlasLayout>,
@@ -63,6 +66,18 @@ pub fn ensure_object_atlases_loaded(
         UVec2::new(16, 16),
         4,
         4,
+        None,
+        None,
+    ));
+
+    // tree_sprites.png: 128x96px -> 32x48 cells, 4 columns x 2 rows
+    // Row 0: deciduous (spring, summer, fall, winter)
+    // Row 1: pine/evergreen (spring, summer, fall, winter)
+    atlases.tree_sprites_image = asset_server.load("sprites/tree_sprites.png");
+    atlases.tree_sprites_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 48),
+        4,
+        2,
         None,
         None,
     ));
@@ -212,6 +227,7 @@ impl WorldObjectKind {
     pub fn max_health(self) -> u8 {
         match self {
             WorldObjectKind::Tree => 10,
+            WorldObjectKind::Pine => 10,
             WorldObjectKind::Rock => 6,
             WorldObjectKind::Stump => 4,
             WorldObjectKind::Bush => 2,
@@ -224,6 +240,7 @@ impl WorldObjectKind {
     pub fn effective_tool(self) -> ToolKind {
         match self {
             WorldObjectKind::Tree => ToolKind::Axe,
+            WorldObjectKind::Pine => ToolKind::Axe,
             WorldObjectKind::Stump => ToolKind::Axe,
             WorldObjectKind::Bush => ToolKind::Scythe,
             WorldObjectKind::Log => ToolKind::Axe,
@@ -261,6 +278,7 @@ impl WorldObjectKind {
     pub fn drops(self) -> Vec<(&'static str, u8)> {
         match self {
             WorldObjectKind::Tree => vec![("wood", 4), ("sap", 2), ("hardwood", 1), ("tree_seed", 1)],
+            WorldObjectKind::Pine => vec![("wood", 5), ("sap", 3), ("hardwood", 1)],
             WorldObjectKind::Stump => vec![("hardwood", 2), ("sap", 1)],
             WorldObjectKind::Log => vec![("hardwood", 4), ("sap", 1)],
             WorldObjectKind::Bush => vec![("fiber", 3), ("wild_berry", 1)],
@@ -273,6 +291,7 @@ impl WorldObjectKind {
     pub fn color(self) -> Color {
         match self {
             WorldObjectKind::Tree => Color::srgb(0.15, 0.5, 0.15),
+            WorldObjectKind::Pine => Color::srgb(0.1, 0.35, 0.15),
             WorldObjectKind::Stump => Color::srgb(0.45, 0.35, 0.2),
             WorldObjectKind::Log => Color::srgb(0.5, 0.38, 0.22),
             WorldObjectKind::Bush => Color::srgb(0.2, 0.55, 0.25),
@@ -284,7 +303,8 @@ impl WorldObjectKind {
     /// Sprite size for this object.
     pub fn sprite_size(self) -> Vec2 {
         match self {
-            WorldObjectKind::Tree => Vec2::new(TILE_SIZE, TILE_SIZE * 2.0),
+            WorldObjectKind::Tree => Vec2::new(TILE_SIZE * 2.0, TILE_SIZE * 3.0),
+            WorldObjectKind::Pine => Vec2::new(TILE_SIZE * 2.0, TILE_SIZE * 3.0),
             WorldObjectKind::LargeRock => Vec2::new(TILE_SIZE * 1.5, TILE_SIZE * 1.5),
             _ => Vec2::new(TILE_SIZE, TILE_SIZE),
         }
@@ -311,6 +331,7 @@ impl WorldObjectKind {
     pub fn atlas_index(self) -> usize {
         match self {
             WorldObjectKind::Tree => 10,    // row 1, col 1 — tree/bush top
+            WorldObjectKind::Pine => 10,    // fallback; pine uses tree_sprites atlas
             WorldObjectKind::Bush => 1,     // row 0, col 1 — small bush/grass
             WorldObjectKind::Stump => 27,   // row 3, col 0 — stump/rock-like
             WorldObjectKind::Rock => 29,    // row 3, col 2 — rock
@@ -330,6 +351,7 @@ pub fn spawn_world_objects(
     placements: &[ObjectPlacement],
     world_map: &mut WorldMap,
     object_atlases: &ObjectAtlases,
+    season: Season,
 ) {
     for placement in placements {
         let kind = placement.kind;
@@ -350,13 +372,37 @@ pub fn spawn_world_objects(
         };
 
         if object_atlases.loaded {
-            // Use atlas sprite from grass_biome.png
-            let atlas_index = kind.atlas_index();
+            // Trees use dedicated tree_sprites atlas (32×48 cells, seasonal)
+            let is_tree = matches!(kind, WorldObjectKind::Tree | WorldObjectKind::Pine);
+            let (image, layout, index) = if is_tree {
+                // tree_sprites.png: row 0 = deciduous, row 1 = pine
+                // Columns: 0=spring, 1=summer, 2=fall, 3=winter
+                let season_col = match season {
+                    Season::Spring => 0,
+                    Season::Summer => 1,
+                    Season::Fall => 2,
+                    Season::Winter => 3,
+                };
+                let row_offset = if matches!(kind, WorldObjectKind::Pine) { 4 } else { 0 };
+                (
+                    object_atlases.tree_sprites_image.clone(),
+                    object_atlases.tree_sprites_layout.clone(),
+                    row_offset + season_col, // row 0 (deciduous) or row 1 (pine) + season
+                )
+            } else {
+                // All other objects use grass_biome.png
+                (
+                    object_atlases.grass_biome_image.clone(),
+                    object_atlases.grass_biome_layout.clone(),
+                    kind.atlas_index(),
+                )
+            };
+
             let mut sprite = Sprite::from_atlas_image(
-                object_atlases.grass_biome_image.clone(),
+                image,
                 TextureAtlas {
-                    layout: object_atlases.grass_biome_layout.clone(),
-                    index: atlas_index,
+                    layout,
+                    index,
                 },
             );
             sprite.custom_size = Some(size);
@@ -951,12 +997,17 @@ pub fn regrow_trees_on_season_change(
             };
 
             if object_atlases.loaded {
-                let atlas_index = kind.atlas_index();
+                let season_col = match event.new_season {
+                    Season::Spring => 0,
+                    Season::Summer => 1,
+                    Season::Fall => 2,
+                    Season::Winter => 3,
+                };
                 let mut sprite = Sprite::from_atlas_image(
-                    object_atlases.grass_biome_image.clone(),
+                    object_atlases.tree_sprites_image.clone(),
                     TextureAtlas {
-                        layout: object_atlases.grass_biome_layout.clone(),
-                        index: atlas_index,
+                        layout: object_atlases.tree_sprites_layout.clone(),
+                        index: season_col,
                     },
                 );
                 sprite.custom_size = Some(size);
@@ -996,6 +1047,40 @@ pub fn regrow_trees_on_season_change(
             world_map.set_solid(x, y, true);
             occupied.insert((x, y));
             spawned += 1;
+        }
+    }
+}
+
+/// System: update all existing tree sprites to match the new season's appearance.
+/// Called on SeasonChangeEvent so deciduous trees change color with the seasons.
+pub fn update_tree_sprites_on_season_change(
+    mut season_events: EventReader<SeasonChangeEvent>,
+    object_atlases: Res<ObjectAtlases>,
+    mut tree_query: Query<(&WorldObjectData, &mut Sprite), With<WorldObject>>,
+) {
+    for event in season_events.read() {
+        if !object_atlases.loaded {
+            continue;
+        }
+        let season_col = match event.new_season {
+            Season::Spring => 0,
+            Season::Summer => 1,
+            Season::Fall => 2,
+            Season::Winter => 3,
+        };
+        for (obj_data, mut sprite) in tree_query.iter_mut() {
+            if matches!(obj_data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine) {
+                let row_offset = if matches!(obj_data.kind, WorldObjectKind::Pine) { 4 } else { 0 };
+                // Update to use tree_sprites atlas with correct seasonal index
+                *sprite = Sprite::from_atlas_image(
+                    object_atlases.tree_sprites_image.clone(),
+                    TextureAtlas {
+                        layout: object_atlases.tree_sprites_layout.clone(),
+                        index: row_offset + season_col,
+                    },
+                );
+                sprite.custom_size = Some(obj_data.kind.sprite_size());
+            }
         }
     }
 }

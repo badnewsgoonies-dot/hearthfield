@@ -44,6 +44,7 @@ pub struct ObjectPlacement {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorldObjectKind {
     Tree,
+    Pine,
     Rock,
     Stump,
     Bush,

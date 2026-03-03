@@ -149,7 +149,7 @@ pub fn apply_seasonal_tint(
     // ── World objects (trees, rocks, bushes, stumps, logs) ────────────────────
     for (mut sprite, obj_data) in object_query.iter_mut() {
         let tint = match obj_data.kind {
-            WorldObjectKind::Tree => {
+            WorldObjectKind::Tree | WorldObjectKind::Pine => {
                 // Use grid position hash to choose variant so adjacent trees differ.
                 let variant_b = (obj_data.grid_x.wrapping_add(obj_data.grid_y * 3)) % 2 == 1;
                 tree_tint(current_season, variant_b)
