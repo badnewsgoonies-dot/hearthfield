@@ -43,6 +43,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::TaskBoard>()
             .init_resource::<resources::DayOutcome>()
             .init_resource::<resources::DayStats>()
+            .init_resource::<save::SaveSlotConfig>()
             .init_resource::<save::OfficeSaveStore>()
             .add_event::<events::EndDayRequested>()
             .add_event::<events::DayAdvanced>()
@@ -59,7 +60,17 @@ impl Plugin for CityOfficeWorkerPlugin {
             .add_event::<events::CoworkerHelpEvent>()
             .add_event::<events::WaitEvent>()
             .add_event::<events::EndOfDayEvent>()
+            .add_event::<save::SaveSlotRequest>()
+            .add_event::<save::LoadSlotRequest>()
             .add_systems(Startup, systems::setup_scene)
+            .add_systems(
+                Update,
+                (
+                    save::handle_save_slot_requests,
+                    save::handle_load_slot_requests,
+                )
+                    .chain(),
+            )
             .add_systems(
                 Update,
                 systems::boot_to_main_menu.run_if(in_state(OfficeGameState::Boot)),
@@ -109,7 +120,11 @@ impl Plugin for CityOfficeWorkerPlugin {
                         .chain()
                         .in_set(OfficeSimSet::Interruptions),
                     systems::update_day_outcome_preview.in_set(OfficeSimSet::Economy),
-                    (systems::check_end_of_day, systems::finalize_end_day_request)
+                    (
+                        systems::enforce_task_deadlines,
+                        systems::check_end_of_day,
+                        systems::finalize_end_day_request,
+                    )
                         .chain()
                         .in_set(OfficeSimSet::StateTransitions),
                     systems::update_visuals.in_set(OfficeSimSet::Ui),

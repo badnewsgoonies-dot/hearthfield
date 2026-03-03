@@ -5,15 +5,54 @@ fn task_id_for_slot(day_number: u32, slot_index: u32) -> TaskId {
 }
 
 fn inbox_task(day_number: u32, slot_index: u32, day_end_minute: u32) -> OfficeTask {
+    let priority = match slot_index % 4 {
+        0 => TaskPriority::Medium,
+        1 => TaskPriority::High,
+        2 => TaskPriority::Low,
+        _ => TaskPriority::Critical,
+    };
+    let required_focus = match priority {
+        TaskPriority::Low => 24,
+        TaskPriority::Medium => 42,
+        TaskPriority::High => 58,
+        TaskPriority::Critical => 72,
+    };
+    let stress_impact = match priority {
+        TaskPriority::Low => 2,
+        TaskPriority::Medium => 3,
+        TaskPriority::High => 5,
+        TaskPriority::Critical => 8,
+    };
+    let reward_money = match priority {
+        TaskPriority::Low => 9,
+        TaskPriority::Medium => 12,
+        TaskPriority::High => 17,
+        TaskPriority::Critical => 22,
+    };
+    let reward_reputation = match priority {
+        TaskPriority::Low => 0,
+        TaskPriority::Medium => 1,
+        TaskPriority::High => 2,
+        TaskPriority::Critical => 3,
+    };
+    let deadline_window = match priority {
+        TaskPriority::Low => 0,
+        TaskPriority::Medium => 30,
+        TaskPriority::High => 60,
+        TaskPriority::Critical => 120,
+    };
+
     OfficeTask {
         id: task_id_for_slot(day_number, slot_index),
         kind: TaskKind::DataEntry,
-        priority: TaskPriority::Medium,
-        required_focus: 18,
-        stress_impact: 3,
-        reward_money: 12,
-        reward_reputation: 1,
-        deadline_minute: day_end_minute.min(u16::MAX as u32) as u16,
+        priority,
+        required_focus,
+        stress_impact,
+        reward_money,
+        reward_reputation,
+        deadline_minute: day_end_minute
+            .saturating_sub(deadline_window)
+            .min(u16::MAX as u32) as u16,
         progress: 0.0,
     }
 }

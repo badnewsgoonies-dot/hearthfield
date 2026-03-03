@@ -97,3 +97,19 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Persistence invariants are a release-critical parity requirement, but durable slots are a later-wave concern.
 - Decision: Land `OfficeSaveSnapshot` v1 capture/serialize/deserialize/apply scaffolding plus a DaySummary persistence hook, with identity-focused tests before full save-slot UX.
 - Why: This de-risks persistence by validating core state fidelity (`TaskId` round-trip and no mid-day task regeneration) before broader save-system expansion.
+
+## ADR-013 - Use Slot-Based File Persistence with Event-Driven Save/Load
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: In-memory snapshot skeleton proved identity invariants but could not survive process restarts or validate migration behavior.
+- Decision: Add file-backed slot persistence under `city_office_worker_dlc/saves` with `SaveSlotRequest`/`LoadSlotRequest` events, `SaveSlotConfig`, and migration-aware decoding (`migrate_snapshot_json` with `v0 -> v1` support).
+- Why: Event-driven save/load keeps ordering deterministic within the simulation loop, while slot files and migration stubs provide durable state and forward-compatibility for future schema evolution.
+
+## ADR-014 - Enforce Small Vertical Slices and Contract-Test Coupling
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Early origin history showed mega-commit integration churn, scope-drift commits, and delayed bug-fix bursts after large waves.
+- Decision: For R5+ integration flow, enforce: no `WIP` commits, split slices above `~1,200` insertions or `>20` files, keep infra/build changes separate from gameplay/content, and require contract deltas to include wiring plus deterministic/headless tests in the same PR.
+- Why: Smaller vertical slices reduce merge risk, make audits clearer, and surface contract drift immediately instead of in late stabilization passes.

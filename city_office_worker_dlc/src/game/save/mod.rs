@@ -1,14 +1,48 @@
+use std::fs;
+use std::path::PathBuf;
+
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
+use crate::game::components::OfficeWorker;
+use crate::game::events::DayAdvanced;
 use crate::game::resources::{
-    DayClock, InboxState, OfficeRunConfig, OfficeTask, TaskBoard, TaskId, TaskKind, TaskPriority,
-    WorkerStats,
+    DayClock, DayStats, InboxState, OfficeRunConfig, OfficeTask, PlayerCareerState,
+    PlayerMindState, TaskBoard, TaskId, TaskKind, TaskPriority, WorkerStats,
 };
+use crate::game::OfficeGameState;
+
+#[derive(Resource, Debug, Clone)]
+pub struct SaveSlotConfig {
+    pub save_dir: PathBuf,
+    pub active_slot: u8,
+}
+
+impl Default for SaveSlotConfig {
+    fn default() -> Self {
+        Self {
+            save_dir: PathBuf::from("city_office_worker_dlc/saves"),
+            active_slot: 0,
+        }
+    }
+}
 
 #[derive(Resource, Debug, Default, Clone)]
 pub struct OfficeSaveStore {
     pub latest_snapshot_json: Option<String>,
+    pub last_io_error: Option<String>,
+    pub last_loaded_slot: Option<u8>,
+}
+
+#[derive(Event, Debug, Clone, Copy)]
+pub struct SaveSlotRequest {
+    pub slot: u8,
+}
+
+#[derive(Event, Debug, Clone, Copy)]
+pub struct LoadSlotRequest {
+    pub slot: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -21,6 +55,27 @@ pub struct OfficeSaveSnapshot {
     pub run_seed: u64,
     pub worker_stats: WorkerStatsSnapshot,
     pub task_board: TaskBoardSnapshot,
+    #[serde(default)]
+    pub day_stats: DayStatsSnapshot,
+    #[serde(default)]
+    pub pending_interruptions: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+struct OfficeSaveSnapshotV0 {
+    pub day_index: u32,
+    pub minute_of_day: u32,
+    pub day_ended: bool,
+    pub inbox_remaining: u32,
+    pub run_seed: u64,
+    pub energy: i32,
+    pub stress: i32,
+    pub focus: i32,
+    pub money: i32,
+    pub reputation: i32,
+    pub active_task_ids: Vec<u64>,
+    pub completed_today: Vec<u64>,
+    pub failed_today: Vec<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -30,6 +85,19 @@ pub struct WorkerStatsSnapshot {
     pub focus: i32,
     pub money: i32,
     pub reputation: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DayStatsSnapshot {
+    pub processed_items: u32,
+    pub coffee_breaks: u32,
+    pub wait_actions: u32,
+    pub failed_process_attempts: u32,
+    pub interruptions_triggered: u32,
+    pub calm_responses: u32,
+    pub panic_responses: u32,
+    pub manager_checkins: u32,
+    pub coworker_helps: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -61,7 +129,6 @@ fn task_kind_str(kind: TaskKind) -> &'static str {
     }
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 fn parse_task_kind(raw: &str) -> Result<TaskKind, String> {
     match raw {
         "data_entry" => Ok(TaskKind::DataEntry),
@@ -81,7 +148,6 @@ fn task_priority_str(priority: TaskPriority) -> &'static str {
     }
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 fn parse_task_priority(raw: &str) -> Result<TaskPriority, String> {
     match raw {
         "low" => Ok(TaskPriority::Low),
@@ -92,12 +158,53 @@ fn parse_task_priority(raw: &str) -> Result<TaskPriority, String> {
     }
 }
 
+fn migrate_v0_to_v1(v0: OfficeSaveSnapshotV0) -> OfficeSaveSnapshot {
+    OfficeSaveSnapshot {
+        schema_version: 1,
+        day_index: v0.day_index,
+        minute_of_day: v0.minute_of_day,
+        day_ended: v0.day_ended,
+        inbox_remaining: v0.inbox_remaining,
+        run_seed: v0.run_seed,
+        worker_stats: WorkerStatsSnapshot {
+            energy: v0.energy,
+            stress: v0.stress,
+            focus: v0.focus,
+            money: v0.money,
+            reputation: v0.reputation,
+        },
+        task_board: TaskBoardSnapshot {
+            active: v0
+                .active_task_ids
+                .into_iter()
+                .map(|task_id| OfficeTaskSnapshot {
+                    id: task_id,
+                    kind: "data_entry".to_string(),
+                    priority: "medium".to_string(),
+                    required_focus: 18,
+                    stress_impact: 3,
+                    reward_money: 12,
+                    reward_reputation: 1,
+                    deadline_minute: 17 * 60,
+                    progress: 0.0,
+                })
+                .collect(),
+            completed_today: v0.completed_today,
+            failed_today: v0.failed_today,
+        },
+        day_stats: DayStatsSnapshot::default(),
+        pending_interruptions: 0,
+    }
+}
+
 pub fn capture_snapshot(
     clock: &DayClock,
     worker_stats: &WorkerStats,
     task_board: &TaskBoard,
     run_config: &OfficeRunConfig,
     inbox: &InboxState,
+    day_stats: &DayStats,
+    mind: &PlayerMindState,
 ) -> OfficeSaveSnapshot {
     OfficeSaveSnapshot {
         schema_version: 1,
@@ -140,6 +247,18 @@ pub fn capture_snapshot(
                 .map(|task_id| task_id.0)
                 .collect(),
         },
+        day_stats: DayStatsSnapshot {
+            processed_items: day_stats.processed_items,
+            coffee_breaks: day_stats.coffee_breaks,
+            wait_actions: day_stats.wait_actions,
+            failed_process_attempts: day_stats.failed_process_attempts,
+            interruptions_triggered: day_stats.interruptions_triggered,
+            calm_responses: day_stats.calm_responses,
+            panic_responses: day_stats.panic_responses,
+            manager_checkins: day_stats.manager_checkins,
+            coworker_helps: day_stats.coworker_helps,
+        },
+        pending_interruptions: mind.pending_interruptions,
     }
 }
 
@@ -147,13 +266,63 @@ pub fn serialize_snapshot(snapshot: &OfficeSaveSnapshot) -> Result<String, serde
     serde_json::to_string_pretty(snapshot)
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 pub fn deserialize_snapshot(json: &str) -> Result<OfficeSaveSnapshot, serde_json::Error> {
     serde_json::from_str(json)
 }
 
+pub fn migrate_snapshot_json(json: &str) -> Result<OfficeSaveSnapshot, String> {
+    let raw_value: Value = serde_json::from_str(json)
+        .map_err(|error| format!("failed to parse snapshot JSON: {error}"))?;
+
+    let schema_version = raw_value
+        .get("schema_version")
+        .and_then(Value::as_u64)
+        .unwrap_or(0) as u16;
+
+    match schema_version {
+        1 => deserialize_snapshot(json)
+            .map_err(|error| format!("failed to decode v1 snapshot: {error}")),
+        0 => {
+            let legacy: OfficeSaveSnapshotV0 = serde_json::from_value(raw_value)
+                .map_err(|error| format!("failed to decode v0 snapshot: {error}"))?;
+            Ok(migrate_v0_to_v1(legacy))
+        }
+        other => Err(format!("unsupported snapshot schema version {other}")),
+    }
+}
+
+fn slot_file_path(config: &SaveSlotConfig, slot: u8) -> PathBuf {
+    config.save_dir.join(format!("slot_{slot:02}.json"))
+}
+
+pub fn write_snapshot_to_slot(
+    config: &SaveSlotConfig,
+    slot: u8,
+    snapshot: &OfficeSaveSnapshot,
+) -> Result<PathBuf, String> {
+    fs::create_dir_all(&config.save_dir)
+        .map_err(|error| format!("failed to create save dir {:?}: {error}", config.save_dir))?;
+
+    let path = slot_file_path(config, slot);
+    let snapshot_json = serialize_snapshot(snapshot)
+        .map_err(|error| format!("failed to serialize snapshot: {error}"))?;
+    fs::write(&path, snapshot_json)
+        .map_err(|error| format!("failed to write snapshot {:?}: {error}", path))?;
+
+    Ok(path)
+}
+
+pub fn read_snapshot_from_slot(
+    config: &SaveSlotConfig,
+    slot: u8,
+) -> Result<OfficeSaveSnapshot, String> {
+    let path = slot_file_path(config, slot);
+    let content = fs::read_to_string(&path)
+        .map_err(|error| format!("failed to read snapshot {:?}: {error}", path))?;
+    migrate_snapshot_json(&content)
+}
+
 #[allow(clippy::too_many_arguments)]
-#[cfg_attr(not(test), allow(dead_code))]
 pub fn apply_snapshot(
     snapshot: &OfficeSaveSnapshot,
     clock: &mut DayClock,
@@ -161,6 +330,8 @@ pub fn apply_snapshot(
     task_board: &mut TaskBoard,
     run_config: &mut OfficeRunConfig,
     inbox: &mut InboxState,
+    day_stats: &mut DayStats,
+    mind: &mut PlayerMindState,
 ) -> Result<(), String> {
     if snapshot.schema_version != 1 {
         return Err(format!(
@@ -200,6 +371,18 @@ pub fn apply_snapshot(
     worker_stats.reputation = snapshot.worker_stats.reputation;
     worker_stats.normalize();
 
+    day_stats.processed_items = snapshot.day_stats.processed_items;
+    day_stats.coffee_breaks = snapshot.day_stats.coffee_breaks;
+    day_stats.wait_actions = snapshot.day_stats.wait_actions;
+    day_stats.failed_process_attempts = snapshot.day_stats.failed_process_attempts;
+    day_stats.interruptions_triggered = snapshot.day_stats.interruptions_triggered;
+    day_stats.calm_responses = snapshot.day_stats.calm_responses;
+    day_stats.panic_responses = snapshot.day_stats.panic_responses;
+    day_stats.manager_checkins = snapshot.day_stats.manager_checkins;
+    day_stats.coworker_helps = snapshot.day_stats.coworker_helps;
+
+    mind.pending_interruptions = snapshot.pending_interruptions;
+
     task_board.active = restored_active;
     task_board.completed_today = snapshot
         .task_board
@@ -220,20 +403,206 @@ pub fn apply_snapshot(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
+fn save_slot(
+    slot: u8,
+    config: &SaveSlotConfig,
+    clock: &DayClock,
+    worker_stats: &WorkerStats,
+    task_board: &TaskBoard,
+    run_config: &OfficeRunConfig,
+    inbox: &InboxState,
+    day_stats: &DayStats,
+    mind: &PlayerMindState,
+    store: &mut OfficeSaveStore,
+) -> bool {
+    let snapshot = capture_snapshot(
+        clock,
+        worker_stats,
+        task_board,
+        run_config,
+        inbox,
+        day_stats,
+        mind,
+    );
+
+    match serialize_snapshot(&snapshot) {
+        Ok(json) => {
+            store.latest_snapshot_json = Some(json);
+        }
+        Err(error) => {
+            store.last_io_error = Some(format!("snapshot serialize error: {error}"));
+            return false;
+        }
+    }
+
+    match write_snapshot_to_slot(config, slot, &snapshot) {
+        Ok(_) => {
+            store.last_io_error = None;
+            true
+        }
+        Err(error) => {
+            store.last_io_error = Some(error);
+            false
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn load_slot(
+    slot: u8,
+    config: &SaveSlotConfig,
+    store: &mut OfficeSaveStore,
+    clock: &mut DayClock,
+    worker_stats: &mut WorkerStats,
+    task_board: &mut TaskBoard,
+    run_config: &mut OfficeRunConfig,
+    inbox: &mut InboxState,
+    day_stats: &mut DayStats,
+    mind: &mut PlayerMindState,
+    career: &mut PlayerCareerState,
+    worker_query: &mut Query<&mut OfficeWorker>,
+) -> Option<OfficeSaveSnapshot> {
+    match read_snapshot_from_slot(config, slot) {
+        Ok(snapshot) => {
+            let apply_result = apply_snapshot(
+                &snapshot,
+                clock,
+                worker_stats,
+                task_board,
+                run_config,
+                inbox,
+                day_stats,
+                mind,
+            );
+
+            if let Err(error) = apply_result {
+                store.last_io_error = Some(format!("snapshot apply error: {error}"));
+                return None;
+            }
+
+            mind.stress = worker_stats.stress;
+            mind.focus = worker_stats.focus;
+            career.reputation = worker_stats.reputation;
+            if let Ok(mut worker) = worker_query.get_single_mut() {
+                worker.energy = worker_stats.energy;
+            }
+
+            store.last_loaded_slot = Some(slot);
+            store.last_io_error = None;
+            Some(snapshot)
+        }
+        Err(error) => {
+            store.last_io_error = Some(error);
+            None
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn persist_day_summary_snapshot(
     clock: Res<DayClock>,
     worker_stats: Res<WorkerStats>,
     task_board: Res<TaskBoard>,
     run_config: Res<OfficeRunConfig>,
     inbox: Res<InboxState>,
+    day_stats: Res<DayStats>,
+    mind: Res<PlayerMindState>,
+    config: Res<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
     if !clock.ended {
         return;
     }
 
-    let snapshot = capture_snapshot(&clock, &worker_stats, &task_board, &run_config, &inbox);
-    if let Ok(json) = serialize_snapshot(&snapshot) {
-        store.latest_snapshot_json = Some(json);
+    save_slot(
+        config.active_slot,
+        &config,
+        &clock,
+        &worker_stats,
+        &task_board,
+        &run_config,
+        &inbox,
+        &day_stats,
+        &mind,
+        &mut store,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn handle_save_slot_requests(
+    mut requests: EventReader<SaveSlotRequest>,
+    clock: Res<DayClock>,
+    worker_stats: Res<WorkerStats>,
+    task_board: Res<TaskBoard>,
+    run_config: Res<OfficeRunConfig>,
+    inbox: Res<InboxState>,
+    day_stats: Res<DayStats>,
+    mind: Res<PlayerMindState>,
+    mut config: ResMut<SaveSlotConfig>,
+    mut store: ResMut<OfficeSaveStore>,
+) {
+    for request in requests.read() {
+        let saved = save_slot(
+            request.slot,
+            &config,
+            &clock,
+            &worker_stats,
+            &task_board,
+            &run_config,
+            &inbox,
+            &day_stats,
+            &mind,
+            &mut store,
+        );
+        if saved {
+            config.active_slot = request.slot;
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn handle_load_slot_requests(
+    mut requests: EventReader<LoadSlotRequest>,
+    mut config: ResMut<SaveSlotConfig>,
+    mut store: ResMut<OfficeSaveStore>,
+    mut clock: ResMut<DayClock>,
+    mut worker_stats: ResMut<WorkerStats>,
+    mut task_board: ResMut<TaskBoard>,
+    mut run_config: ResMut<OfficeRunConfig>,
+    mut inbox: ResMut<InboxState>,
+    mut day_stats: ResMut<DayStats>,
+    mut mind: ResMut<PlayerMindState>,
+    mut career: ResMut<PlayerCareerState>,
+    mut next_state: ResMut<NextState<OfficeGameState>>,
+    mut day_advanced_writer: EventWriter<DayAdvanced>,
+    mut worker_query: Query<&mut OfficeWorker>,
+) {
+    for request in requests.read() {
+        let loaded_snapshot = load_slot(
+            request.slot,
+            &config,
+            &mut store,
+            &mut clock,
+            &mut worker_stats,
+            &mut task_board,
+            &mut run_config,
+            &mut inbox,
+            &mut day_stats,
+            &mut mind,
+            &mut career,
+            &mut worker_query,
+        );
+        let Some(snapshot) = loaded_snapshot else {
+            continue;
+        };
+
+        config.active_slot = request.slot;
+        if snapshot.day_ended {
+            day_advanced_writer.send(DayAdvanced {
+                new_day_index: snapshot.day_index.saturating_add(1),
+            });
+            next_state.set(OfficeGameState::DaySummary);
+        }
     }
 }

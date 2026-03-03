@@ -1,3 +1,6 @@
+use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 
@@ -9,10 +12,12 @@ use crate::game::events::{
 };
 use crate::game::resources::{
     DayClock, DayOutcome, DayStats, InboxState, OfficeRules, OfficeRunConfig, PlayerCareerState,
-    PlayerMindState, TaskBoard, WorkerStats,
+    PlayerMindState, TaskBoard, TaskPriority, WorkerStats,
 };
 use crate::game::save::{
-    apply_snapshot, capture_snapshot, deserialize_snapshot, serialize_snapshot, OfficeSaveStore,
+    apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
+    read_snapshot_from_slot, serialize_snapshot, write_snapshot_to_slot, LoadSlotRequest,
+    OfficeSaveStore, SaveSlotConfig, SaveSlotRequest,
 };
 
 #[derive(Resource, Copy, Clone)]
@@ -29,6 +34,9 @@ struct DayAdvancedCount(u32);
 
 #[derive(Resource, Default)]
 struct LastAdvancedDay(Option<u32>);
+
+#[derive(Resource, Default)]
+struct TaskFailedCount(u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ReplayDaySummary {
@@ -125,6 +133,15 @@ fn count_day_advanced_events(
     }
 }
 
+fn count_task_failed_events(
+    mut events: EventReader<TaskFailed>,
+    mut count: ResMut<TaskFailedCount>,
+) {
+    for _ in events.read() {
+        count.0 += 1;
+    }
+}
+
 fn record_replay_summaries(
     mut events: EventReader<EndOfDayEvent>,
     mut summaries: ResMut<ReplaySummaries>,
@@ -166,6 +183,7 @@ fn build_test_app() -> App {
         .init_resource::<PlayerCareerState>()
         .init_resource::<DayOutcome>()
         .init_resource::<DayStats>()
+        .init_resource::<SaveSlotConfig>()
         .init_resource::<OfficeSaveStore>()
         .init_resource::<TaskBoard>()
         .add_event::<EndDayRequested>()
@@ -182,10 +200,13 @@ fn build_test_app() -> App {
         .add_event::<CoworkerHelpEvent>()
         .add_event::<WaitEvent>()
         .add_event::<EndOfDayEvent>()
+        .add_event::<SaveSlotRequest>()
+        .add_event::<LoadSlotRequest>()
         .init_resource::<EndEventCount>()
         .init_resource::<EndDayRequestedCount>()
         .init_resource::<DayAdvancedCount>()
         .init_resource::<LastAdvancedDay>()
+        .init_resource::<TaskFailedCount>()
         .init_resource::<ReplaySummaries>();
 
     let seeded_board = {
@@ -206,6 +227,21 @@ fn build_test_app() -> App {
         .id();
     app.world_mut().insert_resource(TestWorkerEntity(worker));
     app
+}
+
+fn save_config_for_test(label: &str) -> SaveSlotConfig {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    SaveSlotConfig {
+        save_dir: std::env::temp_dir().join(format!(
+            "city_office_worker_dlc_{label}_{}_{}",
+            std::process::id(),
+            now
+        )),
+        active_slot: 0,
+    }
 }
 
 fn push_action(world: &mut World, action: ScriptAction) {
@@ -285,6 +321,13 @@ fn run_seeded_replay(seed: u64, days: usize, scripted: &[ScriptAction]) -> Vec<R
 fn process_event_updates_energy_inbox_and_clock() {
     let mut app = build_test_app();
     app.add_systems(Update, handle_process_requests);
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        if let Some(task) = board.active.first_mut() {
+            task.required_focus = 1;
+            task.priority = TaskPriority::Low;
+        }
+    }
 
     app.world_mut().send_event(ProcessInboxEvent);
     app.update();
@@ -306,6 +349,56 @@ fn process_event_updates_energy_inbox_and_clock() {
     assert_eq!(board.active.len(), 17);
     assert_eq!(board.completed_today.len(), 1);
     assert_eq!(board.failed_today.len(), 0);
+}
+
+#[test]
+fn process_event_supports_partial_progress_before_completion() {
+    let mut app = build_test_app();
+    app.add_systems(Update, handle_process_requests);
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        if let Some(task) = board.active.first_mut() {
+            task.required_focus = 120;
+            task.priority = TaskPriority::High;
+        }
+    }
+
+    app.world_mut().send_event(ProcessInboxEvent);
+    app.update();
+
+    let board_after_first = app.world().resource::<TaskBoard>();
+    assert_eq!(board_after_first.completed_today.len(), 0);
+    assert_eq!(board_after_first.failed_today.len(), 0);
+    assert_eq!(app.world().resource::<InboxState>().remaining_items, 18);
+    let progress_after_first = board_after_first
+        .active
+        .first()
+        .expect("first task should still be active after first process")
+        .progress;
+    assert!(progress_after_first > 0.0);
+    assert!(progress_after_first < 1.0);
+
+    let mut safety = 0u8;
+    while app
+        .world()
+        .resource::<TaskBoard>()
+        .completed_today
+        .is_empty()
+        && safety < 10
+    {
+        app.world_mut().send_event(ProcessInboxEvent);
+        app.update();
+        safety += 1;
+    }
+
+    assert!(
+        !app.world()
+            .resource::<TaskBoard>()
+            .completed_today
+            .is_empty(),
+        "task should complete after repeated process actions"
+    );
+    assert_eq!(app.world().resource::<InboxState>().remaining_items, 17);
 }
 
 #[test]
@@ -520,6 +613,40 @@ fn completed_task_cannot_fail_later_same_day() {
 }
 
 #[test]
+fn overdue_tasks_fail_once_and_do_not_reenter_active_pool() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        (enforce_task_deadlines, count_task_failed_events).chain(),
+    );
+
+    let overdue_id = {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        let task = board
+            .active
+            .first_mut()
+            .expect("seeded task should be present for deadline test");
+        task.deadline_minute = 9 * 60;
+        task.id
+    };
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.current_minute = 9 * 60 + 5;
+    }
+
+    app.update();
+    assert_eq!(app.world().resource::<TaskFailedCount>().0, 1);
+    let board = app.world().resource::<TaskBoard>();
+    assert!(board.is_failed(overdue_id));
+    assert!(!board.is_completed(overdue_id));
+    assert!(!board.has_active_task(overdue_id));
+    assert_eq!(app.world().resource::<InboxState>().remaining_items, 17);
+
+    app.update();
+    assert_eq!(app.world().resource::<TaskFailedCount>().0, 1);
+}
+
+#[test]
 fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut app = build_test_app();
     app.add_systems(
@@ -536,8 +663,18 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let task_board = app.world().resource::<TaskBoard>();
         let run_config = app.world().resource::<OfficeRunConfig>();
         let inbox = app.world().resource::<InboxState>();
+        let day_stats = app.world().resource::<DayStats>();
+        let mind = app.world().resource::<PlayerMindState>();
 
-        let snapshot = capture_snapshot(clock, worker_stats, task_board, run_config, inbox);
+        let snapshot = capture_snapshot(
+            clock,
+            worker_stats,
+            task_board,
+            run_config,
+            inbox,
+            day_stats,
+            mind,
+        );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
             json,
@@ -571,6 +708,8 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut board = app.world().resource::<TaskBoard>().clone();
     let mut run_config = app.world().resource::<OfficeRunConfig>().clone();
     let mut inbox = app.world().resource::<InboxState>().clone();
+    let mut day_stats = DayStats::default();
+    let mut mind = PlayerMindState::default();
 
     apply_snapshot(
         &snapshot,
@@ -579,6 +718,8 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut board,
         &mut run_config,
         &mut inbox,
+        &mut day_stats,
+        &mut mind,
     )
     .expect("snapshot apply should succeed");
 
@@ -594,4 +735,530 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     assert_eq!(restored_board.active_task_ids(), original_active_ids);
     assert_eq!(restored_board.completed_today, original_completed_ids);
     assert_eq!(restored_board.failed_today, original_failed_ids);
+}
+
+#[test]
+fn save_slot_roundtrip_persists_snapshot_payload() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("slot_roundtrip");
+    app.world_mut().insert_resource(save_config.clone());
+
+    let snapshot = {
+        let clock = app.world().resource::<DayClock>();
+        let worker_stats = app.world().resource::<WorkerStats>();
+        let task_board = app.world().resource::<TaskBoard>();
+        let run_config = app.world().resource::<OfficeRunConfig>();
+        let inbox = app.world().resource::<InboxState>();
+        let day_stats = app.world().resource::<DayStats>();
+        let mind = app.world().resource::<PlayerMindState>();
+        capture_snapshot(
+            clock,
+            worker_stats,
+            task_board,
+            run_config,
+            inbox,
+            day_stats,
+            mind,
+        )
+    };
+
+    let save_path = write_snapshot_to_slot(&save_config, 4, &snapshot)
+        .expect("writing snapshot file should succeed");
+    assert!(save_path.exists());
+
+    let restored =
+        read_snapshot_from_slot(&save_config, 4).expect("reading snapshot file should succeed");
+    assert_eq!(restored, snapshot);
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn migrate_v0_snapshot_to_v1_preserves_core_fields_and_ids() {
+    let legacy_json = serde_json::json!({
+        "day_index": 3,
+        "minute_of_day": 812,
+        "day_ended": false,
+        "inbox_remaining": 9,
+        "run_seed": 404,
+        "energy": 64,
+        "stress": 33,
+        "focus": 58,
+        "money": 140,
+        "reputation": 12,
+        "active_task_ids": [3001, 3002],
+        "completed_today": [2001],
+        "failed_today": [1001]
+    })
+    .to_string();
+
+    let migrated =
+        migrate_snapshot_json(&legacy_json).expect("v0 snapshot migration should succeed");
+
+    assert_eq!(migrated.schema_version, 1);
+    assert_eq!(migrated.day_index, 3);
+    assert_eq!(migrated.minute_of_day, 812);
+    assert_eq!(migrated.inbox_remaining, 9);
+    assert_eq!(migrated.run_seed, 404);
+    assert_eq!(migrated.worker_stats.energy, 64);
+    assert_eq!(migrated.worker_stats.stress, 33);
+    assert_eq!(migrated.worker_stats.focus, 58);
+    assert_eq!(migrated.worker_stats.money, 140);
+    assert_eq!(migrated.worker_stats.reputation, 12);
+    assert_eq!(migrated.task_board.completed_today, vec![2001]);
+    assert_eq!(migrated.task_board.failed_today, vec![1001]);
+    assert_eq!(migrated.day_stats.processed_items, 0);
+    assert_eq!(migrated.pending_interruptions, 0);
+    assert_eq!(
+        migrated
+            .task_board
+            .active
+            .iter()
+            .map(|task| task.id)
+            .collect::<Vec<_>>(),
+        vec![3001, 3002]
+    );
+}
+
+#[test]
+fn load_slot_request_restores_state_without_task_regeneration_drift() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("load_slot_request");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            handle_process_requests,
+            sync_taskboard_bridge,
+            crate::game::save::handle_save_slot_requests,
+            crate::game::save::handle_load_slot_requests,
+        )
+            .chain(),
+    );
+
+    app.world_mut().send_event(ProcessInboxEvent);
+    app.update();
+
+    let (
+        expected_clock,
+        expected_inbox,
+        expected_stats,
+        expected_active,
+        expected_done,
+        expected_failed,
+    ) = {
+        let clock = app.world().resource::<DayClock>().clone();
+        let inbox = app.world().resource::<InboxState>().clone();
+        let stats = app.world().resource::<WorkerStats>().clone();
+        let board = app.world().resource::<TaskBoard>();
+        (
+            clock,
+            inbox,
+            stats,
+            board.active_task_ids(),
+            board.completed_today.clone(),
+            board.failed_today.clone(),
+        )
+    };
+
+    app.world_mut().send_event(SaveSlotRequest { slot: 2 });
+    app.update();
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 99;
+        clock.current_minute = 1;
+        clock.ended = true;
+    }
+    {
+        let mut inbox = app.world_mut().resource_mut::<InboxState>();
+        inbox.remaining_items = 0;
+    }
+    {
+        let mut worker_stats = app.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.energy = 1;
+        worker_stats.stress = 99;
+        worker_stats.focus = 1;
+        worker_stats.money = -10;
+        worker_stats.reputation = -40;
+    }
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today.clear();
+        board.failed_today.clear();
+    }
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.stress = 90;
+        mind.focus = 2;
+        mind.pending_interruptions = 5;
+    }
+    {
+        let mut career = app.world_mut().resource_mut::<PlayerCareerState>();
+        career.reputation = -25;
+    }
+    {
+        let worker_entity = app.world().resource::<TestWorkerEntity>().0;
+        if let Some(mut worker) = app
+            .world_mut()
+            .entity_mut(worker_entity)
+            .get_mut::<crate::game::components::OfficeWorker>()
+        {
+            worker.energy = 2;
+        }
+    }
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 2 });
+    app.update();
+    app.update();
+
+    let restored_clock = app.world().resource::<DayClock>();
+    let restored_inbox = app.world().resource::<InboxState>();
+    let restored_stats = app.world().resource::<WorkerStats>();
+    let restored_board = app.world().resource::<TaskBoard>();
+    let restored_mind = app.world().resource::<PlayerMindState>();
+    let restored_career = app.world().resource::<PlayerCareerState>();
+    let store = app.world().resource::<OfficeSaveStore>();
+    let worker_entity = app.world().resource::<TestWorkerEntity>().0;
+    let worker = app
+        .world()
+        .get::<crate::game::components::OfficeWorker>(worker_entity)
+        .expect("worker should exist");
+
+    assert_eq!(restored_clock.day_number, expected_clock.day_number);
+    assert_eq!(restored_clock.current_minute, expected_clock.current_minute);
+    assert_eq!(restored_clock.ended, expected_clock.ended);
+    assert_eq!(
+        restored_inbox.remaining_items,
+        expected_inbox.remaining_items
+    );
+    assert_eq!(restored_stats.energy, expected_stats.energy);
+    assert_eq!(restored_stats.stress, expected_stats.stress);
+    assert_eq!(restored_stats.focus, expected_stats.focus);
+    assert_eq!(restored_stats.money, expected_stats.money);
+    assert_eq!(restored_stats.reputation, expected_stats.reputation);
+    assert_eq!(restored_board.active_task_ids(), expected_active);
+    assert_eq!(restored_board.completed_today, expected_done);
+    assert_eq!(restored_board.failed_today, expected_failed);
+    assert_eq!(restored_mind.stress, restored_stats.stress);
+    assert_eq!(restored_mind.focus, restored_stats.focus);
+    assert_eq!(restored_career.reputation, restored_stats.reputation);
+    assert_eq!(worker.energy, restored_stats.energy);
+    assert_eq!(store.last_loaded_slot, Some(2));
+    assert!(store.last_io_error.is_none());
+    assert_eq!(app.world().resource::<SaveSlotConfig>().active_slot, 2);
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn load_day_ended_snapshot_reconciles_to_playable_flow() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("day_ended_recovery");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            crate::game::save::handle_load_slot_requests,
+            apply_day_summary_rollover,
+            transition_day_summary_to_inday,
+            handle_wait_requests,
+        )
+            .chain(),
+    );
+
+    {
+        let day_end = app.world().resource::<OfficeRules>().day_end_minute;
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 4;
+        clock.current_minute = day_end;
+        clock.ended = true;
+    }
+    {
+        let mut stats = app.world_mut().resource_mut::<DayStats>();
+        stats.processed_items = 6;
+        stats.interruptions_triggered = 2;
+    }
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.pending_interruptions = 3;
+    }
+
+    let snapshot = {
+        let clock = app.world().resource::<DayClock>();
+        let worker_stats = app.world().resource::<WorkerStats>();
+        let task_board = app.world().resource::<TaskBoard>();
+        let run_config = app.world().resource::<OfficeRunConfig>();
+        let inbox = app.world().resource::<InboxState>();
+        let day_stats = app.world().resource::<DayStats>();
+        let mind = app.world().resource::<PlayerMindState>();
+        capture_snapshot(
+            clock,
+            worker_stats,
+            task_board,
+            run_config,
+            inbox,
+            day_stats,
+            mind,
+        )
+    };
+    write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 99;
+        clock.current_minute = 0;
+        clock.ended = false;
+    }
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 7 });
+    app.update();
+
+    let rules = app.world().resource::<OfficeRules>();
+    let minute_before_wait = app.world().resource::<DayClock>().current_minute;
+    {
+        let clock = app.world().resource::<DayClock>();
+        assert_eq!(clock.day_number, snapshot.day_index + 1);
+        assert_eq!(clock.current_minute, rules.day_start_minute);
+        assert!(!clock.ended);
+    }
+
+    app.world_mut().send_event(WaitEvent { minutes: 5 });
+    app.update();
+
+    let clock_after_wait = app.world().resource::<DayClock>();
+    assert_eq!(clock_after_wait.current_minute, minute_before_wait + 5);
+    assert!(!clock_after_wait.ended);
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn load_restores_day_stats_and_pending_interruptions() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("stats_backlog_restore");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            crate::game::save::handle_save_slot_requests,
+            crate::game::save::handle_load_slot_requests,
+        )
+            .chain(),
+    );
+
+    {
+        let mut stats = app.world_mut().resource_mut::<DayStats>();
+        stats.processed_items = 4;
+        stats.coffee_breaks = 2;
+        stats.wait_actions = 1;
+        stats.failed_process_attempts = 3;
+        stats.interruptions_triggered = 5;
+        stats.calm_responses = 2;
+        stats.panic_responses = 1;
+        stats.manager_checkins = 3;
+        stats.coworker_helps = 4;
+    }
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.pending_interruptions = 2;
+    }
+
+    let expected_day_stats = {
+        let stats = app.world().resource::<DayStats>();
+        (
+            stats.processed_items,
+            stats.coffee_breaks,
+            stats.wait_actions,
+            stats.failed_process_attempts,
+            stats.interruptions_triggered,
+            stats.calm_responses,
+            stats.panic_responses,
+            stats.manager_checkins,
+            stats.coworker_helps,
+        )
+    };
+    let expected_pending = app
+        .world()
+        .resource::<PlayerMindState>()
+        .pending_interruptions;
+
+    app.world_mut().send_event(SaveSlotRequest { slot: 6 });
+    app.update();
+
+    {
+        let mut stats = app.world_mut().resource_mut::<DayStats>();
+        stats.processed_items = 99;
+        stats.coffee_breaks = 99;
+        stats.wait_actions = 99;
+        stats.failed_process_attempts = 99;
+        stats.interruptions_triggered = 99;
+        stats.calm_responses = 99;
+        stats.panic_responses = 99;
+        stats.manager_checkins = 99;
+        stats.coworker_helps = 99;
+    }
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.pending_interruptions = 0;
+    }
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 6 });
+    app.update();
+
+    let restored_day_stats = {
+        let stats = app.world().resource::<DayStats>();
+        (
+            stats.processed_items,
+            stats.coffee_breaks,
+            stats.wait_actions,
+            stats.failed_process_attempts,
+            stats.interruptions_triggered,
+            stats.calm_responses,
+            stats.panic_responses,
+            stats.manager_checkins,
+            stats.coworker_helps,
+        )
+    };
+    let restored_pending = app
+        .world()
+        .resource::<PlayerMindState>()
+        .pending_interruptions;
+
+    assert_eq!(restored_day_stats, expected_day_stats);
+    assert_eq!(restored_pending, expected_pending);
+    assert!(app
+        .world()
+        .resource::<OfficeSaveStore>()
+        .last_io_error
+        .is_none());
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn successful_save_and_load_requests_update_active_slot_for_autosave() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("active_slot_semantics");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            crate::game::save::handle_save_slot_requests,
+            crate::game::save::handle_load_slot_requests,
+            crate::game::save::persist_day_summary_snapshot,
+        )
+            .chain(),
+    );
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 3;
+        clock.ended = false;
+    }
+    app.world_mut().send_event(SaveSlotRequest { slot: 3 });
+    app.update();
+    assert_eq!(app.world().resource::<SaveSlotConfig>().active_slot, 3);
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 5;
+        clock.ended = false;
+    }
+    app.world_mut().send_event(SaveSlotRequest { slot: 5 });
+    app.update();
+    assert_eq!(app.world().resource::<SaveSlotConfig>().active_slot, 5);
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 3 });
+    app.update();
+    assert_eq!(app.world().resource::<SaveSlotConfig>().active_slot, 3);
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.day_number = 88;
+        clock.ended = true;
+    }
+    app.update();
+
+    let slot3_snapshot =
+        read_snapshot_from_slot(&save_config, 3).expect("slot 3 snapshot should exist");
+    let slot5_snapshot =
+        read_snapshot_from_slot(&save_config, 5).expect("slot 5 snapshot should exist");
+    assert_eq!(slot3_snapshot.day_index, 88);
+    assert_eq!(slot5_snapshot.day_index, 5);
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
+    let app = build_test_app();
+
+    let mut malformed_snapshot = {
+        let clock = app.world().resource::<DayClock>();
+        let worker_stats = app.world().resource::<WorkerStats>();
+        let task_board = app.world().resource::<TaskBoard>();
+        let run_config = app.world().resource::<OfficeRunConfig>();
+        let inbox = app.world().resource::<InboxState>();
+        let day_stats = app.world().resource::<DayStats>();
+        let mind = app.world().resource::<PlayerMindState>();
+        capture_snapshot(
+            clock,
+            worker_stats,
+            task_board,
+            run_config,
+            inbox,
+            day_stats,
+            mind,
+        )
+    };
+
+    let overlapping_id = malformed_snapshot
+        .task_board
+        .active
+        .first()
+        .expect("seeded task should exist for malformed snapshot test")
+        .id;
+    malformed_snapshot.task_board.active.clear();
+    malformed_snapshot.task_board.completed_today = vec![overlapping_id, overlapping_id];
+    malformed_snapshot.task_board.failed_today =
+        vec![overlapping_id, overlapping_id + 1, overlapping_id + 1];
+
+    let mut clock = DayClock::default();
+    let mut worker_stats = WorkerStats::default();
+    let mut task_board = TaskBoard::default();
+    let mut run_config = OfficeRunConfig::default();
+    let mut inbox = InboxState::default();
+    let mut day_stats = DayStats::default();
+    let mut mind = PlayerMindState::default();
+
+    apply_snapshot(
+        &malformed_snapshot,
+        &mut clock,
+        &mut worker_stats,
+        &mut task_board,
+        &mut run_config,
+        &mut inbox,
+        &mut day_stats,
+        &mut mind,
+    )
+    .expect("malformed terminal-set snapshot should normalize successfully");
+
+    let completed_ids: Vec<u64> = task_board
+        .completed_today
+        .iter()
+        .map(|task_id| task_id.0)
+        .collect();
+    let failed_ids: Vec<u64> = task_board
+        .failed_today
+        .iter()
+        .map(|task_id| task_id.0)
+        .collect();
+    assert_eq!(completed_ids, vec![overlapping_id]);
+    assert_eq!(failed_ids, vec![overlapping_id + 1]);
 }

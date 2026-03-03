@@ -16,7 +16,9 @@ pub use interruptions::{
     handle_coworker_help_requests, handle_interruption_requests, handle_manager_checkin_requests,
     handle_panic_response_requests, handle_resolve_calmly_requests,
 };
-pub use tasks::{handle_coffee_requests, handle_process_requests, handle_wait_requests};
+pub use tasks::{
+    enforce_task_deadlines, handle_coffee_requests, handle_process_requests, handle_wait_requests,
+};
 pub use visuals::update_visuals;
 
 #[cfg(test)]

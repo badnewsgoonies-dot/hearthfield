@@ -3,11 +3,26 @@ use bevy::prelude::*;
 use super::task_board::sync_task_board_active_with_inbox;
 use crate::game::components::OfficeWorker;
 use crate::game::events::{
-    CoffeeBreakEvent, ProcessInboxEvent, TaskCompleted, TaskProgressed, WaitEvent,
+    CoffeeBreakEvent, ProcessInboxEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
-    format_clock, DayClock, DayStats, InboxState, OfficeRules, TaskBoard,
+    format_clock, DayClock, DayStats, InboxState, OfficeRules, PlayerMindState, TaskBoard,
+    TaskPriority,
 };
+
+fn priority_progress_multiplier(priority: TaskPriority) -> f32 {
+    match priority {
+        TaskPriority::Low => 1.0,
+        TaskPriority::Medium => 0.88,
+        TaskPriority::High => 0.74,
+        TaskPriority::Critical => 0.62,
+    }
+}
+
+fn progress_delta_for_task(required_focus: i32, priority: TaskPriority, current_focus: i32) -> f32 {
+    let focus_ratio = current_focus.max(0) as f32 / required_focus.max(1) as f32;
+    (0.52 * focus_ratio * priority_progress_multiplier(priority)).clamp(0.12, 1.0)
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn handle_process_requests(
@@ -16,6 +31,7 @@ pub fn handle_process_requests(
     mut clock: ResMut<DayClock>,
     mut inbox: ResMut<InboxState>,
     mut stats: ResMut<DayStats>,
+    mind: Res<PlayerMindState>,
     mut task_progressed_writer: EventWriter<TaskProgressed>,
     mut task_completed_writer: EventWriter<TaskCompleted>,
     mut worker_query: Query<&mut OfficeWorker>,
@@ -45,15 +61,29 @@ pub fn handle_process_requests(
         }
 
         worker.energy -= rules.process_energy_cost;
-        inbox.remaining_items -= 1;
         stats.processed_items += 1;
         if let Some(task_board) = task_board.as_deref_mut() {
-            if let Some(task_id) = task_board.active.first().map(|task| task.id) {
-                task_progressed_writer.send(TaskProgressed {
-                    task_id,
-                    delta: 1.0,
-                });
-                if task_board.complete_task(task_id) {
+            if let Some((task_id, required_focus, priority)) = task_board
+                .active
+                .first()
+                .map(|task| (task.id, task.required_focus, task.priority))
+            {
+                let delta = progress_delta_for_task(required_focus, priority, mind.focus);
+                if let Some(applied_delta) = task_board.progress_task(task_id, delta) {
+                    task_progressed_writer.send(TaskProgressed {
+                        task_id,
+                        delta: applied_delta,
+                    });
+                }
+
+                let task_is_complete = task_board
+                    .active
+                    .iter()
+                    .find(|task| task.id == task_id)
+                    .is_some_and(|task| task.is_complete());
+
+                if task_is_complete && task_board.complete_task(task_id) {
+                    inbox.remaining_items = inbox.remaining_items.saturating_sub(1);
                     task_completed_writer.send(TaskCompleted { task_id });
                 }
             } else {
@@ -73,6 +103,39 @@ pub fn handle_process_requests(
             format_clock(clock.current_minute)
         );
     }
+}
+
+pub fn enforce_task_deadlines(
+    rules: Res<OfficeRules>,
+    clock: Res<DayClock>,
+    mut inbox: ResMut<InboxState>,
+    mut task_board: ResMut<TaskBoard>,
+    mut task_failed_writer: EventWriter<TaskFailed>,
+) {
+    if clock.ended {
+        return;
+    }
+
+    let overdue_task_ids = task_board
+        .active
+        .iter()
+        .filter(|task| clock.current_minute > task.deadline_minute as u32)
+        .map(|task| task.id)
+        .collect::<Vec<_>>();
+
+    for task_id in overdue_task_ids {
+        if task_board.fail_task(task_id) {
+            inbox.remaining_items = inbox.remaining_items.saturating_sub(1);
+            task_failed_writer.send(TaskFailed { task_id });
+        }
+    }
+
+    sync_task_board_active_with_inbox(
+        &mut task_board,
+        clock.day_number,
+        inbox.remaining_items,
+        rules.day_end_minute,
+    );
 }
 
 pub fn handle_coffee_requests(

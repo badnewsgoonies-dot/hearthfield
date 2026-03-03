@@ -9,7 +9,22 @@ Objective: run long-horizon rotating lanes until OES-v1 parity is reached.
 3. Integrator lane owns merge, gate runs, and status updates.
 4. A lane is done only when acceptance criteria and quality gates pass.
 
-## Active Rotation: R4 (Planned)
+## Process Guardrails (R5+)
+
+1. Start each rotation with contract/resource/event delta before broad feature slices when schema changes are needed.
+2. Keep commit slices reviewable (target `<=20` files and `~1,200` insertions); split before merge if larger.
+3. No `WIP` commits on integration branches.
+4. Any contract delta must ship with wiring updates and at least one deterministic/headless regression in the same PR.
+5. Keep infra/build changes separate from gameplay/content changes.
+
+## Last Completed Rotation: R4
+
+Delivered:
+1. Durable save-slot file I/O with `SaveSlotRequest` and `LoadSlotRequest`.
+2. Snapshot migration path (`v0 -> v1`) with schema-version guardrails.
+3. Regression coverage for save roundtrip, migration, and no-regeneration load flow drift.
+
+## Active Rotation: R5 (In Progress)
 
 ### Lane INT - Integrator
 
@@ -55,6 +70,19 @@ Acceptance criteria:
 1. Task progress can advance by non-trivial deltas and complete deterministically.
 2. Deadline-breach path emits `TaskFailed` without violating terminal disjointness.
 3. Invariant tests cover completion/failure exclusivity and repeated-event safety.
+
+### Lane ECON - Economy/Progression Depth
+
+Allowlist:
+- `city_office_worker_dlc/src/game/resources.rs`
+- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
+- `city_office_worker_dlc/src/game/systems/tests.rs`
+- `city_office_worker_dlc/src/game/events.rs`
+
+Acceptance criteria:
+1. Salary/penalty/reputation deltas are tunable and deterministic under replay.
+2. Progression hooks can be extended without breaking save compatibility.
+3. Regression tests cover reward and penalty edge cases.
 
 ### Lane INV - Investigation/Audit
 

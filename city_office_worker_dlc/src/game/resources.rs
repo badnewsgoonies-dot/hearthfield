@@ -169,6 +169,23 @@ impl TaskBoard {
         true
     }
 
+    pub fn progress_task(&mut self, task_id: TaskId, delta: f32) -> Option<f32> {
+        if delta <= 0.0 || self.is_completed(task_id) || self.is_failed(task_id) {
+            return None;
+        }
+
+        let task = self.active.iter_mut().find(|task| task.id == task_id)?;
+        let before = task.progress;
+        task.progress = (task.progress + delta).clamp(0.0, 1.0);
+        let applied = task.progress - before;
+        if applied <= 0.0 {
+            return None;
+        }
+
+        task.normalize();
+        Some(applied)
+    }
+
     pub fn fail_task(&mut self, task_id: TaskId) -> bool {
         if self.is_completed(task_id) || self.is_failed(task_id) {
             return false;
@@ -202,7 +219,7 @@ impl TaskBoard {
 
         let mut seen_failed = HashSet::new();
         self.failed_today
-            .retain(|task_id| seen_failed.insert(*task_id));
+            .retain(|task_id| !seen_completed.contains(task_id) && seen_failed.insert(*task_id));
     }
 }
 
