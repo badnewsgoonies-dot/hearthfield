@@ -2,7 +2,7 @@
 
 Last updated: 2026-03-03  
 Current rotation: R5 - Task/Economy Semantics + Parity Decomposition  
-Rotation state: In progress (task/deadline semantics and drift hardening slices landed; broader economy/content parity still pending)
+Rotation state: In progress (task/deadline semantics, economy/progression hooks, and startup-stability hardening landed; parity decomposition/content scale still pending)
 
 ## OES-v1 Target
 
@@ -21,26 +21,27 @@ OES-v1 (Origin-Equivalent State v1) means architecture parity, 200+ tests, deter
 | G6 Save Skeleton | Snapshot serialize/deserialize/apply preserves `TaskId` identities without regeneration | `snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen` + `game/save/mod.rs` | PASS |
 | G7 Durable Save Slots | Snapshot persistence survives filesystem roundtrip and load requests restore run state | `save_slot_roundtrip_persists_snapshot_payload` + `load_slot_request_restores_state_without_task_regeneration_drift` | PASS |
 | G8 Migration Stub | Legacy v0 payloads migrate into v1 schema | `migrate_v0_snapshot_to_v1_preserves_core_fields_and_ids` | PASS |
-| G9 Quality | `fmt/check/test/clippy -D warnings` all pass | Full gate run passed on 2026-03-03 after R5 drift-hardening slice | PASS |
+| G9 Quality | `fmt/check/test/clippy -D warnings` all pass | Full gate run passed on 2026-03-03 after R5 economy/startup slice | PASS |
+| G10 First-Seconds Stability | Startup scene remains idempotent, preventing duplicate singleton entities in early frames | `setup_scene_is_idempotent_for_first_seconds_entities` | PASS |
 
 ## Current Snapshot
 
-1. Source lines (`src/**/*.rs`): 3,585.
-2. Test count (`cargo test -- --list`): 19.
+1. Source lines (`src/**/*.rs`): 4,095.
+2. Test count (`cargo test -- --list`): 23.
 3. Clippy strictness: PASS at `-D warnings` in DLC.
 
 ## Remaining Blockers Toward OES-v1
 
 1. Domain breadth gap vs origin remains large (single `game` domain vs origin multi-domain tree).
-2. Task lifecycle events are emitted but still need richer progression/deadline semantics and content-driven task generation.
-3. Economy/progression, social arcs, and content breadth still trail origin parity targets.
-4. Content scale and social/progression depth are still early-stage.
+2. Task system still needs broader content-driven generation depth and richer template variety.
+3. Social arcs and progression breadth still trail origin parity targets.
+4. Content scale and world/navigation parity are still early-stage.
 
 ## R5 Focus (In Progress)
 
-1. Expand task lifecycle with non-trivial progress deltas/deadline failure paths and explicit invariant tests.
-2. Add richer economy/progression scaffolding tied to deterministic replay baselines.
-3. Publish social/progression parity packet for downstream decomposition rotations.
+1. Publish social/progression parity packet for downstream decomposition rotations.
+2. Extend task/economy content scale (more templates/scenarios) on top of the stabilized core semantics.
+3. Continue endurance and balancing expansion while preserving deterministic replay baselines.
 
 ## Process Guardrails (Active for R5)
 

@@ -3,8 +3,9 @@ use bevy::prelude::*;
 use crate::game::components::OfficeWorker;
 use crate::game::events::{DayAdvanced, EndDayRequested, EndOfDayEvent, TaskFailed};
 use crate::game::resources::{
-    format_clock, DayClock, DayOutcome, DayStats, InboxState, OfficeRules, OfficeRunConfig,
-    PlayerCareerState, PlayerMindState, TaskBoard, WorkerStats,
+    format_clock, CareerProgression, DayClock, DayOutcome, DayStats, InboxState,
+    OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
+    TaskBoard, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -12,20 +13,51 @@ use super::task_board::{
     fail_remaining_task_board_work, seed_task_board, sync_task_board_active_with_inbox,
 };
 
-fn build_day_outcome(stats: &DayStats, task_board: &TaskBoard) -> DayOutcome {
+fn build_day_outcome(
+    stats: &DayStats,
+    task_board: &TaskBoard,
+    worker_stats: &WorkerStats,
+    progression: &CareerProgression,
+    economy: &OfficeEconomyRules,
+) -> DayOutcome {
     let completed_tasks = task_board.completed_today.len() as u32;
     let failed_tasks = task_board.failed_today.len() as u32;
+    let projected_streak = if completed_tasks > 0 && failed_tasks == 0 {
+        progression.success_streak.saturating_add(1)
+    } else if failed_tasks > 0 {
+        0
+    } else {
+        progression.success_streak
+    };
+
+    let level_bonus = progression.level.saturating_sub(1) as i32 * economy.level_salary_bonus;
+    let streak_bonus =
+        projected_streak.min(economy.max_streak_bonus_days) as i32 * economy.streak_bonus_per_day;
+    let burnout_penalty = if worker_stats.stress >= economy.burnout_stress_threshold {
+        economy.burnout_salary_penalty
+    } else {
+        0
+    };
+    let salary = completed_tasks as i32 * economy.base_salary_per_task + level_bonus + streak_bonus
+        - failed_tasks as i32 * economy.failure_penalty_per_task
+        - burnout_penalty;
+
+    let reputation_delta = stats.manager_checkins as i32 * 2
+        + stats.coworker_helps as i32 * 3
+        + (completed_tasks as i32 / 6)
+        - failed_tasks as i32
+        - stats.panic_responses as i32 * 2
+        + progression.reputation_bonus(economy);
+
+    let stress_delta = stats.interruptions_triggered as i32 * 3 + stats.panic_responses as i32 * 5
+        - stats.calm_responses as i32 * 3
+        - stats.coworker_helps as i32 * 2
+        - progression.stress_relief_bonus(economy);
 
     DayOutcome {
-        salary_earned: completed_tasks as i32 * 12 - failed_tasks as i32 * 4,
-        reputation_delta: stats.manager_checkins as i32 * 2
-            + stats.coworker_helps as i32 * 3
-            + (completed_tasks as i32 / 6)
-            - failed_tasks as i32
-            - stats.panic_responses as i32 * 2,
-        stress_delta: stats.interruptions_triggered as i32 * 3 + stats.panic_responses as i32 * 5
-            - stats.calm_responses as i32 * 3
-            - stats.coworker_helps as i32 * 2,
+        salary_earned: salary,
+        reputation_delta,
+        stress_delta,
         completed_tasks,
         failed_tasks,
     }
@@ -52,9 +84,12 @@ pub fn sync_taskboard_bridge(
 pub fn update_day_outcome_preview(
     stats: Res<DayStats>,
     task_board: Res<TaskBoard>,
+    worker_stats: Res<WorkerStats>,
+    progression: Res<CareerProgression>,
+    economy: Res<OfficeEconomyRules>,
     mut day_outcome: ResMut<DayOutcome>,
 ) {
-    *day_outcome = build_day_outcome(&stats, &task_board);
+    *day_outcome = build_day_outcome(&stats, &task_board, &worker_stats, &progression, &economy);
 }
 
 pub fn check_end_of_day(
@@ -90,6 +125,9 @@ pub fn finalize_end_day_request(
     career: Res<PlayerCareerState>,
     worker_query: Query<&OfficeWorker>,
     mut task_board: ResMut<TaskBoard>,
+    worker_stats: Res<WorkerStats>,
+    progression: Res<CareerProgression>,
+    economy: Res<OfficeEconomyRules>,
     mut day_outcome: ResMut<DayOutcome>,
 ) {
     for _ in requests.read() {
@@ -102,7 +140,8 @@ pub fn finalize_end_day_request(
         for task_id in newly_failed_tasks {
             task_failed_writer.send(TaskFailed { task_id });
         }
-        *day_outcome = build_day_outcome(&stats, &task_board);
+        *day_outcome =
+            build_day_outcome(&stats, &task_board, &worker_stats, &progression, &economy);
 
         let summary = EndOfDayEvent {
             day_number: clock.day_number,
@@ -162,7 +201,10 @@ pub fn finalize_end_day_request(
 
 pub fn apply_day_summary_rollover(
     clock: Res<DayClock>,
+    economy: Res<OfficeEconomyRules>,
     mut day_outcome: ResMut<DayOutcome>,
+    day_stats: Res<DayStats>,
+    mut progression: ResMut<CareerProgression>,
     mut worker_stats: ResMut<WorkerStats>,
     mut career: ResMut<PlayerCareerState>,
 ) {
@@ -183,13 +225,50 @@ pub fn apply_day_summary_rollover(
     worker_stats.reputation = career.reputation;
     worker_stats.normalize();
 
+    if day_outcome.completed_tasks > 0 && day_outcome.failed_tasks == 0 {
+        progression.success_streak = progression.success_streak.saturating_add(1);
+    } else if day_outcome.failed_tasks > 0 {
+        progression.success_streak = 0;
+    }
+
+    if worker_stats.stress >= economy.burnout_stress_threshold {
+        progression.burnout_days = progression.burnout_days.saturating_add(1);
+    } else {
+        progression.burnout_days = 0;
+    }
+
+    let gained_xp = day_outcome
+        .completed_tasks
+        .saturating_mul(economy.xp_per_completed_task)
+        .saturating_add(
+            day_stats
+                .manager_checkins
+                .saturating_mul(economy.xp_per_manager_checkin),
+        )
+        .saturating_add(
+            day_stats
+                .coworker_helps
+                .saturating_mul(economy.xp_per_coworker_help),
+        )
+        .saturating_sub(
+            day_outcome
+                .failed_tasks
+                .saturating_mul(economy.xp_penalty_per_failed_task),
+        );
+    let levels_gained = progression.add_experience(gained_xp, &economy);
+    progression.normalize(&economy);
+
     info!(
-        "Day rollover -> salary: {}, rep delta: {}, stress delta: {}, totals money: {}, reputation: {}",
+        "Day rollover -> salary: {}, rep delta: {}, stress delta: {}, totals money: {}, reputation: {}, xp gained: {}, levels gained: {}, level: {}, streak: {}",
         day_outcome.salary_earned,
         day_outcome.reputation_delta,
         day_outcome.stress_delta,
         worker_stats.money,
-        career.reputation
+        career.reputation,
+        gained_xp,
+        levels_gained,
+        progression.level,
+        progression.success_streak
     );
 
     day_outcome.salary_earned = 0;

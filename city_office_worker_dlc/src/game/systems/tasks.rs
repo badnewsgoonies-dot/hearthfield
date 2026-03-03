@@ -6,8 +6,8 @@ use crate::game::events::{
     CoffeeBreakEvent, ProcessInboxEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
-    format_clock, DayClock, DayStats, InboxState, OfficeRules, PlayerMindState, TaskBoard,
-    TaskPriority,
+    format_clock, CareerProgression, DayClock, DayStats, InboxState, OfficeEconomyRules,
+    OfficeRules, PlayerMindState, TaskBoard, TaskPriority,
 };
 
 fn priority_progress_multiplier(priority: TaskPriority) -> f32 {
@@ -28,6 +28,8 @@ fn progress_delta_for_task(required_focus: i32, priority: TaskPriority, current_
 pub fn handle_process_requests(
     mut requests: EventReader<ProcessInboxEvent>,
     rules: Res<OfficeRules>,
+    economy: Res<OfficeEconomyRules>,
+    progression: Res<CareerProgression>,
     mut clock: ResMut<DayClock>,
     mut inbox: ResMut<InboxState>,
     mut stats: ResMut<DayStats>,
@@ -40,6 +42,9 @@ pub fn handle_process_requests(
     let Ok(mut worker) = worker_query.get_single_mut() else {
         return;
     };
+
+    let process_energy_cost =
+        (rules.process_energy_cost - progression.process_energy_discount(&economy)).max(1);
 
     for _ in requests.read() {
         if clock.ended {
@@ -54,13 +59,13 @@ pub fn handle_process_requests(
             continue;
         }
 
-        if worker.energy < rules.process_energy_cost {
+        if worker.energy < process_energy_cost {
             stats.failed_process_attempts += 1;
             info!("Not enough energy to process mail. Take coffee or wait.");
             continue;
         }
 
-        worker.energy -= rules.process_energy_cost;
+        worker.energy -= process_energy_cost;
         stats.processed_items += 1;
         if let Some(task_board) = task_board.as_deref_mut() {
             if let Some((task_id, required_focus, priority)) = task_board

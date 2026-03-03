@@ -11,8 +11,8 @@ use crate::game::events::{
     ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
-    DayClock, DayOutcome, DayStats, InboxState, OfficeRules, OfficeRunConfig, PlayerCareerState,
-    PlayerMindState, TaskBoard, TaskPriority, WorkerStats,
+    CareerProgression, DayClock, DayOutcome, DayStats, InboxState, OfficeEconomyRules, OfficeRules,
+    OfficeRunConfig, PlayerCareerState, PlayerMindState, TaskBoard, TaskPriority, WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -181,6 +181,8 @@ fn build_test_app() -> App {
         .init_resource::<WorkerStats>()
         .init_resource::<PlayerMindState>()
         .init_resource::<PlayerCareerState>()
+        .init_resource::<OfficeEconomyRules>()
+        .init_resource::<CareerProgression>()
         .init_resource::<DayOutcome>()
         .init_resource::<DayStats>()
         .init_resource::<SaveSlotConfig>()
@@ -665,6 +667,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let inbox = app.world().resource::<InboxState>();
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
+        let progression = app.world().resource::<CareerProgression>();
 
         let snapshot = capture_snapshot(
             clock,
@@ -674,6 +677,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
             inbox,
             day_stats,
             mind,
+            progression,
         );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
@@ -710,6 +714,8 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut inbox = app.world().resource::<InboxState>().clone();
     let mut day_stats = DayStats::default();
     let mut mind = PlayerMindState::default();
+    let mut progression = CareerProgression::default();
+    let economy = app.world().resource::<OfficeEconomyRules>().clone();
 
     apply_snapshot(
         &snapshot,
@@ -720,6 +726,8 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut inbox,
         &mut day_stats,
         &mut mind,
+        &mut progression,
+        &economy,
     )
     .expect("snapshot apply should succeed");
 
@@ -751,6 +759,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
         let inbox = app.world().resource::<InboxState>();
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
+        let progression = app.world().resource::<CareerProgression>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -759,6 +768,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
             inbox,
             day_stats,
             mind,
+            progression,
         )
     };
 
@@ -995,6 +1005,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
         let inbox = app.world().resource::<InboxState>();
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
+        let progression = app.world().resource::<CareerProgression>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1003,6 +1014,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
             inbox,
             day_stats,
             mind,
+            progression,
         )
     };
     write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
@@ -1207,6 +1219,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         let inbox = app.world().resource::<InboxState>();
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
+        let progression = app.world().resource::<CareerProgression>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1215,6 +1228,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
             inbox,
             day_stats,
             mind,
+            progression,
         )
     };
 
@@ -1236,6 +1250,8 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
     let mut inbox = InboxState::default();
     let mut day_stats = DayStats::default();
     let mut mind = PlayerMindState::default();
+    let mut progression = CareerProgression::default();
+    let economy = OfficeEconomyRules::default();
 
     apply_snapshot(
         &malformed_snapshot,
@@ -1246,6 +1262,8 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         &mut inbox,
         &mut day_stats,
         &mut mind,
+        &mut progression,
+        &economy,
     )
     .expect("malformed terminal-set snapshot should normalize successfully");
 
@@ -1261,4 +1279,183 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         .collect();
     assert_eq!(completed_ids, vec![overlapping_id]);
     assert_eq!(failed_ids, vec![overlapping_id + 1]);
+}
+
+#[test]
+fn efficiency_perk_reduces_process_energy_cost() {
+    let mut app = build_test_app();
+    app.add_systems(Update, handle_process_requests);
+
+    {
+        let mut progression = app.world_mut().resource_mut::<CareerProgression>();
+        progression.efficiency_perk = 2;
+    }
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        if let Some(task) = board.active.first_mut() {
+            task.required_focus = 1;
+            task.priority = TaskPriority::Low;
+        }
+    }
+
+    app.world_mut().send_event(ProcessInboxEvent);
+    app.update();
+
+    let rules = app.world().resource::<OfficeRules>();
+    let economy = app.world().resource::<OfficeEconomyRules>();
+    let expected_cost = (rules.process_energy_cost
+        - 2 * economy.process_energy_discount_per_efficiency_perk)
+        .max(1);
+
+    let worker_entity = app.world().resource::<TestWorkerEntity>().0;
+    let worker = app
+        .world()
+        .get::<crate::game::components::OfficeWorker>(worker_entity)
+        .expect("worker should exist");
+    assert_eq!(worker.energy, 100 - expected_cost);
+}
+
+#[test]
+fn day_outcome_preview_applies_level_streak_and_burnout_modifiers() {
+    let mut app = build_test_app();
+    app.add_systems(Update, update_day_outcome_preview);
+
+    {
+        let mut progression = app.world_mut().resource_mut::<CareerProgression>();
+        progression.level = 4;
+        progression.success_streak = 2;
+        progression.resilience_perk = 1;
+        progression.diplomacy_perk = 1;
+    }
+    {
+        let mut worker_stats = app.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.stress = 80;
+    }
+    {
+        let mut stats = app.world_mut().resource_mut::<DayStats>();
+        stats.interruptions_triggered = 2;
+        stats.calm_responses = 1;
+        stats.manager_checkins = 1;
+        stats.coworker_helps = 2;
+    }
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today = vec![
+            crate::game::resources::TaskId(1),
+            crate::game::resources::TaskId(2),
+            crate::game::resources::TaskId(3),
+        ];
+        board.failed_today.clear();
+    }
+
+    app.update();
+
+    let economy = app.world().resource::<OfficeEconomyRules>();
+    let outcome = app.world().resource::<DayOutcome>();
+    let expected_salary = 3 * economy.base_salary_per_task
+        + (4 - 1) * economy.level_salary_bonus
+        + 3 * economy.streak_bonus_per_day
+        - economy.burnout_salary_penalty;
+    let expected_reputation = 2 + 2 * 3 + 1;
+    let expected_stress = 2 * 3 - 3 - 2 * 2 - economy.stress_relief_per_resilience_perk;
+
+    assert_eq!(outcome.salary_earned, expected_salary);
+    assert_eq!(outcome.reputation_delta, expected_reputation);
+    assert_eq!(outcome.stress_delta, expected_stress);
+}
+
+#[test]
+fn day_summary_rollover_levels_and_assigns_auto_perk() {
+    let mut app = build_test_app();
+    app.add_systems(Update, apply_day_summary_rollover);
+
+    {
+        let mut clock = app.world_mut().resource_mut::<DayClock>();
+        clock.ended = true;
+    }
+    {
+        let mut worker_stats = app.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.money = 10;
+        worker_stats.stress = 70;
+    }
+    {
+        let mut stats = app.world_mut().resource_mut::<DayStats>();
+        stats.manager_checkins = 2;
+        stats.coworker_helps = 1;
+    }
+    {
+        let mut day_outcome = app.world_mut().resource_mut::<DayOutcome>();
+        day_outcome.salary_earned = 40;
+        day_outcome.reputation_delta = 2;
+        day_outcome.stress_delta = 20;
+        day_outcome.completed_tasks = 5;
+        day_outcome.failed_tasks = 0;
+    }
+    {
+        let mut progression = app.world_mut().resource_mut::<CareerProgression>();
+        progression.level = 1;
+        progression.xp = 25;
+    }
+
+    app.update();
+
+    let economy = app.world().resource::<OfficeEconomyRules>();
+    let progression = app.world().resource::<CareerProgression>();
+    let worker_stats = app.world().resource::<WorkerStats>();
+    let expected_xp = 25
+        + 5 * economy.xp_per_completed_task
+        + 2 * economy.xp_per_manager_checkin
+        + economy.xp_per_coworker_help;
+
+    assert_eq!(worker_stats.money, 50);
+    assert_eq!(worker_stats.stress, 90);
+    assert_eq!(progression.level, 2);
+    assert_eq!(progression.xp, expected_xp - 32);
+    assert_eq!(progression.success_streak, 1);
+    assert_eq!(progression.burnout_days, 1);
+    assert_eq!(progression.efficiency_perk, 1);
+}
+
+#[test]
+fn setup_scene_is_idempotent_for_first_seconds_entities() {
+    let mut app = build_test_app();
+    app.add_systems(Update, setup_scene);
+
+    app.update();
+    app.update();
+
+    let worker_count = {
+        let world = app.world_mut();
+        world
+            .query_filtered::<Entity, With<crate::game::components::OfficeWorker>>()
+            .iter(world)
+            .count()
+    };
+    let worker_avatar_count = {
+        let world = app.world_mut();
+        world
+            .query_filtered::<Entity, With<crate::game::components::WorkerAvatar>>()
+            .iter(world)
+            .count()
+    };
+    let inbox_avatar_count = {
+        let world = app.world_mut();
+        world
+            .query_filtered::<Entity, With<crate::game::components::InboxAvatar>>()
+            .iter(world)
+            .count()
+    };
+    let camera_count = {
+        let world = app.world_mut();
+        world
+            .query_filtered::<Entity, With<Camera2d>>()
+            .iter(world)
+            .count()
+    };
+
+    assert_eq!(worker_count, 1);
+    assert_eq!(worker_avatar_count, 1);
+    assert_eq!(inbox_avatar_count, 1);
+    assert_eq!(camera_count, 1);
 }

@@ -46,7 +46,8 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 
 ## Current Next-Up
 
-- [ ] Continue **R5** slice A: richer task progression deltas + deterministic assertions.
-- [ ] Continue **R5** slice B: deadline-breach failure path + terminal exclusivity coverage.
-- [ ] Continue **R5** slice C: economy/progression hook expansion with replay-safe tests.
-- [ ] Publish social/progression parity decomposition packet for **R6** planning.
+- [x] Continue **R5** slice A: richer task progression deltas + deterministic assertions.
+- [x] Continue **R5** slice B: deadline-breach failure path + terminal exclusivity coverage.
+- [x] Continue **R5** slice C: economy/progression hook expansion with replay-safe tests.
+- [ ] Continue **R5** slice D: publish social/progression parity decomposition packet for **R6** planning.
+- [ ] Continue **R5** slice E: expand task/economy content templates on top of stabilized semantics.

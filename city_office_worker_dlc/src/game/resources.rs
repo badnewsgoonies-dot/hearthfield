@@ -437,6 +437,142 @@ pub struct PlayerCareerState {
     pub reputation: i32,
 }
 
+#[derive(Resource, Debug, Clone)]
+pub struct OfficeEconomyRules {
+    pub base_salary_per_task: i32,
+    pub failure_penalty_per_task: i32,
+    pub level_salary_bonus: i32,
+    pub streak_bonus_per_day: i32,
+    pub max_streak_bonus_days: u32,
+    pub burnout_stress_threshold: i32,
+    pub burnout_salary_penalty: i32,
+    pub xp_per_completed_task: u32,
+    pub xp_penalty_per_failed_task: u32,
+    pub xp_per_manager_checkin: u32,
+    pub xp_per_coworker_help: u32,
+    pub reputation_per_diplomacy_perk: i32,
+    pub stress_relief_per_resilience_perk: i32,
+    pub process_energy_discount_per_efficiency_perk: i32,
+    pub max_perk_level: u8,
+}
+
+impl Default for OfficeEconomyRules {
+    fn default() -> Self {
+        Self {
+            base_salary_per_task: 12,
+            failure_penalty_per_task: 6,
+            level_salary_bonus: 5,
+            streak_bonus_per_day: 3,
+            max_streak_bonus_days: 5,
+            burnout_stress_threshold: 78,
+            burnout_salary_penalty: 10,
+            xp_per_completed_task: 8,
+            xp_penalty_per_failed_task: 5,
+            xp_per_manager_checkin: 3,
+            xp_per_coworker_help: 2,
+            reputation_per_diplomacy_perk: 1,
+            stress_relief_per_resilience_perk: 2,
+            process_energy_discount_per_efficiency_perk: 2,
+            max_perk_level: 5,
+        }
+    }
+}
+
+impl OfficeEconomyRules {
+    pub fn normalize(&mut self) {
+        self.base_salary_per_task = self.base_salary_per_task.max(0);
+        self.failure_penalty_per_task = self.failure_penalty_per_task.max(0);
+        self.level_salary_bonus = self.level_salary_bonus.max(0);
+        self.streak_bonus_per_day = self.streak_bonus_per_day.max(0);
+        self.max_streak_bonus_days = self.max_streak_bonus_days.max(1);
+        self.burnout_stress_threshold = self.burnout_stress_threshold.clamp(0, 100);
+        self.burnout_salary_penalty = self.burnout_salary_penalty.max(0);
+        self.xp_per_completed_task = self.xp_per_completed_task.max(1);
+        self.xp_per_manager_checkin = self.xp_per_manager_checkin.max(1);
+        self.xp_per_coworker_help = self.xp_per_coworker_help.max(1);
+        self.reputation_per_diplomacy_perk = self.reputation_per_diplomacy_perk.max(0);
+        self.stress_relief_per_resilience_perk = self.stress_relief_per_resilience_perk.max(0);
+        self.process_energy_discount_per_efficiency_perk =
+            self.process_energy_discount_per_efficiency_perk.max(0);
+        self.max_perk_level = self.max_perk_level.max(1);
+    }
+}
+
+#[derive(Resource, Debug, Clone)]
+pub struct CareerProgression {
+    pub level: u32,
+    pub xp: u32,
+    pub success_streak: u32,
+    pub burnout_days: u32,
+    pub efficiency_perk: u8,
+    pub resilience_perk: u8,
+    pub diplomacy_perk: u8,
+}
+
+impl Default for CareerProgression {
+    fn default() -> Self {
+        Self {
+            level: 1,
+            xp: 0,
+            success_streak: 0,
+            burnout_days: 0,
+            efficiency_perk: 0,
+            resilience_perk: 0,
+            diplomacy_perk: 0,
+        }
+    }
+}
+
+impl CareerProgression {
+    pub fn xp_for_next_level(&self) -> u32 {
+        32 + self.level.saturating_sub(1) * 16
+    }
+
+    pub fn process_energy_discount(&self, economy: &OfficeEconomyRules) -> i32 {
+        self.efficiency_perk as i32 * economy.process_energy_discount_per_efficiency_perk
+    }
+
+    pub fn reputation_bonus(&self, economy: &OfficeEconomyRules) -> i32 {
+        self.diplomacy_perk as i32 * economy.reputation_per_diplomacy_perk
+    }
+
+    pub fn stress_relief_bonus(&self, economy: &OfficeEconomyRules) -> i32 {
+        self.resilience_perk as i32 * economy.stress_relief_per_resilience_perk
+    }
+
+    pub fn add_experience(&mut self, gained_xp: u32, economy: &OfficeEconomyRules) -> u32 {
+        self.xp = self.xp.saturating_add(gained_xp);
+        let mut levels_gained = 0;
+        while self.xp >= self.xp_for_next_level() {
+            let threshold = self.xp_for_next_level();
+            self.xp -= threshold;
+            self.level = self.level.saturating_add(1);
+            levels_gained += 1;
+            self.apply_auto_perk_for_level(economy);
+        }
+        levels_gained
+    }
+
+    fn apply_auto_perk_for_level(&mut self, economy: &OfficeEconomyRules) {
+        let cycle = self.level.saturating_sub(2) % 3;
+        match cycle {
+            0 => self.efficiency_perk = self.efficiency_perk.saturating_add(1),
+            1 => self.resilience_perk = self.resilience_perk.saturating_add(1),
+            _ => self.diplomacy_perk = self.diplomacy_perk.saturating_add(1),
+        }
+        self.efficiency_perk = self.efficiency_perk.min(economy.max_perk_level);
+        self.resilience_perk = self.resilience_perk.min(economy.max_perk_level);
+        self.diplomacy_perk = self.diplomacy_perk.min(economy.max_perk_level);
+    }
+
+    pub fn normalize(&mut self, economy: &OfficeEconomyRules) {
+        self.level = self.level.max(1);
+        self.efficiency_perk = self.efficiency_perk.min(economy.max_perk_level);
+        self.resilience_perk = self.resilience_perk.min(economy.max_perk_level);
+        self.diplomacy_perk = self.diplomacy_perk.min(economy.max_perk_level);
+    }
+}
+
 #[derive(Resource, Debug, Default)]
 pub struct DayStats {
     pub processed_items: u32,

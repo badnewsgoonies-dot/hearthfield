@@ -114,6 +114,7 @@ Orchestration adjustments adopted from `research/r5_origin_commit_patterns.md`:
 5. Reserve a hardening checkpoint before the next feature burst.
 
 Current status:
-1. Task/deadline semantics and save-drift hardening slices are landed (progress deltas, deadline failure handling, load-state reconciliation, slot ownership semantics, and terminal-set normalization hardening).
-2. Gate checkpoint PASS on 2026-03-03 (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`) with 19 passing tests.
-3. Remaining R5 work is economy/progression depth and parity decomposition packet publication.
+1. Task/deadline semantics, save-drift hardening, and economy/progression hooks are landed (progress deltas, deadline failure handling, load-state reconciliation, slot ownership semantics, terminal-set normalization hardening, streak/burnout salary modifiers, XP leveling, and auto-perk assignment).
+2. Startup-first reliability hardening landed: `setup_scene` is idempotent for early-frame singleton entities (camera/worker/inbox), reducing first-seconds drift/soft-lock risk from duplicate spawns.
+3. Gate checkpoint PASS on 2026-03-03 (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`) with 23 passing tests.
+4. Remaining R5 work is parity decomposition packet publication and content-scale expansion on top of stabilized semantics.

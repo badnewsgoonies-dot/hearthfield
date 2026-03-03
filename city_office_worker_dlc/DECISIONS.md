@@ -113,3 +113,11 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Early origin history showed mega-commit integration churn, scope-drift commits, and delayed bug-fix bursts after large waves.
 - Decision: For R5+ integration flow, enforce: no `WIP` commits, split slices above `~1,200` insertions or `>20` files, keep infra/build changes separate from gameplay/content, and require contract deltas to include wiring plus deterministic/headless tests in the same PR.
 - Why: Smaller vertical slices reduce merge risk, make audits clearer, and surface contract drift immediately instead of in late stabilization passes.
+
+## ADR-015 - Prioritize First-Seconds Stability and Deterministic Economy Hooks
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Early-session failures (duplicate singleton spawns, soft-lock risk in opening seconds) can invalidate all late-game work; R5 also needed concrete economy/progression depth without introducing nondeterminism.
+- Decision: Make startup scene setup idempotent for worker/inbox/camera singletons, and introduce deterministic economy/progression primitives (salary curve with streak/burnout modifiers, XP leveling, and auto-assigned perk tracks).
+- Why: This keeps the first playable seconds resilient while adding mid-run progression depth that remains replay-safe and testable.

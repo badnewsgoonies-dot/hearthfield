@@ -8,8 +8,9 @@ use serde_json::Value;
 use crate::game::components::OfficeWorker;
 use crate::game::events::DayAdvanced;
 use crate::game::resources::{
-    DayClock, DayStats, InboxState, OfficeRunConfig, OfficeTask, PlayerCareerState,
-    PlayerMindState, TaskBoard, TaskId, TaskKind, TaskPriority, WorkerStats,
+    CareerProgression, DayClock, DayStats, InboxState, OfficeEconomyRules, OfficeRunConfig,
+    OfficeTask, PlayerCareerState, PlayerMindState, TaskBoard, TaskId, TaskKind, TaskPriority,
+    WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -59,6 +60,8 @@ pub struct OfficeSaveSnapshot {
     pub day_stats: DayStatsSnapshot,
     #[serde(default)]
     pub pending_interruptions: u32,
+    #[serde(default)]
+    pub progression: CareerProgressionSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -98,6 +101,17 @@ pub struct DayStatsSnapshot {
     pub panic_responses: u32,
     pub manager_checkins: u32,
     pub coworker_helps: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CareerProgressionSnapshot {
+    pub level: u32,
+    pub xp: u32,
+    pub success_streak: u32,
+    pub burnout_days: u32,
+    pub efficiency_perk: u8,
+    pub resilience_perk: u8,
+    pub diplomacy_perk: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -194,9 +208,11 @@ fn migrate_v0_to_v1(v0: OfficeSaveSnapshotV0) -> OfficeSaveSnapshot {
         },
         day_stats: DayStatsSnapshot::default(),
         pending_interruptions: 0,
+        progression: CareerProgressionSnapshot::default(),
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn capture_snapshot(
     clock: &DayClock,
     worker_stats: &WorkerStats,
@@ -205,6 +221,7 @@ pub fn capture_snapshot(
     inbox: &InboxState,
     day_stats: &DayStats,
     mind: &PlayerMindState,
+    progression: &CareerProgression,
 ) -> OfficeSaveSnapshot {
     OfficeSaveSnapshot {
         schema_version: 1,
@@ -259,6 +276,15 @@ pub fn capture_snapshot(
             coworker_helps: day_stats.coworker_helps,
         },
         pending_interruptions: mind.pending_interruptions,
+        progression: CareerProgressionSnapshot {
+            level: progression.level,
+            xp: progression.xp,
+            success_streak: progression.success_streak,
+            burnout_days: progression.burnout_days,
+            efficiency_perk: progression.efficiency_perk,
+            resilience_perk: progression.resilience_perk,
+            diplomacy_perk: progression.diplomacy_perk,
+        },
     }
 }
 
@@ -332,6 +358,8 @@ pub fn apply_snapshot(
     inbox: &mut InboxState,
     day_stats: &mut DayStats,
     mind: &mut PlayerMindState,
+    progression: &mut CareerProgression,
+    economy: &OfficeEconomyRules,
 ) -> Result<(), String> {
     if snapshot.schema_version != 1 {
         return Err(format!(
@@ -382,6 +410,14 @@ pub fn apply_snapshot(
     day_stats.coworker_helps = snapshot.day_stats.coworker_helps;
 
     mind.pending_interruptions = snapshot.pending_interruptions;
+    progression.level = snapshot.progression.level.max(1);
+    progression.xp = snapshot.progression.xp;
+    progression.success_streak = snapshot.progression.success_streak;
+    progression.burnout_days = snapshot.progression.burnout_days;
+    progression.efficiency_perk = snapshot.progression.efficiency_perk;
+    progression.resilience_perk = snapshot.progression.resilience_perk;
+    progression.diplomacy_perk = snapshot.progression.diplomacy_perk;
+    progression.normalize(economy);
 
     task_board.active = restored_active;
     task_board.completed_today = snapshot
@@ -414,6 +450,7 @@ fn save_slot(
     inbox: &InboxState,
     day_stats: &DayStats,
     mind: &PlayerMindState,
+    progression: &CareerProgression,
     store: &mut OfficeSaveStore,
 ) -> bool {
     let snapshot = capture_snapshot(
@@ -424,6 +461,7 @@ fn save_slot(
         inbox,
         day_stats,
         mind,
+        progression,
     );
 
     match serialize_snapshot(&snapshot) {
@@ -460,7 +498,9 @@ fn load_slot(
     inbox: &mut InboxState,
     day_stats: &mut DayStats,
     mind: &mut PlayerMindState,
+    progression: &mut CareerProgression,
     career: &mut PlayerCareerState,
+    economy: &OfficeEconomyRules,
     worker_query: &mut Query<&mut OfficeWorker>,
 ) -> Option<OfficeSaveSnapshot> {
     match read_snapshot_from_slot(config, slot) {
@@ -474,6 +514,8 @@ fn load_slot(
                 inbox,
                 day_stats,
                 mind,
+                progression,
+                economy,
             );
 
             if let Err(error) = apply_result {
@@ -508,6 +550,7 @@ pub fn persist_day_summary_snapshot(
     inbox: Res<InboxState>,
     day_stats: Res<DayStats>,
     mind: Res<PlayerMindState>,
+    progression: Res<CareerProgression>,
     config: Res<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -525,6 +568,7 @@ pub fn persist_day_summary_snapshot(
         &inbox,
         &day_stats,
         &mind,
+        &progression,
         &mut store,
     );
 }
@@ -539,6 +583,7 @@ pub fn handle_save_slot_requests(
     inbox: Res<InboxState>,
     day_stats: Res<DayStats>,
     mind: Res<PlayerMindState>,
+    progression: Res<CareerProgression>,
     mut config: ResMut<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -553,6 +598,7 @@ pub fn handle_save_slot_requests(
             &inbox,
             &day_stats,
             &mind,
+            &progression,
             &mut store,
         );
         if saved {
@@ -573,7 +619,9 @@ pub fn handle_load_slot_requests(
     mut inbox: ResMut<InboxState>,
     mut day_stats: ResMut<DayStats>,
     mut mind: ResMut<PlayerMindState>,
+    mut progression: ResMut<CareerProgression>,
     mut career: ResMut<PlayerCareerState>,
+    economy: Res<OfficeEconomyRules>,
     mut next_state: ResMut<NextState<OfficeGameState>>,
     mut day_advanced_writer: EventWriter<DayAdvanced>,
     mut worker_query: Query<&mut OfficeWorker>,
@@ -590,7 +638,9 @@ pub fn handle_load_slot_requests(
             &mut inbox,
             &mut day_stats,
             &mut mind,
+            &mut progression,
             &mut career,
+            &economy,
             &mut worker_query,
         );
         let Some(snapshot) = loaded_snapshot else {
