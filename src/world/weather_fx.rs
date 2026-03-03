@@ -58,6 +58,14 @@ impl Default for PreviousWeather {
 /// Maximum number of weather particles alive at once to prevent performance issues.
 const MAX_WEATHER_PARTICLES: usize = 600;
 
+/// Returns true if the given map is indoors (no weather particles).
+fn is_indoor_map(map_id: MapId) -> bool {
+    matches!(
+        map_id,
+        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+    )
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
@@ -70,10 +78,16 @@ const MAX_WEATHER_PARTICLES: usize = 600;
 pub fn spawn_weather_particles(
     mut commands: Commands,
     calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
     camera_query: Query<&Transform, With<Camera2d>>,
     rain_query: Query<(), With<RainDrop>>,
     snow_query: Query<(), With<SnowFlake>>,
 ) {
+    // Don't spawn weather particles on indoor maps.
+    if is_indoor_map(player_state.current_map) {
+        return;
+    }
+
     let Ok(cam_tf) = camera_query.get_single() else {
         return;
     };
@@ -221,15 +235,19 @@ pub fn update_weather_particles(
     }
 }
 
-/// When weather changes or when leaving Playing state, despawn all weather particles.
+/// When weather changes or when on an indoor map, despawn all weather particles.
 pub fn cleanup_weather_on_change(
     mut commands: Commands,
     calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
     mut prev_weather: ResMut<PreviousWeather>,
     rain_query: Query<Entity, With<RainDrop>>,
     snow_query: Query<Entity, With<SnowFlake>>,
 ) {
-    if calendar.weather != prev_weather.weather {
+    let should_cleanup =
+        calendar.weather != prev_weather.weather || is_indoor_map(player_state.current_map);
+
+    if should_cleanup {
         prev_weather.weather = calendar.weather;
         for entity in rain_query.iter() {
             commands.entity(entity).despawn();

@@ -168,14 +168,13 @@ pub fn handle_map_transition(
     camera_snap.frames_remaining = 3;
 
     // Invalidate the collision map — the world domain will re-populate it
-    // for the new map.
+    // for the new map via sync_collision_map when WorldMap updates.
     collision_map.initialised = false;
     collision_map.solid_tiles.clear();
 
     // Update bounds for the new map.
     let (min_x, max_x, min_y, max_y) = map_bounds(&ev.to_map);
     collision_map.bounds = (min_x, max_x, min_y, max_y);
-    collision_map.initialised = true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -293,6 +292,13 @@ pub fn handle_day_end(
     for _ev in events.read() {
         // Restore stamina fully.
         player_state.stamina = player_state.max_stamina;
+
+        // If the player is in the mine, the mining domain handles the transition
+        // (with gold penalty and partial health restore). Skip here.
+        let in_mine = player_state.current_map == MapId::Mine;
+        if in_mine {
+            return;
+        }
 
         // Restore health fully.
         player_state.health = player_state.max_health;

@@ -22,6 +22,9 @@ pub struct ObjectAtlases {
     pub grass_biome_layout: Handle<TextureAtlasLayout>,
     pub fences_image: Handle<Image>,
     pub fences_layout: Handle<TextureAtlasLayout>,
+    // Tree sprites atlas (32×48 cells, seasonal variants)
+    pub tree_sprites_image: Handle<Image>,
+    pub tree_sprites_layout: Handle<TextureAtlasLayout>,
     // Building tilesets (Sprout Lands)
     pub house_walls_image: Handle<Image>,
     pub house_walls_layout: Handle<TextureAtlasLayout>,
@@ -35,8 +38,6 @@ pub struct ObjectAtlases {
     pub wood_bridge_layout: Handle<TextureAtlasLayout>,
     pub tools_image: Handle<Image>,
     pub tools_layout: Handle<TextureAtlasLayout>,
-    pub tree_sprites_image: Handle<Image>,
-    pub tree_sprites_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads object atlas assets on first use. Subsequent calls are no-ops.
