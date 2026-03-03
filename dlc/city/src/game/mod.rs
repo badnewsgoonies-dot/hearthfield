@@ -138,6 +138,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .add_systems(
                 Update,
                 (
+                    systems::consume_end_of_day_events,
                     systems::apply_day_summary_rollover,
                     save::persist_day_summary_snapshot,
                     systems::transition_day_summary_to_inday,

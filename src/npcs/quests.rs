@@ -322,13 +322,13 @@ pub fn post_daily_quests(
             };
             used_types.push(quest_type);
 
-            let next_day = if calendar.day >= 28 { 1 } else { calendar.day + 1 };
-            let next_season = if calendar.day >= 28 {
+            let next_day = if calendar.day >= DAYS_PER_SEASON { 1 } else { calendar.day + 1 };
+            let next_season = if calendar.day >= DAYS_PER_SEASON {
                 calendar.season.next()
             } else {
                 calendar.season
             };
-            let next_year = if calendar.day >= 28 && matches!(calendar.season, Season::Winter) {
+            let next_year = if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter) {
                 calendar.year + 1
             } else {
                 calendar.year

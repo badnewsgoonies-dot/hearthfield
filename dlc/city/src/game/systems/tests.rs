@@ -14,7 +14,7 @@ use crate::game::events::{
 use crate::game::resources::{
     CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats, InboxState,
     OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, TaskPriority, UnlockCatalogState, WorkerStats,
+    SocialGraphState, TaskBoard, TaskId, TaskPriority, UnlockCatalogState, WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -332,6 +332,7 @@ fn process_event_updates_energy_inbox_and_clock() {
         if let Some(task) = board.active.first_mut() {
             task.required_focus = 1;
             task.priority = TaskPriority::Low;
+            task.progress = 0.5; // one step at focus_ratio=1.0 adds ~0.52, completing it
         }
     }
 
@@ -554,12 +555,22 @@ fn day_summary_rollover_applies_and_transitions_back_to_inday() {
     }
     {
         let mut stats = app.world_mut().resource_mut::<DayStats>();
-        stats.processed_items = 4;
+        stats.processed_items = 16;
         stats.manager_checkins = 1;
     }
     {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        // Complete most tasks so salary exceeds failure penalties after .max(0) clamp
+        for i in 0..16u64 {
+            board.completed_today.push(TaskId(100 + i));
+        }
+        // Remove completed tasks from active so they don't get double-failed
+        let completed: Vec<_> = board.completed_today.clone();
+        board.active.retain(|t| !completed.contains(&t.id));
+    }
+    {
         let mut inbox = app.world_mut().resource_mut::<InboxState>();
-        inbox.remaining_items = 14;
+        inbox.remaining_items = 2;
     }
     app.world_mut().send_event(EndDayRequested);
 

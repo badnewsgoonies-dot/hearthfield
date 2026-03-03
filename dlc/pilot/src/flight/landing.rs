@@ -7,6 +7,9 @@ use crate::shared::*;
 pub fn evaluate_landing(
     input: Res<PlayerInput>,
     mut flight_state: ResMut<FlightState>,
+    mut pilot_state: ResMut<PilotState>,
+    fleet: Res<Fleet>,
+    aircraft_registry: Res<AircraftRegistry>,
     mut flight_complete_events: EventWriter<FlightCompleteEvent>,
     mut phase_events: EventWriter<FlightPhaseChangeEvent>,
     mut toast_events: EventWriter<ToastEvent>,
@@ -36,7 +39,17 @@ pub fn evaluate_landing(
         let grade = evaluate_landing_quality(&flight_state);
         let grade_str = format!("{:?}", grade);
         let xp_bonus = grade.xp_bonus();
-        let _rep_change = grade.reputation_change();
+        let rep_change = grade.reputation_change();
+
+        // Apply reputation change from landing quality
+        pilot_state.reputation = (pilot_state.reputation + rep_change).clamp(0.0, 100.0);
+
+        // Calculate fuel used from aircraft burn rate and flight time
+        // fuel_burn_rate is in gallons/hour, flight_time_secs is in seconds
+        let fuel_burn_rate = fleet.active()
+            .and_then(|ac| aircraft_registry.get(&ac.aircraft_id))
+            .map_or(1.0, |def| def.fuel_burn_rate);
+        let fuel_used = flight_state.flight_time_secs / 3600.0 * fuel_burn_rate;
 
         // Mission rewards
         let (gold, base_xp) = if let Some(ref active) = mission_board.active {
@@ -57,7 +70,7 @@ pub fn evaluate_landing(
             destination: flight_state.destination,
             landing_grade: grade_str.clone(),
             flight_time_secs: flight_state.flight_time_secs,
-            fuel_used: flight_state.distance_total_nm, // simplified
+            fuel_used,
             xp_earned: total_xp,
             gold_earned: gold,
         });

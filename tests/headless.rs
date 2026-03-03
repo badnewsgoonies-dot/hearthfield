@@ -26,7 +26,7 @@ use hearthfield::economy::gold::{apply_gold_changes, EconomyStats};
 use hearthfield::economy::play_stats::{
     track_crops_harvested, track_gifts_given, track_gold_earned,
 };
-use hearthfield::economy::shipping::{process_shipping_bin_on_day_end, ShippingBinPreview};
+use hearthfield::economy::shipping::{process_shipping_bin_on_day_end, ShippingBinPreview, ShippingBinQuality};
 use hearthfield::economy::shop::ActiveShop;
 use hearthfield::economy::stats::{AnimalProductStats, HarvestStats};
 use hearthfield::farming::crops::{advance_crop_growth, reset_soil_watered_state};
@@ -470,6 +470,7 @@ fn test_shipping_bin_sells_on_day_end() {
     // Register economy-local resources
     app.init_resource::<EconomyStats>();
     app.init_resource::<ShippingBinPreview>();
+    app.init_resource::<ShippingBinQuality>();
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
@@ -552,6 +553,7 @@ fn test_empty_shipping_bin_no_gold_change() {
 
     app.init_resource::<EconomyStats>();
     app.init_resource::<ShippingBinPreview>();
+    app.init_resource::<ShippingBinQuality>();
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
@@ -916,6 +918,7 @@ fn test_multi_day_shipping_accumulation() {
 
     app.init_resource::<EconomyStats>();
     app.init_resource::<ShippingBinPreview>();
+    app.init_resource::<ShippingBinQuality>();
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();

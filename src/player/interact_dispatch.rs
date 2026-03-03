@@ -72,6 +72,7 @@ pub fn dispatch_world_interaction(
             ship_events.send(ShipItemEvent {
                 item_id: slot.item_id.clone(),
                 quantity: 1,
+                quality: ItemQuality::Normal,
             });
         }
 

@@ -105,8 +105,8 @@ pub fn handle_interruption_requests(
         stats.interruptions_triggered = stats.interruptions_triggered.saturating_add(1);
 
         if let Some(manager) = social.manager_mut() {
-            manager.affinity += scenario.manager_affinity_delta;
-            manager.trust += scenario.manager_trust_delta;
+            manager.affinity = (manager.affinity + scenario.manager_affinity_delta).clamp(-100, 100);
+            manager.trust = (manager.trust + scenario.manager_trust_delta).clamp(-100, 100);
         }
         let teammate_id = social.teammate_for_help(
             run_config.seed,
@@ -117,8 +117,8 @@ pub fn handle_interruption_requests(
         );
         if let Some(teammate_id) = teammate_id {
             if let Some(teammate) = social.teammate_mut_by_id(teammate_id) {
-                teammate.affinity += scenario.teammate_affinity_delta;
-                teammate.trust += scenario.teammate_trust_delta;
+                teammate.affinity = (teammate.affinity + scenario.teammate_affinity_delta).clamp(-100, 100);
+                teammate.trust = (teammate.trust + scenario.teammate_trust_delta).clamp(-100, 100);
             }
         }
         social.normalize();
@@ -225,12 +225,12 @@ pub fn handle_manager_checkin_requests(
             .clamp(-rules.max_reputation, rules.max_reputation);
         stats.manager_checkins = stats.manager_checkins.saturating_add(1);
         if let Some(manager) = social.manager_mut() {
-            manager.affinity += 1;
-            manager.trust += if mind.stress > rules.max_stress / 2 {
+            manager.affinity = (manager.affinity + 1).clamp(-100, 100);
+            manager.trust = (manager.trust + if mind.stress > rules.max_stress / 2 {
                 -1
             } else {
                 2
-            };
+            }).clamp(-100, 100);
         }
         social.normalize();
 
@@ -275,8 +275,8 @@ pub fn handle_coworker_help_requests(
             social.teammate_for_help(run_config.seed, clock.day_number, stats.coworker_helps);
         if let Some(teammate_id) = teammate_id {
             if let Some(teammate) = social.teammate_mut_by_id(teammate_id) {
-                teammate.affinity += 2;
-                teammate.trust += 1;
+                teammate.affinity = (teammate.affinity + 2).clamp(-100, 100);
+                teammate.trust = (teammate.trust + 1).clamp(-100, 100);
             }
         }
         social.normalize();

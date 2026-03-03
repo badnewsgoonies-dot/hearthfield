@@ -23,7 +23,7 @@ use shop::{
     handle_shop_transaction_gold,
 };
 use shipping::{
-    ShipItemEvent, ShippingBinPreview,
+    ShipItemEvent, ShippingBinPreview, ShippingBinQuality,
     place_in_shipping_bin, process_shipping_bin_on_day_end, update_shipping_bin_preview,
 };
 use blacksmith::{
@@ -54,7 +54,8 @@ impl Plugin for EconomyPlugin {
             .init_resource::<ToolUpgradeQueue>()
             .init_resource::<HarvestStats>()
             .init_resource::<AnimalProductStats>()
-            .init_resource::<BuildingLevels>();
+            .init_resource::<BuildingLevels>()
+            .init_resource::<ShippingBinQuality>();
 
         // ── Internal Events ────────────────────────────────────────────────
         app.add_event::<ShipItemEvent>()

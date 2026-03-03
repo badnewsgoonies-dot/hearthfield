@@ -40,9 +40,10 @@ fn build_day_outcome(
     } else {
         0
     };
-    let salary = completed_tasks as i32 * economy.base_salary_per_task + level_bonus + streak_bonus
+    let salary = (completed_tasks as i32 * economy.base_salary_per_task + level_bonus + streak_bonus
         - failed_tasks as i32 * economy.failure_penalty_per_task
-        - burnout_penalty;
+        - burnout_penalty)
+        .max(0);
 
     let reputation_delta = stats.manager_checkins as i32 * 2
         + stats.coworker_helps as i32 * 3
@@ -225,6 +226,15 @@ pub struct FinalizeEndDayParams<'w, 's> {
     economy: Res<'w, OfficeEconomyRules>,
     unlocks: Res<'w, UnlockCatalogState>,
     day_outcome: ResMut<'w, DayOutcome>,
+}
+
+pub fn consume_end_of_day_events(mut events: EventReader<EndOfDayEvent>) {
+    for event in events.read() {
+        info!(
+            "EndOfDayEvent consumed: day={}, processed={}, remaining={}, salary pending",
+            event.day_number, event.processed_items, event.remaining_items,
+        );
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

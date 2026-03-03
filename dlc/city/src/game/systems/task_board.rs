@@ -149,6 +149,12 @@ fn inbox_task(day_number: u32, slot_index: u32, day_end_minute: u32) -> OfficeTa
         .deadline_window_minutes
         .saturating_add(tier.max(0) as u32 * 3);
 
+    // Ensure deadline is at least 30 minutes after the implicit day start
+    // to prevent tasks from being generated with already-expired deadlines.
+    let day_start_minute = day_end_minute.saturating_sub(480);
+    let raw_deadline = day_end_minute.saturating_sub(deadline_window);
+    let deadline_minute = raw_deadline.max(day_start_minute + 30).min(u16::MAX as u32) as u16;
+
     OfficeTask {
         id: task_id_for_slot(day_number, slot_index),
         kind: template.kind,
@@ -157,9 +163,7 @@ fn inbox_task(day_number: u32, slot_index: u32, day_end_minute: u32) -> OfficeTa
         stress_impact,
         reward_money,
         reward_reputation,
-        deadline_minute: day_end_minute
-            .saturating_sub(deadline_window)
-            .min(u16::MAX as u32) as u16,
+        deadline_minute,
         progress: 0.0,
     }
 }

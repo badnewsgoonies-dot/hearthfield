@@ -11,6 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::shared::*;
 use crate::economy::buildings::BuildingLevels;
+use crate::economy::shipping::ShippingBinQuality;
 use crate::shared::ShippingLog;
 use crate::world::CurrentMapId;
 
@@ -771,6 +772,7 @@ fn handle_new_game(
     mut mine_state: ResMut<MineState>,
     mut unlocked_recipes: ResMut<UnlockedRecipes>,
     mut shipping_bin: ResMut<ShippingBin>,
+    mut shipping_bin_quality: ResMut<ShippingBinQuality>,
     mut statistics: ResMut<GameStatistics>,
     mut ext: ExtendedResourcesMut,
 ) {
@@ -792,6 +794,7 @@ fn handle_new_game(
         *mine_state = MineState::default();
         *unlocked_recipes = UnlockedRecipes::default();
         *shipping_bin = ShippingBin::default();
+        *shipping_bin_quality = ShippingBinQuality::default();
 
         // Reset statistics with new farm name
         *statistics = GameStatistics::new(ev.farm_name.clone());

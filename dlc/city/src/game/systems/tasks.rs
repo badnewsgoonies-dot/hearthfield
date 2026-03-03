@@ -20,7 +20,7 @@ fn priority_progress_multiplier(priority: TaskPriority) -> f32 {
 }
 
 fn progress_delta_for_task(required_focus: i32, priority: TaskPriority, current_focus: i32) -> f32 {
-    let focus_ratio = current_focus.max(0) as f32 / required_focus.max(1) as f32;
+    let focus_ratio = (current_focus.max(0) as f32 / required_focus.max(1) as f32).min(1.0);
     (0.52 * focus_ratio * priority_progress_multiplier(priority)).clamp(0.12, 1.0)
 }
 
