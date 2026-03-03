@@ -57,3 +57,11 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Energy costs, action durations, and inbox size needed quick iteration.
 - Decision: Store loop constants in `OfficeRules` resource defaults rather than scattering literals across systems.
 - Why: A single tuning surface speeds balancing and keeps behavior changes auditable.
+
+## ADR-008 - DaySummary Owns Rollover While InDay Emits Next-Day Intent
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Audit findings flagged ambiguous ownership between end-of-day detection, advancement, and rollover side effects.
+- Decision: Keep `EndDayRequested -> DayAdvanced { new_day_index }` emission in `InDay` (`finalize_end_day_request`), but apply salary/reputation rollover only in DaySummary systems (`apply_day_summary_rollover`, `transition_day_summary_to_inday`).
+- Why: This preserves deterministic event flow, keeps debounce behavior intact, and makes DaySummary the only state mutating rollover outcomes.

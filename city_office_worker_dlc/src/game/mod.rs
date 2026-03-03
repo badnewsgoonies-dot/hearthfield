@@ -8,15 +8,23 @@ pub mod systems;
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum OfficeGameState {
     #[default]
+    Boot,
+    MainMenu,
     InDay,
+    DaySummary,
+    Paused,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OfficeSimSet {
     Input,
-    ActionResolution,
-    DayBoundary,
-    Presentation,
+    Time,
+    TaskGeneration,
+    TaskResolution,
+    Interruptions,
+    Economy,
+    StateTransitions,
+    Ui,
 }
 
 pub struct CityOfficeWorkerPlugin;
@@ -25,10 +33,14 @@ impl Plugin for CityOfficeWorkerPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<OfficeGameState>()
             .init_resource::<resources::OfficeRules>()
+            .init_resource::<resources::OfficeRunConfig>()
+            .init_resource::<resources::WorkerStats>()
             .init_resource::<resources::InboxState>()
             .init_resource::<resources::DayClock>()
             .init_resource::<resources::PlayerMindState>()
             .init_resource::<resources::PlayerCareerState>()
+            .init_resource::<resources::TaskBoard>()
+            .init_resource::<resources::DayOutcome>()
             .init_resource::<resources::DayStats>()
             .add_event::<events::EndDayRequested>()
             .add_event::<events::DayAdvanced>()
@@ -42,13 +54,30 @@ impl Plugin for CityOfficeWorkerPlugin {
             .add_event::<events::WaitEvent>()
             .add_event::<events::EndOfDayEvent>()
             .add_systems(Startup, systems::setup_scene)
+            .add_systems(
+                Update,
+                systems::boot_to_main_menu.run_if(in_state(OfficeGameState::Boot)),
+            )
+            .add_systems(
+                Update,
+                systems::main_menu_to_in_day.run_if(in_state(OfficeGameState::MainMenu)),
+            )
+            .add_systems(
+                Update,
+                systems::toggle_pause
+                    .run_if(in_state(OfficeGameState::InDay).or(in_state(OfficeGameState::Paused))),
+            )
             .configure_sets(
                 Update,
                 (
                     OfficeSimSet::Input,
-                    OfficeSimSet::ActionResolution,
-                    OfficeSimSet::DayBoundary,
-                    OfficeSimSet::Presentation,
+                    OfficeSimSet::Time,
+                    OfficeSimSet::TaskGeneration,
+                    OfficeSimSet::TaskResolution,
+                    OfficeSimSet::Interruptions,
+                    OfficeSimSet::Economy,
+                    OfficeSimSet::StateTransitions,
+                    OfficeSimSet::Ui,
                 )
                     .chain(),
             )
@@ -56,24 +85,39 @@ impl Plugin for CityOfficeWorkerPlugin {
                 Update,
                 (
                     systems::collect_player_input.in_set(OfficeSimSet::Input),
+                    systems::handle_wait_requests.in_set(OfficeSimSet::Time),
+                    systems::sync_taskboard_bridge.in_set(OfficeSimSet::TaskGeneration),
+                    (
+                        systems::handle_process_requests,
+                        systems::handle_coffee_requests,
+                    )
+                        .chain()
+                        .in_set(OfficeSimSet::TaskResolution),
                     (
                         systems::handle_interruption_requests,
                         systems::handle_resolve_calmly_requests,
                         systems::handle_panic_response_requests,
                         systems::handle_manager_checkin_requests,
                         systems::handle_coworker_help_requests,
-                        systems::handle_process_requests,
-                        systems::handle_coffee_requests,
-                        systems::handle_wait_requests,
                     )
                         .chain()
-                        .in_set(OfficeSimSet::ActionResolution),
-                    (systems::check_end_of_day, systems::print_end_of_day_summary)
+                        .in_set(OfficeSimSet::Interruptions),
+                    systems::update_day_outcome_preview.in_set(OfficeSimSet::Economy),
+                    (systems::check_end_of_day, systems::finalize_end_day_request)
                         .chain()
-                        .in_set(OfficeSimSet::DayBoundary),
-                    systems::update_visuals.in_set(OfficeSimSet::Presentation),
+                        .in_set(OfficeSimSet::StateTransitions),
+                    systems::update_visuals.in_set(OfficeSimSet::Ui),
                 )
                     .run_if(in_state(OfficeGameState::InDay)),
+            )
+            .add_systems(
+                Update,
+                (
+                    systems::apply_day_summary_rollover,
+                    systems::transition_day_summary_to_inday,
+                )
+                    .chain()
+                    .run_if(in_state(OfficeGameState::DaySummary)),
             );
     }
 }

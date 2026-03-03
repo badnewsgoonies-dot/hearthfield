@@ -29,8 +29,10 @@ pub struct WaitEvent {
 #[derive(Event, Debug, Default)]
 pub struct EndDayRequested;
 
-#[derive(Event, Debug, Default)]
-pub struct DayAdvanced;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct DayAdvanced {
+    pub new_day_index: u32,
+}
 
 #[derive(Event, Debug)]
 pub struct EndOfDayEvent {
