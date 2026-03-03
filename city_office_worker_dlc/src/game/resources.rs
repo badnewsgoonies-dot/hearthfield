@@ -1,4 +1,255 @@
+use std::collections::HashSet;
+
 use bevy::prelude::*;
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+pub struct TaskId(pub u64);
+
+#[allow(dead_code)]
+impl TaskId {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+#[allow(dead_code)]
+impl From<u64> for TaskId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+pub enum TaskKind {
+    #[default]
+    DataEntry,
+    Filing,
+    EmailTriage,
+    PermitReview,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd, Default)]
+pub enum TaskPriority {
+    Low,
+    #[default]
+    Medium,
+    High,
+    Critical,
+}
+
+#[allow(dead_code)]
+impl TaskPriority {
+    pub const fn rank(self) -> u8 {
+        match self {
+            Self::Low => 1,
+            Self::Medium => 2,
+            Self::High => 3,
+            Self::Critical => 4,
+        }
+    }
+
+    pub fn normalized(self) -> f32 {
+        (self.rank() as f32 - 1.0) / 3.0
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct OfficeTask {
+    pub id: TaskId,
+    pub kind: TaskKind,
+    pub priority: TaskPriority,
+    pub required_focus: i32,
+    pub stress_impact: i32,
+    pub reward_money: i32,
+    pub reward_reputation: i32,
+    pub deadline_minute: u16,
+    pub progress: f32,
+}
+
+#[allow(dead_code)]
+impl Default for OfficeTask {
+    fn default() -> Self {
+        Self {
+            id: TaskId::default(),
+            kind: TaskKind::default(),
+            priority: TaskPriority::default(),
+            required_focus: 0,
+            stress_impact: 0,
+            reward_money: 0,
+            reward_reputation: 0,
+            deadline_minute: 17 * 60,
+            progress: 0.0,
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl OfficeTask {
+    pub fn normalize(&mut self) {
+        self.required_focus = self.required_focus.max(0);
+        self.progress = self.progress.clamp(0.0, 1.0);
+    }
+
+    pub fn normalized(mut self) -> Self {
+        self.normalize();
+        self
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.progress >= 1.0
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+pub enum InterruptionKind {
+    #[default]
+    ManagerRequest,
+    EmergencyMeeting,
+    SystemOutage,
+    CoworkerHelp,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+pub enum ChoiceId {
+    #[default]
+    A,
+    B,
+    C,
+}
+
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone, Default)]
+pub struct TaskBoard {
+    pub active: Vec<OfficeTask>,
+    pub completed_today: Vec<TaskId>,
+    pub failed_today: Vec<TaskId>,
+}
+
+#[allow(dead_code)]
+impl TaskBoard {
+    pub fn has_active_task(&self, task_id: TaskId) -> bool {
+        self.active.iter().any(|task| task.id == task_id)
+    }
+
+    pub fn try_add_task(&mut self, task: OfficeTask) -> bool {
+        if self.has_active_task(task.id) {
+            return false;
+        }
+
+        self.active.push(task.normalized());
+        true
+    }
+
+    pub fn normalize(&mut self) {
+        for task in &mut self.active {
+            task.normalize();
+        }
+
+        let mut seen_active = HashSet::new();
+        self.active.retain(|task| seen_active.insert(task.id));
+
+        let mut seen_completed = HashSet::new();
+        self.completed_today
+            .retain(|task_id| seen_completed.insert(*task_id));
+
+        let mut seen_failed = HashSet::new();
+        self.failed_today
+            .retain(|task_id| seen_failed.insert(*task_id));
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone)]
+pub struct OfficeRunConfig {
+    pub seed: u64,
+    pub max_tasks_per_day: u8,
+    pub interruption_chance_per_hour: f32,
+}
+
+#[allow(dead_code)]
+impl Default for OfficeRunConfig {
+    fn default() -> Self {
+        Self {
+            seed: 1,
+            max_tasks_per_day: 8,
+            interruption_chance_per_hour: 0.2,
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl OfficeRunConfig {
+    pub fn normalize(&mut self) {
+        self.max_tasks_per_day = self.max_tasks_per_day.max(1);
+        self.interruption_chance_per_hour = self.interruption_chance_per_hour.clamp(0.0, 1.0);
+    }
+
+    pub fn normalized(mut self) -> Self {
+        self.normalize();
+        self
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone, Default)]
+pub struct DayOutcome {
+    pub salary_earned: i32,
+    pub reputation_delta: i32,
+    pub stress_delta: i32,
+    pub completed_tasks: u32,
+    pub failed_tasks: u32,
+}
+
+#[allow(dead_code)]
+impl DayOutcome {
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone)]
+pub struct WorkerStats {
+    pub energy: i32,
+    pub stress: i32,
+    pub focus: i32,
+    pub money: i32,
+    pub reputation: i32,
+}
+
+#[allow(dead_code)]
+impl Default for WorkerStats {
+    fn default() -> Self {
+        Self {
+            energy: 100,
+            stress: 18,
+            focus: 76,
+            money: 0,
+            reputation: 0,
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl WorkerStats {
+    pub fn normalize(&mut self) {
+        self.energy = self.energy.clamp(0, 100);
+        self.stress = self.stress.clamp(0, 100);
+        self.focus = self.focus.clamp(0, 100);
+        self.reputation = self.reputation.clamp(-100, 100);
+    }
+
+    pub fn normalized(mut self) -> Self {
+        self.normalize();
+        self
+    }
+}
 
 #[derive(Resource, Debug)]
 pub struct OfficeRules {
@@ -122,15 +373,9 @@ impl Default for PlayerMindState {
     }
 }
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Default)]
 pub struct PlayerCareerState {
     pub reputation: i32,
-}
-
-impl Default for PlayerCareerState {
-    fn default() -> Self {
-        Self { reputation: 0 }
-    }
 }
 
 #[derive(Resource, Debug, Default)]

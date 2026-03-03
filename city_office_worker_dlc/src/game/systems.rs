@@ -2,13 +2,74 @@ use bevy::prelude::*;
 
 use crate::game::components::{InboxAvatar, OfficeWorker, WorkerAvatar};
 use crate::game::events::{
-    CoffeeBreakEvent, CoworkerHelpEvent, EndOfDayEvent, InterruptionEvent, ManagerCheckInEvent,
-    PanicResponseEvent, ProcessInboxEvent, ResolveCalmlyEvent, WaitEvent,
+    CoffeeBreakEvent, CoworkerHelpEvent, DayAdvanced, EndDayRequested, EndOfDayEvent,
+    InterruptionEvent, ManagerCheckInEvent, PanicResponseEvent, ProcessInboxEvent,
+    ResolveCalmlyEvent, WaitEvent,
 };
 use crate::game::resources::{
-    format_clock, DayClock, DayStats, InboxState, OfficeRules, PlayerCareerState, PlayerMindState,
+    format_clock, DayClock, DayStats, InboxState, OfficeRules, OfficeTask, PlayerCareerState,
+    PlayerMindState, TaskBoard, TaskId, TaskKind, TaskPriority,
 };
 
+fn task_id_for_slot(day_number: u32, slot_index: u32) -> TaskId {
+    TaskId(((day_number as u64) << 32) | (slot_index as u64 + 1))
+}
+
+fn inbox_task(day_number: u32, slot_index: u32, day_end_minute: u32) -> OfficeTask {
+    OfficeTask {
+        id: task_id_for_slot(day_number, slot_index),
+        kind: TaskKind::DataEntry,
+        priority: TaskPriority::Medium,
+        required_focus: 18,
+        stress_impact: 3,
+        reward_money: 12,
+        reward_reputation: 1,
+        deadline_minute: day_end_minute.min(u16::MAX as u32) as u16,
+        progress: 0.0,
+    }
+}
+
+fn seed_task_board(day_number: u32, inbox_items: u32, day_end_minute: u32) -> TaskBoard {
+    TaskBoard {
+        active: (0..inbox_items)
+            .map(|index| inbox_task(day_number, index, day_end_minute))
+            .collect(),
+        completed_today: Vec::new(),
+        failed_today: Vec::new(),
+    }
+}
+
+fn sync_task_board_active_with_inbox(
+    task_board: &mut TaskBoard,
+    day_number: u32,
+    inbox_items: u32,
+    day_end_minute: u32,
+) {
+    task_board.normalize();
+    let target_len = inbox_items as usize;
+
+    while task_board.active.len() > target_len {
+        if let Some(task) = task_board.active.pop() {
+            task_board.completed_today.push(task.id);
+        }
+    }
+
+    while task_board.active.len() < target_len {
+        let next_slot = task_board.active.len() as u32;
+        let _ = task_board.try_add_task(inbox_task(day_number, next_slot, day_end_minute));
+    }
+
+    task_board.normalize();
+}
+
+fn fail_remaining_task_board_work(task_board: &mut TaskBoard) {
+    for task in task_board.active.drain(..) {
+        task_board.failed_today.push(task.id);
+    }
+    task_board.normalize();
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn setup_scene(
     mut commands: Commands,
     rules: Res<OfficeRules>,
@@ -17,6 +78,7 @@ pub fn setup_scene(
     mut mind: ResMut<PlayerMindState>,
     mut career: ResMut<PlayerCareerState>,
     mut stats: ResMut<DayStats>,
+    task_board: Option<ResMut<TaskBoard>>,
 ) {
     inbox.remaining_items = rules.starting_inbox_items;
     clock.current_minute = rules.day_start_minute;
@@ -36,6 +98,17 @@ pub fn setup_scene(
     stats.panic_responses = 0;
     stats.manager_checkins = 0;
     stats.coworker_helps = 0;
+
+    let seeded_board = seed_task_board(
+        clock.day_number,
+        inbox.remaining_items,
+        rules.day_end_minute,
+    );
+    if let Some(mut existing_task_board) = task_board {
+        *existing_task_board = seeded_board;
+    } else {
+        commands.insert_resource(seeded_board);
+    }
 
     commands.spawn((Camera2d,));
     commands.spawn((
@@ -63,6 +136,7 @@ pub fn setup_scene(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn collect_player_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     rules: Res<OfficeRules>,
@@ -273,6 +347,7 @@ pub fn handle_process_requests(
     mut inbox: ResMut<InboxState>,
     mut stats: ResMut<DayStats>,
     mut worker_query: Query<&mut OfficeWorker>,
+    mut task_board: Option<ResMut<TaskBoard>>,
 ) {
     let Ok(mut worker) = worker_query.get_single_mut() else {
         return;
@@ -300,6 +375,14 @@ pub fn handle_process_requests(
         worker.energy -= rules.process_energy_cost;
         inbox.remaining_items -= 1;
         stats.processed_items += 1;
+        if let Some(task_board) = task_board.as_deref_mut() {
+            sync_task_board_active_with_inbox(
+                task_board,
+                clock.day_number,
+                inbox.remaining_items,
+                rules.day_end_minute,
+            );
+        }
 
         info!(
             "Processed 1 item -> energy: {}, inbox left: {}, clock: {}",
@@ -363,13 +446,9 @@ pub fn handle_wait_requests(
 
 pub fn check_end_of_day(
     rules: Res<OfficeRules>,
-    mut clock: ResMut<DayClock>,
+    clock: Res<DayClock>,
     inbox: Res<InboxState>,
-    stats: Res<DayStats>,
-    mind: Res<PlayerMindState>,
-    career: Res<PlayerCareerState>,
-    worker_query: Query<&OfficeWorker>,
-    mut end_day_writer: EventWriter<EndOfDayEvent>,
+    mut end_day_requested_writer: EventWriter<EndDayRequested>,
 ) {
     if clock.ended {
         return;
@@ -381,32 +460,52 @@ pub fn check_end_of_day(
         return;
     }
 
-    clock.ended = true;
-    let final_energy = worker_query.get_single().map_or(0, |worker| worker.energy);
-
-    end_day_writer.send(EndOfDayEvent {
-        day_number: clock.day_number,
-        finished_minute: clock.current_minute,
-        processed_items: stats.processed_items,
-        remaining_items: inbox.remaining_items,
-        coffee_breaks: stats.coffee_breaks,
-        wait_actions: stats.wait_actions,
-        failed_process_attempts: stats.failed_process_attempts,
-        interruptions_triggered: stats.interruptions_triggered,
-        calm_responses: stats.calm_responses,
-        panic_responses: stats.panic_responses,
-        unresolved_interruptions: mind.pending_interruptions,
-        manager_checkins: stats.manager_checkins,
-        coworker_helps: stats.coworker_helps,
-        final_energy,
-        final_stress: mind.stress,
-        final_focus: mind.focus,
-        final_reputation: career.reputation,
-    });
+    end_day_requested_writer.send(EndDayRequested);
 }
 
-pub fn print_end_of_day_summary(mut events: EventReader<EndOfDayEvent>) {
-    for summary in events.read() {
+#[allow(clippy::too_many_arguments)]
+pub fn print_end_of_day_summary(
+    mut requests: EventReader<EndDayRequested>,
+    mut day_advanced_writer: EventWriter<DayAdvanced>,
+    mut end_of_day_writer: EventWriter<EndOfDayEvent>,
+    mut clock: ResMut<DayClock>,
+    inbox: Res<InboxState>,
+    stats: Res<DayStats>,
+    mind: Res<PlayerMindState>,
+    career: Res<PlayerCareerState>,
+    worker_query: Query<&OfficeWorker>,
+    mut task_board: Option<ResMut<TaskBoard>>,
+) {
+    for _ in requests.read() {
+        if clock.ended {
+            continue;
+        }
+
+        clock.ended = true;
+        if let Some(task_board) = task_board.as_deref_mut() {
+            fail_remaining_task_board_work(task_board);
+        }
+
+        let summary = EndOfDayEvent {
+            day_number: clock.day_number,
+            finished_minute: clock.current_minute,
+            processed_items: stats.processed_items,
+            remaining_items: inbox.remaining_items,
+            coffee_breaks: stats.coffee_breaks,
+            wait_actions: stats.wait_actions,
+            failed_process_attempts: stats.failed_process_attempts,
+            interruptions_triggered: stats.interruptions_triggered,
+            calm_responses: stats.calm_responses,
+            panic_responses: stats.panic_responses,
+            unresolved_interruptions: mind.pending_interruptions,
+            manager_checkins: stats.manager_checkins,
+            coworker_helps: stats.coworker_helps,
+            final_energy: worker_query.get_single().map_or(0, |worker| worker.energy),
+            final_stress: mind.stress,
+            final_focus: mind.focus,
+            final_reputation: career.reputation,
+        };
+
         println!();
         println!(
             "=== City Office Worker DLC: End Of Day {} ===",
@@ -435,6 +534,10 @@ pub fn print_end_of_day_summary(mut events: EventReader<EndOfDayEvent>) {
         println!("Final focus: {}", summary.final_focus);
         println!("Final reputation: {}", summary.final_reputation);
         println!("=============================================");
+
+        end_of_day_writer.send(summary);
+        day_advanced_writer.send(DayAdvanced);
+        clock.day_number = clock.day_number.saturating_add(1);
     }
 }
 
@@ -483,9 +586,33 @@ mod tests {
     #[derive(Resource, Default)]
     struct EndEventCount(u32);
 
+    #[derive(Resource, Default)]
+    struct EndDayRequestedCount(u32);
+
+    #[derive(Resource, Default)]
+    struct DayAdvancedCount(u32);
+
     fn count_end_of_day_events(
         mut events: EventReader<EndOfDayEvent>,
         mut count: ResMut<EndEventCount>,
+    ) {
+        for _ in events.read() {
+            count.0 += 1;
+        }
+    }
+
+    fn count_end_day_requested_events(
+        mut events: EventReader<EndDayRequested>,
+        mut count: ResMut<EndDayRequestedCount>,
+    ) {
+        for _ in events.read() {
+            count.0 += 1;
+        }
+    }
+
+    fn count_day_advanced_events(
+        mut events: EventReader<DayAdvanced>,
+        mut count: ResMut<DayAdvancedCount>,
     ) {
         for _ in events.read() {
             count.0 += 1;
@@ -502,6 +629,9 @@ mod tests {
             .init_resource::<PlayerMindState>()
             .init_resource::<PlayerCareerState>()
             .init_resource::<DayStats>()
+            .init_resource::<TaskBoard>()
+            .add_event::<EndDayRequested>()
+            .add_event::<DayAdvanced>()
             .add_event::<ProcessInboxEvent>()
             .add_event::<CoffeeBreakEvent>()
             .add_event::<InterruptionEvent>()
@@ -511,7 +641,21 @@ mod tests {
             .add_event::<CoworkerHelpEvent>()
             .add_event::<WaitEvent>()
             .add_event::<EndOfDayEvent>()
-            .init_resource::<EndEventCount>();
+            .init_resource::<EndEventCount>()
+            .init_resource::<EndDayRequestedCount>()
+            .init_resource::<DayAdvancedCount>();
+
+        let seeded_board = {
+            let rules = app.world().resource::<OfficeRules>();
+            let inbox = app.world().resource::<InboxState>();
+            let clock = app.world().resource::<DayClock>();
+            seed_task_board(
+                clock.day_number,
+                inbox.remaining_items,
+                rules.day_end_minute,
+            )
+        };
+        app.world_mut().insert_resource(seeded_board);
 
         let worker = app.world_mut().spawn(OfficeWorker { energy: 100 }).id();
         app.world_mut().insert_resource(TestWorkerEntity(worker));
@@ -534,11 +678,15 @@ mod tests {
         let inbox = app.world().resource::<InboxState>();
         let clock = app.world().resource::<DayClock>();
         let stats = app.world().resource::<DayStats>();
+        let board = app.world().resource::<TaskBoard>();
 
         assert_eq!(worker.energy, 88);
         assert_eq!(inbox.remaining_items, 17);
         assert_eq!(clock.current_minute, 9 * 60 + 15);
         assert_eq!(stats.processed_items, 1);
+        assert_eq!(board.active.len(), 17);
+        assert_eq!(board.completed_today.len(), 1);
+        assert_eq!(board.failed_today.len(), 0);
     }
 
     #[test]
@@ -584,9 +732,19 @@ mod tests {
     }
 
     #[test]
-    fn end_of_day_event_emits_once() {
+    fn end_day_request_advances_once_and_emits_summary_once() {
         let mut app = build_test_app();
-        app.add_systems(Update, (check_end_of_day, count_end_of_day_events).chain());
+        app.add_systems(
+            Update,
+            (
+                check_end_of_day,
+                print_end_of_day_summary,
+                count_end_day_requested_events,
+                count_day_advanced_events,
+                count_end_of_day_events,
+            )
+                .chain(),
+        );
 
         let day_end = app.world().resource::<OfficeRules>().day_end_minute;
         {
@@ -596,9 +754,55 @@ mod tests {
         }
 
         app.update();
+        assert_eq!(app.world().resource::<EndDayRequestedCount>().0, 1);
+        assert_eq!(app.world().resource::<DayAdvancedCount>().0, 1);
         assert_eq!(app.world().resource::<EndEventCount>().0, 1);
 
         app.update();
+        assert_eq!(app.world().resource::<EndDayRequestedCount>().0, 1);
+        assert_eq!(app.world().resource::<DayAdvancedCount>().0, 1);
+        assert_eq!(app.world().resource::<EndEventCount>().0, 1);
+        assert_eq!(app.world().resource::<DayClock>().day_number, 2);
+    }
+
+    #[test]
+    fn day_advanced_does_not_emit_without_end_day_request() {
+        let mut app = build_test_app();
+        app.add_systems(
+            Update,
+            (print_end_of_day_summary, count_day_advanced_events).chain(),
+        );
+
+        app.update();
+        app.update();
+
+        assert_eq!(app.world().resource::<DayAdvancedCount>().0, 0);
+    }
+
+    #[test]
+    fn duplicate_end_day_requests_are_debounced() {
+        let mut app = build_test_app();
+        app.add_systems(
+            Update,
+            (
+                print_end_of_day_summary,
+                count_day_advanced_events,
+                count_end_of_day_events,
+            )
+                .chain(),
+        );
+
+        app.world_mut().send_event(EndDayRequested);
+        app.world_mut().send_event(EndDayRequested);
+        app.update();
+
+        assert_eq!(app.world().resource::<DayAdvancedCount>().0, 1);
+        assert_eq!(app.world().resource::<EndEventCount>().0, 1);
+
+        app.world_mut().send_event(EndDayRequested);
+        app.update();
+
+        assert_eq!(app.world().resource::<DayAdvancedCount>().0, 1);
         assert_eq!(app.world().resource::<EndEventCount>().0, 1);
     }
 }
