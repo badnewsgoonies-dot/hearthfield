@@ -35,6 +35,8 @@ pub struct ObjectAtlases {
     pub wood_bridge_layout: Handle<TextureAtlasLayout>,
     pub tools_image: Handle<Image>,
     pub tools_layout: Handle<TextureAtlasLayout>,
+    pub tree_sprites_image: Handle<Image>,
+    pub tree_sprites_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads object atlas assets on first use. Subsequent calls are no-ops.
