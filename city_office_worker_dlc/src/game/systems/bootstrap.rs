@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::game::components::{InboxAvatar, OfficeWorker, WorkerAvatar};
 use crate::game::resources::{
     format_clock, DayClock, DayStats, InboxState, OfficeEconomyRules, OfficeRules,
-    PlayerCareerState, PlayerMindState, TaskBoard,
+    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard,
 };
 use crate::game::OfficeGameState;
 
@@ -54,6 +54,7 @@ pub fn setup_scene(
     mut clock: ResMut<DayClock>,
     mut mind: ResMut<PlayerMindState>,
     mut career: ResMut<PlayerCareerState>,
+    mut social: ResMut<SocialGraphState>,
     mut stats: ResMut<DayStats>,
     task_board: Option<ResMut<TaskBoard>>,
     worker_entities: Query<Entity, With<OfficeWorker>>,
@@ -71,6 +72,7 @@ pub fn setup_scene(
     career.reputation = rules
         .starting_reputation
         .clamp(-rules.max_reputation, rules.max_reputation);
+    social.normalize();
     stats.processed_items = 0;
     stats.coffee_breaks = 0;
     stats.wait_actions = 0;

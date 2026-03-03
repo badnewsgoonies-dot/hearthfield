@@ -51,6 +51,6 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 - [x] Continue **R5** slice C: economy/progression hook expansion with replay-safe tests.
 - [x] Continue **R5** slice D: publish social/progression parity decomposition packet for **R6** planning.
 - [x] Continue **R5** slice E: expand task/economy content templates on top of stabilized semantics.
-- [ ] Start **R6** slice A: persistent coworker roster and affinity state scaffolding.
-- [ ] Start **R6** slice B: deterministic social scenario templates with replay tests.
+- [x] Start **R6** slice A: persistent coworker roster and affinity state scaffolding.
+- [x] Start **R6** slice B: deterministic social scenario templates with replay tests.
 - [ ] Start **R6** slice C: progression unlock table with persistence coverage.

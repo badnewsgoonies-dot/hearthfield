@@ -437,6 +437,114 @@ pub struct PlayerCareerState {
     pub reputation: i32,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum CoworkerRole {
+    Manager,
+    Clerk,
+    Analyst,
+    Coordinator,
+    Intern,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoworkerProfile {
+    pub id: u8,
+    pub codename: String,
+    pub role: CoworkerRole,
+    pub affinity: i32,
+    pub trust: i32,
+}
+
+#[derive(Resource, Debug, Clone, PartialEq, Eq)]
+pub struct SocialGraphState {
+    pub profiles: Vec<CoworkerProfile>,
+    pub scenario_cursor: u32,
+}
+
+impl Default for SocialGraphState {
+    fn default() -> Self {
+        Self {
+            profiles: vec![
+                CoworkerProfile {
+                    id: 1,
+                    codename: "Marta".to_string(),
+                    role: CoworkerRole::Manager,
+                    affinity: 2,
+                    trust: 4,
+                },
+                CoworkerProfile {
+                    id: 2,
+                    codename: "Leo".to_string(),
+                    role: CoworkerRole::Clerk,
+                    affinity: 0,
+                    trust: 0,
+                },
+                CoworkerProfile {
+                    id: 3,
+                    codename: "Sana".to_string(),
+                    role: CoworkerRole::Analyst,
+                    affinity: 1,
+                    trust: 1,
+                },
+                CoworkerProfile {
+                    id: 4,
+                    codename: "Ira".to_string(),
+                    role: CoworkerRole::Coordinator,
+                    affinity: -1,
+                    trust: 0,
+                },
+                CoworkerProfile {
+                    id: 5,
+                    codename: "Noah".to_string(),
+                    role: CoworkerRole::Intern,
+                    affinity: 0,
+                    trust: -1,
+                },
+            ],
+            scenario_cursor: 0,
+        }
+    }
+}
+
+impl SocialGraphState {
+    pub fn normalize(&mut self) {
+        self.profiles.sort_by_key(|profile| profile.id);
+        self.profiles.dedup_by_key(|profile| profile.id);
+        for profile in &mut self.profiles {
+            profile.affinity = profile.affinity.clamp(-100, 100);
+            profile.trust = profile.trust.clamp(-100, 100);
+        }
+    }
+
+    pub fn manager_mut(&mut self) -> Option<&mut CoworkerProfile> {
+        self.profiles
+            .iter_mut()
+            .find(|profile| profile.role == CoworkerRole::Manager)
+    }
+
+    pub fn teammate_mut_by_id(&mut self, id: u8) -> Option<&mut CoworkerProfile> {
+        self.profiles.iter_mut().find(|profile| profile.id == id)
+    }
+
+    pub fn teammate_for_help(&self, seed: u64, day_number: u32, help_count: u32) -> Option<u8> {
+        let teammate_ids = self
+            .profiles
+            .iter()
+            .filter(|profile| profile.role != CoworkerRole::Manager)
+            .map(|profile| profile.id)
+            .collect::<Vec<_>>();
+        if teammate_ids.is_empty() {
+            return None;
+        }
+
+        let index = (seed
+            .wrapping_add(day_number as u64 * 37)
+            .wrapping_add(help_count as u64 * 17)
+            % teammate_ids.len() as u64) as usize;
+        teammate_ids.get(index).copied()
+    }
+}
+
 #[derive(Resource, Debug, Clone)]
 pub struct OfficeEconomyRules {
     pub base_salary_per_task: i32,

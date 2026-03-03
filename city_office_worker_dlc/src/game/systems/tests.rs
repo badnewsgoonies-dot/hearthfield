@@ -12,8 +12,9 @@ use crate::game::events::{
     ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
-    CareerProgression, DayClock, DayOutcome, DayStats, InboxState, OfficeEconomyRules, OfficeRules,
-    OfficeRunConfig, PlayerCareerState, PlayerMindState, TaskBoard, TaskPriority, WorkerStats,
+    CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats, InboxState,
+    OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
+    SocialGraphState, TaskBoard, TaskPriority, WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -182,6 +183,7 @@ fn build_test_app() -> App {
         .init_resource::<WorkerStats>()
         .init_resource::<PlayerMindState>()
         .init_resource::<PlayerCareerState>()
+        .init_resource::<SocialGraphState>()
         .init_resource::<OfficeEconomyRules>()
         .init_resource::<CareerProgression>()
         .init_resource::<DayOutcome>()
@@ -434,6 +436,7 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
     let mind = app.world().resource::<PlayerMindState>();
     let career = app.world().resource::<PlayerCareerState>();
     let stats = app.world().resource::<DayStats>();
+    let social = app.world().resource::<SocialGraphState>();
 
     assert_eq!(mind.pending_interruptions, 0);
     assert_eq!(stats.interruptions_triggered, 2);
@@ -442,8 +445,9 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
     assert_eq!(stats.manager_checkins, 1);
     assert_eq!(stats.coworker_helps, 1);
     assert_eq!(career.reputation, 5);
-    assert_eq!(mind.stress, 54);
-    assert_eq!(mind.focus, 55);
+    assert_eq!(mind.stress, 56);
+    assert_eq!(mind.focus, 56);
+    assert!(social.scenario_cursor >= 2);
 }
 
 #[test]
@@ -669,6 +673,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
+        let social_graph = app.world().resource::<SocialGraphState>();
 
         let snapshot = capture_snapshot(
             clock,
@@ -679,6 +684,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
             day_stats,
             mind,
             progression,
+            social_graph,
         );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
@@ -716,6 +722,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut day_stats = DayStats::default();
     let mut mind = PlayerMindState::default();
     let mut progression = CareerProgression::default();
+    let mut social_graph = SocialGraphState::default();
     let economy = app.world().resource::<OfficeEconomyRules>().clone();
 
     apply_snapshot(
@@ -728,6 +735,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut day_stats,
         &mut mind,
         &mut progression,
+        &mut social_graph,
         &economy,
     )
     .expect("snapshot apply should succeed");
@@ -761,6 +769,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
+        let social_graph = app.world().resource::<SocialGraphState>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -770,6 +779,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
             day_stats,
             mind,
             progression,
+            social_graph,
         )
     };
 
@@ -1007,6 +1017,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
+        let social_graph = app.world().resource::<SocialGraphState>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1016,6 +1027,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
             day_stats,
             mind,
             progression,
+            social_graph,
         )
     };
     write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
@@ -1154,6 +1166,113 @@ fn load_restores_day_stats_and_pending_interruptions() {
 }
 
 #[test]
+fn load_restores_social_graph_state() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("social_graph_restore");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            crate::game::save::handle_save_slot_requests,
+            crate::game::save::handle_load_slot_requests,
+        )
+            .chain(),
+    );
+
+    let expected_social = {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        social.scenario_cursor = 7;
+        if let Some(manager) = social
+            .profiles
+            .iter_mut()
+            .find(|profile| profile.role == CoworkerRole::Manager)
+        {
+            manager.affinity = 14;
+            manager.trust = 21;
+        }
+        if let Some(profile) = social.profiles.iter_mut().find(|profile| profile.id == 3) {
+            profile.affinity = 9;
+            profile.trust = 11;
+        }
+        social.clone()
+    };
+
+    app.world_mut().send_event(SaveSlotRequest { slot: 4 });
+    app.update();
+
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        social.scenario_cursor = 0;
+        for profile in &mut social.profiles {
+            profile.affinity = -80;
+            profile.trust = -80;
+        }
+    }
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 4 });
+    app.update();
+
+    let restored = app.world().resource::<SocialGraphState>();
+    assert_eq!(*restored, expected_social);
+    assert!(app
+        .world()
+        .resource::<OfficeSaveStore>()
+        .last_io_error
+        .is_none());
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn social_scenarios_are_seed_deterministic() {
+    fn run_social_trace(seed: u64) -> (i32, i32, u32, Vec<(u8, i32, i32)>) {
+        let mut app = build_test_app();
+        app.add_systems(
+            Update,
+            (
+                handle_interruption_requests,
+                handle_resolve_calmly_requests,
+                handle_panic_response_requests,
+                handle_manager_checkin_requests,
+                handle_coworker_help_requests,
+            )
+                .chain(),
+        );
+        app.world_mut().resource_mut::<OfficeRunConfig>().seed = seed;
+
+        app.world_mut().send_event(InterruptionEvent);
+        app.update();
+        app.world_mut().send_event(ResolveCalmlyEvent);
+        app.update();
+        app.world_mut().send_event(InterruptionEvent);
+        app.update();
+        app.world_mut().send_event(PanicResponseEvent);
+        app.update();
+        app.world_mut().send_event(ManagerCheckInEvent);
+        app.update();
+        app.world_mut().send_event(CoworkerHelpEvent);
+        app.update();
+
+        let mind = app.world().resource::<PlayerMindState>();
+        let social = app.world().resource::<SocialGraphState>();
+        let summary = social
+            .profiles
+            .iter()
+            .map(|profile| (profile.id, profile.affinity, profile.trust))
+            .collect::<Vec<_>>();
+        (mind.stress, mind.focus, social.scenario_cursor, summary)
+    }
+
+    let run_a = run_social_trace(42);
+    let run_b = run_social_trace(42);
+    let run_c = run_social_trace(84);
+
+    assert_eq!(run_a, run_b);
+    assert_ne!(run_a, run_c);
+}
+
+#[test]
 fn successful_save_and_load_requests_update_active_slot_for_autosave() {
     let mut app = build_test_app();
     let save_config = save_config_for_test("active_slot_semantics");
@@ -1221,6 +1340,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         let day_stats = app.world().resource::<DayStats>();
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
+        let social_graph = app.world().resource::<SocialGraphState>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1230,6 +1350,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
             day_stats,
             mind,
             progression,
+            social_graph,
         )
     };
 
@@ -1252,6 +1373,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
     let mut day_stats = DayStats::default();
     let mut mind = PlayerMindState::default();
     let mut progression = CareerProgression::default();
+    let mut social_graph = SocialGraphState::default();
     let economy = OfficeEconomyRules::default();
 
     apply_snapshot(
@@ -1264,6 +1386,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         &mut day_stats,
         &mut mind,
         &mut progression,
+        &mut social_graph,
         &economy,
     )
     .expect("malformed terminal-set snapshot should normalize successfully");

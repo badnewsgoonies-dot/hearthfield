@@ -313,3 +313,29 @@ Additional invariants:
 2. Task-board seed generation must provide deterministic content variety (all task kinds and priority tiers across a normal workday board).
 3. Day outcome preview and rollover must remain deterministic for fixed seed and fixed action script.
 4. Save/load must round-trip progression state (`CareerProgression`) without schema drift.
+
+## 11) R6 Addendum (Social Graph + Scenario Determinism)
+
+Additional frozen resources:
+
+```rust
+#[derive(Resource, Debug, Clone)]
+pub struct SocialGraphState {
+    pub profiles: Vec<CoworkerProfile>,
+    pub scenario_cursor: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct CoworkerProfile {
+    pub id: u8,
+    pub codename: String,
+    pub role: CoworkerRole,
+    pub affinity: i32,
+    pub trust: i32,
+}
+```
+
+Additional invariants:
+1. `SocialGraphState` must normalize to unique profile IDs and clamp affinity/trust to `[-100, 100]`.
+2. Interruption social scenarios must be deterministic for fixed `seed + day + cursor`.
+3. Save/load roundtrip must preserve social graph values and scenario cursor.

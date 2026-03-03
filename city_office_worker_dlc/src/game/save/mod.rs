@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -8,9 +9,9 @@ use serde_json::Value;
 use crate::game::components::OfficeWorker;
 use crate::game::events::DayAdvanced;
 use crate::game::resources::{
-    CareerProgression, DayClock, DayStats, InboxState, OfficeEconomyRules, OfficeRunConfig,
-    OfficeTask, PlayerCareerState, PlayerMindState, TaskBoard, TaskId, TaskKind, TaskPriority,
-    WorkerStats,
+    CareerProgression, CoworkerProfile, CoworkerRole, DayClock, DayStats, InboxState,
+    OfficeEconomyRules, OfficeRunConfig, OfficeTask, PlayerCareerState, PlayerMindState,
+    SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -62,6 +63,8 @@ pub struct OfficeSaveSnapshot {
     pub pending_interruptions: u32,
     #[serde(default)]
     pub progression: CareerProgressionSnapshot,
+    #[serde(default)]
+    pub social_graph: SocialGraphSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -112,6 +115,21 @@ pub struct CareerProgressionSnapshot {
     pub efficiency_perk: u8,
     pub resilience_perk: u8,
     pub diplomacy_perk: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SocialGraphSnapshot {
+    pub profiles: Vec<CoworkerSnapshot>,
+    pub scenario_cursor: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CoworkerSnapshot {
+    pub id: u8,
+    pub codename: String,
+    pub role: String,
+    pub affinity: i32,
+    pub trust: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -172,6 +190,27 @@ fn parse_task_priority(raw: &str) -> Result<TaskPriority, String> {
     }
 }
 
+fn coworker_role_str(role: CoworkerRole) -> &'static str {
+    match role {
+        CoworkerRole::Manager => "manager",
+        CoworkerRole::Clerk => "clerk",
+        CoworkerRole::Analyst => "analyst",
+        CoworkerRole::Coordinator => "coordinator",
+        CoworkerRole::Intern => "intern",
+    }
+}
+
+fn parse_coworker_role(raw: &str) -> Result<CoworkerRole, String> {
+    match raw {
+        "manager" => Ok(CoworkerRole::Manager),
+        "clerk" => Ok(CoworkerRole::Clerk),
+        "analyst" => Ok(CoworkerRole::Analyst),
+        "coordinator" => Ok(CoworkerRole::Coordinator),
+        "intern" => Ok(CoworkerRole::Intern),
+        other => Err(format!("unknown coworker role: {other}")),
+    }
+}
+
 fn migrate_v0_to_v1(v0: OfficeSaveSnapshotV0) -> OfficeSaveSnapshot {
     OfficeSaveSnapshot {
         schema_version: 1,
@@ -209,6 +248,7 @@ fn migrate_v0_to_v1(v0: OfficeSaveSnapshotV0) -> OfficeSaveSnapshot {
         day_stats: DayStatsSnapshot::default(),
         pending_interruptions: 0,
         progression: CareerProgressionSnapshot::default(),
+        social_graph: SocialGraphSnapshot::default(),
     }
 }
 
@@ -222,6 +262,7 @@ pub fn capture_snapshot(
     day_stats: &DayStats,
     mind: &PlayerMindState,
     progression: &CareerProgression,
+    social_graph: &SocialGraphState,
 ) -> OfficeSaveSnapshot {
     OfficeSaveSnapshot {
         schema_version: 1,
@@ -284,6 +325,20 @@ pub fn capture_snapshot(
             efficiency_perk: progression.efficiency_perk,
             resilience_perk: progression.resilience_perk,
             diplomacy_perk: progression.diplomacy_perk,
+        },
+        social_graph: SocialGraphSnapshot {
+            profiles: social_graph
+                .profiles
+                .iter()
+                .map(|profile| CoworkerSnapshot {
+                    id: profile.id,
+                    codename: profile.codename.clone(),
+                    role: coworker_role_str(profile.role).to_string(),
+                    affinity: profile.affinity,
+                    trust: profile.trust,
+                })
+                .collect(),
+            scenario_cursor: social_graph.scenario_cursor,
         },
     }
 }
@@ -359,6 +414,7 @@ pub fn apply_snapshot(
     day_stats: &mut DayStats,
     mind: &mut PlayerMindState,
     progression: &mut CareerProgression,
+    social_graph: &mut SocialGraphState,
     economy: &OfficeEconomyRules,
 ) -> Result<(), String> {
     if snapshot.schema_version != 1 {
@@ -419,6 +475,22 @@ pub fn apply_snapshot(
     progression.diplomacy_perk = snapshot.progression.diplomacy_perk;
     progression.normalize(economy);
 
+    let mut restored_profiles = Vec::with_capacity(snapshot.social_graph.profiles.len());
+    for profile in &snapshot.social_graph.profiles {
+        restored_profiles.push(CoworkerProfile {
+            id: profile.id,
+            codename: profile.codename.clone(),
+            role: parse_coworker_role(&profile.role)?,
+            affinity: profile.affinity,
+            trust: profile.trust,
+        });
+    }
+    if !restored_profiles.is_empty() {
+        social_graph.profiles = restored_profiles;
+    }
+    social_graph.scenario_cursor = snapshot.social_graph.scenario_cursor;
+    social_graph.normalize();
+
     task_board.active = restored_active;
     task_board.completed_today = snapshot
         .task_board
@@ -451,6 +523,7 @@ fn save_slot(
     day_stats: &DayStats,
     mind: &PlayerMindState,
     progression: &CareerProgression,
+    social_graph: &SocialGraphState,
     store: &mut OfficeSaveStore,
 ) -> bool {
     let snapshot = capture_snapshot(
@@ -462,6 +535,7 @@ fn save_slot(
         day_stats,
         mind,
         progression,
+        social_graph,
     );
 
     match serialize_snapshot(&snapshot) {
@@ -499,6 +573,7 @@ fn load_slot(
     day_stats: &mut DayStats,
     mind: &mut PlayerMindState,
     progression: &mut CareerProgression,
+    social_graph: &mut SocialGraphState,
     career: &mut PlayerCareerState,
     economy: &OfficeEconomyRules,
     worker_query: &mut Query<&mut OfficeWorker>,
@@ -515,6 +590,7 @@ fn load_slot(
                 day_stats,
                 mind,
                 progression,
+                social_graph,
                 economy,
             );
 
@@ -551,6 +627,7 @@ pub fn persist_day_summary_snapshot(
     day_stats: Res<DayStats>,
     mind: Res<PlayerMindState>,
     progression: Res<CareerProgression>,
+    social_graph: Res<SocialGraphState>,
     config: Res<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -569,6 +646,7 @@ pub fn persist_day_summary_snapshot(
         &day_stats,
         &mind,
         &progression,
+        &social_graph,
         &mut store,
     );
 }
@@ -584,6 +662,7 @@ pub fn handle_save_slot_requests(
     day_stats: Res<DayStats>,
     mind: Res<PlayerMindState>,
     progression: Res<CareerProgression>,
+    social_graph: Res<SocialGraphState>,
     mut config: ResMut<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -599,6 +678,7 @@ pub fn handle_save_slot_requests(
             &day_stats,
             &mind,
             &progression,
+            &social_graph,
             &mut store,
         );
         if saved {
@@ -610,49 +690,56 @@ pub fn handle_save_slot_requests(
 #[allow(clippy::too_many_arguments)]
 pub fn handle_load_slot_requests(
     mut requests: EventReader<LoadSlotRequest>,
-    mut config: ResMut<SaveSlotConfig>,
-    mut store: ResMut<OfficeSaveStore>,
-    mut clock: ResMut<DayClock>,
-    mut worker_stats: ResMut<WorkerStats>,
-    mut task_board: ResMut<TaskBoard>,
-    mut run_config: ResMut<OfficeRunConfig>,
-    mut inbox: ResMut<InboxState>,
-    mut day_stats: ResMut<DayStats>,
-    mut mind: ResMut<PlayerMindState>,
-    mut progression: ResMut<CareerProgression>,
-    mut career: ResMut<PlayerCareerState>,
-    economy: Res<OfficeEconomyRules>,
-    mut next_state: ResMut<NextState<OfficeGameState>>,
-    mut day_advanced_writer: EventWriter<DayAdvanced>,
-    mut worker_query: Query<&mut OfficeWorker>,
+    mut params: LoadSlotSystemParams,
 ) {
     for request in requests.read() {
         let loaded_snapshot = load_slot(
             request.slot,
-            &config,
-            &mut store,
-            &mut clock,
-            &mut worker_stats,
-            &mut task_board,
-            &mut run_config,
-            &mut inbox,
-            &mut day_stats,
-            &mut mind,
-            &mut progression,
-            &mut career,
-            &economy,
-            &mut worker_query,
+            &params.config,
+            &mut params.store,
+            &mut params.clock,
+            &mut params.worker_stats,
+            &mut params.task_board,
+            &mut params.run_config,
+            &mut params.inbox,
+            &mut params.day_stats,
+            &mut params.mind,
+            &mut params.progression,
+            &mut params.social_graph,
+            &mut params.career,
+            &params.economy,
+            &mut params.worker_query,
         );
         let Some(snapshot) = loaded_snapshot else {
             continue;
         };
 
-        config.active_slot = request.slot;
+        params.config.active_slot = request.slot;
         if snapshot.day_ended {
-            day_advanced_writer.send(DayAdvanced {
+            params.day_advanced_writer.send(DayAdvanced {
                 new_day_index: snapshot.day_index.saturating_add(1),
             });
-            next_state.set(OfficeGameState::DaySummary);
+            params.next_state.set(OfficeGameState::DaySummary);
         }
     }
+}
+
+#[derive(SystemParam)]
+pub struct LoadSlotSystemParams<'w, 's> {
+    config: ResMut<'w, SaveSlotConfig>,
+    store: ResMut<'w, OfficeSaveStore>,
+    clock: ResMut<'w, DayClock>,
+    worker_stats: ResMut<'w, WorkerStats>,
+    task_board: ResMut<'w, TaskBoard>,
+    run_config: ResMut<'w, OfficeRunConfig>,
+    inbox: ResMut<'w, InboxState>,
+    day_stats: ResMut<'w, DayStats>,
+    mind: ResMut<'w, PlayerMindState>,
+    progression: ResMut<'w, CareerProgression>,
+    social_graph: ResMut<'w, SocialGraphState>,
+    career: ResMut<'w, PlayerCareerState>,
+    economy: Res<'w, OfficeEconomyRules>,
+    next_state: ResMut<'w, NextState<OfficeGameState>>,
+    day_advanced_writer: EventWriter<'w, DayAdvanced>,
+    worker_query: Query<'w, 's, &'static mut OfficeWorker>,
 }

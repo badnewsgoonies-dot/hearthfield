@@ -129,3 +129,11 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: Content scale needed to grow without introducing RNG drift or breaking replay assertions.
 - Decision: Replace single-pattern task generation with deterministic template packs spanning all task kinds/priorities and day-based difficulty/economy scaling, then gate with explicit variety and scaling tests.
 - Why: This increases gameplay variety and progression texture while preserving reproducibility required for long-horizon regression testing.
+
+## ADR-017 - Model Social State as a Persisted Deterministic Graph
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: R6 required social depth without compromising replay determinism or save/load fidelity.
+- Decision: Introduce `SocialGraphState` with bounded `CoworkerProfile` affinity/trust values, deterministic interruption scenario selection (`seed + day + cursor`), and snapshot persistence for social graph state.
+- Why: This creates a scalable social foundation while keeping behavior replay-safe and migration-friendly.
