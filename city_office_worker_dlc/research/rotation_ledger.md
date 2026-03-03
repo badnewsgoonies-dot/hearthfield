@@ -137,8 +137,13 @@ Current status:
 1. Social graph scaffolding landed (`SocialGraphState`, `CoworkerProfile`, role taxonomy, normalization/bounds).
 2. Deterministic social scenario selection landed in interruption flow (seed/day/cursor based), including relationship deltas.
 3. Social state persistence landed (snapshot capture/apply + load/save roundtrip coverage).
-4. New regression tests landed:
+4. Progression unlock catalog landed (`UnlockCatalogState`) with gameplay hooks (process throughput, coffee duration, calm-resolution modifiers, and reputation bonus) and day-rollover sync.
+5. Unlock state persistence landed (snapshot capture/apply + load/save roundtrip coverage).
+6. New regression tests landed:
    - `social_scenarios_are_seed_deterministic`
    - `load_restores_social_graph_state`
-5. Gate checkpoint PASS on 2026-03-03 (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`) with 27 passing tests.
-6. Remaining R6 scope: progression unlock catalog and milestone persistence rules.
+   - `unlock_catalog_syncs_with_progression_thresholds`
+   - `unlock_timeline_is_deterministic_for_replayed_day_summaries`
+   - `load_restores_unlock_catalog_state`
+7. Gate checkpoint PASS on 2026-03-03 (`cargo fmt`, `cargo check`, `cargo test`, `cargo clippy -D warnings`) with 30 passing tests.
+8. Remaining R6 scope: broaden social scenario volume and extend deterministic endurance/balancing coverage.

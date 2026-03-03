@@ -2,7 +2,7 @@
 
 Last updated: 2026-03-03  
 Current rotation: R6 - Social/Progression Expansion  
-Rotation state: In progress (R6 social-state and deterministic scenario slices landed; unlock catalog slice pending)
+Rotation state: In progress (R6 social-state, deterministic scenarios, and unlock catalog slices landed; endurance/balancing expansion pending)
 
 ## OES-v1 Target
 
@@ -21,30 +21,30 @@ OES-v1 (Origin-Equivalent State v1) means architecture parity, 200+ tests, deter
 | G6 Save Skeleton | Snapshot serialize/deserialize/apply preserves `TaskId` identities without regeneration | `snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen` + `game/save/mod.rs` | PASS |
 | G7 Durable Save Slots | Snapshot persistence survives filesystem roundtrip and load requests restore run state | `save_slot_roundtrip_persists_snapshot_payload` + `load_slot_request_restores_state_without_task_regeneration_drift` | PASS |
 | G8 Migration Stub | Legacy v0 payloads migrate into v1 schema | `migrate_v0_snapshot_to_v1_preserves_core_fields_and_ids` | PASS |
-| G9 Quality | `fmt/check/test/clippy -D warnings` all pass | Full gate run passed on 2026-03-03 after R6 social-state slice | PASS |
+| G9 Quality | `fmt/check/test/clippy -D warnings` all pass | Full gate run passed on 2026-03-03 after R6 unlock-catalog slice | PASS |
 | G10 First-Seconds Stability | Startup scene remains idempotent, preventing duplicate singleton entities in early frames | `setup_scene_is_idempotent_for_first_seconds_entities` | PASS |
 | G11 Content Pack Scaling | Seeded task board now rotates multi-kind/multi-priority templates with day-scaling reward/focus curves | `seeded_task_board_content_pack_has_kind_and_priority_variety` + `seeded_task_board_scales_task_economy_with_day_progression` | PASS |
 | G12 Social Determinism | Social scenario selection and relationship deltas are deterministic for fixed seed/scripts | `social_scenarios_are_seed_deterministic` | PASS |
 | G13 Social Persistence | Save/load restores social graph state and scenario cursor | `load_restores_social_graph_state` | PASS |
+| G14 Unlock Progression | Unlock thresholds/timeline/save-load behavior remain deterministic and persistent | `unlock_catalog_syncs_with_progression_thresholds` + `unlock_timeline_is_deterministic_for_replayed_day_summaries` + `load_restores_unlock_catalog_state` | PASS |
 
 ## Current Snapshot
 
-1. Source lines (`src/**/*.rs`): 4,697.
-2. Test count (`cargo test -- --list`): 27.
+1. Source lines (`src/**/*.rs`): 4,989.
+2. Test count (`cargo test -- --list`): 30.
 3. Clippy strictness: PASS at `-D warnings` in DLC.
 
 ## Remaining Blockers Toward OES-v1
 
 1. Domain breadth gap vs origin remains large (single `game` domain vs origin multi-domain tree).
-2. Progression unlock catalog and milestone gating are not yet implemented.
-3. Content scale beyond task templates (events/dialogue/scenario branches) remains early-stage.
-4. World/navigation parity is still early-stage.
+2. Content scale beyond task templates (events/dialogue/scenario branches) remains early-stage.
+3. World/navigation parity is still early-stage.
 
 ## R6 Focus (In Progress)
 
-1. Complete explicit progression unlock catalog with save/load and replay invariants.
-2. Expand social scenario branches/content volume beyond base deterministic templates.
-3. Expand endurance and balancing coverage while preserving deterministic replay baselines.
+1. Expand social scenario branches/content volume beyond base deterministic templates.
+2. Expand endurance and balancing coverage while preserving deterministic replay baselines.
+3. Grow deterministic tests toward 200+ and include longer unlock-driven endurance traces.
 
 ## Process Guardrails (Active for R6)
 

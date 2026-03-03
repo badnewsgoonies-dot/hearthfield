@@ -7,7 +7,7 @@ use crate::game::events::{
 };
 use crate::game::resources::{
     format_clock, CareerProgression, DayClock, DayStats, InboxState, OfficeEconomyRules,
-    OfficeRules, PlayerMindState, TaskBoard, TaskPriority,
+    OfficeRules, PlayerMindState, TaskBoard, TaskPriority, UnlockCatalogState,
 };
 
 fn priority_progress_multiplier(priority: TaskPriority) -> f32 {
@@ -30,6 +30,7 @@ pub fn handle_process_requests(
     rules: Res<OfficeRules>,
     economy: Res<OfficeEconomyRules>,
     progression: Res<CareerProgression>,
+    unlocks: Res<UnlockCatalogState>,
     mut clock: ResMut<DayClock>,
     mut inbox: ResMut<InboxState>,
     mut stats: ResMut<DayStats>,
@@ -74,7 +75,9 @@ pub fn handle_process_requests(
                 .map(|task| (task.id, task.required_focus, task.priority))
             {
                 let delta = progress_delta_for_task(required_focus, priority, mind.focus);
-                if let Some(applied_delta) = task_board.progress_task(task_id, delta) {
+                let adjusted_delta =
+                    (delta * unlocks.process_progress_multiplier()).clamp(0.0, 1.0);
+                if let Some(applied_delta) = task_board.progress_task(task_id, adjusted_delta) {
                     task_progressed_writer.send(TaskProgressed {
                         task_id,
                         delta: applied_delta,
@@ -146,6 +149,7 @@ pub fn enforce_task_deadlines(
 pub fn handle_coffee_requests(
     mut requests: EventReader<CoffeeBreakEvent>,
     rules: Res<OfficeRules>,
+    unlocks: Res<UnlockCatalogState>,
     mut clock: ResMut<DayClock>,
     mut stats: ResMut<DayStats>,
     mut worker_query: Query<&mut OfficeWorker>,
@@ -161,7 +165,7 @@ pub fn handle_coffee_requests(
 
         let before = worker.energy;
         worker.energy = (worker.energy + rules.coffee_restore).min(rules.max_energy);
-        clock.advance(rules.coffee_minutes);
+        clock.advance(unlocks.coffee_minutes(rules.coffee_minutes));
         stats.coffee_breaks += 1;
 
         info!(

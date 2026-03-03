@@ -1,3 +1,4 @@
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
 use crate::game::components::OfficeWorker;
@@ -5,7 +6,7 @@ use crate::game::events::{DayAdvanced, EndDayRequested, EndOfDayEvent, TaskFaile
 use crate::game::resources::{
     format_clock, CareerProgression, DayClock, DayOutcome, DayStats, InboxState,
     OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    TaskBoard, WorkerStats,
+    TaskBoard, UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -19,6 +20,7 @@ fn build_day_outcome(
     worker_stats: &WorkerStats,
     progression: &CareerProgression,
     economy: &OfficeEconomyRules,
+    unlocks: &UnlockCatalogState,
 ) -> DayOutcome {
     let completed_tasks = task_board.completed_today.len() as u32;
     let failed_tasks = task_board.failed_today.len() as u32;
@@ -48,6 +50,7 @@ fn build_day_outcome(
         - failed_tasks as i32
         - stats.panic_responses as i32 * 2
         + progression.reputation_bonus(economy);
+    let reputation_delta = reputation_delta + unlocks.reputation_bonus();
 
     let stress_delta = stats.interruptions_triggered as i32 * 3 + stats.panic_responses as i32 * 5
         - stats.calm_responses as i32 * 3
@@ -87,9 +90,17 @@ pub fn update_day_outcome_preview(
     worker_stats: Res<WorkerStats>,
     progression: Res<CareerProgression>,
     economy: Res<OfficeEconomyRules>,
+    unlocks: Res<UnlockCatalogState>,
     mut day_outcome: ResMut<DayOutcome>,
 ) {
-    *day_outcome = build_day_outcome(&stats, &task_board, &worker_stats, &progression, &economy);
+    *day_outcome = build_day_outcome(
+        &stats,
+        &task_board,
+        &worker_stats,
+        &progression,
+        &economy,
+        &unlocks,
+    );
 }
 
 pub fn check_end_of_day(
@@ -114,53 +125,48 @@ pub fn check_end_of_day(
 #[allow(clippy::too_many_arguments)]
 pub fn finalize_end_day_request(
     mut requests: EventReader<EndDayRequested>,
-    mut next_state: ResMut<NextState<OfficeGameState>>,
-    mut day_advanced_writer: EventWriter<DayAdvanced>,
-    mut end_of_day_writer: EventWriter<EndOfDayEvent>,
-    mut task_failed_writer: EventWriter<TaskFailed>,
-    mut clock: ResMut<DayClock>,
-    inbox: Res<InboxState>,
-    stats: Res<DayStats>,
-    mind: Res<PlayerMindState>,
-    career: Res<PlayerCareerState>,
-    worker_query: Query<&OfficeWorker>,
-    mut task_board: ResMut<TaskBoard>,
-    worker_stats: Res<WorkerStats>,
-    progression: Res<CareerProgression>,
-    economy: Res<OfficeEconomyRules>,
-    mut day_outcome: ResMut<DayOutcome>,
+    mut params: FinalizeEndDayParams,
 ) {
     for _ in requests.read() {
-        if clock.ended {
+        if params.clock.ended {
             continue;
         }
 
-        clock.ended = true;
-        let newly_failed_tasks = fail_remaining_task_board_work(&mut task_board);
+        params.clock.ended = true;
+        let newly_failed_tasks = fail_remaining_task_board_work(&mut params.task_board);
         for task_id in newly_failed_tasks {
-            task_failed_writer.send(TaskFailed { task_id });
+            params.task_failed_writer.send(TaskFailed { task_id });
         }
-        *day_outcome =
-            build_day_outcome(&stats, &task_board, &worker_stats, &progression, &economy);
+        *params.day_outcome = build_day_outcome(
+            &params.stats,
+            &params.task_board,
+            &params.worker_stats,
+            &params.progression,
+            &params.economy,
+            &params.unlocks,
+        );
 
         let summary = EndOfDayEvent {
-            day_number: clock.day_number,
-            finished_minute: clock.current_minute,
-            processed_items: stats.processed_items,
-            remaining_items: inbox.remaining_items,
-            coffee_breaks: stats.coffee_breaks,
-            wait_actions: stats.wait_actions,
-            failed_process_attempts: stats.failed_process_attempts,
-            interruptions_triggered: stats.interruptions_triggered,
-            calm_responses: stats.calm_responses,
-            panic_responses: stats.panic_responses,
-            unresolved_interruptions: mind.pending_interruptions,
-            manager_checkins: stats.manager_checkins,
-            coworker_helps: stats.coworker_helps,
-            final_energy: worker_query.get_single().map_or(0, |worker| worker.energy),
-            final_stress: mind.stress,
-            final_focus: mind.focus,
-            final_reputation: career.reputation,
+            day_number: params.clock.day_number,
+            finished_minute: params.clock.current_minute,
+            processed_items: params.stats.processed_items,
+            remaining_items: params.inbox.remaining_items,
+            coffee_breaks: params.stats.coffee_breaks,
+            wait_actions: params.stats.wait_actions,
+            failed_process_attempts: params.stats.failed_process_attempts,
+            interruptions_triggered: params.stats.interruptions_triggered,
+            calm_responses: params.stats.calm_responses,
+            panic_responses: params.stats.panic_responses,
+            unresolved_interruptions: params.mind.pending_interruptions,
+            manager_checkins: params.stats.manager_checkins,
+            coworker_helps: params.stats.coworker_helps,
+            final_energy: params
+                .worker_query
+                .get_single()
+                .map_or(0, |worker| worker.energy),
+            final_stress: params.mind.stress,
+            final_focus: params.mind.focus,
+            final_reputation: params.career.reputation,
         };
 
         println!();
@@ -192,19 +198,43 @@ pub fn finalize_end_day_request(
         println!("Final reputation: {}", summary.final_reputation);
         println!("=============================================");
 
-        let new_day_index = clock.day_number.saturating_add(1);
-        end_of_day_writer.send(summary);
-        day_advanced_writer.send(DayAdvanced { new_day_index });
-        next_state.set(OfficeGameState::DaySummary);
+        let new_day_index = params.clock.day_number.saturating_add(1);
+        params.end_of_day_writer.send(summary);
+        params
+            .day_advanced_writer
+            .send(DayAdvanced { new_day_index });
+        params.next_state.set(OfficeGameState::DaySummary);
     }
 }
 
+#[derive(SystemParam)]
+pub struct FinalizeEndDayParams<'w, 's> {
+    next_state: ResMut<'w, NextState<OfficeGameState>>,
+    day_advanced_writer: EventWriter<'w, DayAdvanced>,
+    end_of_day_writer: EventWriter<'w, EndOfDayEvent>,
+    task_failed_writer: EventWriter<'w, TaskFailed>,
+    clock: ResMut<'w, DayClock>,
+    inbox: Res<'w, InboxState>,
+    stats: Res<'w, DayStats>,
+    mind: Res<'w, PlayerMindState>,
+    career: Res<'w, PlayerCareerState>,
+    worker_query: Query<'w, 's, &'static OfficeWorker>,
+    task_board: ResMut<'w, TaskBoard>,
+    worker_stats: Res<'w, WorkerStats>,
+    progression: Res<'w, CareerProgression>,
+    economy: Res<'w, OfficeEconomyRules>,
+    unlocks: Res<'w, UnlockCatalogState>,
+    day_outcome: ResMut<'w, DayOutcome>,
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn apply_day_summary_rollover(
     clock: Res<DayClock>,
     economy: Res<OfficeEconomyRules>,
     mut day_outcome: ResMut<DayOutcome>,
     day_stats: Res<DayStats>,
     mut progression: ResMut<CareerProgression>,
+    mut unlocks: ResMut<UnlockCatalogState>,
     mut worker_stats: ResMut<WorkerStats>,
     mut career: ResMut<PlayerCareerState>,
 ) {
@@ -257,9 +287,10 @@ pub fn apply_day_summary_rollover(
         );
     let levels_gained = progression.add_experience(gained_xp, &economy);
     progression.normalize(&economy);
+    unlocks.sync_with_progression(&progression);
 
     info!(
-        "Day rollover -> salary: {}, rep delta: {}, stress delta: {}, totals money: {}, reputation: {}, xp gained: {}, levels gained: {}, level: {}, streak: {}",
+        "Day rollover -> salary: {}, rep delta: {}, stress delta: {}, totals money: {}, reputation: {}, xp gained: {}, levels gained: {}, level: {}, streak: {}, unlocks: {}",
         day_outcome.salary_earned,
         day_outcome.reputation_delta,
         day_outcome.stress_delta,
@@ -268,7 +299,8 @@ pub fn apply_day_summary_rollover(
         gained_xp,
         levels_gained,
         progression.level,
-        progression.success_streak
+        progression.success_streak,
+        unlocks.unlocked_count()
     );
 
     day_outcome.salary_earned = 0;

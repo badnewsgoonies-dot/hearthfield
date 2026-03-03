@@ -19,7 +19,7 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 
 - [x] **R4**: Durable save slots + load flow + schema migration stubs.
 - [x] **R5**: Rich task progression/deadline semantics with full terminal-state invariants.
-- [ ] **R6**: Economy/progression depth (salary curves, penalties, upgrades/perks).
+- [x] **R6**: Economy/progression depth (salary curves, penalties, upgrades/perks, unlock catalog).
 - [ ] **R7**: Social domain decomposition (coworkers, manager arcs, affinity/progression hooks).
 - [ ] **R8**: UI/HUD expansion for summary, task board, progression readability.
 - [ ] **R9**: Content pack scaling (task templates, interruption scenarios, progression content).
@@ -53,4 +53,5 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 - [x] Continue **R5** slice E: expand task/economy content templates on top of stabilized semantics.
 - [x] Start **R6** slice A: persistent coworker roster and affinity state scaffolding.
 - [x] Start **R6** slice B: deterministic social scenario templates with replay tests.
-- [ ] Start **R6** slice C: progression unlock table with persistence coverage.
+- [x] Start **R6** slice C: progression unlock table with persistence coverage.
+- [ ] Start **R6** slice D: endurance/replay expansion that exercises unlock progression over longer runs.

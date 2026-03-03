@@ -339,3 +339,26 @@ Additional invariants:
 1. `SocialGraphState` must normalize to unique profile IDs and clamp affinity/trust to `[-100, 100]`.
 2. Interruption social scenarios must be deterministic for fixed `seed + day + cursor`.
 3. Save/load roundtrip must preserve social graph values and scenario cursor.
+
+## 12) R6 Addendum (Progression Unlock Catalog)
+
+Additional frozen resource:
+
+```rust
+#[derive(Resource, Debug, Clone, PartialEq, Eq, Default)]
+pub struct UnlockCatalogState {
+    pub quick_coffee: bool,          // unlock at level >= 2
+    pub efficient_processing: bool,  // unlock at level >= 3
+    pub conflict_training: bool,     // unlock at level >= 4
+    pub escalation_license: bool,    // unlock at level >= 5
+}
+```
+
+Additional invariants:
+1. Unlock booleans must be deterministic functions of progression milestones (`sync_with_progression`) and remain replay-stable for fixed day scripts.
+2. Save/load roundtrip must preserve unlock catalog values without schema drift.
+3. Unlock gameplay effects are contractually active in core loop systems:
+   - `efficient_processing` scales task progress delta.
+   - `quick_coffee` reduces coffee action duration with a floor.
+   - `conflict_training` improves calm-resolution focus/stress deltas.
+   - `escalation_license` adds day-outcome reputation bonus.

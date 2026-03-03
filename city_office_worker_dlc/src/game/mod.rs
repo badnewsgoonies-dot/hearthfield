@@ -43,6 +43,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::SocialGraphState>()
             .init_resource::<resources::OfficeEconomyRules>()
             .init_resource::<resources::CareerProgression>()
+            .init_resource::<resources::UnlockCatalogState>()
             .init_resource::<resources::TaskBoard>()
             .init_resource::<resources::DayOutcome>()
             .init_resource::<resources::DayStats>()

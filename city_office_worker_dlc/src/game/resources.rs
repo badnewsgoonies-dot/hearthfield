@@ -681,6 +681,70 @@ impl CareerProgression {
     }
 }
 
+#[derive(Resource, Debug, Clone, PartialEq, Eq, Default)]
+pub struct UnlockCatalogState {
+    pub quick_coffee: bool,
+    pub efficient_processing: bool,
+    pub conflict_training: bool,
+    pub escalation_license: bool,
+}
+
+impl UnlockCatalogState {
+    pub fn sync_with_progression(&mut self, progression: &CareerProgression) {
+        self.quick_coffee = progression.level >= 2;
+        self.efficient_processing = progression.level >= 3;
+        self.conflict_training = progression.level >= 4;
+        self.escalation_license = progression.level >= 5;
+    }
+
+    pub fn process_progress_multiplier(&self) -> f32 {
+        if self.efficient_processing {
+            1.18
+        } else {
+            1.0
+        }
+    }
+
+    pub fn coffee_minutes(&self, base_minutes: u32) -> u32 {
+        if self.quick_coffee {
+            (base_minutes / 2).max(5)
+        } else {
+            base_minutes
+        }
+    }
+
+    pub fn calm_focus_bonus(&self) -> i32 {
+        if self.conflict_training {
+            3
+        } else {
+            0
+        }
+    }
+
+    pub fn calm_stress_relief_bonus(&self) -> i32 {
+        if self.conflict_training {
+            2
+        } else {
+            0
+        }
+    }
+
+    pub fn reputation_bonus(&self) -> i32 {
+        if self.escalation_license {
+            1
+        } else {
+            0
+        }
+    }
+
+    pub fn unlocked_count(&self) -> u32 {
+        self.quick_coffee as u32
+            + self.efficient_processing as u32
+            + self.conflict_training as u32
+            + self.escalation_license as u32
+    }
+}
+
 #[derive(Resource, Debug, Default)]
 pub struct DayStats {
     pub processed_items: u32,

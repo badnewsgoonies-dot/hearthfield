@@ -11,7 +11,7 @@ use crate::game::events::DayAdvanced;
 use crate::game::resources::{
     CareerProgression, CoworkerProfile, CoworkerRole, DayClock, DayStats, InboxState,
     OfficeEconomyRules, OfficeRunConfig, OfficeTask, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority, WorkerStats,
+    SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority, UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -65,6 +65,8 @@ pub struct OfficeSaveSnapshot {
     pub progression: CareerProgressionSnapshot,
     #[serde(default)]
     pub social_graph: SocialGraphSnapshot,
+    #[serde(default)]
+    pub unlocks: UnlockCatalogSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -130,6 +132,14 @@ pub struct CoworkerSnapshot {
     pub role: String,
     pub affinity: i32,
     pub trust: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct UnlockCatalogSnapshot {
+    pub quick_coffee: bool,
+    pub efficient_processing: bool,
+    pub conflict_training: bool,
+    pub escalation_license: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -249,6 +259,7 @@ fn migrate_v0_to_v1(v0: OfficeSaveSnapshotV0) -> OfficeSaveSnapshot {
         pending_interruptions: 0,
         progression: CareerProgressionSnapshot::default(),
         social_graph: SocialGraphSnapshot::default(),
+        unlocks: UnlockCatalogSnapshot::default(),
     }
 }
 
@@ -263,6 +274,7 @@ pub fn capture_snapshot(
     mind: &PlayerMindState,
     progression: &CareerProgression,
     social_graph: &SocialGraphState,
+    unlocks: &UnlockCatalogState,
 ) -> OfficeSaveSnapshot {
     OfficeSaveSnapshot {
         schema_version: 1,
@@ -340,6 +352,12 @@ pub fn capture_snapshot(
                 .collect(),
             scenario_cursor: social_graph.scenario_cursor,
         },
+        unlocks: UnlockCatalogSnapshot {
+            quick_coffee: unlocks.quick_coffee,
+            efficient_processing: unlocks.efficient_processing,
+            conflict_training: unlocks.conflict_training,
+            escalation_license: unlocks.escalation_license,
+        },
     }
 }
 
@@ -415,6 +433,7 @@ pub fn apply_snapshot(
     mind: &mut PlayerMindState,
     progression: &mut CareerProgression,
     social_graph: &mut SocialGraphState,
+    unlocks: &mut UnlockCatalogState,
     economy: &OfficeEconomyRules,
 ) -> Result<(), String> {
     if snapshot.schema_version != 1 {
@@ -491,6 +510,12 @@ pub fn apply_snapshot(
     social_graph.scenario_cursor = snapshot.social_graph.scenario_cursor;
     social_graph.normalize();
 
+    unlocks.quick_coffee = snapshot.unlocks.quick_coffee;
+    unlocks.efficient_processing = snapshot.unlocks.efficient_processing;
+    unlocks.conflict_training = snapshot.unlocks.conflict_training;
+    unlocks.escalation_license = snapshot.unlocks.escalation_license;
+    unlocks.sync_with_progression(progression);
+
     task_board.active = restored_active;
     task_board.completed_today = snapshot
         .task_board
@@ -524,6 +549,7 @@ fn save_slot(
     mind: &PlayerMindState,
     progression: &CareerProgression,
     social_graph: &SocialGraphState,
+    unlocks: &UnlockCatalogState,
     store: &mut OfficeSaveStore,
 ) -> bool {
     let snapshot = capture_snapshot(
@@ -536,6 +562,7 @@ fn save_slot(
         mind,
         progression,
         social_graph,
+        unlocks,
     );
 
     match serialize_snapshot(&snapshot) {
@@ -574,6 +601,7 @@ fn load_slot(
     mind: &mut PlayerMindState,
     progression: &mut CareerProgression,
     social_graph: &mut SocialGraphState,
+    unlocks: &mut UnlockCatalogState,
     career: &mut PlayerCareerState,
     economy: &OfficeEconomyRules,
     worker_query: &mut Query<&mut OfficeWorker>,
@@ -591,6 +619,7 @@ fn load_slot(
                 mind,
                 progression,
                 social_graph,
+                unlocks,
                 economy,
             );
 
@@ -628,6 +657,7 @@ pub fn persist_day_summary_snapshot(
     mind: Res<PlayerMindState>,
     progression: Res<CareerProgression>,
     social_graph: Res<SocialGraphState>,
+    unlocks: Res<UnlockCatalogState>,
     config: Res<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -647,6 +677,7 @@ pub fn persist_day_summary_snapshot(
         &mind,
         &progression,
         &social_graph,
+        &unlocks,
         &mut store,
     );
 }
@@ -663,6 +694,7 @@ pub fn handle_save_slot_requests(
     mind: Res<PlayerMindState>,
     progression: Res<CareerProgression>,
     social_graph: Res<SocialGraphState>,
+    unlocks: Res<UnlockCatalogState>,
     mut config: ResMut<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -679,6 +711,7 @@ pub fn handle_save_slot_requests(
             &mind,
             &progression,
             &social_graph,
+            &unlocks,
             &mut store,
         );
         if saved {
@@ -706,6 +739,7 @@ pub fn handle_load_slot_requests(
             &mut params.mind,
             &mut params.progression,
             &mut params.social_graph,
+            &mut params.unlocks,
             &mut params.career,
             &params.economy,
             &mut params.worker_query,
@@ -737,6 +771,7 @@ pub struct LoadSlotSystemParams<'w, 's> {
     mind: ResMut<'w, PlayerMindState>,
     progression: ResMut<'w, CareerProgression>,
     social_graph: ResMut<'w, SocialGraphState>,
+    unlocks: ResMut<'w, UnlockCatalogState>,
     career: ResMut<'w, PlayerCareerState>,
     economy: Res<'w, OfficeEconomyRules>,
     next_state: ResMut<'w, NextState<OfficeGameState>>,

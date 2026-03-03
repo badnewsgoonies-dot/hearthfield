@@ -6,7 +6,7 @@ use crate::game::events::{
 };
 use crate::game::resources::{
     format_clock, DayClock, DayStats, OfficeRules, OfficeRunConfig, PlayerCareerState,
-    PlayerMindState, SocialGraphState,
+    PlayerMindState, SocialGraphState, UnlockCatalogState,
 };
 
 #[derive(Clone, Copy)]
@@ -137,6 +137,7 @@ pub fn handle_interruption_requests(
 pub fn handle_resolve_calmly_requests(
     mut requests: EventReader<ResolveCalmlyEvent>,
     rules: Res<OfficeRules>,
+    unlocks: Res<UnlockCatalogState>,
     clock: Res<DayClock>,
     mut stats: ResMut<DayStats>,
     mut mind: ResMut<PlayerMindState>,
@@ -155,8 +156,10 @@ pub fn handle_resolve_calmly_requests(
         let before_stress = mind.stress;
 
         mind.pending_interruptions -= 1;
-        mind.focus = (mind.focus + rules.calm_focus_restore).clamp(0, rules.max_focus);
-        mind.stress = (mind.stress - rules.calm_stress_relief).clamp(0, rules.max_stress);
+        mind.focus = (mind.focus + rules.calm_focus_restore + unlocks.calm_focus_bonus())
+            .clamp(0, rules.max_focus);
+        mind.stress = (mind.stress - rules.calm_stress_relief - unlocks.calm_stress_relief_bonus())
+            .clamp(0, rules.max_stress);
         stats.calm_responses = stats.calm_responses.saturating_add(1);
 
         info!(

@@ -14,7 +14,7 @@ use crate::game::events::{
 use crate::game::resources::{
     CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats, InboxState,
     OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, TaskPriority, WorkerStats,
+    SocialGraphState, TaskBoard, TaskPriority, UnlockCatalogState, WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -186,6 +186,7 @@ fn build_test_app() -> App {
         .init_resource::<SocialGraphState>()
         .init_resource::<OfficeEconomyRules>()
         .init_resource::<CareerProgression>()
+        .init_resource::<UnlockCatalogState>()
         .init_resource::<DayOutcome>()
         .init_resource::<DayStats>()
         .init_resource::<SaveSlotConfig>()
@@ -674,6 +675,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
+        let unlocks = app.world().resource::<UnlockCatalogState>();
 
         let snapshot = capture_snapshot(
             clock,
@@ -685,6 +687,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
             mind,
             progression,
             social_graph,
+            unlocks,
         );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
@@ -723,6 +726,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut mind = PlayerMindState::default();
     let mut progression = CareerProgression::default();
     let mut social_graph = SocialGraphState::default();
+    let mut unlocks = UnlockCatalogState::default();
     let economy = app.world().resource::<OfficeEconomyRules>().clone();
 
     apply_snapshot(
@@ -736,6 +740,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut mind,
         &mut progression,
         &mut social_graph,
+        &mut unlocks,
         &economy,
     )
     .expect("snapshot apply should succeed");
@@ -770,6 +775,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
+        let unlocks = app.world().resource::<UnlockCatalogState>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -780,6 +786,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
             mind,
             progression,
             social_graph,
+            unlocks,
         )
     };
 
@@ -1018,6 +1025,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
+        let unlocks = app.world().resource::<UnlockCatalogState>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1028,6 +1036,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
             mind,
             progression,
             social_graph,
+            unlocks,
         )
     };
     write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
@@ -1225,6 +1234,146 @@ fn load_restores_social_graph_state() {
 }
 
 #[test]
+fn unlock_catalog_syncs_with_progression_thresholds() {
+    let mut progression = CareerProgression::default();
+    let mut unlocks = UnlockCatalogState::default();
+
+    progression.level = 1;
+    unlocks.sync_with_progression(&progression);
+    assert_eq!(unlocks.unlocked_count(), 0);
+    assert!(!unlocks.quick_coffee);
+    assert!(!unlocks.efficient_processing);
+    assert!(!unlocks.conflict_training);
+    assert!(!unlocks.escalation_license);
+
+    progression.level = 2;
+    unlocks.sync_with_progression(&progression);
+    assert_eq!(unlocks.unlocked_count(), 1);
+    assert!(unlocks.quick_coffee);
+    assert!(!unlocks.efficient_processing);
+    assert!(!unlocks.conflict_training);
+    assert!(!unlocks.escalation_license);
+
+    progression.level = 3;
+    unlocks.sync_with_progression(&progression);
+    assert_eq!(unlocks.unlocked_count(), 2);
+    assert!(unlocks.quick_coffee);
+    assert!(unlocks.efficient_processing);
+    assert!(!unlocks.conflict_training);
+    assert!(!unlocks.escalation_license);
+
+    progression.level = 4;
+    unlocks.sync_with_progression(&progression);
+    assert_eq!(unlocks.unlocked_count(), 3);
+    assert!(unlocks.quick_coffee);
+    assert!(unlocks.efficient_processing);
+    assert!(unlocks.conflict_training);
+    assert!(!unlocks.escalation_license);
+
+    progression.level = 5;
+    unlocks.sync_with_progression(&progression);
+    assert_eq!(unlocks.unlocked_count(), 4);
+    assert!(unlocks.quick_coffee);
+    assert!(unlocks.efficient_processing);
+    assert!(unlocks.conflict_training);
+    assert!(unlocks.escalation_license);
+}
+
+#[test]
+fn unlock_timeline_is_deterministic_for_replayed_day_summaries() {
+    fn run_unlock_timeline(script: &[(u32, u32, u32, u32)]) -> Vec<u32> {
+        let economy = OfficeEconomyRules::default();
+        let mut progression = CareerProgression::default();
+        let mut unlocks = UnlockCatalogState::default();
+        let mut trace = Vec::with_capacity(script.len());
+
+        for (completed, failed, manager_checkins, coworker_helps) in script {
+            let gained_xp = completed
+                .saturating_mul(economy.xp_per_completed_task)
+                .saturating_add(manager_checkins.saturating_mul(economy.xp_per_manager_checkin))
+                .saturating_add(coworker_helps.saturating_mul(economy.xp_per_coworker_help))
+                .saturating_sub(failed.saturating_mul(economy.xp_penalty_per_failed_task));
+            progression.add_experience(gained_xp, &economy);
+            progression.normalize(&economy);
+            unlocks.sync_with_progression(&progression);
+            trace.push(unlocks.unlocked_count());
+        }
+
+        trace
+    }
+
+    let script_a = vec![(4, 0, 1, 1), (5, 0, 2, 1), (3, 1, 0, 1), (6, 0, 2, 2)];
+    let script_b = script_a.clone();
+    let script_c = vec![(1, 1, 0, 0), (2, 1, 0, 0), (1, 2, 0, 0), (2, 1, 0, 1)];
+
+    let trace_a = run_unlock_timeline(&script_a);
+    let trace_b = run_unlock_timeline(&script_b);
+    let trace_c = run_unlock_timeline(&script_c);
+
+    assert_eq!(trace_a, trace_b);
+    assert_ne!(trace_a, trace_c);
+}
+
+#[test]
+fn load_restores_unlock_catalog_state() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("unlock_restore");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            crate::game::save::handle_save_slot_requests,
+            crate::game::save::handle_load_slot_requests,
+        )
+            .chain(),
+    );
+
+    let expected_unlocks = {
+        {
+            let mut progression = app.world_mut().resource_mut::<CareerProgression>();
+            progression.level = 4;
+            progression.xp = 9;
+            progression.efficiency_perk = 1;
+            progression.normalize(&OfficeEconomyRules::default());
+        }
+        let progression = app.world().resource::<CareerProgression>().clone();
+        let mut unlocks = app.world_mut().resource_mut::<UnlockCatalogState>();
+        unlocks.sync_with_progression(&progression);
+        unlocks.clone()
+    };
+
+    app.world_mut().send_event(SaveSlotRequest { slot: 8 });
+    app.update();
+
+    {
+        let mut progression = app.world_mut().resource_mut::<CareerProgression>();
+        progression.level = 1;
+        progression.xp = 0;
+        progression.success_streak = 0;
+        progression.burnout_days = 0;
+    }
+    {
+        let mut unlocks = app.world_mut().resource_mut::<UnlockCatalogState>();
+        *unlocks = UnlockCatalogState::default();
+    }
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 8 });
+    app.update();
+    app.update();
+
+    let restored_unlocks = app.world().resource::<UnlockCatalogState>();
+    assert_eq!(*restored_unlocks, expected_unlocks);
+    assert!(app
+        .world()
+        .resource::<OfficeSaveStore>()
+        .last_io_error
+        .is_none());
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
 fn social_scenarios_are_seed_deterministic() {
     fn run_social_trace(seed: u64) -> (i32, i32, u32, Vec<(u8, i32, i32)>) {
         let mut app = build_test_app();
@@ -1341,6 +1490,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         let mind = app.world().resource::<PlayerMindState>();
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
+        let unlocks = app.world().resource::<UnlockCatalogState>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1351,6 +1501,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
             mind,
             progression,
             social_graph,
+            unlocks,
         )
     };
 
@@ -1374,6 +1525,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
     let mut mind = PlayerMindState::default();
     let mut progression = CareerProgression::default();
     let mut social_graph = SocialGraphState::default();
+    let mut unlocks = UnlockCatalogState::default();
     let economy = OfficeEconomyRules::default();
 
     apply_snapshot(
@@ -1387,6 +1539,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         &mut mind,
         &mut progression,
         &mut social_graph,
+        &mut unlocks,
         &economy,
     )
     .expect("malformed terminal-set snapshot should normalize successfully");

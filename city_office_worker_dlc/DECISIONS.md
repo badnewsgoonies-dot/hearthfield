@@ -137,3 +137,11 @@ Format: concise ADR log for accepted prototype decisions.
 - Context: R6 required social depth without compromising replay determinism or save/load fidelity.
 - Decision: Introduce `SocialGraphState` with bounded `CoworkerProfile` affinity/trust values, deterministic interruption scenario selection (`seed + day + cursor`), and snapshot persistence for social graph state.
 - Why: This creates a scalable social foundation while keeping behavior replay-safe and migration-friendly.
+
+## ADR-018 - Represent Progression Unlocks as Explicit Persisted State
+
+- Date: 2026-03-03
+- Status: Accepted
+- Context: Progression perks existed, but unlock milestones were implicit and not auditable as first-class save/load or regression surfaces.
+- Decision: Add `UnlockCatalogState` as a dedicated resource, sync it from progression level milestones, persist it in save snapshots, and wire unlock effects into core loop systems (task processing, coffee timing, calm interruption resolution, and day-outcome reputation).
+- Why: Explicit unlock state improves observability, guards against progression drift across loads/replays, and provides a stable contract for future content-gated expansions.
