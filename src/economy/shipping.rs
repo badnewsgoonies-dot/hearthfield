@@ -149,6 +149,7 @@ pub fn process_shipping_bin_on_day_end(
         // Notify the player of their earnings
         toast_writer.send(ToastEvent {
             message: format!("Shipping: earned {}g from {} items", total_value, items_shipped),
+            duration_secs: 4.0,
         });
 
         sfx_writer.send(PlaySfxEvent {

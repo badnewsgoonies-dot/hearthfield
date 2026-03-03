@@ -788,9 +788,9 @@ pub fn track_monster_slain(
     for event in events.read() {
         for quest in quest_log.active.iter_mut() {
             if let QuestObjective::Slay { ref monster_kind, quantity, ref mut slain } = quest.objective {
-                if *monster_kind == event.monster_kind && *slain < *quantity {
+                if *monster_kind == event.monster_kind && *slain < quantity {
                     *slain += 1;
-                    if *slain >= *quantity {
+                    if *slain >= quantity {
                         newly_completed.push((quest.id.clone(), quest.reward_gold));
                     }
                 }

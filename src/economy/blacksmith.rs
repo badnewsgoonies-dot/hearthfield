@@ -73,7 +73,7 @@ pub fn drain_upgrade_complete(mut events: EventReader<ToolUpgradeCompleteEvent>)
 ///   - Adds to ToolUpgradeQueue (2-day timer)
 pub fn handle_upgrade_request(
     mut upgrade_events: EventReader<ToolUpgradeRequestEvent>,
-    mut player_state: ResMut<PlayerState>,
+    player_state: ResMut<PlayerState>,
     mut inventory: ResMut<Inventory>,
     mut upgrade_queue: ResMut<ToolUpgradeQueue>,
     mut gold_writer: EventWriter<GoldChangeEvent>,

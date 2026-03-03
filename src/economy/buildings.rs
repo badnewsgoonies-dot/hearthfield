@@ -60,7 +60,7 @@ pub struct BuildingLevels {
 /// On failure: sends a toast with the reason for denial.
 pub fn handle_building_upgrade_request(
     mut events: EventReader<BuildingUpgradeEvent>,
-    mut player_state: ResMut<PlayerState>,
+    player_state: ResMut<PlayerState>,
     mut inventory: ResMut<Inventory>,
     mut building_levels: ResMut<BuildingLevels>,
     mut gold_writer: EventWriter<GoldChangeEvent>,

@@ -258,17 +258,3 @@ pub fn handle_evaluation(
     }
 }
 
-/// Allows the player to manually re-trigger the evaluation at any point after the
-/// first evaluation by sending another `EvaluationTriggerEvent`.
-///
-/// This system does not fire any events itself — it simply resets `evaluated` to
-/// `false` so that `check_evaluation_trigger` can fire again *if* the calendar
-/// conditions still match, OR so that an external UI system can send
-/// `EvaluationTriggerEvent` directly.  In practice, the UI domain is expected to
-/// send the event; this system exists as documentation of the contract and to
-/// ensure the flag can be toggled without modifying `shared/mod.rs`.
-///
-/// NOTE: Currently this system is a no-op stub included to satisfy the re-evaluation
-/// contract described in the task.  A real re-evaluation is started by any system
-/// (typically the UI shrine interaction) that sends `EvaluationTriggerEvent` — the
-/// `handle_evaluation` system handles both first and subsequent evaluations cleanly.

@@ -96,17 +96,17 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
         }
     }
 
-    // Interior rooms — exit through south edge → appropriate outdoor map
-    if *map == MapId::PlayerHouse && gy <= min_y {
-        return Some((MapId::Farm, 10, 9));
+    // Interior rooms — exit through front door (y=max wall) → appropriate outdoor map
+    if *map == MapId::PlayerHouse && gy >= max_y {
+        return Some((MapId::Farm, 16, 1));
     }
-    if *map == MapId::GeneralStore && gy <= min_y {
+    if *map == MapId::GeneralStore && gy >= max_y {
         return Some((MapId::Town, 14, 10));
     }
-    if *map == MapId::AnimalShop && gy <= min_y {
+    if *map == MapId::AnimalShop && gy >= max_y {
         return Some((MapId::Town, 6, 10));
     }
-    if *map == MapId::Blacksmith && gy <= min_y {
+    if *map == MapId::Blacksmith && gy >= max_y {
         return Some((MapId::Town, 22, 10));
     }
 
