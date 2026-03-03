@@ -476,7 +476,7 @@ fn generate_forest() -> MapDef {
             objects.push(ObjectPlacement { x: x as i32, y: y as i32, kind: WorldObjectKind::Tree });
         }
     }
-    // Scattered forest trees (mix of deciduous and pine)
+    // Scattered forest trees
     let tree_positions = [
         (1, 4), (1, 10), (3, 8), (5, 10), (7, 4),
         (12, 3), (14, 3), (11, 10), (13, 14), (15, 10),
@@ -486,9 +486,7 @@ fn generate_forest() -> MapDef {
         objects.push(ObjectPlacement { x: *tx, y: *ty, kind: WorldObjectKind::Tree });
     }
     // Pine trees (evergreen accents in the forest)
-    let pine_positions = [
-        (3, 5), (9, 3), (17, 8), (18, 14), (6, 14),
-    ];
+    let pine_positions = [(3, 5), (9, 3), (17, 8), (18, 14), (6, 14)];
     for (px, py) in &pine_positions {
         objects.push(ObjectPlacement { x: *px, y: *py, kind: WorldObjectKind::Pine });
     }

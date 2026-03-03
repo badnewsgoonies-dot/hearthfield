@@ -22,9 +22,6 @@ pub struct ObjectAtlases {
     pub grass_biome_layout: Handle<TextureAtlasLayout>,
     pub fences_image: Handle<Image>,
     pub fences_layout: Handle<TextureAtlasLayout>,
-    // Tree spritesheet (32×48 cells, 4 cols × 2 rows: deciduous + pine, seasonal)
-    pub tree_sprites_image: Handle<Image>,
-    pub tree_sprites_layout: Handle<TextureAtlasLayout>,
     // Building tilesets (Sprout Lands)
     pub house_walls_image: Handle<Image>,
     pub house_walls_layout: Handle<TextureAtlasLayout>,
@@ -372,7 +369,7 @@ pub fn spawn_world_objects(
         };
 
         if object_atlases.loaded {
-            // Trees use dedicated tree_sprites atlas (32×48 cells, seasonal)
+            // Trees and pines use dedicated tree_sprites atlas (32×48 cells, seasonal)
             let is_tree = matches!(kind, WorldObjectKind::Tree | WorldObjectKind::Pine);
             let (image, layout, index) = if is_tree {
                 // tree_sprites.png: row 0 = deciduous, row 1 = pine
@@ -387,7 +384,7 @@ pub fn spawn_world_objects(
                 (
                     object_atlases.tree_sprites_image.clone(),
                     object_atlases.tree_sprites_layout.clone(),
-                    row_offset + season_col, // row 0 (deciduous) or row 1 (pine) + season
+                    row_offset + season_col,
                 )
             } else {
                 // All other objects use grass_biome.png
@@ -1051,8 +1048,8 @@ pub fn regrow_trees_on_season_change(
     }
 }
 
-/// System: update all existing tree sprites to match the new season's appearance.
-/// Called on SeasonChangeEvent so deciduous trees change color with the seasons.
+/// System: update tree/pine sprites to match the current season.
+/// Changes atlas index within tree_sprites.png (row 0 deciduous, row 1 pine).
 pub fn update_tree_sprites_on_season_change(
     mut season_events: EventReader<SeasonChangeEvent>,
     object_atlases: Res<ObjectAtlases>,
@@ -1071,7 +1068,6 @@ pub fn update_tree_sprites_on_season_change(
         for (obj_data, mut sprite) in tree_query.iter_mut() {
             if matches!(obj_data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine) {
                 let row_offset = if matches!(obj_data.kind, WorldObjectKind::Pine) { 4 } else { 0 };
-                // Update to use tree_sprites atlas with correct seasonal index
                 *sprite = Sprite::from_atlas_image(
                     object_atlases.tree_sprites_image.clone(),
                     TextureAtlas {
