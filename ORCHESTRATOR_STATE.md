@@ -18,7 +18,7 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 - Use `subagent_type: "Explore"` for read-only investigation
 - These are Claude sub-agents, more expensive per the user's preference
 
-## Current Phase: Wave 4 — Pilot DLC Parity (IN PROGRESS)
+## Current Phase: Wave 5 — Pilot DLC UI Completion (COMPLETE)
 
 ### Branch: claude/setup-orchestration-framework-L8ILN
 
@@ -47,19 +47,22 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 - Shop buy buttons functional with PurchaseEvent + hover feedback
 - All gates green: main 88/88, pilot 76/76, city 40/40
 
-### REMAINING PILOT DLC GAPS (from deep audit)
-**High Priority:**
-- Load Game screen missing (main_menu.rs:94 TODO)
-- 7 more UI screens exist but need GameState variants added to shared/mod.rs: logbook, profile, achievement, settings, map, notification, tutorial/intro
-- Inventory screen is read-only (no use/equip items)
-- Loan/Insurance/Business UI screens missing (backend exists)
-- Aircraft upgrades have no purchase UI
+### Wave 5: Pilot DLC UI Completion (COMPLETED — 84cb491)
+- 12 GameState variants added (LoadGame, Logbook, Profile, Achievements, Settings, MapView, Notifications, Tutorial, Intro, LoanOffice, InsuranceOffice, BusinessHQ)
+- 8 existing screens wired to state transitions
+- Load Game screen created (save slot selection + load)
+- 3 economy UI screens: Loan Office, Insurance, Business HQ
+- Inventory upgraded: selection, use/equip, detail panel, keyboard nav
+- Main menu Load TODO resolved
+- Audit: 11/12 wave 4 checks PASS (city DLC test naming cosmetic only)
+- Full regression: main 88/88, pilot 76/76, city 40/40
 
+### REMAINING PILOT DLC GAPS
 **Medium Priority:**
+- Aircraft upgrades have no purchase UI
 - No dialogue branching/choices (crew conversations are monologue)
 - No romance/quest system for crew
 - settings.apply_settings is a no-op
-- PilotSkills systems not all registered in plugin
 
 **Lower Priority:**
 - No crafting/cooking equivalent
@@ -74,8 +77,8 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 | Core Loop | 100% | 95% | 85% |
 | Save/Load | 100% | 100% (24 fields) | 100% |
 | Tests | 88/88 | 76/76 | 40/40 |
-| UI Screens | 85% | 50% (8/17 wired) | 60% |
-| Economy | 100% | 90% (backend done, UI gaps) | 80% |
+| UI Screens | 85% | 95% (20/21 wired) | 60% |
+| Economy | 100% | 95% (3 new UI screens) | 80% |
 | NPCs/Crew | 100% | 80% (no romance/quests) | N/A |
 | Content Volume | 100% | 75% | 60% |
 
@@ -89,7 +92,8 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 ### dlc/pilot/ — Skywarden Pilot Career Sim
 - ~31,000 LOC, 76/76 tests passing, 14 domains
 - **Fixed this session:** new game init, 9 save fields, story board, 3 UI screens, shop buttons, 12 tests
-- **Remaining:** Load Game UI, 7 more screen wirings, inventory interactions, loan/insurance/business UI, dialogue branching
+- **Fixed wave 5:** 12 GameState variants, 12 screens wired, Load Game, 3 economy UI, inventory interactions
+- **Remaining:** Aircraft upgrade UI, dialogue branching, romance/quests, content volume
 
 ## Architecture Quick Reference
 - Rust + Bevy 0.15 ECS, plugin-per-domain (15 domains, ~41k LOC)
