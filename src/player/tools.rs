@@ -44,6 +44,7 @@ pub fn tool_use(
     mut tool_events: EventWriter<ToolUseEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
 ) {
     if input_blocks.is_blocked() {
@@ -76,6 +77,10 @@ pub fn tool_use(
         sfx_events.send(PlaySfxEvent {
             sfx_id: "error".to_string(),
         });
+        toast_events.send(ToastEvent {
+            message: "That tool is being upgraded at the blacksmith.".into(),
+            duration_secs: 2.5,
+        });
         return;
     }
 
@@ -83,6 +88,10 @@ pub fn tool_use(
     if player_state.stamina < cost {
         sfx_events.send(PlaySfxEvent {
             sfx_id: "error".to_string(),
+        });
+        toast_events.send(ToastEvent {
+            message: "Too tired to use that tool. Rest or eat something!".into(),
+            duration_secs: 2.5,
         });
         return;
     }
@@ -143,5 +152,28 @@ pub fn stamina_drain_handler(
 ) {
     for ev in events.read() {
         player_state.stamina = (player_state.stamina - ev.amount).max(0.0);
+    }
+}
+
+/// Warn the player when stamina drops below 25% of max.
+/// Uses a local flag to avoid spamming every frame.
+pub fn stamina_low_warning(
+    player_state: Res<PlayerState>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut warned: Local<bool>,
+) {
+    let threshold = player_state.max_stamina * 0.25;
+
+    if player_state.stamina <= threshold && !*warned {
+        *warned = true;
+        toast_events.send(ToastEvent {
+            message: "You're getting tired... consider resting or eating.".into(),
+            duration_secs: 3.0,
+        });
+    }
+
+    // Reset warning when stamina recovers above threshold
+    if player_state.stamina > threshold {
+        *warned = false;
     }
 }

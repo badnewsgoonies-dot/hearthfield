@@ -519,6 +519,8 @@ pub fn shop_navigation(
     upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
     mut tx_events: EventWriter<ShopTransactionEvent>,
     mut upgrade_events: EventWriter<ToolUpgradeRequestEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
 
@@ -595,9 +597,29 @@ pub fn shop_navigation(
                             total_cost: listing.price,
                             is_purchase: true,
                         });
+                        sfx_events.send(PlaySfxEvent {
+                            sfx_id: "sfx_coin_single1".into(),
+                        });
                         // Refresh sell list so it reflects the newly added item
                         ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+                    } else {
+                        inventory.try_remove(&listing.item_id, 1);
+                        toast_events.send(ToastEvent {
+                            message: "Inventory is full!".into(),
+                            duration_secs: 2.0,
+                        });
+                        sfx_events.send(PlaySfxEvent {
+                            sfx_id: "error".into(),
+                        });
                     }
+                } else {
+                    toast_events.send(ToastEvent {
+                        message: "Not enough gold!".into(),
+                        duration_secs: 2.0,
+                    });
+                    sfx_events.send(PlaySfxEvent {
+                        sfx_id: "error".into(),
+                    });
                 }
             }
         } else {
@@ -613,6 +635,9 @@ pub fn shop_navigation(
                         quantity: 1,
                         total_cost: price,
                         is_purchase: false,
+                    });
+                    sfx_events.send(PlaySfxEvent {
+                        sfx_id: "sfx_coin_single1".into(),
                     });
                     // Refresh sell list
                     ui_state.sell_items = build_sell_list(&inventory, &item_registry);

@@ -80,6 +80,13 @@ impl Plugin for CalendarPlugin {
                     .after(tick_time)
                     .after(trigger_sleep),
             )
+            // Late-night warnings
+            .add_systems(
+                Update,
+                time_warnings
+                    .run_if(in_state(GameState::Playing))
+                    .after(tick_time),
+            )
             // Festival systems — all run in Playing state
             .add_systems(
                 Update,
@@ -530,6 +537,38 @@ fn detect_festival_day(
 }
 
 // ─── Weather rolling ──────────────────────────────────────────────────────────
+
+/// Warn the player when it gets late. Uses Local flags to fire each warning only once per day.
+fn time_warnings(
+    calendar: Res<Calendar>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut warned_10pm: Local<bool>,
+    mut warned_midnight: Local<bool>,
+    mut last_day: Local<u8>,
+) {
+    // Reset warnings on new day
+    if calendar.day != *last_day {
+        *warned_10pm = false;
+        *warned_midnight = false;
+        *last_day = calendar.day;
+    }
+
+    if calendar.hour >= 22 && !*warned_10pm {
+        *warned_10pm = true;
+        toast_events.send(ToastEvent {
+            message: "It's getting late. Head home and get some rest!".into(),
+            duration_secs: 4.0,
+        });
+    }
+
+    if calendar.hour >= 24 && !*warned_midnight {
+        *warned_midnight = true;
+        toast_events.send(ToastEvent {
+            message: "You're exhausted! Get to bed before you collapse!".into(),
+            duration_secs: 4.0,
+        });
+    }
+}
 
 /// Rolls a weather result for the given season using weighted probabilities.
 ///
