@@ -1,4 +1,4 @@
-use crate::game::resources::TaskId;
+use crate::game::resources::{InterruptionKind, TaskId};
 use bevy::prelude::*;
 
 #[derive(Event, Debug, Default)]
@@ -7,8 +7,10 @@ pub struct ProcessInboxEvent;
 #[derive(Event, Debug, Default)]
 pub struct CoffeeBreakEvent;
 
-#[derive(Event, Debug, Default)]
-pub struct InterruptionEvent;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct InterruptionEvent {
+    pub kind: InterruptionKind,
+}
 
 #[derive(Event, Debug, Default)]
 pub struct ResolveCalmlyEvent;

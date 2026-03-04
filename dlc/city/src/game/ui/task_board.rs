@@ -53,12 +53,7 @@ pub fn despawn_task_board(mut commands: Commands, query: Query<Entity, With<Task
 }
 
 fn kind_label(kind: TaskKind) -> &'static str {
-    match kind {
-        TaskKind::DataEntry => "DataEntry",
-        TaskKind::Filing => "Filing",
-        TaskKind::EmailTriage => "Email",
-        TaskKind::PermitReview => "Permit",
-    }
+    kind.label()
 }
 
 fn priority_label(priority: TaskPriority) -> &'static str {
@@ -67,6 +62,15 @@ fn priority_label(priority: TaskPriority) -> &'static str {
         TaskPriority::Medium => "MED",
         TaskPriority::High => "HIGH",
         TaskPriority::Critical => "CRIT",
+    }
+}
+
+fn priority_color(priority: TaskPriority) -> Color {
+    match priority {
+        TaskPriority::Low => Color::srgb(0.6, 0.6, 0.6),
+        TaskPriority::Medium => Color::srgb(0.85, 0.85, 0.85),
+        TaskPriority::High => Color::srgb(1.0, 0.9, 0.2),
+        TaskPriority::Critical => Color::srgb(1.0, 0.25, 0.25),
     }
 }
 
@@ -79,17 +83,22 @@ pub fn update_task_board(
     };
 
     let mut buf = String::new();
+    let mut highest_priority = TaskPriority::Low;
 
     for task in &board.active {
         let pct = (task.progress * 100.0) as u32;
         let deadline_str = format_clock(task.deadline_minute as u32);
         buf.push_str(&format!(
-            "{} [{}] {}% Due:{}\n",
+            "{} [{}] {}% ${} Due:{}\n",
             kind_label(task.kind),
             priority_label(task.priority),
             pct,
+            task.reward_money,
             deadline_str,
         ));
+        if task.priority > highest_priority {
+            highest_priority = task.priority;
+        }
     }
 
     buf.push_str(&format!(
@@ -99,5 +108,5 @@ pub fn update_task_board(
     ));
 
     **text = buf;
-    color.0 = Color::srgb(0.75, 0.75, 0.75);
+    color.0 = priority_color(highest_priority);
 }

@@ -179,6 +179,10 @@ fn task_kind_str(kind: TaskKind) -> &'static str {
         TaskKind::Filing => "filing",
         TaskKind::EmailTriage => "email_triage",
         TaskKind::PermitReview => "permit_review",
+        TaskKind::PhoneCall => "phone_call",
+        TaskKind::MeetingPrep => "meeting_prep",
+        TaskKind::ReportWriting => "report_writing",
+        TaskKind::BudgetReview => "budget_review",
     }
 }
 
@@ -188,6 +192,10 @@ fn parse_task_kind(raw: &str) -> Result<TaskKind, String> {
         "filing" => Ok(TaskKind::Filing),
         "email_triage" => Ok(TaskKind::EmailTriage),
         "permit_review" => Ok(TaskKind::PermitReview),
+        "phone_call" => Ok(TaskKind::PhoneCall),
+        "meeting_prep" => Ok(TaskKind::MeetingPrep),
+        "report_writing" => Ok(TaskKind::ReportWriting),
+        "budget_review" => Ok(TaskKind::BudgetReview),
         other => Err(format!("unknown task kind: {other}")),
     }
 }

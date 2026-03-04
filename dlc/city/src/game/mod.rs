@@ -48,6 +48,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::TaskBoard>()
             .init_resource::<resources::DayOutcome>()
             .init_resource::<resources::DayStats>()
+            .init_resource::<resources::ActiveInterruptionContext>()
             .init_resource::<save::SaveSlotConfig>()
             .init_resource::<save::OfficeSaveStore>()
             .init_resource::<resources::WorkerSpriteData>()

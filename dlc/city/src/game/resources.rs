@@ -28,6 +28,39 @@ pub enum TaskKind {
     Filing,
     EmailTriage,
     PermitReview,
+    PhoneCall,
+    MeetingPrep,
+    ReportWriting,
+    BudgetReview,
+}
+
+#[allow(dead_code)]
+impl TaskKind {
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::DataEntry => "Enter spreadsheet figures for quarterly report",
+            Self::Filing => "Sort and file incoming documents to correct departments",
+            Self::EmailTriage => "Read, prioritize, and route the email backlog",
+            Self::PermitReview => "Check permit applications for compliance",
+            Self::PhoneCall => "Return missed calls and take messages",
+            Self::MeetingPrep => "Prepare agenda and handouts for upcoming meeting",
+            Self::ReportWriting => "Draft the weekly status report for management",
+            Self::BudgetReview => "Reconcile expense receipts against budget lines",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::DataEntry => "Data Entry",
+            Self::Filing => "Filing",
+            Self::EmailTriage => "Email",
+            Self::PermitReview => "Permit",
+            Self::PhoneCall => "Phone",
+            Self::MeetingPrep => "Meeting",
+            Self::ReportWriting => "Report",
+            Self::BudgetReview => "Budget",
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -751,6 +784,14 @@ impl UnlockCatalogState {
             + self.conflict_training as u32
             + self.escalation_license as u32
     }
+}
+
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone, Default)]
+pub struct ActiveInterruptionContext {
+    pub kind: Option<InterruptionKind>,
+    pub coworker_name: Option<String>,
+    pub description: String,
 }
 
 #[derive(Resource, Debug, Default)]
