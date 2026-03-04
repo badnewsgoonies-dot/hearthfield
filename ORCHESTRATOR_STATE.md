@@ -86,9 +86,21 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 | Romance & Marriage | 100% |
 | Crafting & Cooking | 100% (counters fixed) |
 | Shops & Economy | 100% (gold bug fixed) |
-| Save/Load | 95% (DailyTalkTracker in progress) |
+| Save/Load | 100% (trackers + EconomyStats persisted) |
 | UI — Core | 100% |
-| UI — Missing screens | 0% (6 screens needed) |
+| UI — New screens | 50% (Journal, Relationships, Map added; Settings, Calendar, Stats remaining) |
+
+## DLC Status
+
+### dlc/city/ — City Office Worker (R6 in progress)
+- ~5,000 LOC, 40/40 tests passing
+- **Fixed:** task pacing (0.28 base, 2-5 actions/task), auto-interruptions, stress persistence, inbox balance (12 items)
+- **Remaining:** main menu UI, HUD screen, day summary screen, content variety
+
+### dlc/pilot/ — Skywarden Flight Sim (production-ready)
+- ~31,000 LOC, 64/64 tests passing, 14 domains
+- Full flight sim loop, aircraft management, crew relationships, weather, missions
+- No known blockers
 
 ## Architecture Quick Reference
 - Rust + Bevy 0.15 ECS, plugin-per-domain (15 domains, ~41k LOC)
