@@ -6,6 +6,7 @@ use super::CameraSnap;
 /// Smoothly follow the player with the camera using a lerp, clamped to map bounds.
 /// On map transitions, snaps instantly for 3 frames (ensures WorldMap bounds are
 /// updated before the final clamp).
+#[allow(clippy::type_complexity)]
 pub fn camera_follow_player(
     time: Res<Time>,
     player_query: Query<&LogicalPosition, (With<Player>, Without<Camera2d>)>,

@@ -195,6 +195,7 @@ pub fn spawn_weather_particles(
 }
 
 /// Move weather particles each frame and despawn those that fall below the camera.
+#[allow(clippy::type_complexity)]
 pub fn update_weather_particles(
     mut commands: Commands,
     time: Res<Time>,
@@ -255,6 +256,30 @@ pub fn cleanup_weather_on_change(
         for entity in snow_query.iter() {
             commands.entity(entity).despawn();
         }
+    }
+}
+
+/// Send a toast notification when the weather changes (rain starts, stops, etc).
+pub fn weather_change_notification(
+    calendar: Res<Calendar>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut prev_weather: Local<Option<Weather>>,
+) {
+    let current = calendar.weather;
+    if Some(current) != *prev_weather {
+        if prev_weather.is_some() {
+            let msg = match current {
+                Weather::Rainy => "It started raining.",
+                Weather::Stormy => "A storm is rolling in!",
+                Weather::Snowy => "It's starting to snow.",
+                Weather::Sunny => "The skies have cleared up.",
+            };
+            toast_events.send(ToastEvent {
+                message: msg.into(),
+                duration_secs: 3.0,
+            });
+        }
+        *prev_weather = Some(current);
     }
 }
 

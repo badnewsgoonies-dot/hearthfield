@@ -35,6 +35,18 @@ pub enum GameState {
     Inventory,
     Cutscene,
     MissionBoard,
+    LoadGame,
+    Logbook,
+    Profile,
+    Achievements,
+    Settings,
+    MapView,
+    Notifications,
+    Tutorial,
+    Intro,
+    LoanOffice,
+    InsuranceOffice,
+    BusinessHQ,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -181,8 +193,9 @@ impl DayOfWeek {
 // WEATHER (AVIATION)
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Weather {
+    #[default]
     Clear,
     Cloudy,
     Rain,
@@ -192,11 +205,6 @@ pub enum Weather {
     Windy,
 }
 
-impl Default for Weather {
-    fn default() -> Self {
-        Weather::Clear
-    }
-}
 
 impl Weather {
     pub fn flight_difficulty(&self) -> f32 {
@@ -252,8 +260,9 @@ pub enum TurbulenceLevel {
 // LOCATIONS — AIRPORTS & MAPS
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AirportId {
+    #[default]
     HomeBase,      // Starter airport — small regional
     Windport,      // Coastal city
     Frostpeak,     // Mountain airport
@@ -266,11 +275,6 @@ pub enum AirportId {
     Skyreach,      // Elite/endgame airport
 }
 
-impl Default for AirportId {
-    fn default() -> Self {
-        AirportId::HomeBase
-    }
-}
 
 impl AirportId {
     pub fn display_name(&self) -> &'static str {
@@ -320,8 +324,9 @@ impl AirportId {
 }
 
 /// Map areas within each airport. Each airport has these zones.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MapZone {
+    #[default]
     Terminal,
     Lounge,
     Hangar,
@@ -332,11 +337,6 @@ pub enum MapZone {
     CityStreet,
 }
 
-impl Default for MapZone {
-    fn default() -> Self {
-        MapZone::Terminal
-    }
-}
 
 impl MapZone {
     pub fn is_indoor(&self) -> bool {
@@ -1685,14 +1685,8 @@ pub struct ActiveCutscene {
 // UI STATE
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct UiFontHandle(pub Handle<Font>);
-
-impl Default for UiFontHandle {
-    fn default() -> Self {
-        Self(Handle::default())
-    }
-}
 
 #[derive(Resource, Default)]
 pub struct MenuTheme {

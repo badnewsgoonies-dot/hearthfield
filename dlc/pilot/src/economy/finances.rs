@@ -141,7 +141,7 @@ pub fn process_maintenance_costs(
     for _ev in day_end_events.read() {
         let day = calendar.total_days();
         // Maintenance cost per owned aircraft per week
-        if day % 7 != 0 {
+        if !day.is_multiple_of(7) {
             return;
         }
         let aircraft_count = fleet.aircraft.len() as i32;

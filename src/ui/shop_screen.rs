@@ -79,6 +79,7 @@ pub struct ShopUiState {
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_shop_screen(
     mut commands: Commands,
     shop_data: Res<ShopData>,
@@ -103,7 +104,7 @@ pub fn spawn_shop_screen(
         .filter(|listing| {
             listing
                 .season_available
-                .map_or(true, |s| s == calendar.season)
+                .is_none_or(|s| s == calendar.season)
         })
         .collect();
 
@@ -298,20 +299,18 @@ fn build_sell_list(
     item_registry: &ItemRegistry,
 ) -> Vec<(ItemId, String, u32, u8)> {
     let mut result = Vec::new();
-    for slot in &inventory.slots {
-        if let Some(ref s) = slot {
-            // Check if we already have this item in the sell list
-            if result.iter().any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &s.item_id) {
-                continue;
-            }
-            let name = item_registry
-                .get(&s.item_id)
-                .map(|d| d.name.clone())
-                .unwrap_or_else(|| s.item_id.clone());
-            let price = item_registry.get(&s.item_id).map(|d| d.sell_price).unwrap_or(1);
-            let total_qty = inventory.count(&s.item_id) as u8;
-            result.push((s.item_id.clone(), name, price, total_qty));
+    for slot in inventory.slots.iter().flatten() {
+        // Check if we already have this item in the sell list
+        if result.iter().any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &slot.item_id) {
+            continue;
         }
+        let name = item_registry
+            .get(&slot.item_id)
+            .map(|d| d.name.clone())
+            .unwrap_or_else(|| slot.item_id.clone());
+        let price = item_registry.get(&slot.item_id).map(|d| d.sell_price).unwrap_or(1);
+        let total_qty = inventory.count(&slot.item_id) as u8;
+        result.push((slot.item_id.clone(), name, price, total_qty));
     }
     result
 }
@@ -368,6 +367,7 @@ pub fn despawn_shop_screen(
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_shop_display(
     ui_state: Option<Res<ShopUiState>>,
     item_registry: Res<ItemRegistry>,
@@ -508,6 +508,7 @@ pub fn update_shop_display(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn shop_navigation(
     action: Res<MenuAction>,
     player_input: Res<PlayerInput>,
@@ -518,6 +519,8 @@ pub fn shop_navigation(
     upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
     mut tx_events: EventWriter<ShopTransactionEvent>,
     mut upgrade_events: EventWriter<ToolUpgradeRequestEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
     let Some(ref mut ui_state) = ui_state else { return };
 
@@ -530,15 +533,11 @@ pub fn shop_navigation(
     };
 
     // Navigation
-    if action.move_down {
-        if max_items > 0 && ui_state.cursor < max_items - 1 {
-            ui_state.cursor += 1;
-        }
+    if action.move_down && max_items > 0 && ui_state.cursor < max_items - 1 {
+        ui_state.cursor += 1;
     }
-    if action.move_up {
-        if ui_state.cursor > 0 {
-            ui_state.cursor -= 1;
-        }
+    if action.move_up && ui_state.cursor > 0 {
+        ui_state.cursor -= 1;
     }
 
     // Cycle modes: Tab
@@ -598,9 +597,29 @@ pub fn shop_navigation(
                             total_cost: listing.price,
                             is_purchase: true,
                         });
+                        sfx_events.send(PlaySfxEvent {
+                            sfx_id: "sfx_coin_single1".into(),
+                        });
                         // Refresh sell list so it reflects the newly added item
                         ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+                    } else {
+                        inventory.try_remove(&listing.item_id, 1);
+                        toast_events.send(ToastEvent {
+                            message: "Inventory is full!".into(),
+                            duration_secs: 2.0,
+                        });
+                        sfx_events.send(PlaySfxEvent {
+                            sfx_id: "error".into(),
+                        });
                     }
+                } else {
+                    toast_events.send(ToastEvent {
+                        message: "Not enough gold!".into(),
+                        duration_secs: 2.0,
+                    });
+                    sfx_events.send(PlaySfxEvent {
+                        sfx_id: "error".into(),
+                    });
                 }
             }
         } else {
@@ -616,6 +635,9 @@ pub fn shop_navigation(
                         quantity: 1,
                         total_cost: price,
                         is_purchase: false,
+                    });
+                    sfx_events.send(PlaySfxEvent {
+                        sfx_id: "sfx_coin_single1".into(),
                     });
                     // Refresh sell list
                     ui_state.sell_items = build_sell_list(&inventory, &item_registry);

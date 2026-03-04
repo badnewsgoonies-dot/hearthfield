@@ -13,6 +13,7 @@ use crate::crafting::{
     OpenCraftingEvent, CollectMachineOutputEvent, InsertMachineInputEvent, ProcessingMachine,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn dispatch_world_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -30,8 +31,7 @@ pub fn dispatch_world_interaction(
     machine_query: Query<&ProcessingMachine>,
     // UI feedback
     mut toast_events: EventWriter<ToastEvent>,
-    // For bed interaction
-    mut day_end_events: EventWriter<DayEndEvent>,
+    // For bed "too early" guard
     calendar: Res<Calendar>,
 ) {
     if input_blocks.is_blocked() || !player_input.interact {
@@ -47,10 +47,8 @@ pub fn dispatch_world_interaction(
     let mut best: Option<(f32, &Interactable, Entity)> = None;
     for (tf, inter, entity) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range {
-            if best.as_ref().map_or(true, |b| d < b.0) {
-                best = Some((d, inter, entity));
-            }
+        if d <= range && best.as_ref().is_none_or(|b| d < b.0) {
+            best = Some((d, inter, entity));
         }
     }
 
@@ -61,7 +59,7 @@ pub fn dispatch_world_interaction(
     match interactable.kind {
         InteractionKind::ShippingBin => {
             let slot_idx = inventory.selected_slot;
-            let Some(ref slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
+            let Some(slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
                 interaction_claimed.0 = true;
                 toast_events.send(ToastEvent {
                     message: "No item selected to ship.".into(),
@@ -73,6 +71,7 @@ pub fn dispatch_world_interaction(
             ship_events.send(ShipItemEvent {
                 item_id: slot.item_id.clone(),
                 quantity: 1,
+                quality: ItemQuality::Normal,
             });
         }
 
@@ -92,7 +91,7 @@ pub fn dispatch_world_interaction(
                     });
                 } else {
                     let slot_idx = inventory.selected_slot;
-                    if let Some(ref slot) =
+                    if let Some(slot) =
                         inventory.slots.get(slot_idx).and_then(|s| s.as_ref())
                     {
                         machine_insert_events.send(InsertMachineInputEvent {
@@ -116,23 +115,16 @@ pub fn dispatch_world_interaction(
         }
 
         InteractionKind::Bed => {
-            interaction_claimed.0 = true;
             if calendar.hour < 18 {
+                interaction_claimed.0 = true;
                 toast_events.send(ToastEvent {
                     message: "It's too early to sleep. Come back after 6 PM.".into(),
                     duration_secs: 3.0,
                 });
-            } else {
-                toast_events.send(ToastEvent {
-                    message: "Time to rest... Goodnight!".into(),
-                    duration_secs: 2.0,
-                });
-                day_end_events.send(DayEndEvent {
-                    day: calendar.day,
-                    season: calendar.season,
-                    year: calendar.year,
-                });
             }
+            // If hour >= 18, intentionally do NOT claim interaction.
+            // This allows trigger_sleep (in calendar) to handle the full
+            // sleep flow with cutscene, DayEndEvent, and day transition.
         }
     }
 }

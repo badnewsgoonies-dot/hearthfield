@@ -11,6 +11,7 @@ use std::collections::HashMap;
 // GAME STATE — top-level state machine
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, States, Default)]
 pub enum GameState {
     #[default]
@@ -24,8 +25,11 @@ pub enum GameState {
     Mining,
     Crafting,
     Inventory,
+    Journal,
     Cutscene,
     BuildingUpgrade,
+    RelationshipsView,
+    MapView,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -146,18 +150,13 @@ impl Calendar {
 // PLAYER
 // ═══════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Facing {
     Up,
+    #[default]
     Down,
     Left,
     Right,
-}
-
-impl Default for Facing {
-    fn default() -> Self {
-        Facing::Down
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -201,6 +200,7 @@ impl ToolTier {
     }
 
     /// Gold cost to upgrade FROM this tier to the next.
+    #[allow(dead_code)]
     pub fn upgrade_cost_gold(&self) -> u32 {
         match self {
             ToolTier::Basic => 2000,
@@ -242,6 +242,7 @@ impl ToolTier {
     }
 
     /// Days the blacksmith takes for any upgrade.
+    #[allow(dead_code)]
     pub fn upgrade_days(&self) -> u8 { 2 }
 }
 
@@ -619,6 +620,7 @@ impl GridPosition {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct MapTransition {
     pub from_map: MapId,
@@ -694,6 +696,7 @@ impl Relationships {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct Npc {
     pub id: NpcId,
@@ -823,6 +826,7 @@ pub struct MineRock {
     pub drop_quantity: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct MineMonster {
     pub kind: MineEnemy,
@@ -855,6 +859,7 @@ pub struct ItemPickupEvent {
     pub quantity: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ItemRemovedEvent {
     pub item_id: ItemId,
@@ -871,6 +876,7 @@ pub struct DialogueStartEvent {
 #[derive(Event, Debug, Clone)]
 pub struct DialogueEndEvent;
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ShopTransactionEvent {
     pub shop_id: ShopId,
@@ -935,6 +941,7 @@ pub struct PlaySfxEvent {
     pub sfx_id: String,
 }
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct PlayMusicEvent {
     pub track_id: String,
@@ -1023,6 +1030,7 @@ pub enum PlayerAnimState {
 }
 
 /// Fired when a tool animation reaches its "impact" frame.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolImpactEvent {
     pub tool: ToolKind,
@@ -1055,6 +1063,7 @@ impl ItemQuality {
         }
     }
 
+    #[allow(dead_code)]
     pub fn next(&self) -> Option<ItemQuality> {
         match self {
             ItemQuality::Normal => Some(ItemQuality::Silver),
@@ -1367,6 +1376,7 @@ impl BuildingTier {
             BuildingTier::Deluxe => None,
         }
     }
+    #[allow(dead_code)]
     pub fn capacity(&self) -> usize {
         match self {
             BuildingTier::None => 0,
@@ -1399,6 +1409,7 @@ pub struct TutorialState {
 }
 
 /// Contextual hint event — shows a non-intrusive tip when the player does something new.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct HintEvent {
     pub hint_id: String,
@@ -1406,6 +1417,7 @@ pub struct HintEvent {
 }
 
 /// Achievement unlocked event.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct AchievementUnlockedEvent {
     pub achievement_id: String,
@@ -1414,6 +1426,7 @@ pub struct AchievementUnlockedEvent {
 }
 
 /// Building upgrade request.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct BuildingUpgradeEvent {
     pub building: BuildingKind,
@@ -1439,8 +1452,10 @@ pub struct PlayStats {
     pub items_shipped: u64,
     pub gifts_given: u64,
     pub mine_floors_cleared: u64,
-    pub animals_petted: u64,
-    pub recipes_cooked: u64,
+    #[serde(alias = "animals_petted")]
+    pub animal_products_collected: u64,
+    #[serde(alias = "recipes_cooked")]
+    pub food_eaten: u64,
     pub total_gold_earned: u64,
     pub total_steps_taken: u64,
     pub days_played: u64,
@@ -1458,7 +1473,9 @@ pub struct InputBlocks(pub std::collections::HashSet<std::any::TypeId>);
 
 impl InputBlocks {
     pub fn is_blocked(&self) -> bool { !self.0.is_empty() }
+    #[allow(dead_code)]
     pub fn block<T: 'static>(&mut self) { self.0.insert(std::any::TypeId::of::<T>()); }
+    #[allow(dead_code)]
     pub fn unblock<T: 'static>(&mut self) { self.0.remove(&std::any::TypeId::of::<T>()); }
 }
 
@@ -1493,6 +1510,7 @@ pub struct Interactable {
 }
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum CutsceneStep {
     FadeOut(f32),
@@ -1543,6 +1561,7 @@ pub struct PlayerInput {
     pub open_crafting: bool,      // C
     pub open_map: bool,           // M
     pub open_journal: bool,       // J — quests/achievements
+    pub open_relationships: bool, // L — relationships screen
     pub pause: bool,              // Escape
 
     // Tool selection
@@ -1598,6 +1617,7 @@ pub struct KeyBindings {
     pub open_crafting: KeyCode,
     pub open_map: KeyCode,
     pub open_journal: KeyCode,
+    pub open_relationships: KeyCode,
     pub pause: KeyCode,
     pub tool_next: KeyCode,
     pub tool_prev: KeyCode,
@@ -1620,6 +1640,7 @@ impl Default for KeyBindings {
             open_crafting: KeyCode::KeyC,
             open_map: KeyCode::KeyM,
             open_journal: KeyCode::KeyJ,
+            open_relationships: KeyCode::KeyL,
             pause: KeyCode::Escape,
             tool_next: KeyCode::BracketRight,
             tool_prev: KeyCode::BracketLeft,
@@ -1635,6 +1656,7 @@ impl Default for KeyBindings {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Centralized menu styling. All menus read from this.
+#[allow(dead_code)]
 #[derive(Resource, Debug, Clone)]
 pub struct MenuTheme {
     pub bg_overlay: Color,
@@ -2055,7 +2077,7 @@ mod tests {
         inv.try_remove("turnip", 1);
         // After removing all, the slot should be None
         let turnip_slots: Vec<_> = inv.slots.iter()
-            .filter(|s| s.as_ref().map_or(false, |s| s.item_id == "turnip"))
+            .filter(|s| s.as_ref().is_some_and(|s| s.item_id == "turnip"))
             .collect();
         assert!(turnip_slots.is_empty());
     }
@@ -2156,17 +2178,13 @@ mod tests {
 
     #[test]
     fn test_calendar_time_float_midnight() {
-        let mut cal = Calendar::default();
-        cal.hour = 24;
-        cal.minute = 0;
+        let cal = Calendar { hour: 24, minute: 0, ..Calendar::default() };
         assert!((cal.time_float() - 24.0).abs() < f32::EPSILON);
     }
 
     #[test]
     fn test_calendar_day_28_advances_to_next_season() {
-        let mut cal = Calendar::default();
-        cal.season = Season::Spring;
-        cal.day = 28;
+        let mut cal = Calendar { season: Season::Spring, day: 28, ..Calendar::default() };
         // Simulate the day-end advancement used by CalendarPlugin
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -2179,10 +2197,7 @@ mod tests {
 
     #[test]
     fn test_calendar_winter_day_28_wraps_to_spring_next_year() {
-        let mut cal = Calendar::default();
-        cal.season = Season::Winter;
-        cal.day = 28;
-        cal.year = 3;
+        let mut cal = Calendar { season: Season::Winter, day: 28, year: 3, ..Calendar::default() };
         // Simulate the day-end advancement
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -2199,11 +2214,8 @@ mod tests {
 
     #[test]
     fn test_calendar_year_increments_only_on_winter_rollover() {
-        let mut cal = Calendar::default();
         // Advancing Spring day 28 should NOT increment the year
-        cal.season = Season::Spring;
-        cal.day = 28;
-        cal.year = 1;
+        let mut cal = Calendar { season: Season::Spring, day: 28, year: 1, ..Calendar::default() };
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
             cal.day = 1;

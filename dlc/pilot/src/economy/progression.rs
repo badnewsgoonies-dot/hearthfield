@@ -73,7 +73,8 @@ pub fn calculate_flight_xp(
 #[derive(Resource, Default)]
 pub struct ActivityTracker {
     pub last_flight_day: u32,
-    pub decay_warned: bool,
+    pub warned_inactivity: bool,
+    pub warned_decay: bool,
 }
 
 pub fn apply_xp(
@@ -85,9 +86,13 @@ pub fn apply_xp(
 ) {
     for ev in events.read() {
         pilot_state.xp += ev.amount;
-        play_stats.missions_completed += 1;
+        // Only count actual mission completions, not every XP source
+        if ev.source.starts_with("Flight to ") {
+            play_stats.missions_completed += 1;
+        }
         activity.last_flight_day = calendar.total_days();
-        activity.decay_warned = false;
+        activity.warned_inactivity = false;
+        activity.warned_decay = false;
     }
 }
 
@@ -139,18 +144,16 @@ pub fn check_rank_decay(
     let day = calendar.total_days();
     let days_idle = day.saturating_sub(activity.last_flight_day);
 
-    if days_idle >= 14 && !activity.decay_warned {
-        activity.decay_warned = true;
+    if days_idle >= 14 && !activity.warned_decay {
+        activity.warned_decay = true;
         let decay = ((days_idle - 14) as f32 * 0.5).min(10.0);
         pilot_state.reputation = (pilot_state.reputation - decay).max(0.0);
         toast_events.send(ToastEvent {
             message: format!("📉 Reputation declining! Fly to maintain standing. ({:.0}%)", pilot_state.reputation),
             duration_secs: 4.0,
         });
-    }
-
-    if days_idle >= 7 && days_idle < 14 && !activity.decay_warned {
-        activity.decay_warned = true;
+    } else if (7..14).contains(&days_idle) && !activity.warned_inactivity {
+        activity.warned_inactivity = true;
         toast_events.send(ToastEvent {
             message: "You haven't flown in a while. Your skills may get rusty!".to_string(),
             duration_secs: 3.0,

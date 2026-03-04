@@ -26,7 +26,7 @@ use hearthfield::economy::gold::{apply_gold_changes, EconomyStats};
 use hearthfield::economy::play_stats::{
     track_crops_harvested, track_gifts_given, track_gold_earned,
 };
-use hearthfield::economy::shipping::{process_shipping_bin_on_day_end, ShippingBinPreview};
+use hearthfield::economy::shipping::{process_shipping_bin_on_day_end, ShippingBinPreview, ShippingBinQuality};
 use hearthfield::economy::shop::ActiveShop;
 use hearthfield::economy::stats::{AnimalProductStats, HarvestStats};
 use hearthfield::farming::crops::{advance_crop_growth, reset_soil_watered_state};
@@ -470,9 +470,11 @@ fn test_shipping_bin_sells_on_day_end() {
     // Register economy-local resources
     app.init_resource::<EconomyStats>();
     app.init_resource::<ShippingBinPreview>();
+    app.init_resource::<ShippingBinQuality>();
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
+    app.init_resource::<ShippingLog>();
     app.add_event::<ToolUpgradeCompleteEvent>();
 
     // Register the two systems we need: shipping sell + gold application
@@ -551,9 +553,11 @@ fn test_empty_shipping_bin_no_gold_change() {
 
     app.init_resource::<EconomyStats>();
     app.init_resource::<ShippingBinPreview>();
+    app.init_resource::<ShippingBinQuality>();
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
+    app.init_resource::<ShippingLog>();
     app.add_event::<ToolUpgradeCompleteEvent>();
 
     app.add_systems(
@@ -785,10 +789,7 @@ fn test_calendar_total_days_elapsed() {
 
 #[test]
 fn test_calendar_festival_days() {
-    let mut cal = Calendar::default();
-
-    cal.season = Season::Spring;
-    cal.day = 13;
+    let mut cal = Calendar { season: Season::Spring, day: 13, ..Default::default() };
     assert!(cal.is_festival_day(), "Spring 13 = Egg Festival");
 
     cal.season = Season::Summer;
@@ -810,9 +811,7 @@ fn test_calendar_festival_days() {
 
 #[test]
 fn test_calendar_time_float() {
-    let mut cal = Calendar::default();
-    cal.hour = 14;
-    cal.minute = 30;
+    let cal = Calendar { hour: 14, minute: 30, ..Default::default() };
     assert!((cal.time_float() - 14.5).abs() < 0.001);
 }
 
@@ -919,9 +918,11 @@ fn test_multi_day_shipping_accumulation() {
 
     app.init_resource::<EconomyStats>();
     app.init_resource::<ShippingBinPreview>();
+    app.init_resource::<ShippingBinQuality>();
     app.init_resource::<ToolUpgradeQueue>();
     app.init_resource::<HarvestStats>();
     app.init_resource::<AnimalProductStats>();
+    app.init_resource::<ShippingLog>();
     app.add_event::<ToolUpgradeCompleteEvent>();
 
     app.add_systems(
@@ -1501,9 +1502,12 @@ fn test_building_tier_next() {
 fn test_building_upgrade_request_deducts_gold() {
     let mut app = build_test_app();
     app.init_resource::<BuildingLevels>();
+    app.init_resource::<EconomyStats>();
     app.add_systems(
         Update,
-        handle_building_upgrade_request.run_if(in_state(GameState::Playing)),
+        (handle_building_upgrade_request, apply_gold_changes)
+            .chain()
+            .run_if(in_state(GameState::Playing)),
     );
     enter_playing_state(&mut app);
 
@@ -1637,9 +1641,12 @@ fn test_tool_upgrade_request_queues() {
     app.add_event::<ToolUpgradeRequestEvent>();
     app.add_event::<ToolUpgradeCompleteEvent>();
     app.init_resource::<ActiveShop>();
+    app.init_resource::<EconomyStats>();
     app.add_systems(
         Update,
-        handle_upgrade_request.run_if(in_state(GameState::Playing)),
+        (handle_upgrade_request, apply_gold_changes)
+            .chain()
+            .run_if(in_state(GameState::Playing)),
     );
     enter_playing_state(&mut app);
 
@@ -1724,7 +1731,7 @@ fn test_tool_tier_next_chain() {
 
 #[test]
 fn test_achievements_constant_has_entries() {
-    assert!(ACHIEVEMENTS.len() > 0, "ACHIEVEMENTS should have entries");
+    assert!(!ACHIEVEMENTS.is_empty(), "ACHIEVEMENTS should have entries");
     assert_eq!(ACHIEVEMENTS.len(), 30, "Expected exactly 30 achievements");
 
     let first = &ACHIEVEMENTS[0];
@@ -2183,6 +2190,7 @@ fn test_evaluation_scores_categories() {
     let mut app = build_test_app();
     app.init_resource::<EconomyStats>();
     app.init_resource::<HarvestStats>();
+    app.init_resource::<ShippingLog>();
     app.add_systems(Update, handle_evaluation.run_if(in_state(GameState::Playing)));
     enter_playing_state(&mut app);
 
@@ -2210,6 +2218,7 @@ fn test_evaluation_sets_candles() {
     let mut app = build_test_app();
     app.init_resource::<EconomyStats>();
     app.init_resource::<HarvestStats>();
+    app.init_resource::<ShippingLog>();
     app.add_systems(Update, handle_evaluation.run_if(in_state(GameState::Playing)));
     enter_playing_state(&mut app);
 
@@ -2250,8 +2259,15 @@ fn test_evaluation_sets_candles() {
             });
         }
     }
-    // total_items_shipped >= 50 -> 2 points
+    // total_items_shipped >= 50 -> 1 point (farm_items_shipped_50)
     app.world_mut().resource_mut::<EconomyStats>().total_items_shipped = 55;
+    // 30+ unique items shipped -> 1 point (collection_unique_30)
+    {
+        let mut log = app.world_mut().resource_mut::<ShippingLog>();
+        for i in 0..30 {
+            log.shipped_items.insert(format!("item_{}", i), 1);
+        }
+    }
     // 10 quests completed -> 1 point
     {
         let mut quest_log = app.world_mut().resource_mut::<QuestLog>();
@@ -2397,6 +2413,7 @@ fn test_ysort_does_not_overlap_ground() {
 }
 
 #[test]
+#[allow(clippy::assertions_on_constants)]
 fn test_z_layer_ordering() {
     assert!(Z_GROUND < Z_FARM_OVERLAY);
     assert!(Z_FARM_OVERLAY < Z_ENTITY_BASE);
@@ -2478,9 +2495,7 @@ fn test_distance_animator_wraps_frames() {
 #[test]
 fn test_distance_animator_idle_resets() {
     use hearthfield::player::DistanceAnimator;
-    let mut anim = DistanceAnimator::default();
-    anim.current_frame = 2;
-    anim.distance_budget = 3.5;
+    let mut anim = DistanceAnimator { current_frame: 2, distance_budget: 3.5, ..Default::default() };
 
     // Idle reset
     anim.current_frame = 0;
@@ -2537,16 +2552,19 @@ fn test_walk_atlas_index_left_frame0() {
 
 #[test]
 fn test_walk_atlas_all_directions() {
+    let (down, up, right, left) = (0_usize, 4_usize, 8_usize, 12_usize);
+    let frame0 = 0_usize;
+    let frame3 = 3_usize;
     // Down row 0
-    assert_eq!(0 + 0, 0);
-    assert_eq!(0 + 3, 3);
+    assert_eq!(down + frame0, 0);
+    assert_eq!(down + frame3, 3);
     // Up row 1
-    assert_eq!(4 + 0, 4);
-    assert_eq!(4 + 3, 7);
+    assert_eq!(up + frame0, 4);
+    assert_eq!(up + frame3, 7);
     // Right row 2
-    assert_eq!(8 + 0, 8);
-    assert_eq!(8 + 3, 11);
+    assert_eq!(right + frame0, 8);
+    assert_eq!(right + frame3, 11);
     // Left row 3
-    assert_eq!(12 + 0, 12);
-    assert_eq!(12 + 3, 15);
+    assert_eq!(left + frame0, 12);
+    assert_eq!(left + frame3, 15);
 }

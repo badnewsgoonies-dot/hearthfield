@@ -13,6 +13,7 @@ pub const MINE_WIDTH: i32 = 24;
 pub const MINE_HEIGHT: i32 = 24;
 
 /// Describes a single generated floor before it is spawned into the ECS.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FloorBlueprint {
     pub floor: u8,
@@ -248,14 +249,12 @@ fn pick_enemy_kind(floor: u8, rng: &mut StdRng) -> MineEnemy {
         } else {
             MineEnemy::Bat
         }
+    } else if roll < 0.35 {
+        MineEnemy::GreenSlime
+    } else if roll < 0.65 {
+        MineEnemy::Bat
     } else {
-        if roll < 0.35 {
-            MineEnemy::GreenSlime
-        } else if roll < 0.65 {
-            MineEnemy::Bat
-        } else {
-            MineEnemy::RockCrab
-        }
+        MineEnemy::RockCrab
     }
 }
 

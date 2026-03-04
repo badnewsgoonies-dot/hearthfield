@@ -178,6 +178,7 @@ pub const ACHIEVEMENTS: &[AchievementDef] = &[
 
 /// Returns `true` if the achievement with the given id should be unlocked
 /// given the current game state. Assumes the achievement is not yet unlocked.
+#[allow(clippy::too_many_arguments)]
 fn evaluate_condition(
     id: &str,
     stats: &PlayStats,
@@ -241,7 +242,9 @@ fn evaluate_condition(
         "mine_crawler"    => mine.deepest_floor_reached >= 20,
 
         // ── Crafting/Cooking ─────────────────────────────────────────────
-        "chef"            => stats.recipes_cooked >= 20,
+        "chef" => {
+            achievements.progress.get("recipes_cooked").copied().unwrap_or(0) >= 20
+        }
 
         // ── Time / Seasons ───────────────────────────────────────────────
         "all_seasons"     => calendar.year >= 2 || stats.days_played >= 112,
@@ -250,7 +253,7 @@ fn evaluate_condition(
         // ── Animals ──────────────────────────────────────────────────────
         "pet_lover" => {
             animals.animals.iter().any(|a| {
-                matches!(a.kind, AnimalKind::Cat | AnimalKind::Dog) && a.happiness >= 255
+                matches!(a.kind, AnimalKind::Cat | AnimalKind::Dog) && a.happiness == 255
             })
         }
         "rancher" => animals.animals.len() >= 12,
@@ -319,6 +322,7 @@ fn evaluate_condition(
 /// For each defined achievement not yet unlocked, evaluates its condition
 /// and fires an `AchievementUnlockedEvent` when it becomes true.
 /// Also pushes the id into `Achievements.unlocked`.
+#[allow(clippy::too_many_arguments)]
 pub fn check_achievements(
     stats:         Res<PlayStats>,
     relationships: Res<Relationships>,
@@ -403,12 +407,12 @@ pub fn notify_achievement_unlocked(
 /// Tracked counters:
 /// - `rocks_broken`   — incremented on `ToolUseEvent` with Pickaxe
 /// - `crafts`         — incremented on `CropHarvestedEvent` where the item is
-///                      an artisan good (approximation: tracked via a crafting
-///                      event; here we wire it to ItemPickupEvent for artisan goods)
+///   an artisan good (approximation: tracked via a crafting
+///   event; here we wire it to ItemPickupEvent for artisan goods)
 /// - `gold_crops`     — incremented on `CropHarvestedEvent` with Gold+ quality
 /// - `crops_planted`  — incremented on `ToolUseEvent` with Hoe (soil tilling
-///                      is a reasonable proxy for planting intent); also
-///                      incremented on CropHarvestedEvent as a post-hoc count
+///   is a reasonable proxy for planting intent); also
+///   incremented on CropHarvestedEvent as a post-hoc count
 pub fn track_achievement_progress(
     mut tool_events:    EventReader<ToolUseEvent>,
     mut harvest_events: EventReader<CropHarvestedEvent>,

@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 use rand::Rng;
-
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -16,7 +16,7 @@ use crate::shared::*;
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Identifies which festival is active.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FestivalKind {
     EggFestival,     // Spring 13
     Luau,            // Summer 11
@@ -25,10 +25,12 @@ pub enum FestivalKind {
 }
 
 /// Tracks the currently active festival (if any) and its progress.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FestivalState {
     pub active: Option<FestivalKind>,
     pub started: bool,
+    /// Runtime-only: not persisted across saves.
+    #[serde(skip)]
     pub timer: Option<Timer>,
     pub score: u32,
     pub items_collected: u32,
@@ -98,7 +100,7 @@ pub fn check_festival_day(
             festival.announced_day = Some(today);
             let name = festival_display_name(kind);
             toast_writer.send(ToastEvent {
-                message: format!("Today is the {}! Press E to participate.", name),
+                message: format!("Today is the {}! Press F to participate.", name),
                 duration_secs: 5.0,
             });
             info!("[Festivals] Announced {} on Day {} {:?}", name, calendar.day, calendar.season);
@@ -182,6 +184,7 @@ pub fn start_egg_hunt(
 
 /// Checks player proximity to each egg entity; despawns collected eggs
 /// and awards the player when the timer expires.
+#[allow(clippy::too_many_arguments)]
 pub fn collect_eggs(
     time: Res<Time>,
     mut festival: ResMut<FestivalState>,
@@ -272,6 +275,7 @@ pub fn collect_eggs(
 
 /// The player contributes their currently selected hotbar item to the
 /// communal luau soup.  Quality determines NPC friendship gain.
+#[allow(clippy::too_many_arguments)]
 pub fn start_luau(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -370,6 +374,7 @@ pub fn start_luau(
 /// The player submits a crop item for judging.  Score is calculated from
 /// the crop's sell price.  If the score beats a threshold the player
 /// wins a gold prize.
+#[allow(clippy::too_many_arguments)]
 pub fn start_harvest_festival(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -542,6 +547,7 @@ pub fn setup_winter_star(
 /// When the player presses E in Town on Winter 25, the held item is
 /// given to the assigned NPC.  The player then receives a random gift
 /// from their assigned giver NPC.
+#[allow(clippy::too_many_arguments)]
 pub fn winter_star_give_gift(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,

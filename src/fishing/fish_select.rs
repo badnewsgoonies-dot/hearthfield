@@ -74,9 +74,16 @@ pub fn select_fish(
             if !f.seasons.contains(&season) {
                 return false;
             }
-            // Must be within time range
+            // Must be within time range (handles midnight wraparound)
             let (t_min, t_max) = f.time_range;
-            if time < t_min || time > t_max {
+            let time_ok = if t_min <= t_max {
+                // Normal range: e.g., 6.0 to 20.0
+                time >= t_min && time <= t_max
+            } else {
+                // Wraparound range: e.g., 18.0 to 2.0
+                time >= t_min || time <= t_max
+            };
+            if !time_ok {
                 return false;
             }
             // Weather requirement (if any)

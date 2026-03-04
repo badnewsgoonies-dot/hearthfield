@@ -1,6 +1,6 @@
 use crate::shared::*;
 
-/// Populate the FishRegistry with all 20 fish species.
+/// Populate the FishRegistry with all 28 fish species.
 ///
 /// Each fish has:
 ///   - location: where in the world it can be caught

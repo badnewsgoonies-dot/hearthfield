@@ -7,6 +7,7 @@
 //! - A `check_farm_visits` system that sends high-heart NPCs to the farm on weekday mornings
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -69,7 +70,7 @@ pub fn refresh_schedules_on_season_change(
 }
 
 /// Resource tracking the per-NPC farm-visit state so we only roll the dice once per day.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Serialize, Deserialize, Debug, Clone)]
 pub struct FarmVisitTracker {
     /// NPC ids that have already had today's farm-visit roll performed.
     pub rolled_today: Vec<String>,

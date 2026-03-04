@@ -2,9 +2,17 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::aircraft::fleet::HangarAssignments;
 
 #[derive(Resource, Default)]
 pub struct PlayerSpawned(pub bool);
+
+#[derive(Resource, Default)]
+pub struct PlayerSpriteData {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
 
 #[derive(Component)]
 pub struct SpawnFadeIn {
@@ -20,15 +28,21 @@ pub fn spawn_player(
     player_q: Query<Entity, With<Player>>,
     player_location: Res<PlayerLocation>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     if !player_q.is_empty() { return; }
 
     let spawn_pos = default_spawn_position(&player_location);
     let world_pos = grid_to_world_center(spawn_pos.0, spawn_pos.1);
 
+    let texture = asset_server.load("sprites/character_spritesheet.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(48, 48), 4, 4, None, None);
+    let layout_handle = layouts.add(layout);
+
     commands.spawn((
         Player,
-        Sprite::from_color(Color::srgba(0.2, 0.4, 0.8, 0.0), Vec2::new(14.0, 18.0)),
+        Sprite::from_atlas_image(texture, TextureAtlas { layout: layout_handle, index: 0 }),
         Transform::from_xyz(world_pos.x, world_pos.y, Z_PLAYER),
         SpawnFadeIn { timer: 0.0, duration: SPAWN_FADE_DURATION },
     ));
@@ -44,7 +58,7 @@ pub fn animate_spawn_fade(
     for (entity, mut sprite, mut fade) in query.iter_mut() {
         fade.timer += time.delta_secs();
         let t = (fade.timer / fade.duration).min(1.0);
-        sprite.color = Color::srgba(0.2, 0.4, 0.8, t);
+        sprite.color = Color::srgba(1.0, 1.0, 1.0, t);
         if t >= 1.0 {
             commands.entity(entity).remove::<SpawnFadeIn>();
         }
@@ -89,13 +103,32 @@ pub fn transition_spawn_position(to_zone: MapZone, from_zone: MapZone, map_w: i3
 pub fn setup_new_game(
     mut gold: ResMut<Gold>,
     mut inventory: ResMut<Inventory>,
+    mut fleet: ResMut<Fleet>,
+    mut hangars: ResMut<HangarAssignments>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
+    if gold.amount > 0 {
+        return; // Already initialized (loaded game or returning from flight)
+    }
+
     gold.amount = STARTER_GOLD;
     inventory.add_item("pilot_manual", 1);
     inventory.add_item("local_map", 1);
     inventory.add_item("granola_bar", 3);
     inventory.add_item("water_bottle", 2);
+
+    if fleet.aircraft.is_empty() {
+        let starter = OwnedAircraft {
+            aircraft_id: "cessna_172".to_string(),
+            nickname: "Old Faithful".to_string(),
+            condition: 65.0,
+            fuel: 30.0,
+            total_flights: 47,
+            customizations: Vec::new(),
+        };
+        fleet.aircraft.push(starter);
+        hangars.assign("Old Faithful", AirportId::HomeBase);
+    }
 
     toast_events.send(ToastEvent {
         message: "Welcome to Skywarden! Check the Mission Board to get started.".to_string(),
@@ -115,7 +148,7 @@ pub fn respawn_after_day_end(
         if let Ok((mut tf, mut sprite)) = player_q.get_single_mut() {
             tf.translation.x = spawn.x;
             tf.translation.y = spawn.y;
-            sprite.color = Color::srgba(0.2, 0.4, 0.8, 0.0);
+            sprite.color = Color::srgba(1.0, 1.0, 1.0, 0.0);
             if let Ok(entity) = entity_q.get_single() {
                 commands.entity(entity).insert(SpawnFadeIn {
                     timer: 0.0,

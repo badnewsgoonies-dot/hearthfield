@@ -1,10 +1,11 @@
 //! Aircraft maintenance — per-component tracking, wear, repair actions, scheduling.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 /// Individual component condition within an aircraft.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ComponentCondition {
     pub engine: f32,
     pub airframe: f32,
@@ -50,14 +51,14 @@ impl ComponentCondition {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
 pub struct MaintenanceTracker {
     pub conditions: std::collections::HashMap<String, ComponentCondition>,
     pub log: Vec<MaintenanceLogEntry>,
     pub last_annual: std::collections::HashMap<String, u32>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MaintenanceLogEntry {
     pub aircraft: String,
     pub day: u32,
@@ -65,7 +66,7 @@ pub struct MaintenanceLogEntry {
     pub cost: u32,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaintenanceAction {
     Inspection,
     RepairEngine,

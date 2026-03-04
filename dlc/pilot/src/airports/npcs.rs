@@ -278,10 +278,10 @@ pub fn spawn_ambient_npcs(
         }
 
         // Density varies by time of day
-        let density: u32 = if calendar.hour >= 7 && calendar.hour <= 10 {
-            3 // Busy morning
-        } else if calendar.hour >= 17 && calendar.hour <= 20 {
-            3 // Busy evening
+        let density: u32 = if (calendar.hour >= 7 && calendar.hour <= 10)
+            || (calendar.hour >= 17 && calendar.hour <= 20)
+        {
+            3 // Busy morning/evening
         } else if calendar.is_night() {
             1 // Quiet night
         } else {

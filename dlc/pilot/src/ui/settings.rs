@@ -48,6 +48,21 @@ pub struct GameSettings {
     pub tutorial_tips: bool,
 }
 
+#[derive(Resource, Clone, Debug)]
+pub struct VolumeSettings {
+    pub music_volume: f32,
+    pub sfx_volume: f32,
+}
+
+impl Default for VolumeSettings {
+    fn default() -> Self {
+        Self {
+            music_volume: 0.7,
+            sfx_volume: 0.8,
+        }
+    }
+}
+
 impl Default for GameSettings {
     fn default() -> Self {
         Self {
@@ -185,20 +200,34 @@ pub fn despawn_settings_menu(
 /// Apply changed settings to the game systems.
 pub fn apply_settings(
     settings: Res<GameSettings>,
-    mut _windows: Query<&mut Window>,
+    mut volume_settings: ResMut<VolumeSettings>,
+    mut windows: Query<&mut Window>,
+    global_volume: Option<ResMut<GlobalVolume>>,
 ) {
     if !settings.is_changed() {
         return;
     }
-    // Volume / display changes would be applied here via Window and AudioSink queries.
-    // Placeholder: log the change.
+    volume_settings.music_volume = settings.music_volume * settings.master_volume;
+    volume_settings.sfx_volume = settings.sfx_volume * settings.master_volume;
+    if let Some(mut global_volume) = global_volume {
+        global_volume.volume = Volume::Linear(settings.master_volume);
+    }
+    if let Ok(mut window) = windows.get_single_mut() {
+        window.mode = if settings.fullscreen {
+            WindowMode::BorderlessFullscreen(MonitorSelection::Primary)
+        } else {
+            WindowMode::Windowed
+        };
+    }
     info!(
-        "Settings applied: master={:.0}% music={:.0}% sfx={:.0}% scale={:.1} fullscreen={}",
+        "Settings applied: master={:.0}% music={:.0}% sfx={:.0}% scale={:.1} fullscreen={} (effective music={:.0}% sfx={:.0}%)",
         settings.master_volume * 100.0,
         settings.music_volume * 100.0,
         settings.sfx_volume * 100.0,
         settings.pixel_scale,
         settings.fullscreen,
+        volume_settings.music_volume * 100.0,
+        volume_settings.sfx_volume * 100.0,
     );
 }
 
@@ -224,6 +253,7 @@ fn spawn_section_label(commands: &mut Commands, parent: Entity, font: &UiFontHan
     commands.entity(parent).add_child(id);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_slider_row(
     commands: &mut Commands,
     parent: Entity,

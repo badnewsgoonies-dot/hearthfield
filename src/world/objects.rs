@@ -472,6 +472,7 @@ fn tool_display_name(tool: ToolKind) -> &'static str {
 }
 
 /// System that handles tool use events on world objects.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_tool_use_on_objects(
     mut commands: Commands,
     mut tool_events: EventReader<ToolUseEvent>,
@@ -921,6 +922,7 @@ pub fn handle_weed_scythe(
 
 /// System: on each season change, spawn 1-2 new trees at random empty
 /// positions on the farm. This simulates natural regrowth over time.
+#[allow(clippy::too_many_arguments)]
 pub fn regrow_trees_on_season_change(
     mut commands: Commands,
     mut season_events: EventReader<SeasonChangeEvent>,

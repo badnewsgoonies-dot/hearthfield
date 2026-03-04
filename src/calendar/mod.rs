@@ -80,6 +80,13 @@ impl Plugin for CalendarPlugin {
                     .after(tick_time)
                     .after(trigger_sleep),
             )
+            // Late-night warnings
+            .add_systems(
+                Update,
+                time_warnings
+                    .run_if(in_state(GameState::Playing))
+                    .after(tick_time),
+            )
             // Festival systems — all run in Playing state
             .add_systems(
                 Update,
@@ -531,6 +538,38 @@ fn detect_festival_day(
 
 // ─── Weather rolling ──────────────────────────────────────────────────────────
 
+/// Warn the player when it gets late. Uses Local flags to fire each warning only once per day.
+fn time_warnings(
+    calendar: Res<Calendar>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut warned_10pm: Local<bool>,
+    mut warned_midnight: Local<bool>,
+    mut last_day: Local<u8>,
+) {
+    // Reset warnings on new day
+    if calendar.day != *last_day {
+        *warned_10pm = false;
+        *warned_midnight = false;
+        *last_day = calendar.day;
+    }
+
+    if calendar.hour >= 22 && !*warned_10pm {
+        *warned_10pm = true;
+        toast_events.send(ToastEvent {
+            message: "It's getting late. Head home and get some rest!".into(),
+            duration_secs: 4.0,
+        });
+    }
+
+    if calendar.hour >= 24 && !*warned_midnight {
+        *warned_midnight = true;
+        toast_events.send(ToastEvent {
+            message: "You're exhausted! Get to bed before you collapse!".into(),
+            duration_secs: 4.0,
+        });
+    }
+}
+
 /// Rolls a weather result for the given season using weighted probabilities.
 ///
 /// Spring:  60% Sunny, 30% Rainy, 10% Stormy
@@ -646,10 +685,7 @@ mod tests {
 
     #[test]
     fn test_is_festival_day() {
-        let mut cal = Calendar::default();
-
-        cal.season = Season::Spring;
-        cal.day = 13;
+        let mut cal = Calendar { season: Season::Spring, day: 13, ..Default::default() };
         assert!(cal.is_festival_day());
 
         cal.season = Season::Summer;
@@ -679,16 +715,13 @@ mod tests {
 
     #[test]
     fn test_time_float() {
-        let mut cal = Calendar::default();
-        cal.hour = 14;
-        cal.minute = 30;
+        let cal = Calendar { hour: 14, minute: 30, ..Default::default() };
         assert!((cal.time_float() - 14.5).abs() < 0.001);
     }
 
     #[test]
     fn test_day_advancement_within_season() {
-        let mut cal = Calendar::default();
-        cal.day = 5;
+        let mut cal = Calendar { day: 5, ..Default::default() };
         // Simulate day end: advance day within season
         cal.day += 1;
         assert_eq!(cal.day, 6);
@@ -697,9 +730,7 @@ mod tests {
 
     #[test]
     fn test_season_change_at_day_28() {
-        let mut cal = Calendar::default();
-        cal.day = 28;
-        cal.season = Season::Spring;
+        let mut cal = Calendar { day: 28, season: Season::Spring, ..Default::default() };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -712,10 +743,7 @@ mod tests {
 
     #[test]
     fn test_year_increment_after_winter() {
-        let mut cal = Calendar::default();
-        cal.day = 28;
-        cal.season = Season::Winter;
-        cal.year = 1;
+        let mut cal = Calendar { day: 28, season: Season::Winter, year: 1, ..Default::default() };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -732,16 +760,14 @@ mod tests {
 
     #[test]
     fn test_day_of_week_day_7() {
-        let mut cal = Calendar::default();
-        cal.day = 7;
+        let cal = Calendar { day: 7, ..Default::default() };
         // Day 7 => total_days_elapsed = 6, 6 % 7 = 6 => Sunday
         assert_eq!(cal.day_of_week(), DayOfWeek::Sunday);
     }
 
     #[test]
     fn test_day_of_week_day_8_wraps() {
-        let mut cal = Calendar::default();
-        cal.day = 8;
+        let cal = Calendar { day: 8, ..Default::default() };
         // Day 8 => total_days_elapsed = 7, 7 % 7 = 0 => Monday
         assert_eq!(cal.day_of_week(), DayOfWeek::Monday);
     }

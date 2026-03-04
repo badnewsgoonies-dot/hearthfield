@@ -402,8 +402,8 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
                         slot.spawn((
                             HotbarItemIcon { index: i },
                             Node {
-                                width: Val::Px(28.0),
-                                height: Val::Px(28.0),
+                                width: Val::Px(32.0),
+                                height: Val::Px(32.0),
                                 ..default()
                             },
                             // ImageNode will be set dynamically in update_hotbar
@@ -879,8 +879,44 @@ pub fn update_objective_display(
 // INTERACTION PROMPT — show "[F] label" near interactables/NPCs
 // ═══════════════════════════════════════════════════════════════════════
 
+fn key_display(code: KeyCode) -> String {
+    match code {
+        KeyCode::KeyA => "A".into(),
+        KeyCode::KeyB => "B".into(),
+        KeyCode::KeyC => "C".into(),
+        KeyCode::KeyD => "D".into(),
+        KeyCode::KeyE => "E".into(),
+        KeyCode::KeyF => "F".into(),
+        KeyCode::KeyG => "G".into(),
+        KeyCode::KeyH => "H".into(),
+        KeyCode::KeyI => "I".into(),
+        KeyCode::KeyJ => "J".into(),
+        KeyCode::KeyK => "K".into(),
+        KeyCode::KeyL => "L".into(),
+        KeyCode::KeyM => "M".into(),
+        KeyCode::KeyN => "N".into(),
+        KeyCode::KeyO => "O".into(),
+        KeyCode::KeyP => "P".into(),
+        KeyCode::KeyQ => "Q".into(),
+        KeyCode::KeyR => "R".into(),
+        KeyCode::KeyS => "S".into(),
+        KeyCode::KeyT => "T".into(),
+        KeyCode::KeyU => "U".into(),
+        KeyCode::KeyV => "V".into(),
+        KeyCode::KeyW => "W".into(),
+        KeyCode::KeyX => "X".into(),
+        KeyCode::KeyY => "Y".into(),
+        KeyCode::KeyZ => "Z".into(),
+        KeyCode::Space => "Space".into(),
+        KeyCode::Tab => "Tab".into(),
+        KeyCode::Escape => "Esc".into(),
+        other => format!("{:?}", other),
+    }
+}
+
 /// Shows a contextual interaction prompt when the player is near an
 /// interactable object or NPC.
+#[allow(clippy::too_many_arguments)]
 pub fn update_interaction_prompt(
     player_query: Query<&LogicalPosition, With<Player>>,
     interactable_query: Query<(&Transform, &Interactable)>,
@@ -890,6 +926,7 @@ pub fn update_interaction_prompt(
     mut prompt_query: Query<(&mut Text, &mut TextColor), With<HudInteractionPrompt>>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
+    bindings: Res<KeyBindings>,
 ) {
     let Ok(player_pos) = player_query.get_single() else {
         return;
@@ -900,23 +937,23 @@ pub fn update_interaction_prompt(
     // Check interactable objects.
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
-            best_label = Some((d, format!("[F] {}", inter.label)));
+        if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
+            best_label = Some((d, format!("[{}] {}", key_display(bindings.interact), inter.label)));
         }
     }
 
     // Check storage chests (use their own component, not Interactable).
     for tf in &chest_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
-            best_label = Some((d, "[F] Storage".to_string()));
+        if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
+            best_label = Some((d, format!("[{}] Storage", key_display(bindings.interact))));
         }
     }
 
     // Check NPCs (closer NPC takes priority).
     for (npc, tf) in &npc_query {
         let d = player_pos.0.distance(tf.translation.truncate());
-        if d <= range && best_label.as_ref().map_or(true, |b| d < b.0) {
+        if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
             let name = npc_registry
                 .npcs
                 .get(&npc.id)
@@ -929,9 +966,9 @@ pub fn update_interaction_prompt(
                 .map(|def| def.category != ItemCategory::Tool)
                 .unwrap_or(false);
             let label = if has_gift {
-                format!("[F] Talk to {} | [R] Give Gift", name)
+                format!("[{}] Talk to {} | [{}] Give Gift", key_display(bindings.interact), name, key_display(bindings.tool_secondary))
             } else {
-                format!("[F] Talk to {}", name)
+                format!("[{}] Talk to {}", key_display(bindings.interact), name)
             };
             best_label = Some((d, label));
         }

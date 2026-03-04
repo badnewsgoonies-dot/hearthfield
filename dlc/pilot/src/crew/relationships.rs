@@ -1,6 +1,7 @@
 //! Deep relationship system — phases, gifts, decay, rival mechanics.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 pub struct RelationshipPlugin;
@@ -24,7 +25,7 @@ impl Plugin for RelationshipPlugin {
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RelationshipPhase {
     Stranger,
     Acquaintance,
@@ -100,7 +101,7 @@ pub struct CrewAbility {
 
 // ── State ────────────────────────────────────────────────────────────────
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Serialize, Deserialize)]
 pub struct RelationshipDetails {
     pub phases: Vec<(String, RelationshipPhase)>,
     pub backstory_seen: Vec<String>,

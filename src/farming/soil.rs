@@ -15,6 +15,7 @@ pub fn handle_hoe_tool_use(
     mut commands: Commands,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::Hoe {
@@ -26,7 +27,7 @@ pub fn handle_hoe_tool_use(
         // Hoe can only till Untilled dirt. Tilled/Watered tiles are already done.
         let current = farm_state.soil.get(&pos).copied();
         if current.is_some() {
-            // Already tilled or watered — do nothing.
+            toast_events.send(ToastEvent { message: "Already tilled!".into(), duration_secs: 1.5 });
             continue;
         }
 
@@ -59,6 +60,7 @@ pub fn handle_hoe_tool_use(
 // Watering Can — water a tilled tile
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_watering_can_tool_use(
     mut tool_events: EventReader<ToolUseEvent>,
     mut farm_state: ResMut<FarmState>,
@@ -66,6 +68,7 @@ pub fn handle_watering_can_tool_use(
     mut commands: Commands,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     player_query: Query<&PlayerMovement, With<Player>>,
 ) {
     // Determine the direction the player is currently facing.
@@ -90,6 +93,13 @@ pub fn handle_watering_can_tool_use(
             farm_state.soil.get(pos).copied() == Some(SoilState::Tilled)
         });
         if !any_tillable {
+            // Check if the tiles are already watered.
+            let any_watered = tiles.iter().any(|pos| {
+                farm_state.soil.get(pos).copied() == Some(SoilState::Watered)
+            });
+            if any_watered {
+                toast_events.send(ToastEvent { message: "Already watered today.".into(), duration_secs: 1.5 });
+            }
             continue;
         }
 

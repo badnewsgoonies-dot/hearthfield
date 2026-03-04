@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,12 +11,12 @@ use crate::shared::*;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Tracks tools that are currently being upgraded (they cannot be used during this time).
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ToolUpgradeQueue {
     pub pending: Vec<PendingUpgrade>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingUpgrade {
     pub tool: ToolKind,
     pub target_tier: ToolTier,
@@ -42,6 +43,7 @@ pub struct ToolUpgradeRequestEvent {
 }
 
 /// Fired when an upgrade completes (for UI notification).
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolUpgradeCompleteEvent {
     pub tool: ToolKind,
@@ -71,6 +73,7 @@ pub fn drain_upgrade_complete(mut events: EventReader<ToolUpgradeCompleteEvent>)
 /// On success:
 ///   - Deducts gold and bars
 ///   - Adds to ToolUpgradeQueue (2-day timer)
+#[allow(clippy::too_many_arguments)]
 pub fn handle_upgrade_request(
     mut upgrade_events: EventReader<ToolUpgradeRequestEvent>,
     player_state: ResMut<PlayerState>,

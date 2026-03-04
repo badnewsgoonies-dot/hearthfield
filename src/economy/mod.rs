@@ -23,7 +23,7 @@ use shop::{
     handle_shop_transaction_gold,
 };
 use shipping::{
-    ShipItemEvent, ShippingBinPreview,
+    ShipItemEvent, ShippingBinPreview, ShippingBinQuality,
     place_in_shipping_bin, process_shipping_bin_on_day_end, update_shipping_bin_preview,
 };
 use blacksmith::{
@@ -35,7 +35,7 @@ use evaluation::{check_evaluation_trigger, handle_evaluation};
 use achievements::{check_achievements, notify_achievement_unlocked, track_achievement_progress};
 use play_stats::{
     track_crops_harvested, track_fish_caught, track_day_end,
-    track_gifts_given, track_animals_petted, track_gold_earned, track_recipes_cooked,
+    track_gifts_given, track_animal_products_collected, track_gold_earned, track_food_eaten,
 };
 use buildings::{BuildingLevels, handle_building_upgrade_request, tick_building_upgrade};
 
@@ -54,7 +54,8 @@ impl Plugin for EconomyPlugin {
             .init_resource::<ToolUpgradeQueue>()
             .init_resource::<HarvestStats>()
             .init_resource::<AnimalProductStats>()
-            .init_resource::<BuildingLevels>();
+            .init_resource::<BuildingLevels>()
+            .init_resource::<ShippingBinQuality>();
 
         // ── Internal Events ────────────────────────────────────────────────
         app.add_event::<ShipItemEvent>()
@@ -90,9 +91,9 @@ impl Plugin for EconomyPlugin {
                 track_fish_caught,
                 track_day_end,
                 track_gifts_given,
-                track_animals_petted,
+                track_animal_products_collected,
                 track_gold_earned,
-                track_recipes_cooked,
+                track_food_eaten,
                 // Achievement progress counters (rocks broken, crops planted, gold-quality crops).
                 track_achievement_progress,
             )

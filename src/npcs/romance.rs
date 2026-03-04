@@ -172,6 +172,7 @@ pub fn handle_bouquet(
 
 /// Process ProposalEvent. Validates prerequisites and sets the NPC to Engaged,
 /// scheduling the wedding in 3 days.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_proposal(
     mut proposal_reader: EventReader<ProposalEvent>,
     npc_registry: Res<NpcRegistry>,
@@ -485,7 +486,7 @@ fn water_random_crops(farm_state: &mut FarmState, count: usize) {
                 && farm_state
                     .soil
                     .get(pos)
-                    .map_or(false, |s| *s == SoilState::Tilled)
+                    .is_some_and(|s| *s == SoilState::Tilled)
         })
         .map(|(pos, _)| *pos)
         .collect();
@@ -522,10 +523,11 @@ fn water_random_crops(farm_state: &mut FarmState, count: usize) {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// DayEndEvent listener. Adjusts spouse happiness based on whether the player
-/// interacted with the spouse today (using gifted_today as a proxy for talking).
+/// interacted with the spouse today (gift or conversation).
 pub fn update_spouse_happiness(
     mut day_end_reader: EventReader<DayEndEvent>,
     relationships: Res<Relationships>,
+    daily_talks: Res<super::dialogue::DailyTalkTracker>,
     mut marriage_state: ResMut<MarriageState>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
@@ -535,12 +537,12 @@ pub fn update_spouse_happiness(
             continue;
         }
 
-        // Check if the spouse was interacted with today
+        // Check if the spouse was interacted with today (gift or conversation)
         let spouse_id = relationships.spouse.as_deref();
-        let talked_today = spouse_id
-            .and_then(|id| relationships.gifted_today.get(id))
-            .copied()
-            .unwrap_or(false);
+        let talked_today = spouse_id.is_some_and(|id| {
+            relationships.gifted_today.get(id).copied().unwrap_or(false)
+                || daily_talks.talked.contains(id)
+        });
 
         let old_happiness = marriage_state.spouse_happiness;
 

@@ -112,12 +112,12 @@ pub fn load_animal_sprites(
     ));
 
     // Sheep, cat, dog: reuse character_spritesheet.png with tint colors.
-    // character_spritesheet.png: 192x256, 12 cols x 16 rows of 16x16 frames.
+    // character_spritesheet.png: 192x192, 4 cols x 4 rows of 48x48 frames.
     let sheet = asset_server.load("sprites/character_spritesheet.png");
     let sheet_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(16, 16),
-        12,
-        16,
+        UVec2::new(48, 48),
+        4,
+        4,
         None,
         None,
     ));

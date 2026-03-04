@@ -175,7 +175,7 @@ pub fn advance_tutorial(
                 && !tracker.completed_steps.contains(&TutorialStep::Movement)
         }
         TutorialStep::Interaction => location.zone == MapZone::Terminal,
-        TutorialStep::MissionBoard => mission_board.available.len() > 0,
+        TutorialStep::MissionBoard => !mission_board.available.is_empty(),
         TutorialStep::AcceptMission => mission_board.active.is_some(),
         TutorialStep::Preflight => {
             location.zone == MapZone::Hangar

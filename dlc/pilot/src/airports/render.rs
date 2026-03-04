@@ -39,6 +39,7 @@ pub fn spawn_initial_map(
     build_collision_map(&world_map, &mut collision_map);
 }
 
+#[allow(clippy::needless_range_loop)]
 pub fn spawn_zone_tiles(commands: &mut Commands, tiles: &[Vec<TileKind>], w: u32, h: u32) {
     for gy in 0..h as usize {
         for gx in 0..w as usize {

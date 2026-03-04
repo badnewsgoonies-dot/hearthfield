@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+#[allow(clippy::needless_range_loop)]
 pub mod maps;
 pub mod render;
 pub mod objects;

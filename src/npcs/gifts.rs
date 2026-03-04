@@ -6,6 +6,7 @@ use super::dialogue::build_gift_response_lines;
 use super::emotes::{NpcEmoteEvent, EmoteKind};
 
 /// System: process gift-given events, apply friendship changes, send response dialogue.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_gifts(
     mut gift_reader: EventReader<GiftGivenEvent>,
     mut relationships: ResMut<Relationships>,
@@ -128,6 +129,7 @@ fn preference_toast_message(npc_name: &str, preference: GiftPreference, points: 
 ///
 /// This system checks: player is adjacent to an NPC, presses G, has selected item.
 /// If so, it emits a GiftGivenEvent and removes one of the item from inventory.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_gift_input(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -275,7 +277,7 @@ mod tests {
     #[test]
     fn test_non_birthday_multiplier() {
         let base = preference_to_points(GiftPreference::Liked);
-        let normal_total = base * 1;
+        let normal_total = base;
         assert_eq!(normal_total, 45);
     }
 }

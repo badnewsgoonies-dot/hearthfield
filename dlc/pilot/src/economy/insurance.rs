@@ -1,13 +1,14 @@
 //! Insurance system — policies, premiums, claims for aircraft operations.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CoverageType {
     Basic,    // Liability only
     Standard, // Hull + liability
@@ -56,7 +57,7 @@ impl CoverageType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InsurancePolicy {
     pub coverage_type: CoverageType,
     pub premium: u32,
@@ -89,7 +90,7 @@ impl InsurancePolicy {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InsuranceClaim {
     pub day_filed: u32,
     pub damage_amount: u32,
@@ -99,7 +100,7 @@ pub struct InsuranceClaim {
 }
 
 /// Insurance state for the player's fleet.
-#[derive(Resource, Clone, Debug, Default)]
+#[derive(Resource, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct InsuranceState {
     pub policies: Vec<InsurancePolicy>,
     pub claims: Vec<InsuranceClaim>,
@@ -143,7 +144,7 @@ pub fn purchase_insurance(
     pilot_state: Res<PilotState>,
     mut insurance: ResMut<InsuranceState>,
     fleet: Res<Fleet>,
-    mut gold_events: EventWriter<GoldChangeEvent>,
+    _gold_events: EventWriter<GoldChangeEvent>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     for ev in purchase_events.read() {

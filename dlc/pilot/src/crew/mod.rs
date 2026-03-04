@@ -18,6 +18,8 @@ impl Plugin for CrewPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<events::CrewEventState>()
             .init_resource::<abilities::CrewBonuses>()
+            .init_resource::<spawning::CrewSpriteData>()
+            .init_resource::<spawning::CrewPortraitData>()
             .add_systems(
             Update,
             (

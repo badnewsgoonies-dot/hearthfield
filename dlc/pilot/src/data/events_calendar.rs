@@ -19,7 +19,7 @@ pub struct CalendarEvent {
 
 impl CalendarEvent {
     pub fn is_active(&self, day: u32, season: Season) -> bool {
-        let season_match = self.season.map_or(true, |s| s == season);
+        let season_match = self.season.is_none_or(|s| s == season);
         season_match && day >= self.day_start && day <= self.day_end
     }
 
@@ -356,7 +356,7 @@ pub fn upcoming_events(current_day: u32, season: Season, lookahead: u32) -> Vec<
     all_calendar_events()
         .into_iter()
         .filter(|e| {
-            let season_match = e.season.map_or(true, |s| s == season);
+            let season_match = e.season.is_none_or(|s| s == season);
             season_match && e.day_start > current_day && e.day_start <= current_day + lookahead
         })
         .collect()

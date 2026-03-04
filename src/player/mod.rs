@@ -51,6 +51,7 @@ impl Plugin for PlayerPlugin {
                 tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),
                 tools::tool_cycle,
                 tools::stamina_drain_handler,
+                tools::stamina_low_warning,
                 interaction::item_pickup_check,
                 interaction::add_items_to_inventory,
                 interaction::map_transition_check,

@@ -483,6 +483,7 @@ pub fn all_routes() -> Vec<RouteDef> {
     ]
 }
 
+#[allow(clippy::too_many_arguments)]
 fn route(
     from: AirportId,
     to: AirportId,

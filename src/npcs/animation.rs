@@ -35,8 +35,10 @@ pub fn animate_npc_sprites(
 
         let base: usize = if dx.abs() > dy.abs() {
             if dx > 0.0 { 12 } else { 8 } // Right (row 3) : Left (row 2)
+        } else if dy > 0.0 {
+            4 // Up
         } else {
-            if dy > 0.0 { 4 } else { 0 } // Up : Down
+            0 // Down
         };
 
         if movement.is_moving {

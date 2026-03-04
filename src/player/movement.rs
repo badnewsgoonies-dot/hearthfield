@@ -144,14 +144,14 @@ fn is_blocked(
     }
 
     if player_state.current_map == MapId::Farm {
-        if let Some(obj) = farm_state.objects.get(&(gx, gy)) {
-            match obj {
-                FarmObject::Tree { .. }
-                | FarmObject::Rock { .. }
-                | FarmObject::Stump { .. }
-                | FarmObject::Fence => return true,
-                _ => {}
-            }
+        if let Some(
+            FarmObject::Tree { .. }
+            | FarmObject::Rock { .. }
+            | FarmObject::Stump { .. }
+            | FarmObject::Fence,
+        ) = farm_state.objects.get(&(gx, gy))
+        {
+            return true;
         }
     }
 

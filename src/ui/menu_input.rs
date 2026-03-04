@@ -36,6 +36,15 @@ pub fn gameplay_state_transitions(
     if input.open_crafting {
         next.set(GameState::Crafting);
     }
+    if input.open_journal {
+        next.set(GameState::Journal);
+    }
+    if input.open_relationships {
+        next.set(GameState::RelationshipsView);
+    }
+    if input.open_map {
+        next.set(GameState::MapView);
+    }
 }
 
 /// Universal "cancel goes back to Playing" for overlay menus.
@@ -57,6 +66,18 @@ pub fn menu_cancel_transitions(
             next.set(GameState::Playing);
             return;
         }
+        GameState::Journal if input.open_journal => {
+            next.set(GameState::Playing);
+            return;
+        }
+        GameState::RelationshipsView if input.open_relationships => {
+            next.set(GameState::Playing);
+            return;
+        }
+        GameState::MapView if input.open_map => {
+            next.set(GameState::Playing);
+            return;
+        }
         _ => {}
     }
 
@@ -67,7 +88,7 @@ pub fn menu_cancel_transitions(
         GameState::Dialogue if cutscene_queue.active => {
             next.set(GameState::Cutscene);
         }
-        GameState::Inventory | GameState::Shop | GameState::Crafting | GameState::Dialogue => {
+        GameState::Inventory | GameState::Shop | GameState::Crafting | GameState::Dialogue | GameState::Journal | GameState::RelationshipsView | GameState::MapView => {
             next.set(GameState::Playing);
         }
         _ => {}
@@ -80,7 +101,6 @@ pub fn hotbar_input_handler(input: Res<PlayerInput>, mut inventory: ResMut<Inven
     // tool_slot maps 1-9 keys → Some(0..8)
     if let Some(slot) = input.tool_slot {
         inventory.selected_slot = slot as usize;
-        return;
     }
 
     // Also support 0, -, = keys for slots 9-11 via tool_next/tool_prev as fallback

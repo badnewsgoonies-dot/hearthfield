@@ -2,6 +2,8 @@
 //!
 //! Main entry point. Registers all resources, events, states, and plugins.
 
+#![allow(dead_code, unused_imports, clippy::upper_case_acronyms)]
+
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 
@@ -32,6 +34,10 @@ fn main() {
                         resolution: bevy::window::WindowResolution::new(1280.0, 720.0),
                         ..default()
                     }),
+                    ..default()
+                })
+                .set(AssetPlugin {
+                    file_path: "../../assets".to_string(),
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),

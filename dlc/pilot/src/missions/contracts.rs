@@ -117,7 +117,7 @@ pub fn refresh_contract_board(
         let day = calendar.total_days();
 
         // Only refresh every 3 days
-        if day % 3 != 0 {
+        if !day.is_multiple_of(3) {
             return;
         }
 
@@ -145,9 +145,7 @@ pub fn refresh_contract_board(
             }
 
             let is_charter = rng.gen_bool(0.2);
-            let freq = if is_charter {
-                ContractFrequency::Daily
-            } else if rng.gen_bool(0.5) {
+            let freq = if is_charter || rng.gen_bool(0.5) {
                 ContractFrequency::Daily
             } else {
                 ContractFrequency::Weekly

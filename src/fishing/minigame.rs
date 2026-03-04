@@ -198,6 +198,7 @@ pub fn update_progress(
 }
 
 /// Check whether the minigame is won, lost, or cancelled.
+#[allow(clippy::too_many_arguments)]
 pub fn check_minigame_result(
     mut fishing_state: ResMut<FishingState>,
     minigame_state: Res<FishingMinigameState>,
@@ -250,18 +251,17 @@ pub fn check_minigame_result(
         }
 
         // Wild bait double-catch: 15% chance for a bonus fish (wild_bait only)
-        if bait_id.as_deref() == Some("wild_bait") {
-            if super::cast::wild_bait_double_catch_roll() {
-                if let Some(ref fid) = selected_fish {
-                    item_pickup_events.send(ItemPickupEvent {
-                        item_id: fid.clone(),
-                        quantity: 1,
-                    });
-                    toast_events.send(ToastEvent {
-                        message: "Wild Bait bonus: extra fish!".to_string(),
-                        duration_secs: 2.5,
-                    });
-                }
+        if bait_id.as_deref() == Some("wild_bait")
+            && super::cast::wild_bait_double_catch_roll() {
+            if let Some(ref fid) = selected_fish {
+                item_pickup_events.send(ItemPickupEvent {
+                    item_id: fid.clone(),
+                    quantity: 1,
+                });
+                toast_events.send(ToastEvent {
+                    message: "Wild Bait bonus: extra fish!".to_string(),
+                    duration_secs: 2.5,
+                });
             }
         }
 

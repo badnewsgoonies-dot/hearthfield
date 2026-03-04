@@ -1,5 +1,6 @@
 mod audio;
 pub mod building_upgrade_menu;
+pub mod calendar_screen;
 mod chest_screen;
 mod crafting_screen;
 pub mod cutscene_runner;
@@ -9,12 +10,17 @@ mod hud;
 // (input.rs removed — all input routing via src/input/mod.rs + menu_input.rs)
 pub mod intro_sequence;
 mod inventory_screen;
+pub mod journal_screen;
 mod main_menu;
+pub mod map_screen;
 pub mod menu_input;
 pub mod menu_kit;
 mod minimap;
 mod pause_menu;
+pub mod relationships_screen;
+pub mod settings_screen;
 mod shop_screen;
+pub mod stats_screen;
 mod toast;
 pub mod transitions;
 pub mod tutorial;
@@ -192,7 +198,10 @@ impl Plugin for UiPlugin {
                     in_state(GameState::Inventory)
                         .or(in_state(GameState::Shop))
                         .or(in_state(GameState::Crafting))
-                        .or(in_state(GameState::Dialogue)),
+                        .or(in_state(GameState::Dialogue))
+                        .or(in_state(GameState::Journal))
+                        .or(in_state(GameState::RelationshipsView))
+                        .or(in_state(GameState::MapView)),
                 ),
             ),
         );
@@ -214,6 +223,53 @@ impl Plugin for UiPlugin {
                 inventory_screen::inventory_navigation,
             )
                 .run_if(in_state(GameState::Inventory)),
+        );
+
+        // ─── JOURNAL SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::Journal),
+            journal_screen::spawn_journal_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::Journal),
+            journal_screen::despawn_journal_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                journal_screen::update_quest_display,
+                journal_screen::update_cursor_highlight,
+                journal_screen::journal_navigation,
+            )
+                .run_if(in_state(GameState::Journal)),
+        );
+
+        // ─── RELATIONSHIPS SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::RelationshipsView),
+            relationships_screen::spawn_relationships_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::RelationshipsView),
+            relationships_screen::despawn_relationships_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                relationships_screen::update_relationships_cursor,
+                relationships_screen::relationships_navigation,
+            )
+                .run_if(in_state(GameState::RelationshipsView)),
+        );
+
+        // ─── MAP SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::MapView),
+            map_screen::spawn_map_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::MapView),
+            map_screen::despawn_map_screen,
         );
 
         // ─── DIALOGUE BOX ───
@@ -311,6 +367,48 @@ impl Plugin for UiPlugin {
                 chest_screen::update_chest_cursor,
                 chest_screen::handle_chest_input,
             )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── CALENDAR OVERLAY (F1 toggle during Playing) ───
+        app.init_resource::<calendar_screen::CalendarOverlayState>();
+        app.add_systems(
+            Update,
+            (
+                calendar_screen::toggle_calendar_overlay,
+                calendar_screen::calendar_close_on_escape,
+                calendar_screen::update_calendar_lifecycle,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── STATISTICS OVERLAY (F2 toggle during Playing) ───
+        app.init_resource::<stats_screen::StatsOverlayState>();
+        app.add_systems(
+            Update,
+            (
+                stats_screen::toggle_stats_overlay,
+                stats_screen::stats_close_on_escape,
+                stats_screen::update_stats_lifecycle,
+                stats_screen::refresh_stats_display,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── SETTINGS OVERLAY (F4 toggle during Playing) ───
+        app.init_resource::<settings_screen::SettingsOverlayState>();
+        app.init_resource::<settings_screen::AudioVolume>();
+        app.add_systems(
+            Update,
+            (
+                settings_screen::toggle_settings_overlay,
+                settings_screen::settings_close_on_escape,
+                settings_screen::update_settings_lifecycle,
+                settings_screen::settings_volume_input,
+            )
+                .chain()
                 .run_if(in_state(GameState::Playing)),
         );
     }

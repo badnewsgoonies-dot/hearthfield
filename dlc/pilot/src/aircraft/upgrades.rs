@@ -217,7 +217,7 @@ fn upgrade_stats(slot: UpgradeSlot, tier: UpgradeTier) -> UpgradeDef {
 pub fn apply_upgrade(
     mut events: EventReader<UpgradeEvent>,
     mut gold: ResMut<Gold>,
-    mut fleet: ResMut<Fleet>,
+    _fleet: ResMut<Fleet>,
     mut registry: ResMut<UpgradeRegistry>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {

@@ -56,6 +56,7 @@ pub struct NpcSpriteData {
 }
 
 /// System: on entering Playing state, spawn NPCs for the current map.
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_initial_npcs(
     mut commands: Commands,
     calendar: Res<Calendar>,
@@ -80,6 +81,7 @@ pub fn spawn_initial_npcs(
 }
 
 /// Spawn all NPCs that should appear on a given map right now.
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_npcs_for_map(
     commands: &mut Commands,
     calendar: &Calendar,

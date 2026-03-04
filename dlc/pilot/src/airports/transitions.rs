@@ -6,6 +6,7 @@ use super::maps::generate_zone_map;
 use super::render::{despawn_map, spawn_zone_tiles};
 use super::objects::spawn_zone_objects;
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_zone_transition(
     mut events: EventReader<ZoneTransitionEvent>,
     mut commands: Commands,

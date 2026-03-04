@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 static SEASON_COMMENT_DAY: AtomicU8 = AtomicU8::new(1);
@@ -13,13 +14,21 @@ pub struct ActiveNpcInteraction {
     pub npc_id: Option<String>,
 }
 
+/// Tracks which NPCs the player has already talked to today, so daily
+/// friendship is only awarded once per NPC per day.
+#[derive(Resource, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DailyTalkTracker {
+    pub talked: HashSet<String>,
+}
+
 /// System: detect player pressing F (interact) near an NPC and start dialogue.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_npc_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
     npc_query: Query<(&Npc, &Transform)>,
-    relationships: Res<Relationships>,
+    mut relationships: ResMut<Relationships>,
     npc_registry: Res<NpcRegistry>,
     calendar: Res<Calendar>,
     mut dialogue_writer: EventWriter<DialogueStartEvent>,
@@ -27,6 +36,7 @@ pub fn handle_npc_interaction(
     current_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut interaction_claimed: ResMut<InteractionClaimed>,
+    mut daily_talks: ResMut<DailyTalkTracker>,
 ) {
     // Only check interaction during Playing state
     if *current_state.get() != GameState::Playing {
@@ -76,6 +86,12 @@ pub fn handle_npc_interaction(
 
     let portrait_index = npc_registry.npcs.get(npc_id)
         .map(|def| def.portrait_index);
+
+    // Award 20 friendship points (1/5 of a heart) on first daily talk
+    if !daily_talks.talked.contains(npc_id) {
+        relationships.add_friendship(npc_id, 20);
+        daily_talks.talked.insert(npc_id.clone());
+    }
 
     active_interaction.npc_id = Some(npc_id.clone());
     interaction_claimed.0 = true;
@@ -466,7 +482,7 @@ pub fn build_gift_response_lines(
     is_birthday: bool,
 ) -> Vec<String> {
     let birthday_prefix = if is_birthday {
-        format!("Oh! Is it really for me? And on my birthday! ")
+        "Oh! Is it really for me? And on my birthday! ".to_string()
     } else {
         String::new()
     };
@@ -527,6 +543,17 @@ fn hated_response(npc_id: &str, item_name: &str) -> String {
         "sam"       => format!("A {}? I've seen things like this at the bottom of a dumpster. Left 'em there too.", item_name),
         "nora"      => format!("A {}? Hmph. Been farming all my life and never needed one of those.", item_name),
         _           => format!("A {}? ...Thanks, I guess.", item_name),
+    }
+}
+
+/// Clears the daily-talk tracker at the end of each day so players
+/// can earn friendship by talking again the next day.
+pub fn reset_daily_talks(
+    mut day_end_events: EventReader<DayEndEvent>,
+    mut daily_talks: ResMut<DailyTalkTracker>,
+) {
+    for _event in day_end_events.read() {
+        daily_talks.talked.clear();
     }
 }
 

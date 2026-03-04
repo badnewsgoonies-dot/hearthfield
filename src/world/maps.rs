@@ -190,10 +190,10 @@ fn generate_farm() -> MapDef {
 
     // Trees along top edge (around house)
     for x in (1..12).step_by(3) {
-        objects.push(ObjectPlacement { x: x as i32, y: 1, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement { x, y: 1, kind: WorldObjectKind::Tree });
     }
     for x in (22..30).step_by(3) {
-        objects.push(ObjectPlacement { x: x as i32, y: 1, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement { x, y: 1, kind: WorldObjectKind::Tree });
     }
 
     // Rocks in the dirt (player clears to farm)
@@ -328,10 +328,10 @@ fn generate_town() -> MapDef {
     let mut objects = Vec::new();
     // Trees along top
     for x in (0..12).step_by(3) {
-        objects.push(ObjectPlacement { x: x as i32, y: 0, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement { x, y: 0, kind: WorldObjectKind::Tree });
     }
     for x in (16..28).step_by(3) {
-        objects.push(ObjectPlacement { x: x as i32, y: 0, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement { x, y: 0, kind: WorldObjectKind::Tree });
     }
     // Park trees
     objects.push(ObjectPlacement { x: 2, y: 17, kind: WorldObjectKind::Tree });
@@ -413,10 +413,11 @@ fn generate_beach() -> MapDef {
         },
     ];
 
-    let mut objects = Vec::new();
-    objects.push(ObjectPlacement { x: 17, y: 1, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 7, y: 7, kind: WorldObjectKind::Log });
-    objects.push(ObjectPlacement { x: 12, y: 6, kind: WorldObjectKind::Log });
+    let objects = vec![
+        ObjectPlacement { x: 17, y: 1, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 7, y: 7, kind: WorldObjectKind::Log },
+        ObjectPlacement { x: 12, y: 6, kind: WorldObjectKind::Log },
+    ];
 
     let forage_points = vec![
         (4, 5), (8, 4), (13, 5), (6, 7),
@@ -497,7 +498,7 @@ fn generate_forest() -> MapDef {
     // Dense trees (top area)
     for x in (0..22).step_by(2) {
         for y in (0..2).step_by(2) {
-            objects.push(ObjectPlacement { x: x as i32, y: y as i32, kind: WorldObjectKind::Tree });
+            objects.push(ObjectPlacement { x, y, kind: WorldObjectKind::Tree });
         }
     }
     // Scattered forest trees

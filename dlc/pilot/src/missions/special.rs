@@ -1,13 +1,14 @@
 //! Special mission types — SAR, medevac, celebrity, air race, photography, etc.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SpecialMissionType {
     SearchAndRescue,
     MedicalEvacuation,
@@ -84,7 +85,7 @@ impl SpecialMissionType {
 }
 
 /// Search pattern for SAR missions.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SearchPattern {
     ParallelTrack,
     ExpandingSquare,
@@ -113,7 +114,8 @@ impl SearchPattern {
 }
 
 /// Waypoint for air race or photography missions.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MissionWaypoint {
     pub name: String,
     pub distance_from_start_nm: f32,
@@ -135,7 +137,8 @@ impl MissionWaypoint {
 }
 
 /// Active special mission state.
-#[derive(Resource, Clone, Debug, Default)]
+#[derive(Resource, Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SpecialMissionState {
     pub active_type: Option<SpecialMissionType>,
     pub search_progress: f32,       // 0.0-1.0 for SAR
@@ -352,7 +355,7 @@ pub fn get_special_missions() -> Vec<MissionDef> {
 /// Initialize special mission state when a special mission is accepted.
 pub fn init_special_mission(
     mut mission_accepted: EventReader<MissionAcceptedEvent>,
-    mission_board: Res<MissionBoard>,
+    _mission_board: Res<MissionBoard>,
     mut state: ResMut<SpecialMissionState>,
 ) {
     for ev in mission_accepted.read() {
@@ -545,7 +548,7 @@ fn update_photo_waypoints(
             continue;
         }
         if distance_flown >= wp.distance_from_start_nm {
-            let alt_ok = wp.required_altitude_ft.map_or(true, |req| {
+            let alt_ok = wp.required_altitude_ft.is_none_or(|req| {
                 (flight_state.altitude_ft - req).abs() <= wp.altitude_tolerance_ft
             });
             if alt_ok {

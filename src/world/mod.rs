@@ -42,6 +42,7 @@ use lighting::{
 use weather_fx::{
     spawn_weather_particles, update_weather_particles,
     cleanup_weather_on_change, cleanup_all_weather_particles,
+    weather_change_notification,
     PreviousWeather,
 };
 
@@ -53,8 +54,7 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ToastEvent>()
-            .init_resource::<WorldMap>()
+        app.init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
@@ -98,6 +98,7 @@ impl Plugin for WorldPlugin {
                     spawn_weather_particles,
                     update_weather_particles,
                     cleanup_weather_on_change,
+                    weather_change_notification,
                     // Weed scythe clearing
                     handle_weed_scythe,
                 )
@@ -234,11 +235,48 @@ fn ensure_atlases_loaded(
 
 /// Maps a TileKind (and optionally season) to (image_handle, layout_handle, atlas_index).
 /// Returns None for Void tiles, which use a plain colored sprite instead.
+fn is_path_neighbor(tiles: &[TileKind], x: usize, y: usize, width: usize, height: usize, dx: i32, dy: i32) -> bool {
+    let nx = x as i32 + dx;
+    let ny = y as i32 + dy;
+    if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+        return false;
+    }
+    matches!(tiles[ny as usize * width + nx as usize], TileKind::Path | TileKind::Bridge)
+}
+
+fn path_autotile_index(bitmask: u8) -> usize {
+    match bitmask {
+        0b0000 => 0,
+        0b0001 => 1,
+        0b0010 => 2,
+        0b0011 => 3,
+        0b0100 => 4,
+        0b0101 => 5,
+        0b0110 => 6,
+        0b0111 => 7,
+        0b1000 => 8,
+        0b1001 => 9,
+        0b1010 => 10,
+        0b1011 => 11,
+        0b1100 => 12,
+        0b1101 => 13,
+        0b1110 => 14,
+        0b1111 => 15,
+        _ => 5,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn tile_atlas_info(
     kind: TileKind,
     _season: Season,
     atlases: &TerrainAtlases,
     map_id: MapId,
+    x: usize,
+    y: usize,
+    tiles: &[TileKind],
+    width: usize,
+    height: usize,
 ) -> Option<(Handle<Image>, Handle<TextureAtlasLayout>, usize)> {
     match kind {
         // Grass: use grass.png atlas. Index 5 is a nice center grass tile.
@@ -308,12 +346,18 @@ fn tile_atlas_info(
             33,
         )),
 
-        // Path: paths.png atlas, index 0.
-        TileKind::Path => Some((
-            atlases.paths_image.clone(),
-            atlases.paths_layout.clone(),
-            5, // center path tile (row 1, col 1)
-        )),
+        TileKind::Path => {
+            let mut mask: u8 = 0;
+            if is_path_neighbor(tiles, x, y, width, height, 0, -1) { mask |= 1; } // north
+            if is_path_neighbor(tiles, x, y, width, height, 1, 0)  { mask |= 2; } // east
+            if is_path_neighbor(tiles, x, y, width, height, 0, 1)  { mask |= 4; } // south
+            if is_path_neighbor(tiles, x, y, width, height, -1, 0) { mask |= 8; } // west
+            Some((
+                atlases.paths_image.clone(),
+                atlases.paths_layout.clone(),
+                path_autotile_index(mask),
+            ))
+        }
 
         // Bridge: wood_bridge.png atlas, center plank tile (row 1, col 2 = index 7).
         TileKind::Bridge => Some((
@@ -348,7 +392,7 @@ fn tile_atlas_info(
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Tracks the currently loaded map and provides collision/walkability queries.
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct WorldMap {
     /// The current map definition.
     pub map_def: Option<MapDef>,
@@ -358,17 +402,6 @@ pub struct WorldMap {
     pub width: usize,
     /// Map height in tiles.
     pub height: usize,
-}
-
-impl Default for WorldMap {
-    fn default() -> Self {
-        Self {
-            map_def: None,
-            solid_tiles: HashSet::new(),
-            width: 0,
-            height: 0,
-        }
-    }
 }
 
 impl WorldMap {
@@ -479,6 +512,7 @@ fn tile_color(kind: TileKind, season: Season) -> Color {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Load a map by ID: populate WorldMap resource and spawn tile entities.
+#[allow(clippy::too_many_arguments)]
 fn load_map(
     commands: &mut Commands,
     map_id: MapId,
@@ -533,7 +567,7 @@ fn spawn_tile_sprites(
         for x in 0..map_def.width {
             let tile = map_def.tiles[y * map_def.width + x];
 
-            match tile_atlas_info(tile, season, atlases, map_def.id) {
+            match tile_atlas_info(tile, season, atlases, map_def.id, x, y, &map_def.tiles, map_def.width, map_def.height) {
                 Some((image, layout, index)) => {
                     // Use texture atlas sprite
                     commands.spawn((
@@ -596,6 +630,7 @@ fn despawn_map(
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Spawn the initial farm map when the game enters Playing state.
+#[allow(clippy::too_many_arguments)]
 fn spawn_initial_map(
     mut commands: Commands,
     mut world_map: ResMut<WorldMap>,
@@ -634,6 +669,7 @@ fn spawn_initial_map(
 }
 
 /// Handle MapTransitionEvent: despawn current map, load new one.
+#[allow(clippy::too_many_arguments)]
 fn handle_map_transition(
     mut commands: Commands,
     mut events: EventReader<MapTransitionEvent>,
@@ -755,7 +791,7 @@ fn handle_season_change(
 
                 let tile = map_def.get_tile(gx, gy);
 
-                match tile_atlas_info(tile, new_season, &terrain_atlases, map_def.id) {
+                match tile_atlas_info(tile, new_season, &terrain_atlases, map_def.id, gx as usize, gy as usize, &map_def.tiles, map_def.width, map_def.height) {
                     Some((image, layout, index)) => {
                         // Update the sprite to use the new seasonal atlas image and index.
                         // Reset color to white so apply_seasonal_tint can tint cleanly.

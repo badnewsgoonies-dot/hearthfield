@@ -4,11 +4,12 @@
 //! is tracked in the `StoryProgress` resource and displayed in the logbook.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ─── Story Chapters ──────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum StoryChapter {
     Chapter1FirstSolo,
     Chapter2MaidenVoyage,
@@ -537,7 +538,7 @@ pub fn all_story_missions() -> Vec<StoryMission> {
 
 // ─── Story Progress Resource ─────────────────────────────────────────────
 
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
 pub struct StoryProgress {
     pub current_chapter: StoryChapter,
     pub completed_missions: Vec<String>,

@@ -25,6 +25,7 @@ use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_
 ///
 /// `bait_id` is the specific bait item ID used for this cast (e.g. "wild_bait"),
 /// or `None` if no bait was equipped. This determines the treasure bonus.
+#[allow(clippy::too_many_arguments)]
 pub fn catch_fish(
     fishing_state: &mut FishingState,
     next_state: &mut NextState<GameState>,
@@ -62,6 +63,17 @@ pub fn catch_fish(
     item_pickup_events.send(ItemPickupEvent {
         item_id: valid_id.clone(),
         quantity: 1,
+    });
+
+    // Toast for the catch
+    let catch_name = fish_registry
+        .fish
+        .get(&valid_id)
+        .map(|f| f.name.clone())
+        .unwrap_or_else(|| valid_id.clone());
+    toast_events.send(ToastEvent {
+        message: format!("Caught a {}!", catch_name),
+        duration_secs: 2.5,
     });
 
     // ── Fish Encyclopedia ──────────────────────────────────────────────────

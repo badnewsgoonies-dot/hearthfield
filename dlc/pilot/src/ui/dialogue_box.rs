@@ -7,10 +7,10 @@ use crate::shared::*;
 pub struct DialogueBoxRoot;
 
 #[derive(Component)]
-struct SpeakerText;
+pub struct SpeakerText;
 
 #[derive(Component)]
-struct BodyText;
+pub struct BodyText;
 
 pub fn spawn_dialogue_box(
     mut commands: Commands,

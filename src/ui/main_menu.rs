@@ -212,6 +212,7 @@ pub fn update_main_menu_visuals(
     status.0 = state.status_message.clone();
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn main_menu_navigation(
     action: Res<MenuAction>,
     mut state: Option<ResMut<MainMenuState>>,
@@ -233,15 +234,11 @@ pub fn main_menu_navigation(
         }
     }
 
-    if action.move_down {
-        if state.cursor + 1 < option_count {
-            state.cursor += 1;
-        }
+    if action.move_down && state.cursor + 1 < option_count {
+        state.cursor += 1;
     }
-    if action.move_up {
-        if state.cursor > 0 {
-            state.cursor -= 1;
-        }
+    if action.move_up && state.cursor > 0 {
+        state.cursor -= 1;
     }
 
     if action.activate {

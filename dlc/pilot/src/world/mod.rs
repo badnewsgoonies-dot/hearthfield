@@ -1,6 +1,7 @@
 //! World domain — seasonal systems, airport status, world events.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 use rand::Rng;
@@ -59,7 +60,7 @@ impl Plugin for WorldPlugin {
 // ─── Airport Status ──────────────────────────────────────────────────────
 
 /// Why an airport might be temporarily unavailable.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClosureReason {
     Weather,
     Maintenance,
@@ -68,7 +69,8 @@ pub enum ClosureReason {
 }
 
 /// Current operational status of an airport.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AirportStatus {
     pub open: bool,
     pub closure_reason: Option<ClosureReason>,
@@ -86,14 +88,15 @@ impl Default for AirportStatus {
 }
 
 /// Maps every airport to its current status.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AirportStatusMap {
     pub statuses: HashMap<AirportId, AirportStatus>,
 }
 
 impl AirportStatusMap {
     pub fn is_open(&self, id: &AirportId) -> bool {
-        self.statuses.get(id).map_or(true, |s| s.open)
+        self.statuses.get(id).is_none_or(|s| s.open)
     }
 }
 
@@ -176,7 +179,7 @@ pub fn check_airport_status(
     let to_reopen: Vec<AirportId> = status_map
         .statuses
         .iter()
-        .filter(|(_, s)| !s.open && s.reopen_day.map_or(false, |d| d <= today))
+        .filter(|(_, s)| !s.open && s.reopen_day.is_some_and(|d| d <= today))
         .map(|(id, _)| *id)
         .collect();
 

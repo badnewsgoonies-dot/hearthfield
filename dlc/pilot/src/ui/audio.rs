@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::ui::settings::VolumeSettings;
 
 fn sfx_path(id: &str) -> Option<&'static str> {
     match id {
@@ -41,10 +42,14 @@ pub fn handle_play_sfx(
     mut events: EventReader<PlaySfxEvent>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    volume_settings: Res<VolumeSettings>,
 ) {
     for evt in events.read() {
         if let Some(path) = sfx_path(&evt.sfx_id) {
-            commands.spawn(AudioPlayer::new(asset_server.load(path)));
+            commands.spawn((
+                AudioPlayer::new(asset_server.load(path)),
+                PlaybackSettings::DESPAWN.with_volume(Volume::Linear(volume_settings.sfx_volume)),
+            ));
         }
     }
 }
@@ -54,6 +59,7 @@ pub fn handle_play_music(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut music_state: ResMut<MusicState>,
+    volume_settings: Res<VolumeSettings>,
 ) {
     for evt in events.read() {
         // Stop current track
@@ -63,7 +69,10 @@ pub fn handle_play_music(
 
         if let Some(path) = music_path(&evt.track_id) {
             let entity = commands
-                .spawn(AudioPlayer::new(asset_server.load(path)))
+                .spawn((
+                    AudioPlayer::new(asset_server.load(path)),
+                    PlaybackSettings::LOOP.with_volume(Volume::Linear(volume_settings.music_volume)),
+                ))
                 .id();
             music_state.current_track = evt.track_id.clone();
             music_state.entity = Some(entity);

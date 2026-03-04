@@ -39,7 +39,7 @@ fn update_weather(
     calendar: Res<Calendar>,
 ) {
     // Wind varies slightly over time
-    let wind_variation = (calendar.time_of_day_secs * 0.01).sin() as f32 * 5.0;
+    let wind_variation = (calendar.time_of_day_secs * 0.01).sin() * 5.0;
     weather_state.wind_speed_knots = (weather_state.wind_speed_knots + wind_variation * time.delta_secs()).max(0.0);
 
     // Update turbulence based on weather

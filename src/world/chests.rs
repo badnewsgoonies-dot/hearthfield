@@ -70,6 +70,7 @@ pub fn load_chest_sprites(
 /// Listens for the C key while the player has a "chest" item in their
 /// selected hotbar slot. Places a chest entity on the target tile
 /// (player position + facing direction) if the tile is valid.
+#[allow(clippy::too_many_arguments)]
 pub fn place_chest(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -104,7 +105,7 @@ pub fn place_chest(
 
     // Check if selected hotbar slot contains a "chest" item.
     let selected = inventory.selected_slot;
-    let has_chest_item = if let Some(ref slot) = inventory.slots.get(selected).and_then(|s| s.as_ref()) {
+    let has_chest_item = if let Some(slot) = inventory.slots.get(selected).and_then(|s| s.as_ref()) {
         slot.item_id == "chest"
     } else {
         false
@@ -245,10 +246,8 @@ pub fn interact_with_chest(
     for (entity, chest_transform) in chest_query.iter() {
         let chest_pos = chest_transform.translation.truncate();
         let dist = player_pos.distance(chest_pos);
-        if dist <= interact_range {
-            if closest.map_or(true, |(_, d)| dist < d) {
-                closest = Some((entity, dist));
-            }
+        if dist <= interact_range && closest.is_none_or(|(_, d)| dist < d) {
+            closest = Some((entity, dist));
         }
     }
 

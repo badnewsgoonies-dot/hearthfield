@@ -28,6 +28,7 @@ fn pickaxe_stamina_cost(tier: ToolTier) -> f32 {
 }
 
 /// System: handle pickaxe hits on mine rocks.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_rock_breaking(
     mut commands: Commands,
     mut tool_events: EventReader<ToolUseEvent>,

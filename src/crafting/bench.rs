@@ -116,6 +116,7 @@ pub fn handle_open_crafting(
 
 /// Runs in Crafting (non-cooking mode) — processes a CraftItemEvent.
 /// Validates ingredients, consumes them, produces the result item.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_craft_item(
     mut events: EventReader<CraftItemEvent>,
     mut inventory: ResMut<Inventory>,
@@ -125,6 +126,8 @@ pub fn handle_craft_item(
     mut ui_state: ResMut<CraftingUiState>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut achievements: ResMut<Achievements>,
 ) {
     // Also handle keyboard input for navigation and confirming craft
     // (The UI plugin handles the actual rendering; we only handle logic here)
@@ -157,6 +160,10 @@ pub fn handle_craft_item(
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
+            toast_events.send(ToastEvent {
+                message: "Missing ingredients!".into(),
+                duration_secs: 2.0,
+            });
             continue;
         }
 
@@ -183,6 +190,7 @@ pub fn handle_craft_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
+        *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Crafted {} x{}", recipe.name, recipe.result_quantity)
@@ -194,6 +202,10 @@ pub fn handle_craft_item(
 
         sfx_events.send(PlaySfxEvent {
             sfx_id: "craft_success".to_string(),
+        });
+        toast_events.send(ToastEvent {
+            message: format!("{} crafted!", recipe.name),
+            duration_secs: 2.0,
         });
     }
 }

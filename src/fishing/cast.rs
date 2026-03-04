@@ -57,6 +57,7 @@ fn detect_bait(inventory: &Inventory) -> Option<String> {
 
 /// Listen for ToolUseEvent with FishingRod.
 /// When the player uses the fishing rod, start the fishing sequence.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_tool_use_for_fishing(
     mut tool_events: EventReader<ToolUseEvent>,
     mut fishing_state: ResMut<FishingState>,
@@ -238,6 +239,7 @@ pub fn update_bite_timer(
 
 /// Handle the reaction window: player must press Space to start the minigame.
 /// If the reaction window expires, the fish escapes.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_bite_reaction_window(
     mut fishing_state: ResMut<FishingState>,
     mut minigame_state: ResMut<FishingMinigameState>,
@@ -250,6 +252,7 @@ pub fn handle_bite_reaction_window(
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
     skill: Res<FishingSkill>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     if fishing_state.phase != FishingPhase::BitePending {
         return;
@@ -308,6 +311,10 @@ pub fn handle_bite_reaction_window(
         next_state.set(GameState::Fishing);
     } else if reaction_expired {
         // Fish got away — too slow
+        toast_events.send(ToastEvent {
+            message: "The fish got away!".into(),
+            duration_secs: 2.0,
+        });
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         let fs: &mut FishingState = &mut fishing_state;
         let ns: &mut NextState<GameState> = &mut next_state;
@@ -391,7 +398,7 @@ mod tests {
     fn test_wild_bait_double_catch_roll_returns_bool() {
         // Just verify it returns a bool and doesn't panic
         let result = wild_bait_double_catch_roll();
-        assert!(result || !result);
+        let _ = result; // just verify it returns without panic
     }
 
     #[test]

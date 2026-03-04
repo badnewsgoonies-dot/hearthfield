@@ -21,6 +21,14 @@ mod sprinkler;
 pub mod sprinklers;
 use sprinklers::{handle_place_sprinkler, auto_water_sprinklers, remove_sprinkler};
 
+/// Event to place a farm object (fence, scarecrow, etc.) at a grid position.
+#[derive(Event, Debug, Clone)]
+pub struct PlaceFarmObjectEvent {
+    pub item_id: String,
+    pub grid_x: i32,
+    pub grid_y: i32,
+}
+
 // Internal re-exports used by Bevy queries from outside the module (not currently needed).
 
 /// Marker component for soil tile entities managed by the farming domain.
@@ -38,6 +46,7 @@ pub struct CropTileEntity {
 }
 
 /// Marker component for farm object sprite entities (sprinklers, scarecrows).
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct FarmObjectEntity {
     pub grid_x: i32,
@@ -129,6 +138,7 @@ impl Plugin for FarmingPlugin {
             .add_event::<HarvestAttemptEvent>()
             .add_event::<PlantSeedEvent>()
             .add_event::<MorningSprinklerEvent>()
+            .add_event::<PlaceFarmObjectEvent>()
             // ------------------------------------------------------------------
             // Atlas loading — runs once on first Playing frame
             // ------------------------------------------------------------------
@@ -165,6 +175,8 @@ impl Plugin for FarmingPlugin {
                     handle_place_sprinkler,
                     // Sprinkler removal (pickaxe on a sprinkler tile)
                     remove_sprinkler,
+                    // Farm object placement (fence, scarecrow)
+                    handle_place_farm_object,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -267,4 +279,66 @@ pub fn crop_stage_color(stage: u8, total_stages: u8, dead: bool) -> Color {
     let g = 0.65 + 0.15 * progress;
     let b = 0.2 * (1.0 - progress);
     Color::srgb(r.clamp(0.0, 1.0), g.clamp(0.0, 1.0), b.clamp(0.0, 1.0))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Farm object placement handler
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub fn handle_place_farm_object(
+    mut events: EventReader<PlaceFarmObjectEvent>,
+    mut farm_state: ResMut<FarmState>,
+    mut inventory: ResMut<Inventory>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
+    player_state: Res<PlayerState>,
+) {
+    for ev in events.read() {
+        if player_state.current_map != MapId::Farm {
+            toast_events.send(ToastEvent {
+                message: "You can only place this on the farm.".into(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
+
+        let pos = (ev.grid_x, ev.grid_y);
+
+        if farm_state.objects.contains_key(&pos) {
+            toast_events.send(ToastEvent {
+                message: "That tile is already occupied.".into(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
+
+        if !inventory.has(&ev.item_id, 1) {
+            continue;
+        }
+
+        let farm_obj = match ev.item_id.as_str() {
+            "fence" => FarmObject::Fence,
+            "scarecrow" => FarmObject::Scarecrow,
+            _ => {
+                warn!("PlaceFarmObjectEvent: unknown item '{}'", ev.item_id);
+                continue;
+            }
+        };
+
+        inventory.try_remove(&ev.item_id, 1);
+        farm_state.objects.insert(pos, farm_obj);
+
+        let label = match ev.item_id.as_str() {
+            "fence" => "Fence",
+            "scarecrow" => "Scarecrow",
+            _ => "Object",
+        };
+        toast_events.send(ToastEvent {
+            message: format!("{} placed.", label),
+            duration_secs: 2.0,
+        });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "place_object".to_string(),
+        });
+    }
 }

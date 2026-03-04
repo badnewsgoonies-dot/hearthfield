@@ -1,6 +1,7 @@
 //! Airline reputation system — per-airport and global reputation tracking.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 use std::collections::HashMap;
 
@@ -8,7 +9,7 @@ use std::collections::HashMap;
 // DATA TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ReputationLevel {
     Unknown,
     Local,
@@ -52,7 +53,8 @@ impl ReputationLevel {
 }
 
 /// Reputation resource — tracked per airport and globally.
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Reputation {
     pub global_score: f32,
     pub airport_scores: HashMap<AirportId, f32>,

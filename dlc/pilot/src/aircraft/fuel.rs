@@ -1,6 +1,7 @@
 //! Fuel management — fuel types, burn rate calculation, reserve warnings, bingo fuel.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 /// Fuel types and their cost per unit.
@@ -33,11 +34,26 @@ pub fn fuel_type_for_class(class: AircraftClass) -> FuelType {
     }
 }
 
+// ── Fuel burn calculation constants ───────────────────────────────────
+
+/// Minimum throttle contribution to burn rate (idle).
+const MIN_THROTTLE_FACTOR: f32 = 0.2;
+/// Additional throttle contribution at full power.
+const MAX_THROTTLE_FACTOR: f32 = 0.8;
+/// Service ceiling used to normalise altitude efficiency (ft).
+const SERVICE_CEILING_FT: f32 = 35_000.0;
+/// Maximum fuel-efficiency gain at service ceiling.
+const ALTITUDE_EFFICIENCY_FACTOR: f32 = 0.15;
+/// Reference cargo weight for penalty normalisation (kg).
+const CARGO_WEIGHT_REFERENCE_KG: f32 = 5_000.0;
+/// Maximum fuel penalty fraction for a full cargo load.
+const CARGO_WEIGHT_PENALTY_FACTOR: f32 = 0.20;
+
 /// Calculate instantaneous fuel burn per second.
 pub fn calculate_fuel_burn(base_rate: f32, throttle: f32, altitude_ft: f32, cargo_weight_kg: f32) -> f32 {
-    let throttle_factor = 0.2 + 0.8 * throttle;
-    let altitude_factor = 1.0 - (altitude_ft / 35_000.0).min(1.0) * 0.15;
-    let weight_factor = 1.0 + (cargo_weight_kg / 5000.0).min(1.0) * 0.20;
+    let throttle_factor = MIN_THROTTLE_FACTOR + MAX_THROTTLE_FACTOR * throttle;
+    let altitude_factor = 1.0 - (altitude_ft / SERVICE_CEILING_FT).min(1.0) * ALTITUDE_EFFICIENCY_FACTOR;
+    let weight_factor = 1.0 + (cargo_weight_kg / CARGO_WEIGHT_REFERENCE_KG).min(1.0) * CARGO_WEIGHT_PENALTY_FACTOR;
     base_rate * throttle_factor * altitude_factor * weight_factor
 }
 
@@ -45,7 +61,7 @@ const FUEL_WARN_25: f32 = 0.25;
 const FUEL_WARN_15: f32 = 0.15;
 const FUEL_WARN_05: f32 = 0.05;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
 pub struct FuelWarnings {
     pub warned_25: bool,
     pub warned_15: bool,

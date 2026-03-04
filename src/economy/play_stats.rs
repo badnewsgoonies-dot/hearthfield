@@ -90,22 +90,16 @@ pub fn track_gifts_given(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// System: animals_petted (tracks product collection, NOT petting)
+// System: animal_products_collected
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Increments `PlayStats::animals_petted` on `AnimalProductEvent` (product
-/// collection).
-///
-/// NOTE: No `PetAnimalEvent` exists in the codebase. The petting logic in
-/// `src/animals/interaction.rs` sets `animal.petted_today = true` directly
-/// without firing a distinct event. Until such an event is added, this counter
-/// tracks product-collection interactions, not actual petting.
-pub fn track_animals_petted(
+/// Increments `PlayStats::animal_products_collected` on `AnimalProductEvent`.
+pub fn track_animal_products_collected(
     mut events: EventReader<AnimalProductEvent>,
     mut stats: ResMut<PlayStats>,
 ) {
     for _ev in events.read() {
-        stats.animals_petted = stats.animals_petted.saturating_add(1);
+        stats.animal_products_collected = stats.animal_products_collected.saturating_add(1);
     }
 }
 
@@ -127,20 +121,15 @@ pub fn track_gold_earned(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// System: recipes_cooked (tracks food eaten, NOT recipes cooked)
+// System: food_eaten
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Increments `PlayStats::recipes_cooked` on `EatFoodEvent` (food consumption).
-///
-/// NOTE: No `CookEvent` or `RecipeCraftedEvent` exists in the codebase
-/// (confirmed absent from `src/shared/mod.rs` and `src/crafting/`). Until such
-/// an event is added, this counter tracks food-eaten events, not actual recipe
-/// cooking.
-pub fn track_recipes_cooked(
+/// Increments `PlayStats::food_eaten` on `EatFoodEvent`.
+pub fn track_food_eaten(
     mut events: EventReader<EatFoodEvent>,
     mut stats: ResMut<PlayStats>,
 ) {
     for _ev in events.read() {
-        stats.recipes_cooked = stats.recipes_cooked.saturating_add(1);
+        stats.food_eaten = stats.food_eaten.saturating_add(1);
     }
 }

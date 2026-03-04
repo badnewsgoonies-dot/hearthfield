@@ -28,6 +28,7 @@ impl Default for PreflightProgress {
 
 // ── Main system ──────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_preflight_checklist(
     input: Res<PlayerInput>,
     mut flight_state: ResMut<FlightState>,

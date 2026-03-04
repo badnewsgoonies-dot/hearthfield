@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "dlc/pilot", "dlc/city"]
+resolver = "2"
+
 [package]
 name = "hearthfield"
 version = "0.1.0"

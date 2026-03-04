@@ -4,16 +4,16 @@ use bevy::prelude::*;
 use crate::shared::*;
 
 mod buffs;
-mod machines;
+pub mod machines;
 mod recipes;
 mod bench;
 mod cooking;
 mod unlock;
 
 pub use machines::{
-    MachineType, ProcessingMachine, ProcessingMachineRegistry,
+    MachineType, ProcessingMachine, ProcessingMachineRegistry, SavedMachine,
     InsertMachineInputEvent, CollectMachineOutputEvent, PlaceMachineEvent,
-    item_to_machine_type,
+    item_to_machine_type, machine_atlas_index,
 };
 pub use recipes::{
     make_crafting_recipe, make_cooking_recipe, populate_recipe_registry,

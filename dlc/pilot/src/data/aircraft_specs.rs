@@ -3,7 +3,6 @@
 //! Complements the base `AircraftDef` in `shared` with deeper technical data
 //! that feeds into flight mechanics and the in-game aircraft encyclopedia.
 
-use crate::shared::*;
 use std::collections::HashMap;
 
 // ─── V-Speeds ────────────────────────────────────────────────────────────

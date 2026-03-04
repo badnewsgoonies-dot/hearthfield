@@ -237,7 +237,7 @@ pub fn generate_cargo_for_mission(
     mission_board: Res<MissionBoard>,
     mut manifest: ResMut<CargoManifest>,
 ) {
-    for ev in mission_accepted_events.read() {
+    for _ev in mission_accepted_events.read() {
         if let Some(active) = &mission_board.active {
             if active.mission.cargo_kg > 0.0 {
                 let mut rng = rand::thread_rng();

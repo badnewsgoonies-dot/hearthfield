@@ -1,6 +1,7 @@
 //! Crew spawning — place NPCs in appropriate zones.
 
 use bevy::prelude::*;
+use std::collections::HashMap;
 use crate::shared::*;
 
 #[derive(Resource, Default)]
@@ -9,6 +10,33 @@ pub struct CrewSpawned {
     pub for_airport: Option<AirportId>,
 }
 
+#[derive(Resource, Default)]
+pub struct CrewSpriteData {
+    pub loaded: bool,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub images: HashMap<String, Handle<Image>>,
+}
+
+#[derive(Resource, Default)]
+pub struct CrewPortraitData {
+    pub loaded: bool,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub image: Handle<Image>,
+}
+
+fn crew_sprite_file(_sprite_index: usize) -> String {
+    "sprites/crew_sheet.png".to_string()
+}
+
+fn crew_sprite_index(sprite_index: usize) -> usize {
+    sprite_index % 10
+}
+
+fn crew_portrait_file() -> &'static str {
+    "sprites/crew_portraits.png"
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_crew_for_zone(
     mut commands: Commands,
     player_location: Res<PlayerLocation>,
@@ -16,6 +44,10 @@ pub fn spawn_crew_for_zone(
     crew_q: Query<Entity, With<CrewMember>>,
     mut crew_spawned: Local<CrewSpawned>,
     calendar: Res<Calendar>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut crew_sprites: ResMut<CrewSpriteData>,
+    mut crew_portraits: ResMut<CrewPortraitData>,
 ) {
     // Only respawn if zone or airport changed
     if crew_spawned.for_zone == Some(player_location.zone)
@@ -40,7 +72,7 @@ pub fn spawn_crew_for_zone(
         return;
     }
 
-    let is_weekend = matches!(
+    let _is_weekend = matches!(
         calendar.day_of_week,
         DayOfWeek::Saturday | DayOfWeek::Sunday
     );
@@ -67,11 +99,35 @@ pub fn spawn_crew_for_zone(
         if should_spawn {
             let (gx, gy) = spawn_positions[placed];
             let pos = grid_to_world_center(gx, gy);
-            let tint = Color::srgb(member.tint_color[0], member.tint_color[1], member.tint_color[2]);
+
+            // Load shared atlas layout on first use
+            if !crew_sprites.loaded {
+                let layout = TextureAtlasLayout::from_grid(UVec2::new(16, 16), 10, 1, None, None);
+                crew_sprites.layout = layouts.add(layout);
+                crew_sprites.loaded = true;
+            }
+            if !crew_portraits.loaded {
+                let layout = TextureAtlasLayout::from_grid(UVec2::new(16, 16), 10, 1, None, None);
+                crew_portraits.layout = layouts.add(layout);
+                crew_portraits.image = asset_server.load(crew_portrait_file());
+                crew_portraits.loaded = true;
+            }
+
+            let sprite_file = crew_sprite_file(member.sprite_index as usize);
+            let image = crew_sprites.images.entry(sprite_file.clone()).or_insert_with(|| {
+                asset_server.load(&sprite_file)
+            }).clone();
+            let layout_handle = crew_sprites.layout.clone();
 
             commands.spawn((
                 CrewMember { id: id.clone() },
-                Sprite::from_color(tint, Vec2::new(14.0, 18.0)),
+                Sprite::from_atlas_image(
+                    image,
+                    TextureAtlas {
+                        layout: layout_handle,
+                        index: crew_sprite_index(member.sprite_index as usize),
+                    },
+                ),
                 Transform::from_xyz(pos.x, pos.y, Z_PLAYER - 1.0),
                 Interactable {
                     prompt: format!("[F] Talk to {}", member.name),

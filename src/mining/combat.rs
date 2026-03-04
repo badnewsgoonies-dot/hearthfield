@@ -26,6 +26,7 @@ fn player_attack_damage(tier: ToolTier) -> f32 {
 }
 
 /// System: player attacks an enemy with the pickaxe.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_player_attack(
     mut commands: Commands,
     mut tool_events: EventReader<ToolUseEvent>,
@@ -184,7 +185,7 @@ pub fn enemy_ai_movement(
 
         for (nx, ny) in candidates {
             // Check bounds (stay within walkable area)
-            if nx < 1 || nx >= MINE_WIDTH - 1 || ny < 1 || ny >= MINE_HEIGHT - 1 {
+            if !(1..MINE_WIDTH - 1).contains(&nx) || !(1..MINE_HEIGHT - 1).contains(&ny) {
                 continue;
             }
             // Don't walk into rocks
@@ -207,6 +208,7 @@ pub fn enemy_ai_movement(
 }
 
 /// System: enemies attack the player when adjacent.
+#[allow(clippy::too_many_arguments)]
 pub fn enemy_attack_player(
     time: Res<Time>,
     mut enemies: Query<(&MineGridPos, &MineMonster, &mut EnemyAttackCooldown)>,
@@ -214,6 +216,7 @@ pub fn enemy_attack_player(
     mut player_state: ResMut<PlayerState>,
     mut iframes: ResMut<PlayerIFrames>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
@@ -241,10 +244,16 @@ pub fn enemy_attack_player(
         let dist = (grid_pos.x - px).abs() + (grid_pos.y - py).abs();
         if dist <= 1 {
             // Attack!
-            player_state.health = (player_state.health - monster.damage).max(0.0);
+            let damage = monster.damage;
+            player_state.health = (player_state.health - damage).max(0.0);
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "player_hurt".to_string(),
+            });
+
+            toast_events.send(ToastEvent {
+                message: format!("-{} HP", damage as i32),
+                duration_secs: 1.5,
             });
 
             // Grant brief invincibility to prevent multi-hit stacking
@@ -258,6 +267,7 @@ pub fn enemy_attack_player(
 
 /// System: check if the player's health has reached zero (knockout).
 /// On knockout, exit the mine, set health to a fraction, and lose some gold.
+#[allow(clippy::too_many_arguments)]
 pub fn check_player_knockout(
     mut player_state: ResMut<PlayerState>,
     mut mine_state: ResMut<MineState>,

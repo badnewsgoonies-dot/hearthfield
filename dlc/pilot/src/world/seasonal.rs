@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
-use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES

@@ -138,16 +138,10 @@ pub fn create_starter_fleet() -> (Fleet, HangarAssignments) {
     (fleet, hangars)
 }
 
-pub fn manage_fleet(
-    fleet: Res<Fleet>,
-    pilot_state: Res<PilotState>,
-) {
-    let _ = (&fleet, &pilot_state);
-}
-
 pub fn handle_flight_complete_aircraft(
     mut flight_complete_events: EventReader<FlightCompleteEvent>,
     mut fleet: ResMut<Fleet>,
+    mut maintenance_tracker: ResMut<super::maintenance::MaintenanceTracker>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     for ev in flight_complete_events.read() {
@@ -155,19 +149,19 @@ pub fn handle_flight_complete_aircraft(
             aircraft.total_flights += 1;
             aircraft.fuel -= ev.fuel_used.min(aircraft.fuel);
 
-            let condition_loss = match ev.landing_grade.as_str() {
-                "Perfect" => 0.5,
-                "Good" => 1.0,
-                "Acceptable" => 2.0,
-                "Hard" => 5.0,
-                "Rough" => 10.0,
-                _ => 2.0,
-            };
-            aircraft.condition = (aircraft.condition - condition_loss).max(0.0);
+            // Delegate condition tracking to maintenance system (single authority)
+            let cond = maintenance_tracker.conditions
+                .entry(aircraft.nickname.clone())
+                .or_default();
+            cond.apply_flight_wear(&ev.landing_grade, 0.7); // avg throttle estimate
+            let overall = cond.overall();
 
-            if aircraft.condition < 20.0 {
+            // Sync the top-level condition from the maintenance tracker
+            aircraft.condition = overall;
+
+            if overall < 20.0 {
                 toast_events.send(ToastEvent {
-                    message: format!("⚠ {} needs maintenance! Condition: {:.0}%", aircraft.nickname, aircraft.condition),
+                    message: format!("⚠ {} needs maintenance! Condition: {:.0}%", aircraft.nickname, overall),
                     duration_secs: 4.0,
                 });
             }
