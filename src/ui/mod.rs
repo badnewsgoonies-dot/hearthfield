@@ -1,5 +1,6 @@
 mod audio;
 pub mod building_upgrade_menu;
+pub mod calendar_screen;
 mod chest_screen;
 mod crafting_screen;
 pub mod cutscene_runner;
@@ -17,7 +18,9 @@ pub mod menu_kit;
 mod minimap;
 mod pause_menu;
 pub mod relationships_screen;
+pub mod settings_screen;
 mod shop_screen;
+pub mod stats_screen;
 mod toast;
 pub mod transitions;
 pub mod tutorial;
@@ -364,6 +367,48 @@ impl Plugin for UiPlugin {
                 chest_screen::update_chest_cursor,
                 chest_screen::handle_chest_input,
             )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── CALENDAR OVERLAY (F1 toggle during Playing) ───
+        app.init_resource::<calendar_screen::CalendarOverlayState>();
+        app.add_systems(
+            Update,
+            (
+                calendar_screen::toggle_calendar_overlay,
+                calendar_screen::calendar_close_on_escape,
+                calendar_screen::update_calendar_lifecycle,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── STATISTICS OVERLAY (F2 toggle during Playing) ───
+        app.init_resource::<stats_screen::StatsOverlayState>();
+        app.add_systems(
+            Update,
+            (
+                stats_screen::toggle_stats_overlay,
+                stats_screen::stats_close_on_escape,
+                stats_screen::update_stats_lifecycle,
+                stats_screen::refresh_stats_display,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ─── SETTINGS OVERLAY (F4 toggle during Playing) ───
+        app.init_resource::<settings_screen::SettingsOverlayState>();
+        app.init_resource::<settings_screen::AudioVolume>();
+        app.add_systems(
+            Update,
+            (
+                settings_screen::toggle_settings_overlay,
+                settings_screen::settings_close_on_escape,
+                settings_screen::update_settings_lifecycle,
+                settings_screen::settings_volume_input,
+            )
+                .chain()
                 .run_if(in_state(GameState::Playing)),
         );
     }
