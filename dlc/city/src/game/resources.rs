@@ -766,6 +766,20 @@ pub struct DayStats {
     pub coworker_helps: u32,
 }
 
+#[derive(Resource, Default)]
+pub struct WorkerSpriteData {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+#[derive(Resource, Default)]
+pub struct OfficeFontHandle(pub Handle<Font>);
+
+pub fn load_office_font(mut font: ResMut<OfficeFontHandle>, asset_server: Res<AssetServer>) {
+    font.0 = asset_server.load("fonts/sprout_lands.ttf");
+}
+
 pub fn format_clock(total_minutes: u32) -> String {
     let hours = total_minutes / 60;
     let minutes = total_minutes % 60;

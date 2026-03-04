@@ -15,15 +15,22 @@ fn main() {
     // Esc -> pause/resume simulation
     App::new()
         .insert_resource(ClearColor(Color::srgb(0.08, 0.08, 0.11)))
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "City Office Worker DLC Prototype".to_string(),
-                resolution: (960.0, 540.0).into(),
-                resizable: true,
-                ..default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "City Office Worker DLC Prototype".to_string(),
+                        resolution: (960.0, 540.0).into(),
+                        resizable: true,
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(AssetPlugin {
+                    file_path: "../../assets".to_string(),
+                    ..default()
+                }),
+        )
         .add_plugins(game::CityOfficeWorkerPlugin)
         .run();
 }

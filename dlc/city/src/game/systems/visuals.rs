@@ -15,7 +15,11 @@ pub fn update_visuals(
     if let Ok(worker) = worker_query.get_single() {
         let energy_ratio = (worker.energy as f32 / rules.max_energy as f32).clamp(0.0, 1.0);
         if let Ok(mut sprite) = worker_avatar_query.get_single_mut() {
-            sprite.color = Color::srgb(1.0 - energy_ratio, 0.2 + (0.7 * energy_ratio), 0.25);
+            sprite.color = Color::srgb(
+                0.5 + 0.5 * (1.0 - energy_ratio),
+                0.5 + 0.5 * energy_ratio,
+                0.5 + 0.5 * energy_ratio,
+            );
         }
     }
 

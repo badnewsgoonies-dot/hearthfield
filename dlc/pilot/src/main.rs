@@ -36,6 +36,10 @@ fn main() {
                     }),
                     ..default()
                 })
+                .set(AssetPlugin {
+                    file_path: "../../assets".to_string(),
+                    ..default()
+                })
                 .set(ImagePlugin::default_nearest()),
         )
         // ── State ────────────────────────────────────────────────────────
