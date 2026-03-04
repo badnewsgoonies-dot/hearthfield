@@ -2,11 +2,13 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
 use crate::game::components::OfficeWorker;
-use crate::game::events::{DayAdvanced, EndDayRequested, EndOfDayEvent, TaskFailed};
+use crate::game::events::{
+    DayAdvanced, EndDayRequested, EndOfDayEvent, RelationshipMilestone, TaskFailed,
+};
 use crate::game::resources::{
-    format_clock, CareerProgression, DayClock, DayOutcome, DayStats, InboxState,
-    OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, UnlockCatalogState, WorkerStats,
+    format_clock, CareerProgression, DayClock, DayOutcome, DayStats, FiredMilestones, InboxState,
+    MilestoneKind, OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState,
+    PlayerMindState, SocialGraphState, TaskBoard, UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -380,4 +382,34 @@ pub fn transition_day_summary_to_inday(
 
     // UI handles the transition via Continue button / Enter / Space.
     // next_state.set(OfficeGameState::InDay);  -- removed: let the UI drive this
+}
+
+pub fn check_relationship_milestones(
+    social: Res<SocialGraphState>,
+    mut fired: ResMut<FiredMilestones>,
+    mut milestone_writer: EventWriter<RelationshipMilestone>,
+) {
+    type Check = fn(&crate::game::resources::CoworkerProfile) -> bool;
+    let thresholds: &[(MilestoneKind, Check)] = &[
+        (MilestoneKind::Friendly, |p| p.affinity >= 25),
+        (MilestoneKind::Trusted, |p| p.trust >= 25),
+        (MilestoneKind::CloseFriend, |p| p.affinity >= 50),
+        (MilestoneKind::DeepTrust, |p| p.trust >= 50),
+        (MilestoneKind::Rival, |p| p.affinity <= -25),
+        (MilestoneKind::Distrusted, |p| p.trust <= -25),
+    ];
+
+    for profile in &social.profiles {
+        for &(kind, check) in thresholds {
+            let key = (profile.id, kind);
+            if check(profile) && !fired.fired.contains(&key) {
+                fired.fired.insert(key);
+                milestone_writer.send(RelationshipMilestone {
+                    coworker_id: profile.id,
+                    coworker_name: profile.codename.clone(),
+                    milestone: kind,
+                });
+            }
+        }
+    }
 }

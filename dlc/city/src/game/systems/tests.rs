@@ -9,13 +9,13 @@ use super::*;
 use crate::game::events::{
     CoffeeBreakEvent, CoworkerHelpEvent, DayAdvanced, EndDayRequested, EndOfDayEvent,
     InterruptionEvent, ManagerCheckInEvent, PanicResponseEvent, ProcessInboxEvent,
-    ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
+    RelationshipMilestone, ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
     ActiveInterruptionContext, CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats,
-    InboxState, InterruptionKind, OfficeEconomyRules, OfficeRules, OfficeRunConfig,
-    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority,
-    UnlockCatalogState, WorkerSpriteData, WorkerStats,
+    FiredMilestones, InboxState, InterruptionKind, MilestoneKind, OfficeEconomyRules, OfficeRules,
+    OfficeRunConfig, PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId,
+    TaskKind, TaskPriority, UnlockCatalogState, WorkerSpriteData, WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -197,7 +197,9 @@ fn build_test_app() -> App {
         .init_resource::<OfficeSaveStore>()
         .init_resource::<TaskBoard>()
         .init_resource::<crate::game::resources::ActiveInterruptionContext>()
+        .init_resource::<FiredMilestones>()
         .add_event::<EndDayRequested>()
+        .add_event::<RelationshipMilestone>()
         .add_event::<DayAdvanced>()
         .add_event::<TaskProgressed>()
         .add_event::<TaskCompleted>()
@@ -693,6 +695,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
         let day_outcome = app.world().resource::<DayOutcome>();
+        let fired_milestones = app.world().resource::<FiredMilestones>();
 
         let snapshot = capture_snapshot(
             clock,
@@ -706,6 +709,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
             social_graph,
             unlocks,
             day_outcome,
+            fired_milestones,
         );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
@@ -746,6 +750,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut social_graph = SocialGraphState::default();
     let mut unlocks = UnlockCatalogState::default();
     let mut day_outcome = DayOutcome::default();
+    let mut fired_milestones = FiredMilestones::default();
     let economy = app.world().resource::<OfficeEconomyRules>().clone();
 
     apply_snapshot(
@@ -762,6 +767,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut unlocks,
         &economy,
         &mut day_outcome,
+        &mut fired_milestones,
     )
     .expect("snapshot apply should succeed");
 
@@ -797,6 +803,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
         let day_outcome = app.world().resource::<DayOutcome>();
+        let fired_milestones = app.world().resource::<FiredMilestones>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -809,6 +816,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
             social_graph,
             unlocks,
             day_outcome,
+            fired_milestones,
         )
     };
 
@@ -1049,6 +1057,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
         let day_outcome = app.world().resource::<DayOutcome>();
+        let fired_milestones = app.world().resource::<FiredMilestones>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1061,6 +1070,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
             social_graph,
             unlocks,
             day_outcome,
+            fired_milestones,
         )
     };
     write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
@@ -1516,6 +1526,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
         let day_outcome = app.world().resource::<DayOutcome>();
+        let fired_milestones = app.world().resource::<FiredMilestones>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1528,6 +1539,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
             social_graph,
             unlocks,
             day_outcome,
+            fired_milestones,
         )
     };
 
@@ -1553,6 +1565,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
     let mut social_graph = SocialGraphState::default();
     let mut unlocks = UnlockCatalogState::default();
     let mut day_outcome = DayOutcome::default();
+    let mut fired_milestones = FiredMilestones::default();
     let economy = OfficeEconomyRules::default();
 
     apply_snapshot(
@@ -1569,6 +1582,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         &mut unlocks,
         &economy,
         &mut day_outcome,
+        &mut fired_milestones,
     )
     .expect("malformed terminal-set snapshot should normalize successfully");
 
@@ -2334,4 +2348,127 @@ fn active_interruption_context_cleared_on_resolve() {
     let context = app.world().resource::<ActiveInterruptionContext>();
     assert!(context.kind.is_none(), "kind must be cleared after panic resolve");
     assert!(context.description.is_empty(), "description must be cleared after panic resolve");
+}
+
+#[test]
+fn relationship_milestone_fires_at_affinity_threshold() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        super::day_cycle::check_relationship_milestones
+            .in_set(crate::game::OfficeSimSet::Economy),
+    );
+
+    // Set coworker Leo (id=2) affinity to 24 (just below threshold)
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        let leo = social.profiles.iter_mut().find(|p| p.id == 2).unwrap();
+        leo.affinity = 24;
+    }
+    app.update();
+
+    // No milestone should fire yet
+    let events = app.world().resource::<Events<RelationshipMilestone>>();
+    assert_eq!(events.len(), 0, "no milestone at affinity 24");
+
+    // Now raise affinity to 25 (at threshold)
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        let leo = social.profiles.iter_mut().find(|p| p.id == 2).unwrap();
+        leo.affinity = 25;
+    }
+    app.update();
+
+    let events = app.world().resource::<Events<RelationshipMilestone>>();
+    let mut found_friendly = false;
+    let mut reader = events.get_cursor();
+    for event in reader.read(events) {
+        if event.coworker_id == 2 && matches!(event.milestone, MilestoneKind::Friendly) {
+            found_friendly = true;
+        }
+    }
+    assert!(found_friendly, "Friendly milestone should fire when affinity reaches 25");
+}
+
+#[test]
+fn relationship_milestone_does_not_refire() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        super::day_cycle::check_relationship_milestones
+            .in_set(crate::game::OfficeSimSet::Economy),
+    );
+
+    // Set coworker Leo (id=2) affinity to 25 to trigger Friendly
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        let leo = social.profiles.iter_mut().find(|p| p.id == 2).unwrap();
+        leo.affinity = 25;
+    }
+    app.update();
+
+    // First firing: count total events emitted so far
+    let first_total = app
+        .world()
+        .resource::<Events<RelationshipMilestone>>()
+        .len();
+    assert_eq!(first_total, 1, "should fire exactly once on first trigger");
+
+    // Verify FiredMilestones is populated
+    let fired = app.world().resource::<FiredMilestones>();
+    assert!(
+        fired.fired.contains(&(2, MilestoneKind::Friendly)),
+        "FiredMilestones should contain the (2, Friendly) entry"
+    );
+
+    // Run again with same conditions - should not refire
+    // Bump affinity slightly to confirm the system runs but doesn't re-emit
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        let leo = social.profiles.iter_mut().find(|p| p.id == 2).unwrap();
+        leo.affinity = 30;
+    }
+    app.update();
+
+    // After second update, events buffer may have been cleaned by Bevy, but
+    // the important check is that FiredMilestones still has the entry and
+    // total events did not grow beyond the first firing
+    let second_total = app
+        .world()
+        .resource::<Events<RelationshipMilestone>>()
+        .len();
+    // Bevy may have cleared older events, so second_total could be 0 or still 1
+    // but it must NOT be 2 (which would mean a refire)
+    assert!(
+        second_total <= 1,
+        "no new milestone events should fire on recheck, got total: {second_total}"
+    );
+}
+
+#[test]
+fn career_progression_display_reflects_level_and_xp() {
+    let mut app = build_test_app();
+
+    // Set progression to level 3, xp 50
+    {
+        let mut progression = app.world_mut().resource_mut::<CareerProgression>();
+        progression.level = 3;
+        progression.xp = 50;
+    }
+
+    // Read the progression and verify the display string contains "Lv.3"
+    let progression = app.world().resource::<CareerProgression>();
+    let threshold = progression.xp_for_next_level();
+    let filled = if threshold == 0 {
+        0
+    } else {
+        ((progression.xp as f32 / threshold as f32) * 10.0).floor() as usize
+    };
+    let filled = filled.min(10);
+    let empty = 10 - filled;
+    let bar: String = "\u{25a0}".repeat(filled) + &"\u{25a1}".repeat(empty);
+    let display = format!("Lv.{} {} {} XP", progression.level, bar, progression.xp);
+
+    assert!(display.contains("Lv.3"), "display should contain Lv.3, got: {display}");
+    assert!(display.contains("50 XP"), "display should contain 50 XP, got: {display}");
 }

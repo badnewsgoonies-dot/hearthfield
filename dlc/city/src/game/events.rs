@@ -1,4 +1,4 @@
-use crate::game::resources::{InterruptionKind, TaskId};
+use crate::game::resources::{InterruptionKind, MilestoneKind, TaskId};
 use bevy::prelude::*;
 
 #[derive(Event, Debug, Default)]
@@ -81,4 +81,12 @@ pub struct EndOfDayEvent {
     pub final_stress: i32,
     pub final_focus: i32,
     pub final_reputation: i32,
+}
+
+#[derive(Event, Debug, Clone)]
+#[allow(dead_code)]
+pub struct RelationshipMilestone {
+    pub coworker_id: u8,
+    pub coworker_name: String,
+    pub milestone: MilestoneKind,
 }

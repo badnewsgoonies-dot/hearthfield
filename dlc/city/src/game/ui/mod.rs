@@ -26,3 +26,12 @@ pub struct TaskBoardRoot;
 
 #[derive(Component)]
 pub struct InterruptionPopupRoot;
+
+#[derive(Component)]
+pub struct ToastRoot;
+
+#[derive(Component)]
+pub struct HudCoworkerPanel;
+
+#[derive(Component)]
+pub struct HudCoworkerContent;
