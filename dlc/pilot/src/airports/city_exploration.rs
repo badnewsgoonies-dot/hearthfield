@@ -1,6 +1,7 @@
 //! City exploration — visit zones, collect souvenirs, discover events.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 pub struct CityExplorationPlugin;
@@ -23,7 +24,7 @@ impl Plugin for CityExplorationPlugin {
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CityZone {
     Downtown,
     Park,
@@ -127,7 +128,8 @@ fn city_for_airport(airport: AirportId) -> Option<CityDef> {
     city_definitions().into_iter().find(|c| c.airport == airport)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CityEvent {
     pub name: String,
     pub description: String,
@@ -137,7 +139,8 @@ pub struct CityEvent {
 
 // ── State ────────────────────────────────────────────────────────────────
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CityState {
     pub current_zone: Option<CityZone>,
     pub souvenirs_collected: Vec<String>,

@@ -1,6 +1,7 @@
 //! Flight logbook — records every completed flight for stat tracking and rank advancement.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 use std::collections::HashSet;
 
@@ -8,7 +9,8 @@ use std::collections::HashSet;
 // DATA TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct LogbookEntry {
     pub day: u32,
     pub season: Season,
@@ -29,7 +31,8 @@ pub struct LogbookEntry {
 }
 
 /// Persistent flight logbook resource.
-#[derive(Resource, Clone, Debug, Default)]
+#[derive(Resource, Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Logbook {
     pub entries: Vec<LogbookEntry>,
     pub total_hours: f32,

@@ -1,12 +1,13 @@
 //! Airport service interactions — hotel, car rental, lounge, cargo, customs, briefing, map.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 // ─── Service Types ───────────────────────────────────────────────────────
 
 /// All available airport services.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AirportService {
     Hotel,
     CarRental,
