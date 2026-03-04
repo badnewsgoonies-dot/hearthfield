@@ -74,6 +74,12 @@ impl Plugin for UiPlugin {
             )
             .add_systems(OnEnter(GameState::Shop), shop_screen::spawn_shop_screen)
             .add_systems(OnExit(GameState::Shop), shop_screen::despawn_shop_screen)
+            .add_systems(OnEnter(GameState::RadioComm), radio_screen::spawn_radio_screen)
+            .add_systems(OnExit(GameState::RadioComm), radio_screen::despawn_radio_screen)
+            .add_systems(OnEnter(GameState::CrewLounge), crew_screen::spawn_crew_screen)
+            .add_systems(OnExit(GameState::CrewLounge), crew_screen::despawn_crew_screen)
+            .add_systems(OnEnter(GameState::Cutscene), cutscene_runner::spawn_cutscene_overlay)
+            .add_systems(OnExit(GameState::Cutscene), cutscene_runner::despawn_cutscene_overlay)
             .add_systems(OnEnter(GameState::Playing), hud::spawn_hud)
             .add_systems(OnExit(GameState::Playing), hud::despawn_hud)
             .add_systems(OnEnter(GameState::Flying), flight_hud::spawn_flight_hud)
@@ -90,6 +96,30 @@ impl Plugin for UiPlugin {
                 Update,
                 mission_screen::handle_mission_screen_input
                     .run_if(in_state(GameState::MissionBoard)),
+            )
+            .add_systems(
+                Update,
+                radio_screen::handle_radio_input.run_if(in_state(GameState::RadioComm)),
+            )
+            .add_systems(
+                Update,
+                crew_screen::handle_crew_screen_input.run_if(in_state(GameState::CrewLounge)),
+            )
+            .add_systems(
+                Update,
+                (
+                    cutscene_runner::run_cutscene,
+                    cutscene_runner::skip_cutscene,
+                )
+                    .run_if(in_state(GameState::Cutscene)),
+            )
+            .add_systems(
+                Update,
+                (
+                    shop_screen::handle_shop_buy,
+                    shop_screen::handle_shop_keyboard,
+                )
+                    .run_if(in_state(GameState::Shop)),
             );
     }
 }
