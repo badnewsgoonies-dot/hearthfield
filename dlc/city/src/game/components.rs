@@ -41,12 +41,14 @@ impl Default for Interactable {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum NpcRole {
     Manager,
     #[default]
     Clerk,
     Analyst,
+    Coordinator,
+    Intern,
 }
 
 #[allow(dead_code)]

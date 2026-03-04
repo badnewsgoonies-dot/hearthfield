@@ -2241,8 +2241,8 @@ fn new_task_kinds_appear_in_seeded_board() {
         "PermitReview must appear"
     );
     assert!(
-        all_kinds.contains(&TaskKind::PhoneCall),
-        "PhoneCall must appear"
+        all_kinds.contains(&TaskKind::ClientCall),
+        "ClientCall must appear"
     );
     assert!(
         all_kinds.contains(&TaskKind::MeetingPrep),

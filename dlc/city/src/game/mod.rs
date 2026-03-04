@@ -42,6 +42,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::PlayerMindState>()
             .init_resource::<resources::PlayerCareerState>()
             .init_resource::<resources::SocialGraphState>()
+            .init_resource::<resources::CoworkerDialogue>()
             .init_resource::<resources::OfficeEconomyRules>()
             .init_resource::<resources::CareerProgression>()
             .init_resource::<resources::UnlockCatalogState>()

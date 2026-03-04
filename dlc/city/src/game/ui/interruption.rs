@@ -140,6 +140,10 @@ fn interruption_kind_label(kind: InterruptionKind) -> &'static str {
         InterruptionKind::EmergencyMeeting => "EMERGENCY MEETING",
         InterruptionKind::SystemOutage => "SYSTEM OUTAGE",
         InterruptionKind::CoworkerHelp => "COWORKER HELP",
+        InterruptionKind::PrinterJam => "PRINTER JAM",
+        InterruptionKind::FireDrill => "FIRE DRILL",
+        InterruptionKind::BossVisit => "BOSS VISIT",
+        InterruptionKind::FreeLunch => "FREE LUNCH",
     }
 }
 
@@ -149,6 +153,10 @@ fn interruption_kind_color(kind: InterruptionKind) -> Color {
         InterruptionKind::EmergencyMeeting => Color::srgb(1.0, 0.85, 0.2),
         InterruptionKind::SystemOutage => Color::srgb(1.0, 0.2, 0.2),
         InterruptionKind::CoworkerHelp => Color::srgb(0.4, 0.8, 1.0),
+        InterruptionKind::PrinterJam => Color::srgb(1.0, 0.45, 0.2),
+        InterruptionKind::FireDrill => Color::srgb(1.0, 0.15, 0.15),
+        InterruptionKind::BossVisit => Color::srgb(0.95, 0.75, 0.2),
+        InterruptionKind::FreeLunch => Color::srgb(0.35, 0.9, 0.35),
     }
 }
 

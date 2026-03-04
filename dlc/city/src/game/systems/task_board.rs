@@ -121,9 +121,9 @@ const TASK_TEMPLATES: [TaskTemplate; 24] = [
         base_reward_reputation: 3,
         deadline_window_minutes: 126,
     },
-    // New 12 — PhoneCall, MeetingPrep, ReportWriting, BudgetReview
+    // New 12 — ClientCall, MeetingPrep, ReportWriting, BudgetReview
     TaskTemplate {
-        kind: TaskKind::PhoneCall,
+        kind: TaskKind::ClientCall,
         priority: TaskPriority::Low,
         base_focus: 20,
         base_stress: 1,
@@ -132,7 +132,7 @@ const TASK_TEMPLATES: [TaskTemplate; 24] = [
         deadline_window_minutes: 10,
     },
     TaskTemplate {
-        kind: TaskKind::PhoneCall,
+        kind: TaskKind::ClientCall,
         priority: TaskPriority::Medium,
         base_focus: 32,
         base_stress: 3,
@@ -141,7 +141,7 @@ const TASK_TEMPLATES: [TaskTemplate; 24] = [
         deadline_window_minutes: 24,
     },
     TaskTemplate {
-        kind: TaskKind::PhoneCall,
+        kind: TaskKind::ClientCall,
         priority: TaskPriority::High,
         base_focus: 48,
         base_stress: 5,

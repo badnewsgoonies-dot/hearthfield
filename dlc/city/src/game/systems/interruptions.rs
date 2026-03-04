@@ -131,12 +131,76 @@ const INTERRUPTION_SCENARIOS: [InterruptionScenarioTemplate; 12] = [
     },
 ];
 
+struct InterruptionKindProfile {
+    stress_delta: i32,
+    duration_minutes: u32,
+    calm_choice: &'static str,
+    panic_choice: &'static str,
+}
+
+fn interruption_profile(kind: InterruptionKind) -> InterruptionKindProfile {
+    match kind {
+        InterruptionKind::ManagerRequest => InterruptionKindProfile {
+            stress_delta: 2,
+            duration_minutes: 10,
+            calm_choice: "Give a crisp update and note your next milestone.",
+            panic_choice: "Rambling status report and over-promising delivery.",
+        },
+        InterruptionKind::EmergencyMeeting => InterruptionKindProfile {
+            stress_delta: 4,
+            duration_minutes: 18,
+            calm_choice: "Capture action items and clarify your ownership.",
+            panic_choice: "Leave without notes and miss key decisions.",
+        },
+        InterruptionKind::SystemOutage => InterruptionKindProfile {
+            stress_delta: 3,
+            duration_minutes: 15,
+            calm_choice: "Switch to offline tasks and document blockers.",
+            panic_choice: "Refresh endlessly and lose focus.",
+        },
+        InterruptionKind::CoworkerHelp => InterruptionKindProfile {
+            stress_delta: 1,
+            duration_minutes: 7,
+            calm_choice: "Coach them quickly and set a clear next step.",
+            panic_choice: "Take over the task and derail your own queue.",
+        },
+        InterruptionKind::PrinterJam => InterruptionKindProfile {
+            stress_delta: 2,
+            duration_minutes: 8,
+            calm_choice: "Clear the jam and reroute urgent pages.",
+            panic_choice: "Mash buttons until the queue doubles.",
+        },
+        InterruptionKind::FireDrill => InterruptionKindProfile {
+            stress_delta: 5,
+            duration_minutes: 20,
+            calm_choice: "Follow protocol and regroup fast afterward.",
+            panic_choice: "Forget your place and lose all momentum.",
+        },
+        InterruptionKind::BossVisit => InterruptionKindProfile {
+            stress_delta: 3,
+            duration_minutes: 12,
+            calm_choice: "Share a concise update and one smart ask.",
+            panic_choice: "Freeze up and dodge direct questions.",
+        },
+        InterruptionKind::FreeLunch => InterruptionKindProfile {
+            stress_delta: -2,
+            duration_minutes: 6,
+            calm_choice: "Grab a quick slice and recharge.",
+            panic_choice: "Overstay the break and miss deadlines.",
+        },
+    }
+}
+
 pub fn pick_interruption_kind(seed: u64, day: u32, hour: u32) -> InterruptionKind {
-    match (seed.wrapping_add(day as u64 * 13).wrapping_add(hour as u64 * 7)) % 4 {
+    match (seed.wrapping_add(day as u64 * 13).wrapping_add(hour as u64 * 7)) % 8 {
         0 => InterruptionKind::ManagerRequest,
         1 => InterruptionKind::EmergencyMeeting,
         2 => InterruptionKind::SystemOutage,
-        _ => InterruptionKind::CoworkerHelp,
+        3 => InterruptionKind::CoworkerHelp,
+        4 => InterruptionKind::PrinterJam,
+        5 => InterruptionKind::FireDrill,
+        6 => InterruptionKind::BossVisit,
+        _ => InterruptionKind::FreeLunch,
     }
 }
 
@@ -167,10 +231,14 @@ pub fn handle_interruption_requests(
         let kind = event.kind;
         let scenario =
             scenario_for_interrupt(run_config.seed, clock.day_number, social.scenario_cursor);
+        let kind_profile = interruption_profile(kind);
         social.scenario_cursor = social.scenario_cursor.wrapping_add(1);
 
-        clock.advance(rules.interruption_minutes);
-        mind.stress = (mind.stress + rules.interruption_stress_increase + scenario.stress_modifier)
+        clock.advance(kind_profile.duration_minutes);
+        mind.stress = (mind.stress
+            + rules.interruption_stress_increase
+            + scenario.stress_modifier
+            + kind_profile.stress_delta)
             .clamp(0, rules.max_stress);
         mind.focus = (mind.focus - rules.interruption_focus_loss + scenario.focus_modifier)
             .clamp(0, rules.max_focus);
@@ -214,9 +282,16 @@ pub fn handle_interruption_requests(
                 let name = teammate_name.clone().unwrap_or_else(|| "A coworker".to_string());
                 format!("{name} leans over: 'Hey, can you help me figure out this spreadsheet formula?'")
             }
+            InterruptionKind::PrinterJam => "The printer is jammed again.".to_string(),
+            InterruptionKind::FireDrill => "Fire drill! Everyone outside.".to_string(),
+            InterruptionKind::BossVisit => "The boss stopped by your desk.".to_string(),
+            InterruptionKind::FreeLunch => "Free pizza in the break room!".to_string(),
         };
         let scenario_desc = scenario.description;
-        let full_description = format!("{description}\n\n{scenario_desc}");
+        let full_description = format!(
+            "{description}\n\n{scenario_desc}\n\nStay Calm: {}\nPanic: {}",
+            kind_profile.calm_choice, kind_profile.panic_choice
+        );
 
         context.kind = Some(kind);
         context.coworker_name = teammate_name.clone();

@@ -1,6 +1,8 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
+
+use crate::game::components::NpcRole;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
@@ -28,7 +30,7 @@ pub enum TaskKind {
     Filing,
     EmailTriage,
     PermitReview,
-    PhoneCall,
+    ClientCall,
     MeetingPrep,
     ReportWriting,
     BudgetReview,
@@ -36,13 +38,65 @@ pub enum TaskKind {
 
 #[allow(dead_code)]
 impl TaskKind {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::DataEntry => "Data Entry",
+            Self::Filing => "Filing",
+            Self::EmailTriage => "Email Triage",
+            Self::PermitReview => "Permit Review",
+            Self::ClientCall => "Client Call",
+            Self::MeetingPrep => "Meeting Prep",
+            Self::ReportWriting => "Report Writing",
+            Self::BudgetReview => "Budget Review",
+        }
+    }
+
+    pub fn base_duration_secs(&self) -> u32 {
+        match self {
+            Self::DataEntry => 60,
+            Self::Filing => 75,
+            Self::EmailTriage => 90,
+            Self::PermitReview => 150,
+            Self::ReportWriting => 180,
+            Self::MeetingPrep => 120,
+            Self::ClientCall => 90,
+            Self::BudgetReview => 240,
+        }
+    }
+
+    pub fn base_xp(&self) -> u32 {
+        match self {
+            Self::DataEntry => 8,
+            Self::Filing => 10,
+            Self::EmailTriage => 12,
+            Self::PermitReview => 18,
+            Self::ReportWriting => 15,
+            Self::MeetingPrep => 10,
+            Self::ClientCall => 20,
+            Self::BudgetReview => 25,
+        }
+    }
+
+    pub fn stress_factor(&self) -> f32 {
+        match self {
+            Self::DataEntry => 0.1,
+            Self::Filing => 0.15,
+            Self::EmailTriage => 0.25,
+            Self::PermitReview => 0.35,
+            Self::ReportWriting => 0.3,
+            Self::MeetingPrep => 0.2,
+            Self::ClientCall => 0.5,
+            Self::BudgetReview => 0.4,
+        }
+    }
+
     pub fn description(&self) -> &'static str {
         match self {
             Self::DataEntry => "Enter spreadsheet figures for quarterly report",
             Self::Filing => "Sort and file incoming documents to correct departments",
             Self::EmailTriage => "Read, prioritize, and route the email backlog",
             Self::PermitReview => "Check permit applications for compliance",
-            Self::PhoneCall => "Return missed calls and take messages",
+            Self::ClientCall => "Call a client and resolve open questions",
             Self::MeetingPrep => "Prepare agenda and handouts for upcoming meeting",
             Self::ReportWriting => "Draft the weekly status report for management",
             Self::BudgetReview => "Reconcile expense receipts against budget lines",
@@ -50,16 +104,7 @@ impl TaskKind {
     }
 
     pub fn label(&self) -> &'static str {
-        match self {
-            Self::DataEntry => "Data Entry",
-            Self::Filing => "Filing",
-            Self::EmailTriage => "Email",
-            Self::PermitReview => "Permit",
-            Self::PhoneCall => "Phone",
-            Self::MeetingPrep => "Meeting",
-            Self::ReportWriting => "Report",
-            Self::BudgetReview => "Budget",
-        }
+        self.display_name()
     }
 }
 
@@ -145,6 +190,10 @@ pub enum InterruptionKind {
     EmergencyMeeting,
     SystemOutage,
     CoworkerHelp,
+    PrinterJam,
+    FireDrill,
+    BossVisit,
+    FreeLunch,
 }
 
 #[allow(dead_code)]
@@ -477,6 +526,60 @@ pub enum CoworkerRole {
     Analyst,
     Coordinator,
     Intern,
+}
+
+#[derive(Resource, Debug, Clone)]
+pub struct CoworkerDialogue {
+    pub lines: HashMap<NpcRole, Vec<String>>,
+}
+
+impl Default for CoworkerDialogue {
+    fn default() -> Self {
+        let mut lines = HashMap::new();
+        lines.insert(
+            NpcRole::Manager,
+            vec![
+                "Let's tighten the deadline and keep our KPIs green.".to_string(),
+                "Quick sync: how are we tracking against this week's targets?".to_string(),
+                "Love the momentum, now let's turn that into team synergy.".to_string(),
+            ],
+        );
+        lines.insert(
+            NpcRole::Intern,
+            vec![
+                "Is it normal to be this excited about the office coffee machine?".to_string(),
+                "If I color-code my notes, does that count as process improvement?".to_string(),
+                "Wait, what's a KPI again? I wrote it down as 'keep people inspired'.".to_string(),
+            ],
+        );
+        lines.insert(
+            NpcRole::Clerk,
+            vec![
+                "Inbox zero by lunch is still alive, somehow.".to_string(),
+                "I alphabetized the forms and now I feel unstoppable.".to_string(),
+                "If the printer jams again, I'm taking a tactical snack break.".to_string(),
+            ],
+        );
+        lines.insert(
+            NpcRole::Analyst,
+            vec![
+                "The trend line says we're improving, even if slowly.".to_string(),
+                "I made a dashboard for this dashboard so we can monitor the first dashboard."
+                    .to_string(),
+                "Give me ten minutes and I'll have a chart for that feeling.".to_string(),
+            ],
+        );
+        lines.insert(
+            NpcRole::Coordinator,
+            vec![
+                "I've booked the room, moved the meeting, and fixed the calendar collision."
+                    .to_string(),
+                "If everyone replies-all one more time, I'm muting this thread.".to_string(),
+                "Let's keep this simple: clear owner, clear deadline, clear handoff.".to_string(),
+            ],
+        );
+        Self { lines }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
