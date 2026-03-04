@@ -74,13 +74,13 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
 fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
     match kind {
         AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
-            (Vec2::new(-96.0, -192.0), Vec2::new(96.0, -96.0))
+            (Vec2::new(8.0 * TILE_SIZE, 16.0 * TILE_SIZE), Vec2::new(12.0 * TILE_SIZE, 18.0 * TILE_SIZE))
         }
         AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
-            (Vec2::new(-192.0, -192.0), Vec2::new(-32.0, -64.0))
+            (Vec2::new(3.0 * TILE_SIZE, 16.0 * TILE_SIZE), Vec2::new(7.0 * TILE_SIZE, 18.0 * TILE_SIZE))
         }
         AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
-            (Vec2::new(-256.0, -256.0), Vec2::new(256.0, 256.0))
+            (Vec2::new(10.0 * TILE_SIZE, 8.0 * TILE_SIZE), Vec2::new(20.0 * TILE_SIZE, 16.0 * TILE_SIZE))
         }
     }
 }
