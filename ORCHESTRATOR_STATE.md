@@ -36,7 +36,20 @@ Source: External deep research audit verified against code by orchestrator.
 - Bed sleep cutscene: interaction handler no longer preempts trigger_sleep's cutscene flow
 - Dynamic key prompts: HUD strings now derive from KeyBindings resource instead of hardcoded [F]/[R]
 Regression audit: all 5 PASS, 0 new issues, gates green.
-Cost: 5 premium requests. Time: ~5 min wall clock. Scope violations: 0.- Calendar overlay (F1): 4x7 grid, festivals, NPC birthdays, current day highlight
+Cost: 5 premium requests. Time: ~5 min wall clock. Scope violations: 0.
+
+### Wave 8: Path Autotiling + Farm Object Placement (COMPLETED — 87408f4)
+- Path autotiling: 4-bit cardinal bitmask replaces hardcoded crossroads index. 16 tile variants via neighbor detection.
+- Farm object placement: PlaceFarmObjectEvent for fences/scarecrows, rendering support.
+- ItemUseEvents SystemParam visibility fix (pub).
+
+### Wave 9: Cross-Audit Integration (COMPLETED — 4059f7b)
+Source: ChatGPT Pro cross-audit (keybinding collision, key text audit, sprite QC pipeline).
+Items already fixed by Wave 7 confirmed. New fixes:
+- Festival toast: "Press E" → "Press F" (interact key mismatch — players pressed wrong key)
+- Relationships screen: "R/Esc: Close" → "L/Esc: Close" (stale after Wave 7 KeyL change)
+- Keybinding duplicate regression test: tests/keybinding_duplicates.rs (allowlists Space/Escape)
+- Pilot DLC sprites staged: crew_portraits (crop-fixed, 76% vs 16% opaque), items_atlas, crew_sheet, aircraft_sheet- Calendar overlay (F1): 4x7 grid, festivals, NPC birthdays, current day highlight
 - Statistics overlay (F2): all 10 PlayStats fields, two-column layout
 - Settings overlay (F4): volume control + keybinds display
 - Overlay pattern: no shared/mod.rs changes, contract intact (shasum OK)
@@ -53,8 +66,17 @@ Cost: 5 premium requests. Time: ~5 min wall clock. Scope violations: 0.- Calenda
 - Removed println! → info!, removed auto-transitions
 - 40/40 tests pass, clippy clean
 
-### REMAINING GAPS (all lower priority)
+### REMAINING GAPS (updated March 4, 2026)
+
+**Main Game (high confidence — most systems complete):**
+- Integer scaling + letterboxed viewport (prevents nearest-sampling artifacts at odd window sizes) — 2-6 hrs
+- Atlas padding/extrusion pipeline (Aseprite export with --extrude for bleed prevention)
+- WASM build verification (script exists, untested end-to-end)
+- Save system audit (coverage of all serializable resources)
+- Comment cleanup: a few stale comments reference old keys (B for sleep, E for interact)
+
 **Pilot DLC:**
+- Sprite integration: 4 improved sheets staged in dlc/pilot/assets/sprites/ but not wired to rendering code
 - Aircraft upgrades purchase UI
 - Dialogue branching/choices for crew
 - Romance/quest system for crew
@@ -66,22 +88,27 @@ Cost: 5 premium requests. Time: ~5 min wall clock. Scope violations: 0.- Calenda
 - NPC entity spawning (names exist, no visual entities)
 - Office world/navigation (rooms, movement)
 - Dialogue system beyond interrupt choices
-- Extended endurance testing (only 5-day tested)
 
-**Main Game:**
-- Hay proximity check (cosmetic)
-- Shop sell gold not split from earned gold in PlayStats (cosmetic)
+**Sprite Pipeline (research captured, not yet automated):**
+- GPT Image "ultimate pipeline": 4× canvas → edit with mask → border-lock post-pass → palette quantize
+- Grass/terrain variant generation (3-8 fill variants + decal sheet for repeat-breaking)
+- Automated atlas validation (assert tile_w × cols ≤ image_w)
 
-### Game Completeness Snapshot
+### Game Completeness Snapshot (updated March 4, 2026)
 | System | Main Game | Pilot DLC | City DLC |
 |--------|-----------|-----------|----------|
 | Core Loop | 100% | 95% | 95% |
 | Save/Load | 100% | 100% (24 fields) | 100% |
-| Tests | 88/88 | 76/76 | 40/40 |
-| UI Screens | 100% (3 overlays added) | 95% (20/21 wired) | 95% (6 screens from scratch) |
-| Economy | 100% | 95% (3 UI screens) | 95% (salary + progression visible) |
-| NPCs/Crew | 100% | 80% (no romance/quests) | 70% (names only, no entities) |
-| Content Volume | 100% | 75% | 60% |
+| Tests | 88/88 + keybinding guard | 76/76 | 40/40 |
+| UI Screens | 100% (3 overlays) | 95% (20/21 wired) | 95% (6 screens) |
+| Economy | 100% | 95% (3 UI screens) | 95% |
+| NPCs/Crew | 100% | 80% (no romance/quests) | 70% (names only) |
+| Content Volume | 100% (216 items, 65 recipes, 28 fish, 15 crops) | 75% | 60% |
+| Event Graph | 100% (zero orphans) | — | — |
+| Audio | 100% (12 music, 8+ SFX, wired) | — | — |
+| Path Autotiling | 100% (4-bit bitmask) | N/A | N/A |
+| Keybinding Safety | 100% (no collisions, regression test) | — | — |
+| Sprite QC | 95% (atlas fix, icon sizing, DLC sprites staged) | 70% (staged, not wired) | — |
 
 ## DLC Status
 
