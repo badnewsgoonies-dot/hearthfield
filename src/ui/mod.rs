@@ -15,6 +15,7 @@ pub mod menu_input;
 pub mod menu_kit;
 mod minimap;
 mod pause_menu;
+pub mod relationships_screen;
 mod shop_screen;
 mod toast;
 pub mod transitions;
@@ -194,7 +195,8 @@ impl Plugin for UiPlugin {
                         .or(in_state(GameState::Shop))
                         .or(in_state(GameState::Crafting))
                         .or(in_state(GameState::Dialogue))
-                        .or(in_state(GameState::Journal)),
+                        .or(in_state(GameState::Journal))
+                        .or(in_state(GameState::RelationshipsView)),
                 ),
             ),
         );
@@ -235,6 +237,24 @@ impl Plugin for UiPlugin {
                 journal_screen::journal_navigation,
             )
                 .run_if(in_state(GameState::Journal)),
+        );
+
+        // ─── RELATIONSHIPS SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::RelationshipsView),
+            relationships_screen::spawn_relationships_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::RelationshipsView),
+            relationships_screen::despawn_relationships_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                relationships_screen::update_relationships_cursor,
+                relationships_screen::relationships_navigation,
+            )
+                .run_if(in_state(GameState::RelationshipsView)),
         );
 
         // ─── DIALOGUE BOX ───

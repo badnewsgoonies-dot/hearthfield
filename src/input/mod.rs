@@ -61,6 +61,7 @@ fn reset_and_read_input(
             input.open_crafting = keys.just_pressed(bindings.open_crafting);
             input.open_map = keys.just_pressed(bindings.open_map);
             input.open_journal = keys.just_pressed(bindings.open_journal);
+            input.open_relationships = keys.just_pressed(bindings.open_relationships);
             input.pause = keys.just_pressed(bindings.pause);
 
             input.tool_next = keys.just_pressed(bindings.tool_next);
@@ -123,6 +124,7 @@ fn reset_and_read_input(
             input.open_inventory = keys.just_pressed(bindings.open_inventory);
             input.open_crafting = keys.just_pressed(bindings.open_crafting);
             input.open_journal = keys.just_pressed(bindings.open_journal);
+            input.open_relationships = keys.just_pressed(bindings.open_relationships);
 
             // Quicksave / quickload available from pause menu
             input.quicksave = keys.just_pressed(KeyCode::F5);
@@ -171,6 +173,7 @@ fn manage_input_context(
         GameState::Crafting => InputContext::Menu,
         GameState::BuildingUpgrade => InputContext::Menu,
         GameState::Journal => InputContext::Menu,
+        GameState::RelationshipsView => InputContext::Menu,
         GameState::Dialogue => InputContext::Dialogue,
         GameState::Fishing => InputContext::Fishing,
         GameState::Cutscene => InputContext::Cutscene,

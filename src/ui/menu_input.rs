@@ -39,6 +39,9 @@ pub fn gameplay_state_transitions(
     if input.open_journal {
         next.set(GameState::Journal);
     }
+    if input.open_relationships {
+        next.set(GameState::RelationshipsView);
+    }
 }
 
 /// Universal "cancel goes back to Playing" for overlay menus.
@@ -64,6 +67,10 @@ pub fn menu_cancel_transitions(
             next.set(GameState::Playing);
             return;
         }
+        GameState::RelationshipsView if input.open_relationships => {
+            next.set(GameState::Playing);
+            return;
+        }
         _ => {}
     }
 
@@ -74,7 +81,7 @@ pub fn menu_cancel_transitions(
         GameState::Dialogue if cutscene_queue.active => {
             next.set(GameState::Cutscene);
         }
-        GameState::Inventory | GameState::Shop | GameState::Crafting | GameState::Dialogue | GameState::Journal => {
+        GameState::Inventory | GameState::Shop | GameState::Crafting | GameState::Dialogue | GameState::Journal | GameState::RelationshipsView => {
             next.set(GameState::Playing);
         }
         _ => {}

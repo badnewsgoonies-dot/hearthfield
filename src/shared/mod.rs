@@ -28,6 +28,7 @@ pub enum GameState {
     Journal,
     Cutscene,
     BuildingUpgrade,
+    RelationshipsView,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1559,6 +1560,7 @@ pub struct PlayerInput {
     pub open_crafting: bool,      // C
     pub open_map: bool,           // M
     pub open_journal: bool,       // J — quests/achievements
+    pub open_relationships: bool, // R — relationships screen
     pub pause: bool,              // Escape
 
     // Tool selection
@@ -1614,6 +1616,7 @@ pub struct KeyBindings {
     pub open_crafting: KeyCode,
     pub open_map: KeyCode,
     pub open_journal: KeyCode,
+    pub open_relationships: KeyCode,
     pub pause: KeyCode,
     pub tool_next: KeyCode,
     pub tool_prev: KeyCode,
@@ -1636,6 +1639,7 @@ impl Default for KeyBindings {
             open_crafting: KeyCode::KeyC,
             open_map: KeyCode::KeyM,
             open_journal: KeyCode::KeyJ,
+            open_relationships: KeyCode::KeyR,
             pause: KeyCode::Escape,
             tool_next: KeyCode::BracketRight,
             tool_prev: KeyCode::BracketLeft,
