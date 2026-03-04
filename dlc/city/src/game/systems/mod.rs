@@ -6,7 +6,7 @@ mod task_board;
 mod tasks;
 mod visuals;
 
-pub use bootstrap::{boot_to_main_menu, main_menu_to_in_day, setup_scene, toggle_pause};
+pub use bootstrap::{boot_to_main_menu, setup_scene, toggle_pause};
 pub use day_cycle::{
     apply_day_summary_rollover, check_end_of_day, consume_end_of_day_events,
     finalize_end_day_request, sync_taskboard_bridge, transition_day_summary_to_inday,

@@ -5,6 +5,7 @@ pub mod events;
 pub mod resources;
 pub mod save;
 pub mod systems;
+pub mod ui;
 
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum OfficeGameState {
@@ -49,6 +50,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::DayStats>()
             .init_resource::<save::SaveSlotConfig>()
             .init_resource::<save::OfficeSaveStore>()
+            .init_resource::<ui::day_summary::DaySummarySnapshot>()
             .add_event::<events::EndDayRequested>()
             .add_event::<events::DayAdvanced>()
             .add_event::<events::TaskAccepted>()
@@ -75,19 +77,77 @@ impl Plugin for CityOfficeWorkerPlugin {
                 )
                     .chain(),
             )
+            // Boot -> MainMenu (one-shot transition)
             .add_systems(
                 Update,
                 systems::boot_to_main_menu.run_if(in_state(OfficeGameState::Boot)),
             )
+            // Main Menu UI
+            .add_systems(
+                OnEnter(OfficeGameState::MainMenu),
+                ui::main_menu::spawn_main_menu,
+            )
+            .add_systems(
+                OnExit(OfficeGameState::MainMenu),
+                ui::main_menu::despawn_main_menu,
+            )
             .add_systems(
                 Update,
-                systems::main_menu_to_in_day.run_if(in_state(OfficeGameState::MainMenu)),
+                ui::main_menu::handle_main_menu_input
+                    .run_if(in_state(OfficeGameState::MainMenu)),
             )
+            // Pause toggle (keyboard Esc)
             .add_systems(
                 Update,
                 systems::toggle_pause
                     .run_if(in_state(OfficeGameState::InDay).or(in_state(OfficeGameState::Paused))),
             )
+            // Pause Menu UI
+            .add_systems(
+                OnEnter(OfficeGameState::Paused),
+                ui::pause_menu::spawn_pause_menu,
+            )
+            .add_systems(
+                OnExit(OfficeGameState::Paused),
+                ui::pause_menu::despawn_pause_menu,
+            )
+            .add_systems(
+                Update,
+                ui::pause_menu::handle_pause_input
+                    .run_if(in_state(OfficeGameState::Paused)),
+            )
+            // HUD + Task Board + Interruption (InDay state)
+            .add_systems(
+                OnEnter(OfficeGameState::InDay),
+                (
+                    ui::hud::spawn_hud,
+                    ui::task_board::spawn_task_board,
+                    ui::interruption::spawn_interruption_popup,
+                ),
+            )
+            .add_systems(
+                OnExit(OfficeGameState::InDay),
+                (
+                    ui::hud::despawn_hud,
+                    ui::task_board::despawn_task_board,
+                    ui::interruption::despawn_interruption_popup,
+                ),
+            )
+            // Day Summary UI
+            .add_systems(
+                OnEnter(OfficeGameState::DaySummary),
+                ui::day_summary::spawn_day_summary,
+            )
+            .add_systems(
+                OnExit(OfficeGameState::DaySummary),
+                ui::day_summary::despawn_day_summary,
+            )
+            .add_systems(
+                Update,
+                ui::day_summary::handle_day_summary_input
+                    .run_if(in_state(OfficeGameState::DaySummary)),
+            )
+            // System sets for InDay simulation
             .configure_sets(
                 Update,
                 (
@@ -132,7 +192,13 @@ impl Plugin for CityOfficeWorkerPlugin {
                     )
                         .chain()
                         .in_set(OfficeSimSet::StateTransitions),
-                    systems::update_visuals.in_set(OfficeSimSet::Ui),
+                    (
+                        systems::update_visuals,
+                        ui::hud::update_hud,
+                        ui::task_board::update_task_board,
+                        ui::interruption::update_interruption_visibility,
+                    )
+                        .in_set(OfficeSimSet::Ui),
                 )
                     .run_if(in_state(OfficeGameState::InDay)),
             )
