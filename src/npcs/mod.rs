@@ -8,10 +8,10 @@ use crate::shared::*;
 
 mod animation;
 pub mod definitions;
-mod dialogue;
+pub mod dialogue;
 pub mod emotes;
 mod gifts;
-mod map_events;
+pub mod map_events;
 pub mod romance;
 pub mod quests;
 mod schedule;

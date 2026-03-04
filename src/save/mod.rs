@@ -206,6 +206,8 @@ struct ExtendedResources<'w> {
     pub harvest_stats: Res<'w, crate::economy::stats::HarvestStats>,
     pub animal_product_stats: Res<'w, crate::economy::stats::AnimalProductStats>,
     pub economy_stats: Res<'w, crate::economy::gold::EconomyStats>,
+    pub daily_talk_tracker: Res<'w, crate::npcs::dialogue::DailyTalkTracker>,
+    pub gift_decay_tracker: Res<'w, crate::npcs::map_events::GiftDecayTracker>,
 }
 
 /// Mutable bundle of the extended resources (for loading / new game).
@@ -228,6 +230,8 @@ struct ExtendedResourcesMut<'w> {
     pub harvest_stats: ResMut<'w, crate::economy::stats::HarvestStats>,
     pub animal_product_stats: ResMut<'w, crate::economy::stats::AnimalProductStats>,
     pub economy_stats: ResMut<'w, crate::economy::gold::EconomyStats>,
+    pub daily_talk_tracker: ResMut<'w, crate::npcs::dialogue::DailyTalkTracker>,
+    pub gift_decay_tracker: ResMut<'w, crate::npcs::map_events::GiftDecayTracker>,
 }
 
 /// Chest-related resources needed during load (for restoring chest entities).
@@ -382,6 +386,10 @@ struct FullSaveFile {
     pub animal_product_stats: crate::economy::stats::AnimalProductStats,
     #[serde(default)]
     pub economy_stats: crate::economy::gold::EconomyStats,
+    #[serde(default)]
+    pub daily_talk_tracker: crate::npcs::dialogue::DailyTalkTracker,
+    #[serde(default)]
+    pub gift_decay_tracker: crate::npcs::map_events::GiftDecayTracker,
     /// Storage chest contents placed by the player.
     #[serde(default)]
     pub chests: Vec<StorageChest>,
@@ -438,6 +446,8 @@ fn write_save(
     harvest_stats: &crate::economy::stats::HarvestStats,
     animal_product_stats: &crate::economy::stats::AnimalProductStats,
     economy_stats: &crate::economy::gold::EconomyStats,
+    daily_talk_tracker: &crate::npcs::dialogue::DailyTalkTracker,
+    gift_decay_tracker: &crate::npcs::map_events::GiftDecayTracker,
     chests: &[StorageChest],
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
@@ -476,6 +486,8 @@ fn write_save(
         harvest_stats: harvest_stats.clone(),
         animal_product_stats: animal_product_stats.clone(),
         economy_stats: economy_stats.clone(),
+        daily_talk_tracker: daily_talk_tracker.clone(),
+        gift_decay_tracker: gift_decay_tracker.clone(),
         chests: chests.to_vec(),
     };
 
@@ -528,6 +540,8 @@ fn write_save(
     _harvest_stats: &crate::economy::stats::HarvestStats,
     _animal_product_stats: &crate::economy::stats::AnimalProductStats,
     _economy_stats: &crate::economy::gold::EconomyStats,
+    _daily_talk_tracker: &crate::npcs::dialogue::DailyTalkTracker,
+    _gift_decay_tracker: &crate::npcs::map_events::GiftDecayTracker,
     _chests: &[StorageChest],
 ) -> Result<(), String> {
     Ok(())
@@ -690,6 +704,8 @@ fn handle_save_request(
             &ext.harvest_stats,
             &ext.animal_product_stats,
             &ext.economy_stats,
+            &ext.daily_talk_tracker,
+            &ext.gift_decay_tracker,
             &chests,
         ) {
             Ok(()) => {
@@ -779,6 +795,8 @@ fn handle_load_request(
                 *ext.harvest_stats = file.harvest_stats;
                 *ext.animal_product_stats = file.animal_product_stats;
                 *ext.economy_stats = file.economy_stats;
+                *ext.daily_talk_tracker = file.daily_talk_tracker;
+                *ext.gift_decay_tracker = file.gift_decay_tracker;
 
                 // Restore storage chests: despawn any existing chest entities
                 // and spawn saved ones.
@@ -911,6 +929,8 @@ fn handle_new_game(
         *ext.harvest_stats = crate::economy::stats::HarvestStats::default();
         *ext.animal_product_stats = crate::economy::stats::AnimalProductStats::default();
         *ext.economy_stats = crate::economy::gold::EconomyStats::default();
+        *ext.daily_talk_tracker = crate::npcs::dialogue::DailyTalkTracker::default();
+        *ext.gift_decay_tracker = crate::npcs::map_events::GiftDecayTracker::default();
 
         // Starter seeds — enough for one small plot on Day 1
         core.inventory.try_add("turnip_seeds", 15, 99);

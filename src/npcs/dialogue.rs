@@ -16,7 +16,7 @@ pub struct ActiveNpcInteraction {
 
 /// Tracks which NPCs the player has already talked to today, so daily
 /// friendship is only awarded once per NPC per day.
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DailyTalkTracker {
     pub talked: HashSet<String>,
 }

@@ -7,7 +7,7 @@ use super::spawning::{SpawnedNpcs, NpcMapTag, NpcSpriteData, spawn_npcs_for_map}
 
 /// NPC-domain resource tracking how many consecutive days each NPC has gone without a gift.
 /// When this counter exceeds 7, friendship starts decaying.
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GiftDecayTracker {
     /// NpcId → number of consecutive days without a gift
     pub days_since_gift: HashMap<NpcId, u32>,
