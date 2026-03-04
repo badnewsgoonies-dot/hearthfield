@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::game::components::{InboxAvatar, OfficeWorker, WorkerAvatar};
 use crate::game::resources::{
     format_clock, DayClock, DayStats, InboxState, OfficeEconomyRules, OfficeRules,
-    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard,
+    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, WorkerSpriteData,
 };
 use crate::game::OfficeGameState;
 
@@ -56,8 +56,23 @@ pub fn setup_scene(
     worker_entities: Query<Entity, With<OfficeWorker>>,
     inbox_entities: Query<Entity, With<InboxAvatar>>,
     camera_entities: Query<Entity, With<Camera2d>>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut sprite_data: ResMut<WorkerSpriteData>,
 ) {
     economy.normalize();
+
+    if !sprite_data.loaded {
+        sprite_data.image = asset_server.load("sprites/character_spritesheet.png");
+        sprite_data.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(48, 48),
+            4,
+            4,
+            None,
+            None,
+        ));
+        sprite_data.loaded = true;
+    }
 
     inbox.remaining_items = rules.starting_inbox_items;
     clock.current_minute = rules.day_start_minute;
@@ -94,13 +109,21 @@ pub fn setup_scene(
         commands.spawn((Camera2d,));
     }
 
+    let worker_sprite = Sprite::from_atlas_image(
+        sprite_data.image.clone(),
+        TextureAtlas {
+            layout: sprite_data.layout.clone(),
+            index: 0,
+        },
+    );
+
     if let Some(entity) = retain_single_entity(worker_entities.iter(), &mut commands) {
         commands.entity(entity).insert((
             OfficeWorker {
                 energy: rules.max_energy,
             },
             WorkerAvatar,
-            Sprite::from_color(Color::srgb(0.2, 0.8, 0.4), Vec2::new(130.0, 130.0)),
+            worker_sprite.clone(),
             Transform::from_xyz(-180.0, 0.0, 0.0),
         ));
     } else {
@@ -109,7 +132,7 @@ pub fn setup_scene(
                 energy: rules.max_energy,
             },
             WorkerAvatar,
-            Sprite::from_color(Color::srgb(0.2, 0.8, 0.4), Vec2::new(130.0, 130.0)),
+            worker_sprite,
             Transform::from_xyz(-180.0, 0.0, 0.0),
         ));
     }

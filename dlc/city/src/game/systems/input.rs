@@ -26,7 +26,9 @@ pub fn collect_player_input(
         coffee_writer.send(CoffeeBreakEvent);
     }
     if keyboard.just_pressed(KeyCode::KeyI) {
-        interruption_writer.send(InterruptionEvent);
+        interruption_writer.send(InterruptionEvent {
+            kind: crate::game::resources::InterruptionKind::CoworkerHelp,
+        });
     }
     if keyboard.just_pressed(KeyCode::Digit1) {
         calm_writer.send(ResolveCalmlyEvent);

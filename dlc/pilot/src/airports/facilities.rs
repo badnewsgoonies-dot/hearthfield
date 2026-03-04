@@ -1,6 +1,7 @@
 //! Airport facility interactions — refuel, repair, weather briefing, training.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 pub struct FacilityPlugin;
@@ -21,7 +22,7 @@ impl Plugin for FacilityPlugin {
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityType {
     FuelStation,
     MaintenanceHangar,
@@ -74,7 +75,7 @@ impl FacilityType {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FacilityQuality {
     Basic,
     Standard,
@@ -99,7 +100,7 @@ impl FacilityQuality {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AirportFacility {
     pub facility_type: FacilityType,
     pub quality: FacilityQuality,
@@ -108,7 +109,7 @@ pub struct AirportFacility {
 
 // ── Events ───────────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum FacilityAction {
     Refuel { amount: f32, cost: u32 },
     Repair { cost: u32 },
@@ -122,7 +123,8 @@ pub enum FacilityAction {
 
 // ── State ────────────────────────────────────────────────────────────────
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct FacilityState {
     pub facilities: Vec<AirportFacility>,
     pub pending_action: Option<FacilityAction>,

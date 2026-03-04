@@ -1,13 +1,14 @@
 //! Special mission types — SAR, medevac, celebrity, air race, photography, etc.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SpecialMissionType {
     SearchAndRescue,
     MedicalEvacuation,
@@ -84,7 +85,7 @@ impl SpecialMissionType {
 }
 
 /// Search pattern for SAR missions.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SearchPattern {
     ParallelTrack,
     ExpandingSquare,
@@ -113,7 +114,8 @@ impl SearchPattern {
 }
 
 /// Waypoint for air race or photography missions.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MissionWaypoint {
     pub name: String,
     pub distance_from_start_nm: f32,
@@ -135,7 +137,8 @@ impl MissionWaypoint {
 }
 
 /// Active special mission state.
-#[derive(Resource, Clone, Debug, Default)]
+#[derive(Resource, Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SpecialMissionState {
     pub active_type: Option<SpecialMissionType>,
     pub search_progress: f32,       // 0.0-1.0 for SAR

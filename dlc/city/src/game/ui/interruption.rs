@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::game::events::{PanicResponseEvent, ResolveCalmlyEvent};
-use crate::game::resources::PlayerMindState;
+use crate::game::resources::{ActiveInterruptionContext, InterruptionKind, PlayerMindState};
 
 use super::InterruptionPopupRoot;
 
@@ -10,6 +10,12 @@ pub(crate) struct CalmButton;
 
 #[derive(Component)]
 pub(crate) struct PanicButton;
+
+#[derive(Component)]
+pub(crate) struct InterruptionTitle;
+
+#[derive(Component)]
+pub(crate) struct InterruptionBody;
 
 pub fn spawn_interruption_popup(mut commands: Commands) {
     commands
@@ -42,6 +48,7 @@ pub fn spawn_interruption_popup(mut commands: Commands) {
                 ))
                 .with_children(|popup| {
                     popup.spawn((
+                        InterruptionTitle,
                         Text::new("INTERRUPTION!"),
                         TextFont {
                             font_size: 28.0,
@@ -51,6 +58,7 @@ pub fn spawn_interruption_popup(mut commands: Commands) {
                     ));
 
                     popup.spawn((
+                        InterruptionBody,
                         Text::new("A coworker needs your help urgently.\nHow do you respond?"),
                         TextFont {
                             font_size: 15.0,
@@ -126,9 +134,31 @@ pub fn despawn_interruption_popup(
     }
 }
 
+fn interruption_kind_label(kind: InterruptionKind) -> &'static str {
+    match kind {
+        InterruptionKind::ManagerRequest => "MANAGER REQUEST",
+        InterruptionKind::EmergencyMeeting => "EMERGENCY MEETING",
+        InterruptionKind::SystemOutage => "SYSTEM OUTAGE",
+        InterruptionKind::CoworkerHelp => "COWORKER HELP",
+    }
+}
+
+fn interruption_kind_color(kind: InterruptionKind) -> Color {
+    match kind {
+        InterruptionKind::ManagerRequest => Color::srgb(1.0, 0.6, 0.15),
+        InterruptionKind::EmergencyMeeting => Color::srgb(1.0, 0.85, 0.2),
+        InterruptionKind::SystemOutage => Color::srgb(1.0, 0.2, 0.2),
+        InterruptionKind::CoworkerHelp => Color::srgb(0.4, 0.8, 1.0),
+    }
+}
+
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_interruption_visibility(
     mind: Res<PlayerMindState>,
+    context: Res<ActiveInterruptionContext>,
     mut query: Query<&mut Visibility, With<InterruptionPopupRoot>>,
+    mut title_query: Query<(&mut Text, &mut TextColor), (With<InterruptionTitle>, Without<InterruptionBody>)>,
+    mut body_query: Query<(&mut Text, &mut TextColor), (With<InterruptionBody>, Without<InterruptionTitle>)>,
     calm_query: Query<&Interaction, (Changed<Interaction>, With<CalmButton>)>,
     panic_query: Query<&Interaction, (Changed<Interaction>, With<PanicButton>)>,
     mut calm_writer: EventWriter<ResolveCalmlyEvent>,
@@ -141,6 +171,24 @@ pub fn update_interruption_visibility(
         } else {
             Visibility::Hidden
         };
+    }
+
+    // Update title and body from ActiveInterruptionContext
+    if mind.pending_interruptions > 0 {
+        if let Some(kind) = context.kind {
+            if let Ok((mut title_text, mut title_color)) = title_query.get_single_mut() {
+                **title_text = interruption_kind_label(kind).to_string();
+                title_color.0 = interruption_kind_color(kind);
+            }
+            if let Ok((mut body_text, _body_color)) = body_query.get_single_mut() {
+                let mut display = context.description.clone();
+                if let Some(ref name) = context.coworker_name {
+                    display.push_str(&format!("\n\nInvolved: {name}"));
+                }
+                display.push_str("\n\nHow do you respond?");
+                **body_text = display;
+            }
+        }
     }
 
     // Handle button clicks

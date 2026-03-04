@@ -28,6 +28,39 @@ pub enum TaskKind {
     Filing,
     EmailTriage,
     PermitReview,
+    PhoneCall,
+    MeetingPrep,
+    ReportWriting,
+    BudgetReview,
+}
+
+#[allow(dead_code)]
+impl TaskKind {
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::DataEntry => "Enter spreadsheet figures for quarterly report",
+            Self::Filing => "Sort and file incoming documents to correct departments",
+            Self::EmailTriage => "Read, prioritize, and route the email backlog",
+            Self::PermitReview => "Check permit applications for compliance",
+            Self::PhoneCall => "Return missed calls and take messages",
+            Self::MeetingPrep => "Prepare agenda and handouts for upcoming meeting",
+            Self::ReportWriting => "Draft the weekly status report for management",
+            Self::BudgetReview => "Reconcile expense receipts against budget lines",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::DataEntry => "Data Entry",
+            Self::Filing => "Filing",
+            Self::EmailTriage => "Email",
+            Self::PermitReview => "Permit",
+            Self::PhoneCall => "Phone",
+            Self::MeetingPrep => "Meeting",
+            Self::ReportWriting => "Report",
+            Self::BudgetReview => "Budget",
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -753,6 +786,14 @@ impl UnlockCatalogState {
     }
 }
 
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone, Default)]
+pub struct ActiveInterruptionContext {
+    pub kind: Option<InterruptionKind>,
+    pub coworker_name: Option<String>,
+    pub description: String,
+}
+
 #[derive(Resource, Debug, Default)]
 pub struct DayStats {
     pub processed_items: u32,
@@ -764,6 +805,20 @@ pub struct DayStats {
     pub panic_responses: u32,
     pub manager_checkins: u32,
     pub coworker_helps: u32,
+}
+
+#[derive(Resource, Default)]
+pub struct WorkerSpriteData {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+#[derive(Resource, Default)]
+pub struct OfficeFontHandle(pub Handle<Font>);
+
+pub fn load_office_font(mut font: ResMut<OfficeFontHandle>, asset_server: Res<AssetServer>) {
+    font.0 = asset_server.load("fonts/sprout_lands.ttf");
 }
 
 pub fn format_clock(total_minutes: u32) -> String {

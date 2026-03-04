@@ -12,9 +12,10 @@ use crate::game::events::{
     ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
 };
 use crate::game::resources::{
-    CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats, InboxState,
-    OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, TaskId, TaskPriority, UnlockCatalogState, WorkerStats,
+    ActiveInterruptionContext, CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats,
+    InboxState, InterruptionKind, OfficeEconomyRules, OfficeRules, OfficeRunConfig,
+    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority,
+    UnlockCatalogState, WorkerSpriteData, WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -173,9 +174,12 @@ fn record_replay_summaries(
 
 fn build_test_app() -> App {
     let mut app = App::new();
-    app.add_plugins((MinimalPlugins, StatesPlugin));
+    app.add_plugins((MinimalPlugins, StatesPlugin, bevy::asset::AssetPlugin::default()));
+    app.init_asset::<bevy::prelude::Image>();
+    app.init_asset::<bevy::sprite::TextureAtlasLayout>();
 
     app.init_state::<crate::game::OfficeGameState>()
+        .init_resource::<WorkerSpriteData>()
         .init_resource::<OfficeRules>()
         .init_resource::<OfficeRunConfig>()
         .init_resource::<InboxState>()
@@ -192,6 +196,7 @@ fn build_test_app() -> App {
         .init_resource::<SaveSlotConfig>()
         .init_resource::<OfficeSaveStore>()
         .init_resource::<TaskBoard>()
+        .init_resource::<crate::game::resources::ActiveInterruptionContext>()
         .add_event::<EndDayRequested>()
         .add_event::<DayAdvanced>()
         .add_event::<TaskProgressed>()
@@ -262,11 +267,11 @@ fn push_action(world: &mut World, action: ScriptAction) {
             world.send_event(WaitEvent { minutes });
         }
         ScriptAction::InterruptionCalm => {
-            world.send_event(InterruptionEvent);
+            world.send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
             world.send_event(ResolveCalmlyEvent);
         }
         ScriptAction::InterruptionPanic => {
-            world.send_event(InterruptionEvent);
+            world.send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
             world.send_event(PanicResponseEvent);
         }
         ScriptAction::ManagerCheckIn => {
@@ -422,11 +427,11 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
         ),
     );
 
-    app.world_mut().send_event(InterruptionEvent);
+    app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
     app.update();
     app.world_mut().send_event(ResolveCalmlyEvent);
     app.update();
-    app.world_mut().send_event(InterruptionEvent);
+    app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
     app.update();
     app.world_mut().send_event(PanicResponseEvent);
     app.update();
@@ -447,7 +452,7 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
     assert_eq!(stats.manager_checkins, 1);
     assert_eq!(stats.coworker_helps, 1);
     assert_eq!(career.reputation, 5);
-    assert_eq!(mind.stress, 51);
+    assert_eq!(mind.stress, 49);
     assert_eq!(mind.focus, 56);
     assert!(social.scenario_cursor >= 2);
 }
@@ -687,6 +692,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
 
         let snapshot = capture_snapshot(
             clock,
@@ -699,6 +705,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
@@ -738,6 +745,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut progression = CareerProgression::default();
     let mut social_graph = SocialGraphState::default();
     let mut unlocks = UnlockCatalogState::default();
+    let mut day_outcome = DayOutcome::default();
     let economy = app.world().resource::<OfficeEconomyRules>().clone();
 
     apply_snapshot(
@@ -753,6 +761,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut social_graph,
         &mut unlocks,
         &economy,
+        &mut day_outcome,
     )
     .expect("snapshot apply should succeed");
 
@@ -787,6 +796,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -798,6 +808,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         )
     };
 
@@ -1037,6 +1048,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1048,6 +1060,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         )
     };
     write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
@@ -1401,11 +1414,11 @@ fn social_scenarios_are_seed_deterministic() {
         );
         app.world_mut().resource_mut::<OfficeRunConfig>().seed = seed;
 
-        app.world_mut().send_event(InterruptionEvent);
+        app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
         app.update();
         app.world_mut().send_event(ResolveCalmlyEvent);
         app.update();
-        app.world_mut().send_event(InterruptionEvent);
+        app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
         app.update();
         app.world_mut().send_event(PanicResponseEvent);
         app.update();
@@ -1502,6 +1515,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1513,6 +1527,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         )
     };
 
@@ -1537,6 +1552,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
     let mut progression = CareerProgression::default();
     let mut social_graph = SocialGraphState::default();
     let mut unlocks = UnlockCatalogState::default();
+    let mut day_outcome = DayOutcome::default();
     let economy = OfficeEconomyRules::default();
 
     apply_snapshot(
@@ -1552,6 +1568,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         &mut social_graph,
         &mut unlocks,
         &economy,
+        &mut day_outcome,
     )
     .expect("malformed terminal-set snapshot should normalize successfully");
 
@@ -1845,7 +1862,7 @@ fn affinity_trust_bounded_after_many_interruptions() {
     );
 
     for _ in 0..50 {
-        app.world_mut().send_event(InterruptionEvent);
+        app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
         app.update();
         app.world_mut().send_event(ResolveCalmlyEvent);
         app.update();
@@ -2145,7 +2162,7 @@ fn scenario_cursor_wraps_safely() {
         let mut sg = app.world_mut().resource_mut::<SocialGraphState>();
         sg.scenario_cursor = u32::MAX;
     }
-    app.world_mut().send_event(InterruptionEvent);
+    app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
     app.update();
 
     let social_after = app.world().resource::<SocialGraphState>();
@@ -2182,4 +2199,139 @@ fn end_of_day_event_consumed() {
         1,
         "EndOfDayEvent should be consumed and not re-emitted"
     );
+}
+
+#[test]
+fn new_task_kinds_appear_in_seeded_board() {
+    let mut all_kinds = HashSet::new();
+    for day in 1..=10 {
+        let board = super::task_board::seed_task_board(day, 18, 17 * 60);
+        for task in &board.active {
+            all_kinds.insert(task.kind);
+        }
+    }
+    assert!(
+        all_kinds.contains(&TaskKind::DataEntry),
+        "DataEntry must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::Filing),
+        "Filing must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::EmailTriage),
+        "EmailTriage must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::PermitReview),
+        "PermitReview must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::PhoneCall),
+        "PhoneCall must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::MeetingPrep),
+        "MeetingPrep must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::ReportWriting),
+        "ReportWriting must appear"
+    );
+    assert!(
+        all_kinds.contains(&TaskKind::BudgetReview),
+        "BudgetReview must appear"
+    );
+    assert_eq!(all_kinds.len(), 8, "All 8 TaskKinds must appear over 10 days");
+}
+
+#[test]
+fn interruption_kind_is_deterministic_for_seed() {
+    let seed = 42u64;
+    // Collect a sequence of kinds for 3 days, 8 hours each
+    let mut first_run = Vec::new();
+    for day in 1..=3 {
+        for hour in 9..=16 {
+            first_run.push(super::interruptions::pick_interruption_kind(seed, day, hour));
+        }
+    }
+    // Run the same sequence again — must be identical
+    let mut second_run = Vec::new();
+    for day in 1..=3 {
+        for hour in 9..=16 {
+            second_run.push(super::interruptions::pick_interruption_kind(seed, day, hour));
+        }
+    }
+    assert_eq!(first_run, second_run, "Same seed+day+hour must produce same InterruptionKind");
+    // Also verify that we get more than one distinct kind across the whole sequence
+    let unique: HashSet<_> = first_run.iter().collect();
+    assert!(
+        unique.len() > 1,
+        "InterruptionKind selection should produce variety across hours/days"
+    );
+}
+
+#[test]
+fn active_interruption_context_populated_on_interrupt() {
+    let mut app = build_test_app();
+    app.add_systems(Update, handle_interruption_requests);
+
+    app.world_mut().send_event(InterruptionEvent {
+        kind: InterruptionKind::EmergencyMeeting,
+    });
+    app.update();
+
+    let context = app.world().resource::<ActiveInterruptionContext>();
+    assert!(context.kind.is_some(), "kind must be populated after interruption");
+    assert_eq!(context.kind.unwrap(), InterruptionKind::EmergencyMeeting);
+    assert!(!context.description.is_empty(), "description must be non-empty after interruption");
+}
+
+#[test]
+fn active_interruption_context_cleared_on_resolve() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        (
+            handle_interruption_requests,
+            handle_resolve_calmly_requests,
+            handle_panic_response_requests,
+        )
+            .chain(),
+    );
+
+    // Trigger an interruption
+    app.world_mut().send_event(InterruptionEvent {
+        kind: InterruptionKind::CoworkerHelp,
+    });
+    app.update();
+
+    // Verify context is populated
+    let context = app.world().resource::<ActiveInterruptionContext>();
+    assert!(context.kind.is_some());
+
+    // Resolve calmly
+    app.world_mut().send_event(ResolveCalmlyEvent);
+    app.update();
+
+    // Context should be cleared
+    let context = app.world().resource::<ActiveInterruptionContext>();
+    assert!(context.kind.is_none(), "kind must be cleared after calm resolve");
+    assert!(context.description.is_empty(), "description must be cleared after calm resolve");
+
+    // Now test panic path
+    app.world_mut().send_event(InterruptionEvent {
+        kind: InterruptionKind::SystemOutage,
+    });
+    app.update();
+
+    let context = app.world().resource::<ActiveInterruptionContext>();
+    assert!(context.kind.is_some());
+
+    app.world_mut().send_event(PanicResponseEvent);
+    app.update();
+
+    let context = app.world().resource::<ActiveInterruptionContext>();
+    assert!(context.kind.is_none(), "kind must be cleared after panic resolve");
+    assert!(context.description.is_empty(), "description must be cleared after panic resolve");
 }
