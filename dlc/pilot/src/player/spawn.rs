@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::aircraft::fleet::HangarAssignments;
 
 #[derive(Resource, Default)]
 pub struct PlayerSpawned(pub bool);
@@ -89,13 +90,32 @@ pub fn transition_spawn_position(to_zone: MapZone, from_zone: MapZone, map_w: i3
 pub fn setup_new_game(
     mut gold: ResMut<Gold>,
     mut inventory: ResMut<Inventory>,
+    mut fleet: ResMut<Fleet>,
+    mut hangars: ResMut<HangarAssignments>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
+    if gold.amount > 0 {
+        return; // Already initialized (loaded game or returning from flight)
+    }
+
     gold.amount = STARTER_GOLD;
     inventory.add_item("pilot_manual", 1);
     inventory.add_item("local_map", 1);
     inventory.add_item("granola_bar", 3);
     inventory.add_item("water_bottle", 2);
+
+    if fleet.aircraft.is_empty() {
+        let starter = OwnedAircraft {
+            aircraft_id: "cessna_172".to_string(),
+            nickname: "Old Faithful".to_string(),
+            condition: 65.0,
+            fuel: 30.0,
+            total_flights: 47,
+            customizations: Vec::new(),
+        };
+        fleet.aircraft.push(starter);
+        hangars.assign("Old Faithful", AirportId::HomeBase);
+    }
 
     toast_events.send(ToastEvent {
         message: "Welcome to Skywarden! Check the Mission Board to get started.".to_string(),

@@ -1,10 +1,11 @@
 //! Gold management — transaction log, daily expenses, milestones.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 /// A recorded financial transaction.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Transaction {
     pub day: u32,
     pub amount: i32,
@@ -12,7 +13,7 @@ pub struct Transaction {
 }
 
 /// Persistent transaction log.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
 pub struct TransactionLog {
     pub entries: Vec<Transaction>,
 }
@@ -41,7 +42,7 @@ impl TransactionLog {
 
 const GOLD_MILESTONES: &[u32] = &[1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000];
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
 pub struct GoldMilestones {
     pub reached: Vec<u32>,
 }

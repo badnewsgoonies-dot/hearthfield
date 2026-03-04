@@ -3,7 +3,9 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::shared::*;
+use crate::aircraft::fuel::FuelWarnings;
 use crate::aircraft::maintenance::MaintenanceTracker;
+use crate::economy::gold::{GoldMilestones, TransactionLog};
 
 pub mod autosave;
 
@@ -63,6 +65,12 @@ pub struct SaveFile {
     pub tutorial_state: TutorialState,
     #[serde(default)]
     pub maintenance_tracker: MaintenanceTracker,
+    #[serde(default)]
+    pub transaction_log: TransactionLog,
+    #[serde(default)]
+    pub gold_milestones: GoldMilestones,
+    #[serde(default)]
+    pub fuel_warnings: FuelWarnings,
 }
 
 // ─── Staging resources ───────────────────────────────────────────────────────
@@ -125,12 +133,27 @@ struct LoadResources<'w> {
     pub maintenance_tracker: ResMut<'w, MaintenanceTracker>,
 }
 
+#[derive(SystemParam)]
+struct SaveResources2<'w> {
+    pub transaction_log: Res<'w, TransactionLog>,
+    pub gold_milestones: Res<'w, GoldMilestones>,
+    pub fuel_warnings: Res<'w, FuelWarnings>,
+}
+
+#[derive(SystemParam)]
+struct LoadResources2<'w> {
+    pub transaction_log: ResMut<'w, TransactionLog>,
+    pub gold_milestones: ResMut<'w, GoldMilestones>,
+    pub fuel_warnings: ResMut<'w, FuelWarnings>,
+}
+
 // ─── Save (two-phase) ───────────────────────────────────────────────────────
 
 /// Phase 1: read events + gather all resource data into `PendingSave`.
 fn save_gather(
     mut events: EventReader<SaveRequestEvent>,
     res: SaveResources,
+    res2: SaveResources2,
     mut pending: ResMut<PendingSave>,
 ) {
     for ev in events.read() {
@@ -152,6 +175,9 @@ fn save_gather(
                 economy_stats: res.economy_stats.clone(),
                 tutorial_state: res.tutorial_state.clone(),
                 maintenance_tracker: res.maintenance_tracker.clone(),
+                transaction_log: res2.transaction_log.clone(),
+                gold_milestones: res2.gold_milestones.clone(),
+                fuel_warnings: res2.fuel_warnings.clone(),
             },
         ));
     }
@@ -223,6 +249,7 @@ fn load_read(
 fn load_apply(
     mut pending: ResMut<PendingLoad>,
     mut res: LoadResources,
+    mut res2: LoadResources2,
     mut zone_ev: EventWriter<ZoneTransitionEvent>,
 ) {
     for file in pending.files.drain(..) {
@@ -244,6 +271,9 @@ fn load_apply(
         *res.economy_stats = file.economy_stats;
         *res.tutorial_state = file.tutorial_state;
         *res.maintenance_tracker = file.maintenance_tracker;
+        *res2.transaction_log = file.transaction_log;
+        *res2.gold_milestones = file.gold_milestones;
+        *res2.fuel_warnings = file.fuel_warnings;
 
         zone_ev.send(ZoneTransitionEvent {
             to_airport: dest_airport,
