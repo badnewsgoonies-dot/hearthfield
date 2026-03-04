@@ -35,6 +35,7 @@ fn crew_sprite_file(sprite_index: usize) -> String {
     files[sprite_index % files.len()].to_string()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_crew_for_zone(
     mut commands: Commands,
     player_location: Res<PlayerLocation>,
