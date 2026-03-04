@@ -1561,7 +1561,7 @@ pub struct PlayerInput {
     pub open_crafting: bool,      // C
     pub open_map: bool,           // M
     pub open_journal: bool,       // J — quests/achievements
-    pub open_relationships: bool, // R — relationships screen
+    pub open_relationships: bool, // L — relationships screen
     pub pause: bool,              // Escape
 
     // Tool selection
@@ -1640,7 +1640,7 @@ impl Default for KeyBindings {
             open_crafting: KeyCode::KeyC,
             open_map: KeyCode::KeyM,
             open_journal: KeyCode::KeyJ,
-            open_relationships: KeyCode::KeyR,
+            open_relationships: KeyCode::KeyL,
             pause: KeyCode::Escape,
             tool_next: KeyCode::BracketRight,
             tool_prev: KeyCode::BracketLeft,
