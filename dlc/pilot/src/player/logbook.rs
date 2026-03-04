@@ -30,6 +30,29 @@ pub struct LogbookEntry {
     pub was_night_flight: bool,
 }
 
+impl Default for LogbookEntry {
+    fn default() -> Self {
+        Self {
+            day: 0,
+            season: Season::Spring,
+            year: 0,
+            origin: AirportId::default(),
+            destination: AirportId::default(),
+            aircraft_id: String::new(),
+            aircraft_class: AircraftClass::SingleProp,
+            duration_minutes: 0.0,
+            distance_nm: 0.0,
+            weather: Weather::default(),
+            landing_grade: String::new(),
+            passengers: 0,
+            cargo_kg: 0.0,
+            fuel_used: 0.0,
+            notes: String::new(),
+            was_night_flight: false,
+        }
+    }
+}
+
 /// Persistent flight logbook resource.
 #[derive(Resource, Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]

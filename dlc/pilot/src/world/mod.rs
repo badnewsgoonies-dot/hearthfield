@@ -1,6 +1,7 @@
 //! World domain — seasonal systems, airport status, world events.
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::shared::*;
 
 use rand::Rng;
@@ -59,7 +60,7 @@ impl Plugin for WorldPlugin {
 // ─── Airport Status ──────────────────────────────────────────────────────
 
 /// Why an airport might be temporarily unavailable.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClosureReason {
     Weather,
     Maintenance,
@@ -68,7 +69,8 @@ pub enum ClosureReason {
 }
 
 /// Current operational status of an airport.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AirportStatus {
     pub open: bool,
     pub closure_reason: Option<ClosureReason>,
@@ -86,7 +88,8 @@ impl Default for AirportStatus {
 }
 
 /// Maps every airport to its current status.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AirportStatusMap {
     pub statuses: HashMap<AirportId, AirportStatus>,
 }

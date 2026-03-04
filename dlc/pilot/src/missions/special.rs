@@ -114,7 +114,7 @@ impl SearchPattern {
 }
 
 /// Waypoint for air race or photography missions.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct MissionWaypoint {
     pub name: String,

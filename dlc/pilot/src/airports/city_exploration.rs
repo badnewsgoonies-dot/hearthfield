@@ -128,7 +128,7 @@ fn city_for_airport(airport: AirportId) -> Option<CityDef> {
     city_definitions().into_iter().find(|c| c.airport == airport)
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CityEvent {
     pub name: String,

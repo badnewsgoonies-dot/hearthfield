@@ -172,7 +172,8 @@ pub fn customs_processing_time(airport: AirportId) -> f32 {
 
 // ─── Service state resource ──────────────────────────────────────────────
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AirportServiceState {
     pub car_rental_active: bool,
     pub car_rental_speed_bonus: f32,

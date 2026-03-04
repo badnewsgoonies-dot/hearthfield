@@ -14,7 +14,8 @@ use crate::game::events::{
 use crate::game::resources::{
     CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats, InboxState,
     OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, TaskId, TaskPriority, UnlockCatalogState, WorkerStats,
+    SocialGraphState, TaskBoard, TaskId, TaskPriority, UnlockCatalogState, WorkerSpriteData,
+    WorkerStats,
 };
 use crate::game::save::{
     apply_snapshot, capture_snapshot, deserialize_snapshot, migrate_snapshot_json,
@@ -173,9 +174,12 @@ fn record_replay_summaries(
 
 fn build_test_app() -> App {
     let mut app = App::new();
-    app.add_plugins((MinimalPlugins, StatesPlugin));
+    app.add_plugins((MinimalPlugins, StatesPlugin, bevy::asset::AssetPlugin::default()));
+    app.init_asset::<bevy::prelude::Image>();
+    app.init_asset::<bevy::sprite::TextureAtlasLayout>();
 
     app.init_state::<crate::game::OfficeGameState>()
+        .init_resource::<WorkerSpriteData>()
         .init_resource::<OfficeRules>()
         .init_resource::<OfficeRunConfig>()
         .init_resource::<InboxState>()
@@ -687,6 +691,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
 
         let snapshot = capture_snapshot(
             clock,
@@ -699,6 +704,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         );
         let json = serialize_snapshot(&snapshot).expect("snapshot serialization should succeed");
         (
@@ -738,6 +744,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
     let mut progression = CareerProgression::default();
     let mut social_graph = SocialGraphState::default();
     let mut unlocks = UnlockCatalogState::default();
+    let mut day_outcome = DayOutcome::default();
     let economy = app.world().resource::<OfficeEconomyRules>().clone();
 
     apply_snapshot(
@@ -753,6 +760,7 @@ fn snapshot_roundtrip_preserves_task_ids_and_midday_load_no_regen() {
         &mut social_graph,
         &mut unlocks,
         &economy,
+        &mut day_outcome,
     )
     .expect("snapshot apply should succeed");
 
@@ -787,6 +795,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -798,6 +807,7 @@ fn save_slot_roundtrip_persists_snapshot_payload() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         )
     };
 
@@ -1037,6 +1047,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1048,6 +1059,7 @@ fn load_day_ended_snapshot_reconciles_to_playable_flow() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         )
     };
     write_snapshot_to_slot(&save_config, 7, &snapshot).expect("writing ended-day snapshot");
@@ -1502,6 +1514,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         let progression = app.world().resource::<CareerProgression>();
         let social_graph = app.world().resource::<SocialGraphState>();
         let unlocks = app.world().resource::<UnlockCatalogState>();
+        let day_outcome = app.world().resource::<DayOutcome>();
         capture_snapshot(
             clock,
             worker_stats,
@@ -1513,6 +1526,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
             progression,
             social_graph,
             unlocks,
+            day_outcome,
         )
     };
 
@@ -1537,6 +1551,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
     let mut progression = CareerProgression::default();
     let mut social_graph = SocialGraphState::default();
     let mut unlocks = UnlockCatalogState::default();
+    let mut day_outcome = DayOutcome::default();
     let economy = OfficeEconomyRules::default();
 
     apply_snapshot(
@@ -1552,6 +1567,7 @@ fn apply_snapshot_normalizes_terminal_sets_to_disjoint_lists() {
         &mut social_graph,
         &mut unlocks,
         &economy,
+        &mut day_outcome,
     )
     .expect("malformed terminal-set snapshot should normalize successfully");
 

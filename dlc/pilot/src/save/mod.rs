@@ -12,6 +12,14 @@ use crate::economy::business::AirlineBusiness;
 use crate::player::skills::PilotSkills;
 use crate::missions::story::StoryProgress;
 use crate::crew::relationships::RelationshipDetails;
+use crate::player::logbook::Logbook;
+use crate::player::reputation::Reputation;
+use crate::economy::market::MarketState;
+use crate::missions::special::SpecialMissionState;
+use crate::airports::city_exploration::CityState;
+use crate::airports::services::AirportServiceState;
+use crate::airports::facilities::FacilityState;
+use crate::world::AirportStatusMap;
 
 pub mod autosave;
 
@@ -89,6 +97,22 @@ pub struct SaveFile {
     pub airline_business: AirlineBusiness,
     #[serde(default)]
     pub relationship_details: RelationshipDetails,
+    #[serde(default)]
+    pub logbook: Logbook,
+    #[serde(default)]
+    pub reputation: Reputation,
+    #[serde(default)]
+    pub market_state: MarketState,
+    #[serde(default)]
+    pub special_mission_state: SpecialMissionState,
+    #[serde(default)]
+    pub city_state: CityState,
+    #[serde(default)]
+    pub airport_service_state: AirportServiceState,
+    #[serde(default)]
+    pub facility_state: FacilityState,
+    #[serde(default)]
+    pub airport_status_map: AirportStatusMap,
 }
 
 // ─── Staging resources ───────────────────────────────────────────────────────
@@ -177,6 +201,30 @@ struct LoadResources2<'w> {
     pub relationship_details: ResMut<'w, RelationshipDetails>,
 }
 
+#[derive(SystemParam)]
+struct SaveResources3<'w> {
+    pub logbook: Res<'w, Logbook>,
+    pub reputation: Res<'w, Reputation>,
+    pub market_state: Res<'w, MarketState>,
+    pub special_mission_state: Res<'w, SpecialMissionState>,
+    pub city_state: Res<'w, CityState>,
+    pub airport_service_state: Res<'w, AirportServiceState>,
+    pub facility_state: Res<'w, FacilityState>,
+    pub airport_status_map: Res<'w, AirportStatusMap>,
+}
+
+#[derive(SystemParam)]
+struct LoadResources3<'w> {
+    pub logbook: ResMut<'w, Logbook>,
+    pub reputation: ResMut<'w, Reputation>,
+    pub market_state: ResMut<'w, MarketState>,
+    pub special_mission_state: ResMut<'w, SpecialMissionState>,
+    pub city_state: ResMut<'w, CityState>,
+    pub airport_service_state: ResMut<'w, AirportServiceState>,
+    pub facility_state: ResMut<'w, FacilityState>,
+    pub airport_status_map: ResMut<'w, AirportStatusMap>,
+}
+
 // ─── Save (two-phase) ───────────────────────────────────────────────────────
 
 /// Phase 1: read events + gather all resource data into `PendingSave`.
@@ -184,6 +232,7 @@ fn save_gather(
     mut events: EventReader<SaveRequestEvent>,
     res: SaveResources,
     res2: SaveResources2,
+    res3: SaveResources3,
     mut pending: ResMut<PendingSave>,
 ) {
     for ev in events.read() {
@@ -214,6 +263,14 @@ fn save_gather(
                 insurance_state: res2.insurance_state.clone(),
                 airline_business: res2.airline_business.clone(),
                 relationship_details: res2.relationship_details.clone(),
+                logbook: res3.logbook.clone(),
+                reputation: res3.reputation.clone(),
+                market_state: res3.market_state.clone(),
+                special_mission_state: res3.special_mission_state.clone(),
+                city_state: res3.city_state.clone(),
+                airport_service_state: res3.airport_service_state.clone(),
+                facility_state: res3.facility_state.clone(),
+                airport_status_map: res3.airport_status_map.clone(),
             },
         ));
     }
@@ -286,6 +343,7 @@ fn load_apply(
     mut pending: ResMut<PendingLoad>,
     mut res: LoadResources,
     mut res2: LoadResources2,
+    mut res3: LoadResources3,
     mut zone_ev: EventWriter<ZoneTransitionEvent>,
 ) {
     for file in pending.files.drain(..) {
@@ -316,6 +374,14 @@ fn load_apply(
         *res2.insurance_state = file.insurance_state;
         *res2.airline_business = file.airline_business;
         *res2.relationship_details = file.relationship_details;
+        *res3.logbook = file.logbook;
+        *res3.reputation = file.reputation;
+        *res3.market_state = file.market_state;
+        *res3.special_mission_state = file.special_mission_state;
+        *res3.city_state = file.city_state;
+        *res3.airport_service_state = file.airport_service_state;
+        *res3.facility_state = file.facility_state;
+        *res3.airport_status_map = file.airport_status_map;
 
         zone_ev.send(ZoneTransitionEvent {
             to_airport: dest_airport,
