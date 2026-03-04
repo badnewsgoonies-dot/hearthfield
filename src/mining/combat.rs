@@ -208,6 +208,7 @@ pub fn enemy_ai_movement(
 }
 
 /// System: enemies attack the player when adjacent.
+#[allow(clippy::too_many_arguments)]
 pub fn enemy_attack_player(
     time: Res<Time>,
     mut enemies: Query<(&MineGridPos, &MineMonster, &mut EnemyAttackCooldown)>,

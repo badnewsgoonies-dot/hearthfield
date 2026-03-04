@@ -102,9 +102,7 @@ fn try_harvest_at(
     crop_harvested_events: &mut EventWriter<CropHarvestedEvent>,
     crop_registry: &CropRegistry,
 ) -> Option<String> {
-    let Some(crop) = farm_state.crops.get(&pos) else {
-        return None;
-    };
+    let crop = farm_state.crops.get(&pos)?;
 
     if crop.dead {
         // Remove dead crop.
@@ -112,9 +110,7 @@ fn try_harvest_at(
         return Some(String::new());
     }
 
-    let Some(def) = crop_registry.crops.get(&crop.crop_id).cloned() else {
-        return None;
-    };
+    let def = crop_registry.crops.get(&crop.crop_id).cloned()?;
 
     // A crop is mature when current_stage == growth_days.len() (all stages done).
     let mature_stage = def.growth_days.len() as u8;

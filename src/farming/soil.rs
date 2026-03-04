@@ -60,6 +60,7 @@ pub fn handle_hoe_tool_use(
 // Watering Can — water a tilled tile
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_watering_can_tool_use(
     mut tool_events: EventReader<ToolUseEvent>,
     mut farm_state: ResMut<FarmState>,

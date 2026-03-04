@@ -259,6 +259,30 @@ pub fn cleanup_weather_on_change(
     }
 }
 
+/// Send a toast notification when the weather changes (rain starts, stops, etc).
+pub fn weather_change_notification(
+    calendar: Res<Calendar>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut prev_weather: Local<Option<Weather>>,
+) {
+    let current = calendar.weather;
+    if Some(current) != *prev_weather {
+        if prev_weather.is_some() {
+            let msg = match current {
+                Weather::Rainy => "It started raining.",
+                Weather::Stormy => "A storm is rolling in!",
+                Weather::Snowy => "It's starting to snow.",
+                Weather::Sunny => "The skies have cleared up.",
+            };
+            toast_events.send(ToastEvent {
+                message: msg.into(),
+                duration_secs: 3.0,
+            });
+        }
+        *prev_weather = Some(current);
+    }
+}
+
 /// Despawn all weather particles unconditionally (used on state exit).
 pub fn cleanup_all_weather_particles(
     mut commands: Commands,

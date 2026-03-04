@@ -42,6 +42,7 @@ use lighting::{
 use weather_fx::{
     spawn_weather_particles, update_weather_particles,
     cleanup_weather_on_change, cleanup_all_weather_particles,
+    weather_change_notification,
     PreviousWeather,
 };
 
@@ -97,6 +98,7 @@ impl Plugin for WorldPlugin {
                     spawn_weather_particles,
                     update_weather_particles,
                     cleanup_weather_on_change,
+                    weather_change_notification,
                     // Weed scythe clearing
                     handle_weed_scythe,
                 )
