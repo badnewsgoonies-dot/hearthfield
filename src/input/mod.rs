@@ -174,6 +174,7 @@ fn manage_input_context(
         GameState::BuildingUpgrade => InputContext::Menu,
         GameState::Journal => InputContext::Menu,
         GameState::RelationshipsView => InputContext::Menu,
+        GameState::MapView => InputContext::Menu,
         GameState::Dialogue => InputContext::Dialogue,
         GameState::Fishing => InputContext::Fishing,
         GameState::Cutscene => InputContext::Cutscene,

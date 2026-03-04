@@ -11,6 +11,7 @@ pub mod intro_sequence;
 mod inventory_screen;
 pub mod journal_screen;
 mod main_menu;
+pub mod map_screen;
 pub mod menu_input;
 pub mod menu_kit;
 mod minimap;
@@ -196,7 +197,8 @@ impl Plugin for UiPlugin {
                         .or(in_state(GameState::Crafting))
                         .or(in_state(GameState::Dialogue))
                         .or(in_state(GameState::Journal))
-                        .or(in_state(GameState::RelationshipsView)),
+                        .or(in_state(GameState::RelationshipsView))
+                        .or(in_state(GameState::MapView)),
                 ),
             ),
         );
@@ -255,6 +257,16 @@ impl Plugin for UiPlugin {
                 relationships_screen::relationships_navigation,
             )
                 .run_if(in_state(GameState::RelationshipsView)),
+        );
+
+        // ─── MAP SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::MapView),
+            map_screen::spawn_map_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::MapView),
+            map_screen::despawn_map_screen,
         );
 
         // ─── DIALOGUE BOX ───

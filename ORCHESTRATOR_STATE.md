@@ -18,7 +18,7 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 - Use `subagent_type: "Explore"` for read-only investigation
 - These are Claude sub-agents, more expensive per the user's preference
 
-## Current Phase: Wave 2c COMPLETE, Wave 2d (save trackers) in progress
+## Current Phase: Wave 3 — New UI Screens (IN PROGRESS)
 
 ### Branch: claude/setup-orchestration-framework-L8ILN
 
@@ -48,27 +48,31 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 - 7 missing animal ItemDefs added (data/items.rs): goat, duck, rabbit, pig, horse, cat, dog
 - Animal pen bounds fixed to be within farm map (animals/spawning.rs)
 
-### Wave 2d (IN PROGRESS — copilot worker running)
+### Wave 2d (COMPLETED — committed as 0510331)
 - DailyTalkTracker + GiftDecayTracker persistence in save/load (npcs + save domains)
+
+### Wave 3a (COMPLETED — committed as 566b266)
+- Quest Log / Journal screen (J key): 426 lines, GameState::Journal added to contract
+- Full quest list with cursor navigation, detail panel, all 6 objective types
+
+### Wave 3b (COMPLETED — committed as aadd6b6)
+- Relationships screen (R key): 330 lines, GameState::RelationshipsView + keybind
+- NPC list with heart display, birthday, loved gifts, marriageable status
+
+### Wave 3c (IN PROGRESS — copilot worker running)
+- Full Map screen (M key): GameState::MapView, location display with player marker
 
 ### REMAINING KNOWN ISSUES (lower priority)
 - Hay proximity check (player eats hay anywhere, should need trough)
 - Shop sell gold not tracked in PlayStats
+- Settings screen (no key bindings, audio, graphics options)
+- Calendar view screen
+- Character/Stats screen
 
 ### AUDIT RESULTS (all verified)
 - Prior fix audit: 13/13 PASS — all fixes correctly applied
 - Second-0 gameplay trace: ZERO SOFT-LOCKS — fully playable from boot to minute 10
-- Game is 70% feature-complete — core loops all work
-
-### Wave 3 (FUTURE — new content)
-Priority order:
-1. Quest Log / Journal screen (J key bound but dead) — ~400 lines new UI
-2. Relationships viewer screen — ~200 lines new UI
-3. Full Map screen (M key bound but dead) — ~300 lines new UI
-4. Settings screen — ~250 lines new UI
-5. Calendar view screen
-6. DailyTalkTracker save (in progress)
-7. GiftDecayTracker save (in progress)
+- Game is ~80% feature-complete — core loops all work, 3 of 6 missing UI screens added
 
 ### Game Completeness Snapshot
 | System | Status |

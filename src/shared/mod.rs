@@ -29,6 +29,7 @@ pub enum GameState {
     Cutscene,
     BuildingUpgrade,
     RelationshipsView,
+    MapView,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
