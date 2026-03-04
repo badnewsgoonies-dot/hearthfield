@@ -9,6 +9,7 @@ mod hud;
 // (input.rs removed — all input routing via src/input/mod.rs + menu_input.rs)
 pub mod intro_sequence;
 mod inventory_screen;
+pub mod journal_screen;
 mod main_menu;
 pub mod menu_input;
 pub mod menu_kit;
@@ -192,7 +193,8 @@ impl Plugin for UiPlugin {
                     in_state(GameState::Inventory)
                         .or(in_state(GameState::Shop))
                         .or(in_state(GameState::Crafting))
-                        .or(in_state(GameState::Dialogue)),
+                        .or(in_state(GameState::Dialogue))
+                        .or(in_state(GameState::Journal)),
                 ),
             ),
         );
@@ -214,6 +216,25 @@ impl Plugin for UiPlugin {
                 inventory_screen::inventory_navigation,
             )
                 .run_if(in_state(GameState::Inventory)),
+        );
+
+        // ─── JOURNAL SCREEN ───
+        app.add_systems(
+            OnEnter(GameState::Journal),
+            journal_screen::spawn_journal_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::Journal),
+            journal_screen::despawn_journal_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                journal_screen::update_quest_display,
+                journal_screen::update_cursor_highlight,
+                journal_screen::journal_navigation,
+            )
+                .run_if(in_state(GameState::Journal)),
         );
 
         // ─── DIALOGUE BOX ───

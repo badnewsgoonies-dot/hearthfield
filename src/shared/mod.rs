@@ -25,6 +25,7 @@ pub enum GameState {
     Mining,
     Crafting,
     Inventory,
+    Journal,
     Cutscene,
     BuildingUpgrade,
 }

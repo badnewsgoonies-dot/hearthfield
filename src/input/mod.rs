@@ -122,6 +122,7 @@ fn reset_and_read_input(
             // Allow E / C to toggle-close their respective menus
             input.open_inventory = keys.just_pressed(bindings.open_inventory);
             input.open_crafting = keys.just_pressed(bindings.open_crafting);
+            input.open_journal = keys.just_pressed(bindings.open_journal);
 
             // Quicksave / quickload available from pause menu
             input.quicksave = keys.just_pressed(KeyCode::F5);
@@ -169,6 +170,7 @@ fn manage_input_context(
         GameState::Shop => InputContext::Menu,
         GameState::Crafting => InputContext::Menu,
         GameState::BuildingUpgrade => InputContext::Menu,
+        GameState::Journal => InputContext::Menu,
         GameState::Dialogue => InputContext::Dialogue,
         GameState::Fishing => InputContext::Fishing,
         GameState::Cutscene => InputContext::Cutscene,
