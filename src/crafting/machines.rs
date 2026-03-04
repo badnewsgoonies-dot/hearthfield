@@ -1,11 +1,12 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // MACHINE TYPES
 // ──────────────────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MachineType {
     Furnace,
     PreservesJar,
@@ -56,7 +57,7 @@ impl MachineType {
 }
 
 /// Atlas index in furniture.png for each machine type.
-fn machine_atlas_index(machine_type: MachineType) -> usize {
+pub fn machine_atlas_index(machine_type: MachineType) -> usize {
     match machine_type {
         MachineType::Furnace => 22,
         MachineType::PreservesJar => 23,
@@ -211,6 +212,18 @@ pub fn resolve_machine_output(machine: MachineType, input: &str) -> Option<(Item
 pub struct ProcessingMachineRegistry {
     /// Mapping of grid position to entity for placed machines.
     pub machines: std::collections::HashMap<(i32, i32), Entity>,
+}
+
+/// Serializable snapshot of a placed processing machine for save/load.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedMachine {
+    pub grid_x: i32,
+    pub grid_y: i32,
+    pub machine_type: MachineType,
+    pub input_item: Option<ItemId>,
+    pub output_item: Option<ItemId>,
+    pub processing_time_remaining: f32,
+    pub is_ready: bool,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

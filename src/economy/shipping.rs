@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 use crate::economy::gold::EconomyStats;
 
@@ -19,7 +20,7 @@ pub struct ShipItemEvent {
 /// Local resource that tracks item quality for each shipping bin slot.
 /// Mirrors the indices of `ShippingBin.items` so quality can be looked up
 /// at end-of-day settlement without modifying the frozen shared contract.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ShippingBinQuality {
     /// Parallel to `ShippingBin.items` — each entry is (item_id, quality).
     /// When items merge by item_id in ShippingBin, we keep separate quality

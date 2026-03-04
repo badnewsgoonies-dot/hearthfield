@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 use rand::Rng;
-
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -16,7 +16,7 @@ use crate::shared::*;
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Identifies which festival is active.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FestivalKind {
     EggFestival,     // Spring 13
     Luau,            // Summer 11
@@ -25,10 +25,12 @@ pub enum FestivalKind {
 }
 
 /// Tracks the currently active festival (if any) and its progress.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FestivalState {
     pub active: Option<FestivalKind>,
     pub started: bool,
+    /// Runtime-only: not persisted across saves.
+    #[serde(skip)]
     pub timer: Option<Timer>,
     pub score: u32,
     pub items_collected: u32,

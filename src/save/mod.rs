@@ -10,8 +10,12 @@ use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::shared::*;
+use crate::calendar::festivals::FestivalState;
+use crate::crafting::machines::{ProcessingMachine, ProcessingMachineRegistry, SavedMachine};
+use crate::economy::blacksmith::ToolUpgradeQueue;
 use crate::economy::buildings::BuildingLevels;
 use crate::economy::shipping::ShippingBinQuality;
+use crate::npcs::schedules::FarmVisitTracker;
 use crate::shared::ShippingLog;
 use crate::world::CurrentMapId;
 use crate::world::chests::ChestMarker;
@@ -208,6 +212,10 @@ struct ExtendedResources<'w> {
     pub economy_stats: Res<'w, crate::economy::gold::EconomyStats>,
     pub daily_talk_tracker: Res<'w, crate::npcs::dialogue::DailyTalkTracker>,
     pub gift_decay_tracker: Res<'w, crate::npcs::map_events::GiftDecayTracker>,
+    pub tool_upgrade_queue: Res<'w, ToolUpgradeQueue>,
+    pub shipping_bin_quality: Res<'w, ShippingBinQuality>,
+    pub festival_state: Res<'w, FestivalState>,
+    pub farm_visit_tracker: Res<'w, FarmVisitTracker>,
 }
 
 /// Mutable bundle of the extended resources (for loading / new game).
@@ -232,6 +240,10 @@ struct ExtendedResourcesMut<'w> {
     pub economy_stats: ResMut<'w, crate::economy::gold::EconomyStats>,
     pub daily_talk_tracker: ResMut<'w, crate::npcs::dialogue::DailyTalkTracker>,
     pub gift_decay_tracker: ResMut<'w, crate::npcs::map_events::GiftDecayTracker>,
+    pub tool_upgrade_queue: ResMut<'w, ToolUpgradeQueue>,
+    pub shipping_bin_quality: ResMut<'w, ShippingBinQuality>,
+    pub festival_state: ResMut<'w, FestivalState>,
+    pub farm_visit_tracker: ResMut<'w, FarmVisitTracker>,
 }
 
 /// Chest-related resources needed during load (for restoring chest entities).
@@ -240,6 +252,14 @@ struct ChestLoadResources<'w, 's> {
     pub current_map_id: ResMut<'w, CurrentMapId>,
     pub existing_chests: Query<'w, 's, Entity, With<ChestMarker>>,
     pub chest_sprites: Res<'w, crate::world::chests::ChestSpriteData>,
+}
+
+/// Machine-related resources needed during load (for restoring placed machines).
+#[derive(SystemParam)]
+struct MachineLoadResources<'w, 's> {
+    pub machine_registry: ResMut<'w, ProcessingMachineRegistry>,
+    pub existing_machines: Query<'w, 's, Entity, With<ProcessingMachine>>,
+    pub furniture: Res<'w, crate::world::objects::FurnitureAtlases>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -390,9 +410,20 @@ struct FullSaveFile {
     pub daily_talk_tracker: crate::npcs::dialogue::DailyTalkTracker,
     #[serde(default)]
     pub gift_decay_tracker: crate::npcs::map_events::GiftDecayTracker,
+    #[serde(default)]
+    pub tool_upgrade_queue: ToolUpgradeQueue,
+    #[serde(default)]
+    pub shipping_bin_quality: ShippingBinQuality,
+    #[serde(default)]
+    pub festival_state: FestivalState,
+    #[serde(default)]
+    pub farm_visit_tracker: FarmVisitTracker,
     /// Storage chest contents placed by the player.
     #[serde(default)]
     pub chests: Vec<StorageChest>,
+    /// Processing machines placed by the player.
+    #[serde(default)]
+    pub placed_machines: Vec<SavedMachine>,
 }
 
 impl FullSaveFile {
@@ -448,7 +479,12 @@ fn write_save(
     economy_stats: &crate::economy::gold::EconomyStats,
     daily_talk_tracker: &crate::npcs::dialogue::DailyTalkTracker,
     gift_decay_tracker: &crate::npcs::map_events::GiftDecayTracker,
+    tool_upgrade_queue: &ToolUpgradeQueue,
+    shipping_bin_quality: &ShippingBinQuality,
+    festival_state: &FestivalState,
+    farm_visit_tracker: &FarmVisitTracker,
     chests: &[StorageChest],
+    placed_machines: &[SavedMachine],
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
 
@@ -488,7 +524,12 @@ fn write_save(
         economy_stats: economy_stats.clone(),
         daily_talk_tracker: daily_talk_tracker.clone(),
         gift_decay_tracker: gift_decay_tracker.clone(),
+        tool_upgrade_queue: tool_upgrade_queue.clone(),
+        shipping_bin_quality: shipping_bin_quality.clone(),
+        festival_state: festival_state.clone(),
+        farm_visit_tracker: farm_visit_tracker.clone(),
         chests: chests.to_vec(),
+        placed_machines: placed_machines.to_vec(),
     };
 
     let json =
@@ -542,7 +583,12 @@ fn write_save(
     _economy_stats: &crate::economy::gold::EconomyStats,
     _daily_talk_tracker: &crate::npcs::dialogue::DailyTalkTracker,
     _gift_decay_tracker: &crate::npcs::map_events::GiftDecayTracker,
+    _tool_upgrade_queue: &ToolUpgradeQueue,
+    _shipping_bin_quality: &ShippingBinQuality,
+    _festival_state: &FestivalState,
+    _farm_visit_tracker: &FarmVisitTracker,
     _chests: &[StorageChest],
+    _placed_machines: &[SavedMachine],
 ) -> Result<(), String> {
     Ok(())
 }
@@ -659,6 +705,7 @@ fn handle_save_request(
     ext: ExtendedResources,
     player_grid_q: Query<&GridPosition, With<Player>>,
     chest_query: Query<&StorageChest, With<ChestMarker>>,
+    machine_query: Query<(&ProcessingMachine, &GridPosition)>,
 ) {
     for ev in save_events.read() {
         let slot = ev.slot;
@@ -672,6 +719,20 @@ fn handle_save_request(
 
         // Collect all chest contents from ECS entities
         let chests: Vec<StorageChest> = chest_query.iter().cloned().collect();
+
+        // Collect all placed processing machines from ECS entities
+        let placed_machines: Vec<SavedMachine> = machine_query
+            .iter()
+            .map(|(machine, gp)| SavedMachine {
+                grid_x: gp.x,
+                grid_y: gp.y,
+                machine_type: machine.machine_type,
+                input_item: machine.input_item.clone(),
+                output_item: machine.output_item.clone(),
+                processing_time_remaining: machine.processing_time_remaining,
+                is_ready: machine.is_ready,
+            })
+            .collect();
 
         info!("Saving to slot {}...", slot);
 
@@ -706,7 +767,12 @@ fn handle_save_request(
             &ext.economy_stats,
             &ext.daily_talk_tracker,
             &ext.gift_decay_tracker,
+            &ext.tool_upgrade_queue,
+            &ext.shipping_bin_quality,
+            &ext.festival_state,
+            &ext.farm_visit_tracker,
             &chests,
+            &placed_machines,
         ) {
             Ok(()) => {
                 info!("Save to slot {} succeeded.", slot);
@@ -745,6 +811,7 @@ fn handle_load_request(
     mut core: CoreLoadResources,
     mut ext: ExtendedResourcesMut,
     mut chests: ChestLoadResources,
+    mut machines: MachineLoadResources,
 ) {
     for ev in load_events.read() {
         let slot = ev.slot;
@@ -797,6 +864,10 @@ fn handle_load_request(
                 *ext.economy_stats = file.economy_stats;
                 *ext.daily_talk_tracker = file.daily_talk_tracker;
                 *ext.gift_decay_tracker = file.gift_decay_tracker;
+                *ext.tool_upgrade_queue = file.tool_upgrade_queue;
+                *ext.shipping_bin_quality = file.shipping_bin_quality;
+                *ext.festival_state = file.festival_state;
+                *ext.farm_visit_tracker = file.farm_visit_tracker;
 
                 // Restore storage chests: despawn any existing chest entities
                 // and spawn saved ones.
@@ -834,6 +905,70 @@ fn handle_load_request(
                         LogicalPosition(Vec2::new(world_x, world_y)),
                         YSorted,
                     ));
+                }
+
+                // Restore processing machines: despawn existing, spawn from save, rebuild registry.
+                for entity in machines.existing_machines.iter() {
+                    commands.entity(entity).despawn_recursive();
+                }
+                machines.machine_registry.machines.clear();
+                for saved in file.placed_machines {
+                    use crate::crafting::machines::{machine_atlas_index, item_to_machine_type};
+                    let world_x = saved.grid_x as f32 * TILE_SIZE;
+                    let world_y = saved.grid_y as f32 * TILE_SIZE;
+                    let machine_sprite = if machines.furniture.loaded {
+                        let mut s = Sprite::from_atlas_image(
+                            machines.furniture.image.clone(),
+                            TextureAtlas {
+                                layout: machines.furniture.layout.clone(),
+                                index: machine_atlas_index(saved.machine_type),
+                            },
+                        );
+                        s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+                        s
+                    } else {
+                        Sprite::from_color(
+                            Color::srgb(0.6, 0.4, 0.2),
+                            Vec2::new(TILE_SIZE, TILE_SIZE),
+                        )
+                    };
+                    let display_label = saved.machine_type.display_name().to_string();
+                    let item_id = {
+                        // Derive the item id from the machine type (reverse of item_to_machine_type).
+                        match saved.machine_type {
+                            crate::crafting::machines::MachineType::Furnace => "furnace",
+                            crate::crafting::machines::MachineType::PreservesJar => "preserves_jar",
+                            crate::crafting::machines::MachineType::CheesePress => "cheese_press",
+                            crate::crafting::machines::MachineType::Loom => "loom",
+                            crate::crafting::machines::MachineType::Keg => "keg",
+                            crate::crafting::machines::MachineType::OilMaker => "oil_maker",
+                            crate::crafting::machines::MachineType::MayonnaiseMachine => "mayonnaise_machine",
+                            crate::crafting::machines::MachineType::Tapper => "tapper",
+                            crate::crafting::machines::MachineType::BeeHouse => "bee_house",
+                            crate::crafting::machines::MachineType::RecyclingMachine => "recycling_machine",
+                            crate::crafting::machines::MachineType::CrabPot => "crab_pot",
+                        }
+                    };
+                    let mut restored = ProcessingMachine::new(saved.machine_type);
+                    restored.input_item = saved.input_item;
+                    restored.output_item = saved.output_item;
+                    restored.processing_time_remaining = saved.processing_time_remaining;
+                    restored.is_ready = saved.is_ready;
+                    let entity = commands.spawn((
+                        restored,
+                        GridPosition::new(saved.grid_x, saved.grid_y),
+                        machine_sprite,
+                        Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+                        LogicalPosition(Vec2::new(world_x, world_y)),
+                        YSorted,
+                        Interactable {
+                            kind: InteractionKind::Machine,
+                            label: display_label,
+                        },
+                    )).id();
+                    machines.machine_registry.machines.insert((saved.grid_x, saved.grid_y), entity);
+                    let _ = item_id; // item_id available for future use
+                    let _ = item_to_machine_type; // suppress unused import warning
                 }
 
                 // Force the world to reload the correct map after restoring state.
@@ -878,10 +1013,11 @@ fn handle_new_game(
     mut new_game_events: EventReader<NewGameEvent>,
     mut active_slot: ResMut<ActiveSaveSlot>,
     mut player_state: ResMut<PlayerState>,
-    mut shipping_bin_quality: ResMut<ShippingBinQuality>,
     mut core: CoreLoadResources,
     mut ext: ExtendedResourcesMut,
+    mut machine_registry: ResMut<ProcessingMachineRegistry>,
     existing_chests: Query<Entity, With<ChestMarker>>,
+    existing_machines: Query<Entity, With<ProcessingMachine>>,
 ) {
     for ev in new_game_events.read() {
         info!(
@@ -896,6 +1032,12 @@ fn handle_new_game(
             commands.entity(entity).despawn_recursive();
         }
 
+        // Despawn any placed machine entities from a previous session
+        for entity in existing_machines.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+        machine_registry.machines.clear();
+
         // Reset all shared resources to default state
         *core.calendar = Calendar::default();
         *player_state = PlayerState::default();
@@ -906,7 +1048,6 @@ fn handle_new_game(
         *core.mine_state = MineState::default();
         *core.unlocked_recipes = UnlockedRecipes::default();
         *core.shipping_bin = ShippingBin::default();
-        *shipping_bin_quality = ShippingBinQuality::default();
 
         // Reset statistics with new farm name
         *core.statistics = GameStatistics::new(ev.farm_name.clone());
@@ -931,6 +1072,10 @@ fn handle_new_game(
         *ext.economy_stats = crate::economy::gold::EconomyStats::default();
         *ext.daily_talk_tracker = crate::npcs::dialogue::DailyTalkTracker::default();
         *ext.gift_decay_tracker = crate::npcs::map_events::GiftDecayTracker::default();
+        *ext.tool_upgrade_queue = ToolUpgradeQueue::default();
+        *ext.shipping_bin_quality = ShippingBinQuality::default();
+        *ext.festival_state = FestivalState::default();
+        *ext.farm_visit_tracker = FarmVisitTracker::default();
 
         // Starter seeds — enough for one small plot on Day 1
         core.inventory.try_add("turnip_seeds", 15, 99);
