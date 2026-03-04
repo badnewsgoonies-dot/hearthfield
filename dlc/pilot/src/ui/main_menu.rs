@@ -91,7 +91,7 @@ pub fn handle_main_menu_input(
         if *interaction == Interaction::Pressed {
             match btn.0 {
                 MenuAction::NewGame => next_state.set(GameState::Playing),
-                MenuAction::Load => { /* TODO: open load screen */ }
+                MenuAction::Load => { next_state.set(GameState::LoadGame); }
                 MenuAction::Quit => {
                     exit.send(AppExit::Success);
                 }
