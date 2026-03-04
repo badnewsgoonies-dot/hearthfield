@@ -49,6 +49,8 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::DayOutcome>()
             .init_resource::<resources::DayStats>()
             .init_resource::<resources::ActiveInterruptionContext>()
+            .init_resource::<resources::FiredMilestones>()
+            .init_resource::<resources::ToastState>()
             .init_resource::<save::SaveSlotConfig>()
             .init_resource::<save::OfficeSaveStore>()
             .init_resource::<resources::WorkerSpriteData>()
@@ -69,6 +71,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .add_event::<events::CoworkerHelpEvent>()
             .add_event::<events::WaitEvent>()
             .add_event::<events::EndOfDayEvent>()
+            .add_event::<events::RelationshipMilestone>()
             .add_event::<save::SaveSlotRequest>()
             .add_event::<save::LoadSlotRequest>()
             .add_systems(Startup, (resources::load_office_font, systems::setup_scene))
@@ -126,6 +129,7 @@ impl Plugin for CityOfficeWorkerPlugin {
                     ui::hud::spawn_hud,
                     ui::task_board::spawn_task_board,
                     ui::interruption::spawn_interruption_popup,
+                    ui::hud::spawn_toast,
                 ),
             )
             .add_systems(
@@ -134,6 +138,7 @@ impl Plugin for CityOfficeWorkerPlugin {
                     ui::hud::despawn_hud,
                     ui::task_board::despawn_task_board,
                     ui::interruption::despawn_interruption_popup,
+                    ui::hud::despawn_toast,
                 ),
             )
             // Day Summary UI
@@ -187,7 +192,12 @@ impl Plugin for CityOfficeWorkerPlugin {
                     )
                         .chain()
                         .in_set(OfficeSimSet::Interruptions),
-                    systems::update_day_outcome_preview.in_set(OfficeSimSet::Economy),
+                    (
+                        systems::update_day_outcome_preview,
+                        systems::check_relationship_milestones,
+                    )
+                        .chain()
+                        .in_set(OfficeSimSet::Economy),
                     (
                         systems::enforce_task_deadlines,
                         systems::check_end_of_day,
@@ -198,6 +208,10 @@ impl Plugin for CityOfficeWorkerPlugin {
                     (
                         systems::update_visuals,
                         ui::hud::update_hud,
+                        ui::hud::update_career_hud,
+                        ui::hud::update_unlocks_hud,
+                        ui::hud::update_coworker_panel,
+                        ui::hud::update_toast,
                         ui::task_board::update_task_board,
                         ui::interruption::update_interruption_visibility,
                     )

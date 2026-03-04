@@ -821,6 +821,28 @@ pub fn load_office_font(mut font: ResMut<OfficeFontHandle>, asset_server: Res<As
     font.0 = asset_server.load("fonts/sprout_lands.ttf");
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MilestoneKind {
+    Friendly,      // affinity >= 25
+    Trusted,       // trust >= 25
+    CloseFriend,   // affinity >= 50
+    DeepTrust,     // trust >= 50
+    Rival,         // affinity <= -25
+    Distrusted,    // trust <= -25
+}
+
+#[derive(Resource, Debug, Clone, Default)]
+pub struct FiredMilestones {
+    pub fired: HashSet<(u8, MilestoneKind)>,
+}
+
+#[derive(Resource, Debug, Clone, Default)]
+pub struct ToastState {
+    pub message: String,
+    pub remaining_ticks: u32,
+}
+
 pub fn format_clock(total_minutes: u32) -> String {
     let hours = total_minutes / 60;
     let minutes = total_minutes % 60;

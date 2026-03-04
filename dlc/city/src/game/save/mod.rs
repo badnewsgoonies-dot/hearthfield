@@ -9,9 +9,10 @@ use serde_json::Value;
 use crate::game::components::OfficeWorker;
 use crate::game::events::DayAdvanced;
 use crate::game::resources::{
-    CareerProgression, CoworkerProfile, CoworkerRole, DayClock, DayOutcome, DayStats, InboxState,
-    OfficeEconomyRules, OfficeRunConfig, OfficeTask, PlayerCareerState, PlayerMindState,
-    SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority, UnlockCatalogState, WorkerStats,
+    CareerProgression, CoworkerProfile, CoworkerRole, DayClock, DayOutcome, DayStats,
+    FiredMilestones, InboxState, MilestoneKind, OfficeEconomyRules, OfficeRunConfig, OfficeTask,
+    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority,
+    UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -69,6 +70,8 @@ pub struct OfficeSaveSnapshot {
     pub unlocks: UnlockCatalogSnapshot,
     #[serde(default)]
     pub day_outcome: DayOutcomeSnapshot,
+    #[serde(default)]
+    pub fired_milestones: FiredMilestonesSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -151,6 +154,34 @@ pub struct UnlockCatalogSnapshot {
     pub efficient_processing: bool,
     pub conflict_training: bool,
     pub escalation_license: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct FiredMilestonesSnapshot {
+    pub fired: Vec<(u8, String)>,
+}
+
+fn milestone_kind_str(kind: MilestoneKind) -> &'static str {
+    match kind {
+        MilestoneKind::Friendly => "friendly",
+        MilestoneKind::Trusted => "trusted",
+        MilestoneKind::CloseFriend => "close_friend",
+        MilestoneKind::DeepTrust => "deep_trust",
+        MilestoneKind::Rival => "rival",
+        MilestoneKind::Distrusted => "distrusted",
+    }
+}
+
+fn parse_milestone_kind(raw: &str) -> Result<MilestoneKind, String> {
+    match raw {
+        "friendly" => Ok(MilestoneKind::Friendly),
+        "trusted" => Ok(MilestoneKind::Trusted),
+        "close_friend" => Ok(MilestoneKind::CloseFriend),
+        "deep_trust" => Ok(MilestoneKind::DeepTrust),
+        "rival" => Ok(MilestoneKind::Rival),
+        "distrusted" => Ok(MilestoneKind::Distrusted),
+        other => Err(format!("unknown milestone kind: {other}")),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -280,6 +311,7 @@ fn migrate_v0_to_v1(v0: OfficeSaveSnapshotV0) -> OfficeSaveSnapshot {
         social_graph: SocialGraphSnapshot::default(),
         unlocks: UnlockCatalogSnapshot::default(),
         day_outcome: DayOutcomeSnapshot::default(),
+        fired_milestones: FiredMilestonesSnapshot::default(),
     }
 }
 
@@ -296,6 +328,7 @@ pub fn capture_snapshot(
     social_graph: &SocialGraphState,
     unlocks: &UnlockCatalogState,
     day_outcome: &DayOutcome,
+    fired_milestones: &FiredMilestones,
 ) -> OfficeSaveSnapshot {
     OfficeSaveSnapshot {
         schema_version: 1,
@@ -386,6 +419,13 @@ pub fn capture_snapshot(
             completed_tasks: day_outcome.completed_tasks,
             failed_tasks: day_outcome.failed_tasks,
         },
+        fired_milestones: FiredMilestonesSnapshot {
+            fired: fired_milestones
+                .fired
+                .iter()
+                .map(|(id, kind)| (*id, milestone_kind_str(*kind).to_string()))
+                .collect(),
+        },
     }
 }
 
@@ -464,6 +504,7 @@ pub fn apply_snapshot(
     unlocks: &mut UnlockCatalogState,
     economy: &OfficeEconomyRules,
     day_outcome: &mut DayOutcome,
+    fired_milestones: &mut FiredMilestones,
 ) -> Result<(), String> {
     if snapshot.schema_version != 1 {
         return Err(format!(
@@ -553,6 +594,12 @@ pub fn apply_snapshot(
     day_outcome.completed_tasks = snapshot.day_outcome.completed_tasks;
     day_outcome.failed_tasks = snapshot.day_outcome.failed_tasks;
 
+    fired_milestones.fired.clear();
+    for (id, kind_str) in &snapshot.fired_milestones.fired {
+        let kind = parse_milestone_kind(kind_str)?;
+        fired_milestones.fired.insert((*id, kind));
+    }
+
     task_board.active = restored_active;
     task_board.completed_today = snapshot
         .task_board
@@ -588,6 +635,7 @@ fn save_slot(
     social_graph: &SocialGraphState,
     unlocks: &UnlockCatalogState,
     day_outcome: &DayOutcome,
+    fired_milestones: &FiredMilestones,
     store: &mut OfficeSaveStore,
 ) -> bool {
     let snapshot = capture_snapshot(
@@ -602,6 +650,7 @@ fn save_slot(
         social_graph,
         unlocks,
         day_outcome,
+        fired_milestones,
     );
 
     match serialize_snapshot(&snapshot) {
@@ -645,6 +694,7 @@ fn load_slot(
     economy: &OfficeEconomyRules,
     worker_query: &mut Query<&mut OfficeWorker>,
     day_outcome: &mut DayOutcome,
+    fired_milestones: &mut FiredMilestones,
 ) -> Option<OfficeSaveSnapshot> {
     match read_snapshot_from_slot(config, slot) {
         Ok(snapshot) => {
@@ -662,6 +712,7 @@ fn load_slot(
                 unlocks,
                 economy,
                 day_outcome,
+                fired_milestones,
             );
 
             if let Err(error) = apply_result {
@@ -700,6 +751,7 @@ pub fn persist_day_summary_snapshot(
     social_graph: Res<SocialGraphState>,
     unlocks: Res<UnlockCatalogState>,
     day_outcome: Res<DayOutcome>,
+    fired_milestones: Res<FiredMilestones>,
     config: Res<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -721,6 +773,7 @@ pub fn persist_day_summary_snapshot(
         &social_graph,
         &unlocks,
         &day_outcome,
+        &fired_milestones,
         &mut store,
     );
 }
@@ -739,6 +792,7 @@ pub fn handle_save_slot_requests(
     social_graph: Res<SocialGraphState>,
     unlocks: Res<UnlockCatalogState>,
     day_outcome: Res<DayOutcome>,
+    fired_milestones: Res<FiredMilestones>,
     mut config: ResMut<SaveSlotConfig>,
     mut store: ResMut<OfficeSaveStore>,
 ) {
@@ -757,6 +811,7 @@ pub fn handle_save_slot_requests(
             &social_graph,
             &unlocks,
             &day_outcome,
+            &fired_milestones,
             &mut store,
         );
         if saved {
@@ -789,6 +844,7 @@ pub fn handle_load_slot_requests(
             &params.economy,
             &mut params.worker_query,
             &mut params.day_outcome,
+            &mut params.fired_milestones,
         );
         let Some(snapshot) = loaded_snapshot else {
             continue;
@@ -820,6 +876,7 @@ pub struct LoadSlotSystemParams<'w, 's> {
     unlocks: ResMut<'w, UnlockCatalogState>,
     career: ResMut<'w, PlayerCareerState>,
     day_outcome: ResMut<'w, DayOutcome>,
+    fired_milestones: ResMut<'w, FiredMilestones>,
     economy: Res<'w, OfficeEconomyRules>,
     next_state: ResMut<'w, NextState<OfficeGameState>>,
     day_advanced_writer: EventWriter<'w, DayAdvanced>,
