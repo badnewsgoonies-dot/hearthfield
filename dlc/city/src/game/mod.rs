@@ -50,6 +50,8 @@ impl Plugin for CityOfficeWorkerPlugin {
             .init_resource::<resources::DayStats>()
             .init_resource::<save::SaveSlotConfig>()
             .init_resource::<save::OfficeSaveStore>()
+            .init_resource::<resources::WorkerSpriteData>()
+            .init_resource::<resources::OfficeFontHandle>()
             .init_resource::<ui::day_summary::DaySummarySnapshot>()
             .add_event::<events::EndDayRequested>()
             .add_event::<events::DayAdvanced>()
@@ -68,7 +70,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             .add_event::<events::EndOfDayEvent>()
             .add_event::<save::SaveSlotRequest>()
             .add_event::<save::LoadSlotRequest>()
-            .add_systems(Startup, systems::setup_scene)
+            .add_systems(Startup, (resources::load_office_font, systems::setup_scene))
             .add_systems(
                 Update,
                 (
