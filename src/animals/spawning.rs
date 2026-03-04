@@ -418,16 +418,16 @@ pub fn setup_feed_trough(
         }
     };
 
-    // Trough sits at the entrance of the barn area. Grid position (−10, −8) in
-    // a 16-px grid → world (−160, −128).
+    // Trough sits at the entrance of the barn area. Grid position (5, 19) — south of barn entrance
+    // in a 16-px grid → world (80.0, 304.0).
     commands.spawn((
         super::FeedTrough {
-            grid_x: -10,
-            grid_y: -8,
+            grid_x: 5,
+            grid_y: 19,
         },
         sprite,
-        Transform::from_xyz(-160.0, -128.0, Z_ENTITY_BASE),
-        LogicalPosition(Vec2::new(-160.0, -128.0)),
+        Transform::from_xyz(5.0 * TILE_SIZE, 19.0 * TILE_SIZE, Z_ENTITY_BASE),
+        LogicalPosition(Vec2::new(5.0 * TILE_SIZE, 19.0 * TILE_SIZE)),
         YSorted,
         Visibility::default(),
     ));
