@@ -25,10 +25,6 @@ pub fn boot_to_main_menu(mut next_state: ResMut<NextState<OfficeGameState>>) {
     next_state.set(OfficeGameState::MainMenu);
 }
 
-pub fn main_menu_to_in_day(mut next_state: ResMut<NextState<OfficeGameState>>) {
-    next_state.set(OfficeGameState::InDay);
-}
-
 pub fn toggle_pause(
     keyboard: Res<ButtonInput<KeyCode>>,
     game_state: Res<State<OfficeGameState>>,
@@ -132,7 +128,7 @@ pub fn setup_scene(
         ));
     }
 
-    println!(
+    info!(
         "Day {} starts at {} with {} inbox items. Stress: {}, focus: {}, reputation: {}.",
         clock.day_number,
         format_clock(clock.current_minute),

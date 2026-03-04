@@ -35,6 +35,18 @@ pub enum GameState {
     Inventory,
     Cutscene,
     MissionBoard,
+    LoadGame,
+    Logbook,
+    Profile,
+    Achievements,
+    Settings,
+    MapView,
+    Notifications,
+    Tutorial,
+    Intro,
+    LoanOffice,
+    InsuranceOffice,
+    BusinessHQ,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

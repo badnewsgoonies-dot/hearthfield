@@ -177,34 +177,26 @@ pub fn finalize_end_day_request(
             final_reputation: params.career.reputation,
         };
 
-        println!();
-        println!(
-            "=== City Office Worker DLC: End Of Day {} ===",
-            summary.day_number
+        info!(
+            "End of Day {} — clock:{} processed:{} remaining:{} coffee:{} waits:{} interruptions:{} calm:{} panic:{} unresolved:{} manager:{} coworker:{} failed_attempts:{} energy:{} stress:{} focus:{} rep:{}",
+            summary.day_number,
+            format_clock(summary.finished_minute),
+            summary.processed_items,
+            summary.remaining_items,
+            summary.coffee_breaks,
+            summary.wait_actions,
+            summary.interruptions_triggered,
+            summary.calm_responses,
+            summary.panic_responses,
+            summary.unresolved_interruptions,
+            summary.manager_checkins,
+            summary.coworker_helps,
+            summary.failed_process_attempts,
+            summary.final_energy,
+            summary.final_stress,
+            summary.final_focus,
+            summary.final_reputation,
         );
-        println!("Clock: {}", format_clock(summary.finished_minute));
-        println!("Processed inbox items: {}", summary.processed_items);
-        println!("Remaining inbox items: {}", summary.remaining_items);
-        println!("Coffee breaks: {}", summary.coffee_breaks);
-        println!("Wait actions: {}", summary.wait_actions);
-        println!("Interruptions: {}", summary.interruptions_triggered);
-        println!("Calm responses: {}", summary.calm_responses);
-        println!("Panic responses: {}", summary.panic_responses);
-        println!(
-            "Unresolved interruptions: {}",
-            summary.unresolved_interruptions
-        );
-        println!("Manager check-ins: {}", summary.manager_checkins);
-        println!("Coworker helps: {}", summary.coworker_helps);
-        println!(
-            "Failed process attempts: {}",
-            summary.failed_process_attempts
-        );
-        println!("Final energy: {}", summary.final_energy);
-        println!("Final stress: {}", summary.final_stress);
-        println!("Final focus: {}", summary.final_focus);
-        println!("Final reputation: {}", summary.final_reputation);
-        println!("=============================================");
 
         let new_day_index = params.clock.day_number.saturating_add(1);
         params.end_of_day_writer.send(summary);
@@ -332,7 +324,6 @@ pub fn apply_day_summary_rollover(
 #[allow(clippy::too_many_arguments)]
 pub fn transition_day_summary_to_inday(
     mut day_advanced_reader: EventReader<DayAdvanced>,
-    mut next_state: ResMut<NextState<OfficeGameState>>,
     rules: Res<OfficeRules>,
     mut clock: ResMut<DayClock>,
     mut inbox: ResMut<InboxState>,
@@ -387,5 +378,6 @@ pub fn transition_day_summary_to_inday(
     day_outcome.reset();
     *task_board = seed_task_board(new_day_index, inbox.remaining_items, rules.day_end_minute);
 
-    next_state.set(OfficeGameState::InDay);
+    // UI handles the transition via Continue button / Enter / Space.
+    // next_state.set(OfficeGameState::InDay);  -- removed: let the UI drive this
 }
