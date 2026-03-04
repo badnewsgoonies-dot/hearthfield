@@ -37,6 +37,7 @@ use skywarden::data::shops::get_shop_inventory;
 use skywarden::crew::schedules::get_schedule;
 
 use skywarden::missions::board::{refresh_mission_board, handle_mission_accepted};
+use skywarden::missions::story::StoryProgress;
 use skywarden::missions::tracking::handle_mission_complete;
 use skywarden::crew::gifts::handle_gift_given;
 use skywarden::crew::relationships::{
@@ -114,6 +115,7 @@ fn build_test_app() -> App {
     app.init_resource::<WeatherForecasts>();
     app.init_resource::<IcingState>();
     app.init_resource::<RelationshipDetails>();
+    app.init_resource::<StoryProgress>();
 
     // ── Events ──────────────────────────────────────────────────────
     app.add_event::<DayEndEvent>();

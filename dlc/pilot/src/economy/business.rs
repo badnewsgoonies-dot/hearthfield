@@ -4,12 +4,13 @@
 //! plan routes for passive income, and grow toward business milestones.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 use std::collections::HashMap;
 
 // ─── Airline Business Resource ───────────────────────────────────────────
 
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
 pub struct AirlineBusiness {
     pub name: String,
     pub hub_airport: AirportId,
@@ -58,7 +59,7 @@ impl AirlineBusiness {
 
 // ─── Hired Pilot ─────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HiredPilot {
     pub name: String,
     pub skill: f32,
@@ -88,7 +89,7 @@ impl HiredPilot {
 
 // ─── Business Routes ─────────────────────────────────────────────────────
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BusinessRoute {
     pub id: String,
     pub origin: AirportId,
@@ -155,7 +156,7 @@ pub fn create_route(
 
 // ─── Business Milestones ─────────────────────────────────────────────────
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BusinessMilestone {
     Founded,
     FirstRoute,
