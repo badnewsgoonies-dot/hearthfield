@@ -93,7 +93,7 @@ pub fn spawn_relationships_screen(
 
                     // Hint
                     panel.spawn((
-                        Text::new("W/S or Arrows: Navigate | R/Esc: Close"),
+                        Text::new("W/S or Arrows: Navigate | L/Esc: Close"),
                         TextFont {
                             font: font.clone(),
                             font_size: 12.0,

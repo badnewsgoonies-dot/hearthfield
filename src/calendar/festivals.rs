@@ -100,7 +100,7 @@ pub fn check_festival_day(
             festival.announced_day = Some(today);
             let name = festival_display_name(kind);
             toast_writer.send(ToastEvent {
-                message: format!("Today is the {}! Press E to participate.", name),
+                message: format!("Today is the {}! Press F to participate.", name),
                 duration_secs: 5.0,
             });
             info!("[Festivals] Announced {} on Day {} {:?}", name, calendar.day, calendar.season);
