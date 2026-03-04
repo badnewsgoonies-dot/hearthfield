@@ -115,6 +115,7 @@ impl Plugin for CityOfficeWorkerPlugin {
                         .chain()
                         .in_set(OfficeSimSet::TaskResolution),
                     (
+                        systems::auto_trigger_interruptions,
                         systems::handle_interruption_requests,
                         systems::handle_resolve_calmly_requests,
                         systems::handle_panic_response_requests,

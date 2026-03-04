@@ -236,7 +236,7 @@ impl Default for OfficeRunConfig {
     fn default() -> Self {
         Self {
             seed: 1,
-            max_tasks_per_day: 8,
+            max_tasks_per_day: 6,
             interruption_chance_per_hour: 0.2,
         }
     }
@@ -359,7 +359,7 @@ impl Default for OfficeRules {
             interruption_stress_increase: 14,
             interruption_focus_loss: 10,
             calm_focus_restore: 12,
-            calm_stress_relief: 9,
+            calm_stress_relief: 14,
             panic_stress_increase: 11,
             panic_focus_loss: 7,
             manager_checkin_minutes: 8,
@@ -374,7 +374,7 @@ impl Default for OfficeRules {
             starting_reputation: 0,
             day_start_minute: 9 * 60,
             day_end_minute: 17 * 60,
-            starting_inbox_items: 18,
+            starting_inbox_items: 12,
         }
     }
 }

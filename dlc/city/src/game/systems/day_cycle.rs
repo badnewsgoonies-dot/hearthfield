@@ -369,7 +369,9 @@ pub fn transition_day_summary_to_inday(
     stats.manager_checkins = 0;
     stats.coworker_helps = 0;
 
-    mind.stress = rules.starting_stress.clamp(0, rules.max_stress);
+    // Stress partially recovers overnight (half decay toward baseline)
+    let overnight_recovery = (mind.stress - rules.starting_stress) / 2;
+    mind.stress = (mind.stress - overnight_recovery).clamp(0, rules.max_stress);
     mind.focus = rules.starting_focus.clamp(0, rules.max_focus);
     mind.pending_interruptions = 0;
 
