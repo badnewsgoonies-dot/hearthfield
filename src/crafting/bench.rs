@@ -126,6 +126,7 @@ pub fn handle_craft_item(
     mut ui_state: ResMut<CraftingUiState>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut achievements: ResMut<Achievements>,
 ) {
     // Also handle keyboard input for navigation and confirming craft
     // (The UI plugin handles the actual rendering; we only handle logic here)
@@ -184,6 +185,7 @@ pub fn handle_craft_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
+        *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Crafted {} x{}", recipe.name, recipe.result_quantity)

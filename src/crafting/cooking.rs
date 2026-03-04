@@ -31,13 +31,20 @@ pub fn handle_cook_item(
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
-    mut player_state: ResMut<PlayerState>,
+    house_state: Res<HouseState>,
+    mut achievements: ResMut<Achievements>,
 ) {
     for event in events.read() {
         let recipe_id = &event.recipe_id;
 
         // Only handle cooking recipes in cooking mode
         if !ui_state.is_cooking_mode {
+            continue;
+        }
+
+        // Kitchen upgrade required
+        if !house_state.has_kitchen {
+            ui_state.set_feedback("You need a kitchen upgrade first!".to_string());
             continue;
         }
 
@@ -132,19 +139,8 @@ pub fn handle_cook_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
-
-        // Apply stamina restoration if the result item is edible
-        if let Some(item_def) = item_registry.get(&recipe.result) {
-            if item_def.edible && item_def.energy_restore > 0.0 {
-                let restore = item_def.energy_restore;
-                let new_stamina = (player_state.stamina + restore).min(player_state.max_stamina);
-                info!(
-                    "Cooking '{}' restored {:.0} stamina (from {:.0} to {:.0})",
-                    recipe.name, restore, player_state.stamina, new_stamina
-                );
-                player_state.stamina = new_stamina;
-            }
-        }
+        *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
+        *achievements.progress.entry("recipes_cooked".to_string()).or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Cooked {} x{}", recipe.name, recipe.result_quantity)

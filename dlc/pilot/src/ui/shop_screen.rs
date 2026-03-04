@@ -6,6 +6,10 @@ use crate::shared::*;
 #[derive(Component)]
 pub struct ShopScreenRoot;
 
+/// Marker for a buy button, storing the listing index.
+#[derive(Component)]
+pub struct ShopBuyButton(pub usize);
+
 pub fn spawn_shop_screen(
     mut commands: Commands,
     font: Res<UiFontHandle>,
@@ -49,7 +53,7 @@ pub fn spawn_shop_screen(
                 TextColor(Color::srgb(0.9, 0.8, 0.3)),
             ));
 
-            for listing in &shop.listings {
+            for (idx, listing) in shop.listings.iter().enumerate() {
                 let stock_text = listing
                     .stock
                     .map(|s| format!(" (stock: {s})"))
@@ -82,6 +86,7 @@ pub fn spawn_shop_screen(
                         ));
                         row.spawn((
                             Button,
+                            ShopBuyButton(idx),
                             Node {
                                 padding: UiRect::axes(Val::Px(14.0), Val::Px(4.0)),
                                 ..default()
@@ -106,5 +111,43 @@ pub fn despawn_shop_screen(
 ) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn handle_shop_buy(
+    mut interaction_q: Query<
+        (&Interaction, &ShopBuyButton, &mut BackgroundColor),
+        Changed<Interaction>,
+    >,
+    shop: Res<ActiveShop>,
+    mut purchase_events: EventWriter<PurchaseEvent>,
+) {
+    for (interaction, btn, mut bg) in &mut interaction_q {
+        match *interaction {
+            Interaction::Pressed => {
+                *bg = BackgroundColor(Color::srgb(0.1, 0.3, 0.5));
+                if let Some(listing) = shop.listings.get(btn.0) {
+                    purchase_events.send(PurchaseEvent {
+                        item_id: listing.item_id.clone(),
+                        price: listing.price,
+                    });
+                }
+            }
+            Interaction::Hovered => {
+                *bg = BackgroundColor(Color::srgb(0.3, 0.55, 0.75));
+            }
+            Interaction::None => {
+                *bg = BackgroundColor(Color::srgb(0.2, 0.4, 0.6));
+            }
+        }
+    }
+}
+
+pub fn handle_shop_keyboard(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        next_state.set(GameState::Playing);
     }
 }

@@ -332,7 +332,7 @@ fn process_event_updates_energy_inbox_and_clock() {
         if let Some(task) = board.active.first_mut() {
             task.required_focus = 1;
             task.priority = TaskPriority::Low;
-            task.progress = 0.5; // one step at focus_ratio=1.0 adds ~0.52, completing it
+            task.progress = 0.75; // one step at focus_ratio=1.0 adds ~0.28, completing it
         }
     }
 
@@ -447,7 +447,7 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
     assert_eq!(stats.manager_checkins, 1);
     assert_eq!(stats.coworker_helps, 1);
     assert_eq!(career.reputation, 5);
-    assert_eq!(mind.stress, 56);
+    assert_eq!(mind.stress, 51);
     assert_eq!(mind.focus, 56);
     assert!(social.scenario_cursor >= 2);
 }

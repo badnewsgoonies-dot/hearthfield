@@ -26,7 +26,18 @@ use skywarden::flight::navigation::{
     calculate_route, update_navigation, NavigationState,
 };
 
+// Priority 1–3 additions
+use skywarden::save::SaveFile;
+use skywarden::airports::maps::generate_zone_map;
+use skywarden::airports::services::{services_at, AirportService};
+use skywarden::airports::npcs::{AirportNpc, spawn_ambient_npcs};
+use skywarden::data::items::populate_items;
+use skywarden::data::missions::get_mission_templates;
+use skywarden::data::shops::get_shop_inventory;
+use skywarden::crew::schedules::get_schedule;
+
 use skywarden::missions::board::{refresh_mission_board, handle_mission_accepted};
+use skywarden::missions::story::StoryProgress;
 use skywarden::missions::tracking::handle_mission_complete;
 use skywarden::crew::gifts::handle_gift_given;
 use skywarden::crew::relationships::{
@@ -104,6 +115,7 @@ fn build_test_app() -> App {
     app.init_resource::<WeatherForecasts>();
     app.init_resource::<IcingState>();
     app.init_resource::<RelationshipDetails>();
+    app.init_resource::<StoryProgress>();
 
     // ── Events ──────────────────────────────────────────────────────
     app.add_event::<DayEndEvent>();
@@ -1520,4 +1532,218 @@ fn test_night_detection() {
 
     cal.hour = 3;
     assert!(cal.is_night(), "3 AM should be night");
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SAVE / LOAD TESTS
+// ═════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_save_roundtrip() {
+    let mut save = SaveFile::default();
+    save.gold = Gold { amount: 1234 };
+    save.calendar = Calendar { day: 7, season: Season::Fall, year: 3, ..Default::default() };
+
+    let json = serde_json::to_string(&save).expect("serialization failed");
+    let loaded: SaveFile = serde_json::from_str(&json).expect("deserialization failed");
+
+    assert_eq!(loaded.gold.amount, 1234);
+    assert_eq!(loaded.calendar.day, 7);
+    assert_eq!(loaded.calendar.season, Season::Fall);
+    assert_eq!(loaded.calendar.year, 3);
+}
+
+#[test]
+fn test_save_default_loads_cleanly() {
+    let save = SaveFile::default();
+    let json = serde_json::to_string(&save).expect("serialization of default SaveFile failed");
+    let result: Result<SaveFile, _> = serde_json::from_str(&json);
+    assert!(result.is_ok(), "Default SaveFile should deserialize without errors");
+}
+
+#[test]
+fn test_save_preserves_gold() {
+    let mut save = SaveFile::default();
+    save.gold = Gold { amount: 500 };
+
+    let json = serde_json::to_string(&save).unwrap();
+    let loaded: SaveFile = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(loaded.gold.amount, 500, "Gold should be preserved through save/load");
+}
+
+#[test]
+fn test_save_preserves_fleet() {
+    let mut save = SaveFile::default();
+    save.fleet.aircraft.push(OwnedAircraft {
+        aircraft_id: "cessna_172".into(),
+        nickname: "Blue Bird".into(),
+        condition: 98.0,
+        fuel: 40.0,
+        total_flights: 5,
+        customizations: vec![],
+    });
+
+    let json = serde_json::to_string(&save).unwrap();
+    let loaded: SaveFile = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(loaded.fleet.aircraft.len(), 1, "Fleet aircraft count should be preserved");
+    assert_eq!(loaded.fleet.aircraft[0].aircraft_id, "cessna_172");
+    assert_eq!(loaded.fleet.aircraft[0].nickname, "Blue Bird");
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// AIRPORT SYSTEM TESTS
+// ═════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_airport_zone_definitions() {
+    let zones = [
+        MapZone::Terminal,
+        MapZone::Lounge,
+        MapZone::Hangar,
+        MapZone::Runway,
+        MapZone::ControlTower,
+        MapZone::CrewQuarters,
+        MapZone::Shop,
+        MapZone::CityStreet,
+    ];
+    for zone in zones {
+        let (w, h, tiles) = generate_zone_map(AirportId::HomeBase, zone);
+        assert!(w > 0, "Zone {:?} should have positive width", zone);
+        assert!(h > 0, "Zone {:?} should have positive height", zone);
+        assert_eq!(tiles.len(), h as usize, "Tile row count should match height for {:?}", zone);
+        assert_eq!(tiles[0].len(), w as usize, "Tile column count should match width for {:?}", zone);
+    }
+}
+
+#[test]
+fn test_airport_npc_count() {
+    let mut app = build_test_app();
+    app.add_systems(Update, spawn_ambient_npcs);
+
+    // Trigger NPC spawn by sending a ZoneTransitionEvent to Terminal
+    app.world_mut().send_event(ZoneTransitionEvent {
+        to_airport: AirportId::HomeBase,
+        to_zone: MapZone::Terminal,
+        to_x: 10,
+        to_y: 8,
+    });
+    app.update();
+
+    let npc_count = app.world().iter_entities()
+        .filter(|e| e.contains::<AirportNpc>())
+        .count();
+    assert!(npc_count >= 1, "Terminal should have at least 1 ambient NPC after zone transition");
+}
+
+#[test]
+fn test_home_base_exists() {
+    let name = AirportId::HomeBase.display_name();
+    let icao = AirportId::HomeBase.icao_code();
+    assert!(!name.is_empty(), "HomeBase should have a non-empty display name");
+    assert!(!icao.is_empty(), "HomeBase should have a non-empty ICAO code");
+    assert_eq!(AirportId::HomeBase.unlock_rank(), PilotRank::Student,
+        "HomeBase must be available from Student rank");
+}
+
+#[test]
+fn test_airport_services_available() {
+    let airports = [
+        AirportId::HomeBase,
+        AirportId::Windport,
+        AirportId::Frostpeak,
+        AirportId::Sunhaven,
+        AirportId::Ironforge,
+        AirportId::Cloudmere,
+        AirportId::Duskhollow,
+        AirportId::Stormwatch,
+        AirportId::Grandcity,
+        AirportId::Skyreach,
+    ];
+    for airport in airports {
+        let services = services_at(airport);
+        assert!(
+            services.contains(&AirportService::WeatherBriefing),
+            "{:?} should offer WeatherBriefing", airport
+        );
+        assert!(
+            services.contains(&AirportService::AirportMap),
+            "{:?} should offer AirportMap", airport
+        );
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// DATA VALIDATION TESTS
+// ════════════════════════
+
+#[test]
+fn test_all_missions_have_valid_routes() {
+    let missions = get_mission_templates();
+    assert!(!missions.is_empty(), "Mission template list should not be empty");
+    for m in &missions {
+        assert!(!m.id.is_empty(), "Mission should have non-empty id");
+        assert!(!m.title.is_empty(), "Mission '{}' should have non-empty title", m.id);
+        // Verify origin and destination are valid by calling their display names
+        let _ = m.origin.display_name();
+        let _ = m.destination.display_name();
+        assert!(m.reward_gold > 0, "Mission '{}' should have a gold reward", m.id);
+    }
+}
+
+#[test]
+fn test_all_items_have_valid_data() {
+    let mut registry = ItemRegistry::default();
+    populate_items(&mut registry);
+    assert!(!registry.items.is_empty(), "ItemRegistry should not be empty after population");
+    for (id, item) in &registry.items {
+        assert!(!item.name.is_empty(), "Item '{}' should have non-empty name", id);
+        assert!(!item.description.is_empty(), "Item '{}' should have non-empty description", id);
+        assert_eq!(item.id, *id, "Item id field should match registry key for '{}'", id);
+    }
+}
+
+#[test]
+fn test_crew_members_have_schedules() {
+    for crew_id in CREW_IDS {
+        let schedule = get_schedule(crew_id);
+        assert!(
+            !schedule.weekday.is_empty(),
+            "Crew member '{}' should have a non-empty weekday schedule", crew_id
+        );
+        assert!(
+            !schedule.weekend.is_empty(),
+            "Crew member '{}' should have a non-empty weekend schedule", crew_id
+        );
+    }
+}
+
+#[test]
+fn test_shop_items_exist_in_registry() {
+    let mut registry = ItemRegistry::default();
+    populate_items(&mut registry);
+
+    let airports = [
+        AirportId::HomeBase,
+        AirportId::Windport,
+        AirportId::Frostpeak,
+        AirportId::Sunhaven,
+        AirportId::Ironforge,
+        AirportId::Cloudmere,
+        AirportId::Duskhollow,
+        AirportId::Stormwatch,
+        AirportId::Grandcity,
+        AirportId::Skyreach,
+    ];
+    for airport in airports {
+        let listings = get_shop_inventory(airport);
+        for listing in &listings {
+            assert!(
+                registry.get(&listing.item_id).is_some(),
+                "Shop item '{}' at {:?} must exist in ItemRegistry",
+                listing.item_id, airport
+            );
+        }
+    }
 }

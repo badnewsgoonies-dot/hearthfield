@@ -8,17 +8,17 @@ use crate::shared::*;
 
 mod animation;
 pub mod definitions;
-mod dialogue;
+pub mod dialogue;
 pub mod emotes;
 mod gifts;
-mod map_events;
+pub mod map_events;
 pub mod romance;
 pub mod quests;
 mod schedule;
 pub mod schedules;
 pub mod spawning;
 
-use dialogue::{handle_npc_interaction, ActiveNpcInteraction};
+use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
 use gifts::{handle_gifts, handle_gift_input};
 use map_events::{handle_map_transition, handle_day_end, GiftDecayTracker};
 use romance::{
@@ -65,6 +65,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<SpawnedNpcs>()
             .init_resource::<NpcSpriteData>()
             .init_resource::<ActiveNpcInteraction>()
+            .init_resource::<DailyTalkTracker>()
             .init_resource::<ScheduleUpdateTimer>()
             .init_resource::<GiftDecayTracker>()
             .init_resource::<WeddingTimer>()
@@ -106,6 +107,7 @@ impl Plugin for NpcPlugin {
                 check_farm_visits,
                 spawn_emote_bubbles,
                 animate_emote_bubbles,
+                reset_daily_talks,
             )
                 .run_if(in_state(GameState::Playing)),
         );

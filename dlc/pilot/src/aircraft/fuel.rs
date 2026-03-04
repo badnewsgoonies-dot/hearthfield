@@ -1,6 +1,7 @@
 //! Fuel management — fuel types, burn rate calculation, reserve warnings, bingo fuel.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 /// Fuel types and their cost per unit.
@@ -60,7 +61,7 @@ const FUEL_WARN_25: f32 = 0.25;
 const FUEL_WARN_15: f32 = 0.15;
 const FUEL_WARN_05: f32 = 0.05;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
 pub struct FuelWarnings {
     pub warned_25: bool,
     pub warned_15: bool,

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::shared::*;
 
 /// Tracks economy statistics for save data and achievements.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct EconomyStats {
     pub total_gold_earned: u64,
     pub total_gold_spent: u64,

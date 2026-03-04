@@ -13,7 +13,7 @@ use crate::crafting::PlaceMachineEvent;
 pub fn dispatch_item_use(
     player_input: Res<PlayerInput>,
     player_state: Res<PlayerState>,
-    inventory: Res<Inventory>,
+    mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
     input_blocks: Res<InputBlocks>,
     interaction_claimed: Res<InteractionClaimed>,
@@ -25,6 +25,7 @@ pub fn dispatch_item_use(
     mut place_machine_events: EventWriter<PlaceMachineEvent>,
     mut bouquet_events: EventWriter<BouquetGivenEvent>,
     mut proposal_events: EventWriter<ProposalEvent>,
+    mut removed_events: EventWriter<ItemRemovedEvent>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     if input_blocks.is_blocked() || !player_input.tool_secondary || interaction_claimed.0 {
@@ -43,6 +44,18 @@ pub fn dispatch_item_use(
     let Ok((grid_pos, movement)) = player_query.get_single() else {
         return;
     };
+
+    // ── HAY (animal feed trough) ────────────────────────────────────
+    if item_id == "hay" {
+        let removed = inventory.try_remove("hay", 1);
+        if removed > 0 {
+            removed_events.send(ItemRemovedEvent {
+                item_id: "hay".into(),
+                quantity: 1,
+            });
+        }
+        return;
+    }
 
     // ── FOOD ──────────────────────────────────────────────────────
     if def.edible {

@@ -74,13 +74,13 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
 fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
     match kind {
         AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
-            (Vec2::new(-96.0, -192.0), Vec2::new(96.0, -96.0))
+            (Vec2::new(8.0 * TILE_SIZE, 16.0 * TILE_SIZE), Vec2::new(12.0 * TILE_SIZE, 18.0 * TILE_SIZE))
         }
         AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
-            (Vec2::new(-192.0, -192.0), Vec2::new(-32.0, -64.0))
+            (Vec2::new(3.0 * TILE_SIZE, 16.0 * TILE_SIZE), Vec2::new(7.0 * TILE_SIZE, 18.0 * TILE_SIZE))
         }
         AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
-            (Vec2::new(-256.0, -256.0), Vec2::new(256.0, 256.0))
+            (Vec2::new(10.0 * TILE_SIZE, 8.0 * TILE_SIZE), Vec2::new(20.0 * TILE_SIZE, 16.0 * TILE_SIZE))
         }
     }
 }
@@ -418,16 +418,16 @@ pub fn setup_feed_trough(
         }
     };
 
-    // Trough sits at the entrance of the barn area. Grid position (−10, −8) in
-    // a 16-px grid → world (−160, −128).
+    // Trough sits at the entrance of the barn area. Grid position (5, 19) — south of barn entrance
+    // in a 16-px grid → world (80.0, 304.0).
     commands.spawn((
         super::FeedTrough {
-            grid_x: -10,
-            grid_y: -8,
+            grid_x: 5,
+            grid_y: 19,
         },
         sprite,
-        Transform::from_xyz(-160.0, -128.0, Z_ENTITY_BASE),
-        LogicalPosition(Vec2::new(-160.0, -128.0)),
+        Transform::from_xyz(5.0 * TILE_SIZE, 19.0 * TILE_SIZE, Z_ENTITY_BASE),
+        LogicalPosition(Vec2::new(5.0 * TILE_SIZE, 19.0 * TILE_SIZE)),
         YSorted,
         Visibility::default(),
     ));

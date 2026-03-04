@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,12 +11,12 @@ use crate::shared::*;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Tracks tools that are currently being upgraded (they cannot be used during this time).
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ToolUpgradeQueue {
     pub pending: Vec<PendingUpgrade>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingUpgrade {
     pub tool: ToolKind,
     pub target_tier: ToolTier,

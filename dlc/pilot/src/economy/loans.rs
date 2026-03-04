@@ -1,13 +1,14 @@
 //! Loan system — borrow to purchase aircraft, monthly payments, interest.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Loan {
     pub id: String,
     pub aircraft_id: String,
@@ -87,7 +88,7 @@ pub fn interest_rate_for_rank(rank: PilotRank) -> f32 {
 pub const MAX_LTV: f32 = 0.80; // 80% of aircraft value
 
 /// Loan management resource.
-#[derive(Resource, Clone, Debug, Default)]
+#[derive(Resource, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LoanPortfolio {
     pub loans: Vec<Loan>,
     pub last_payment_day: u32,

@@ -53,8 +53,7 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ToastEvent>()
-            .init_resource::<WorldMap>()
+        app.init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()

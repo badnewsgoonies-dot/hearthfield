@@ -3,7 +3,15 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::shared::*;
+use crate::aircraft::fuel::FuelWarnings;
 use crate::aircraft::maintenance::MaintenanceTracker;
+use crate::economy::gold::{GoldMilestones, TransactionLog};
+use crate::economy::loans::LoanPortfolio;
+use crate::economy::insurance::InsuranceState;
+use crate::economy::business::AirlineBusiness;
+use crate::player::skills::PilotSkills;
+use crate::missions::story::StoryProgress;
+use crate::crew::relationships::RelationshipDetails;
 
 pub mod autosave;
 
@@ -63,6 +71,24 @@ pub struct SaveFile {
     pub tutorial_state: TutorialState,
     #[serde(default)]
     pub maintenance_tracker: MaintenanceTracker,
+    #[serde(default)]
+    pub transaction_log: TransactionLog,
+    #[serde(default)]
+    pub gold_milestones: GoldMilestones,
+    #[serde(default)]
+    pub fuel_warnings: FuelWarnings,
+    #[serde(default)]
+    pub pilot_skills: PilotSkills,
+    #[serde(default)]
+    pub story_progress: StoryProgress,
+    #[serde(default)]
+    pub loan_portfolio: LoanPortfolio,
+    #[serde(default)]
+    pub insurance_state: InsuranceState,
+    #[serde(default)]
+    pub airline_business: AirlineBusiness,
+    #[serde(default)]
+    pub relationship_details: RelationshipDetails,
 }
 
 // ─── Staging resources ───────────────────────────────────────────────────────
@@ -125,12 +151,39 @@ struct LoadResources<'w> {
     pub maintenance_tracker: ResMut<'w, MaintenanceTracker>,
 }
 
+#[derive(SystemParam)]
+struct SaveResources2<'w> {
+    pub transaction_log: Res<'w, TransactionLog>,
+    pub gold_milestones: Res<'w, GoldMilestones>,
+    pub fuel_warnings: Res<'w, FuelWarnings>,
+    pub pilot_skills: Res<'w, PilotSkills>,
+    pub story_progress: Res<'w, StoryProgress>,
+    pub loan_portfolio: Res<'w, LoanPortfolio>,
+    pub insurance_state: Res<'w, InsuranceState>,
+    pub airline_business: Res<'w, AirlineBusiness>,
+    pub relationship_details: Res<'w, RelationshipDetails>,
+}
+
+#[derive(SystemParam)]
+struct LoadResources2<'w> {
+    pub transaction_log: ResMut<'w, TransactionLog>,
+    pub gold_milestones: ResMut<'w, GoldMilestones>,
+    pub fuel_warnings: ResMut<'w, FuelWarnings>,
+    pub pilot_skills: ResMut<'w, PilotSkills>,
+    pub story_progress: ResMut<'w, StoryProgress>,
+    pub loan_portfolio: ResMut<'w, LoanPortfolio>,
+    pub insurance_state: ResMut<'w, InsuranceState>,
+    pub airline_business: ResMut<'w, AirlineBusiness>,
+    pub relationship_details: ResMut<'w, RelationshipDetails>,
+}
+
 // ─── Save (two-phase) ───────────────────────────────────────────────────────
 
 /// Phase 1: read events + gather all resource data into `PendingSave`.
 fn save_gather(
     mut events: EventReader<SaveRequestEvent>,
     res: SaveResources,
+    res2: SaveResources2,
     mut pending: ResMut<PendingSave>,
 ) {
     for ev in events.read() {
@@ -152,6 +205,15 @@ fn save_gather(
                 economy_stats: res.economy_stats.clone(),
                 tutorial_state: res.tutorial_state.clone(),
                 maintenance_tracker: res.maintenance_tracker.clone(),
+                transaction_log: res2.transaction_log.clone(),
+                gold_milestones: res2.gold_milestones.clone(),
+                fuel_warnings: res2.fuel_warnings.clone(),
+                pilot_skills: res2.pilot_skills.clone(),
+                story_progress: res2.story_progress.clone(),
+                loan_portfolio: res2.loan_portfolio.clone(),
+                insurance_state: res2.insurance_state.clone(),
+                airline_business: res2.airline_business.clone(),
+                relationship_details: res2.relationship_details.clone(),
             },
         ));
     }
@@ -223,6 +285,7 @@ fn load_read(
 fn load_apply(
     mut pending: ResMut<PendingLoad>,
     mut res: LoadResources,
+    mut res2: LoadResources2,
     mut zone_ev: EventWriter<ZoneTransitionEvent>,
 ) {
     for file in pending.files.drain(..) {
@@ -244,6 +307,15 @@ fn load_apply(
         *res.economy_stats = file.economy_stats;
         *res.tutorial_state = file.tutorial_state;
         *res.maintenance_tracker = file.maintenance_tracker;
+        *res2.transaction_log = file.transaction_log;
+        *res2.gold_milestones = file.gold_milestones;
+        *res2.fuel_warnings = file.fuel_warnings;
+        *res2.pilot_skills = file.pilot_skills;
+        *res2.story_progress = file.story_progress;
+        *res2.loan_portfolio = file.loan_portfolio;
+        *res2.insurance_state = file.insurance_state;
+        *res2.airline_business = file.airline_business;
+        *res2.relationship_details = file.relationship_details;
 
         zone_ev.send(ZoneTransitionEvent {
             to_airport: dest_airport,

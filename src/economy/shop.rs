@@ -107,26 +107,29 @@ pub fn on_exit_shop(
     }
 }
 
-/// Converts ShopTransactionEvents into GoldChangeEvents so that
-/// EconomyStats and PlayStats correctly track gold spent/earned in shops.
-/// The shop UI already mutates player.gold directly; this fires the event
-/// alongside that mutation purely for stats tracking.
+/// Updates EconomyStats directly for shop transactions without sending
+/// GoldChangeEvent. The shop UI already mutates player.gold directly for
+/// immediate feedback; sending GoldChangeEvent would cause apply_gold_changes
+/// to modify gold a second time (double deduction bug).
 pub fn handle_shop_transaction_gold(
     mut tx_events: EventReader<ShopTransactionEvent>,
-    mut gold_writer: EventWriter<GoldChangeEvent>,
+    mut stats: ResMut<super::gold::EconomyStats>,
 ) {
     for ev in tx_events.read() {
         if ev.is_purchase {
-            gold_writer.send(GoldChangeEvent {
-                amount: -(ev.total_cost as i32),
-                reason: format!("shop buy: {}", ev.item_id),
-            });
+            stats.total_gold_spent = stats.total_gold_spent.saturating_add(ev.total_cost as u64);
+            info!(
+                "[Economy] Shop buy stats: {} for {}g. Total spent: {}g",
+                ev.item_id, ev.total_cost, stats.total_gold_spent
+            );
         } else {
-            gold_writer.send(GoldChangeEvent {
-                amount: ev.total_cost as i32,
-                reason: format!("shop sell: {}", ev.item_id),
-            });
+            stats.total_gold_earned = stats.total_gold_earned.saturating_add(ev.total_cost as u64);
+            info!(
+                "[Economy] Shop sell stats: {} for {}g. Total earned: {}g",
+                ev.item_id, ev.total_cost, stats.total_gold_earned
+            );
         }
+        stats.total_transactions += 1;
     }
 }
 

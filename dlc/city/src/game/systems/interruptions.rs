@@ -245,6 +245,24 @@ pub fn handle_manager_checkin_requests(
     }
 }
 
+pub fn auto_trigger_interruptions(
+    clock: Res<DayClock>,
+    config: Res<OfficeRunConfig>,
+    mut interruption_writer: EventWriter<InterruptionEvent>,
+) {
+    let current_minute = clock.current_minute;
+    let hour_mark = current_minute / 60;
+    let seed = config
+        .seed
+        .wrapping_add(clock.day_number as u64 * 100 + hour_mark as u64);
+    let chance = ((seed % 100) as f32) / 100.0;
+    let prev_minute = current_minute.saturating_sub(1);
+    let prev_hour = prev_minute / 60;
+    if hour_mark != prev_hour && chance < config.interruption_chance_per_hour {
+        interruption_writer.send(InterruptionEvent);
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn handle_coworker_help_requests(
     mut requests: EventReader<CoworkerHelpEvent>,

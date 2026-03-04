@@ -1,6 +1,7 @@
 //! Pilot skill progression — XP-based leveling for aviation competencies.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use crate::shared::*;
 use std::collections::HashMap;
 
@@ -8,7 +9,7 @@ use std::collections::HashMap;
 // DATA TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SkillType {
     Navigation,
     WeatherReading,
@@ -59,7 +60,7 @@ impl SkillType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SkillState {
     pub level: u32,       // 0–100
     pub xp: u32,
@@ -98,7 +99,7 @@ impl SkillState {
 }
 
 /// Resource holding all pilot skills.
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
 pub struct PilotSkills {
     pub skills: HashMap<SkillType, SkillState>,
 }

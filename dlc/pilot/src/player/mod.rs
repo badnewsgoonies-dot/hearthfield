@@ -23,7 +23,7 @@ impl Plugin for PlayerPlugin {
             .init_resource::<logbook::Logbook>()
             .init_resource::<skills::PilotSkills>()
             .init_resource::<reputation::Reputation>()
-            .add_systems(OnEnter(GameState::Playing), spawn::spawn_player)
+            .add_systems(OnEnter(GameState::Playing), (spawn::spawn_player, spawn::setup_new_game))
             .add_systems(
                 Update,
                 (

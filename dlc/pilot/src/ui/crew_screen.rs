@@ -246,3 +246,12 @@ pub fn despawn_crew_screen(
         commands.entity(entity).despawn_recursive();
     }
 }
+
+pub fn handle_crew_screen_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        next_state.set(GameState::Playing);
+    }
+}
