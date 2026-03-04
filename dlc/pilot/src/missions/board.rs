@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use crate::shared::*;
+use super::story::StoryProgress;
 use rand::Rng;
 
 /// Refresh the mission board daily with new missions.
@@ -10,6 +11,7 @@ pub fn refresh_mission_board(
     mut mission_board: ResMut<MissionBoard>,
     pilot_state: Res<PilotState>,
     calendar: Res<Calendar>,
+    story_progress: Res<StoryProgress>,
 ) {
     for _ev in day_end_events.read() {
         let mut rng = rand::thread_rng();
@@ -105,6 +107,34 @@ pub fn refresh_mission_board(
                 bonus_conditions: vec![BonusCondition::PerfectLanding, BonusCondition::OnTime],
                 difficulty,
             });
+        }
+
+        // Inject current story mission at position 0 (top of board)
+        if !story_progress.story_finished {
+            if let Some(story_mission) = story_progress.current_mission() {
+                let required_rank = story_mission.chapter.required_rank();
+                let already_complete = mission_board.completed_ids.contains(&story_mission.id.to_string());
+                if pilot_state.rank >= required_rank && !already_complete {
+                    let story_def = MissionDef {
+                        id: story_mission.id.to_string(),
+                        title: format!("★ STORY: {}", story_mission.title),
+                        description: story_mission.description.to_string(),
+                        mission_type: MissionType::Charter,
+                        origin: story_mission.origin,
+                        destination: story_mission.destination,
+                        reward_gold: story_mission.reward_gold,
+                        reward_xp: story_mission.reward_xp,
+                        time_limit_hours: None,
+                        required_rank,
+                        required_aircraft_class: None,
+                        passenger_count: 0,
+                        cargo_kg: 0.0,
+                        bonus_conditions: vec![],
+                        difficulty: MissionDifficulty::Easy,
+                    };
+                    mission_board.available.insert(0, story_def);
+                }
+            }
         }
     }
 }
