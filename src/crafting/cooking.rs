@@ -140,6 +140,7 @@ pub fn handle_cook_item(
             quantity: recipe.result_quantity,
         });
         *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
+        *achievements.progress.entry("recipes_cooked".to_string()).or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Cooked {} x{}", recipe.name, recipe.result_quantity)
