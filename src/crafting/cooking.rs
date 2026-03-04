@@ -31,6 +31,7 @@ pub fn handle_cook_item(
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     house_state: Res<HouseState>,
     mut achievements: ResMut<Achievements>,
 ) {
@@ -80,6 +81,10 @@ pub fn handle_cook_item(
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
+            toast_events.send(ToastEvent {
+                message: "Missing ingredients!".into(),
+                duration_secs: 2.0,
+            });
             continue;
         }
 
@@ -94,6 +99,10 @@ pub fn handle_cook_item(
             ui_state.set_feedback("Need fish to cook this recipe!".to_string());
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
+            });
+            toast_events.send(ToastEvent {
+                message: "Missing ingredients!".into(),
+                duration_secs: 2.0,
             });
             continue;
         }
@@ -152,6 +161,10 @@ pub fn handle_cook_item(
 
         sfx_events.send(PlaySfxEvent {
             sfx_id: "cook_success".to_string(),
+        });
+        toast_events.send(ToastEvent {
+            message: format!("{} crafted!", recipe.name),
+            duration_secs: 2.0,
         });
 
         // Cooking also costs a small amount of stamina (fire-tending effort)

@@ -126,6 +126,7 @@ pub fn handle_craft_item(
     mut ui_state: ResMut<CraftingUiState>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     mut achievements: ResMut<Achievements>,
 ) {
     // Also handle keyboard input for navigation and confirming craft
@@ -158,6 +159,10 @@ pub fn handle_craft_item(
             ui_state.set_feedback(format!("Missing materials: {}", missing));
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
+            });
+            toast_events.send(ToastEvent {
+                message: "Missing ingredients!".into(),
+                duration_secs: 2.0,
             });
             continue;
         }
@@ -197,6 +202,10 @@ pub fn handle_craft_item(
 
         sfx_events.send(PlaySfxEvent {
             sfx_id: "craft_success".to_string(),
+        });
+        toast_events.send(ToastEvent {
+            message: format!("{} crafted!", recipe.name),
+            duration_secs: 2.0,
         });
     }
 }
