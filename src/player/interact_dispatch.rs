@@ -31,8 +31,7 @@ pub fn dispatch_world_interaction(
     machine_query: Query<&ProcessingMachine>,
     // UI feedback
     mut toast_events: EventWriter<ToastEvent>,
-    // For bed interaction
-    mut day_end_events: EventWriter<DayEndEvent>,
+    // For bed "too early" guard
     calendar: Res<Calendar>,
 ) {
     if input_blocks.is_blocked() || !player_input.interact {
@@ -116,23 +115,16 @@ pub fn dispatch_world_interaction(
         }
 
         InteractionKind::Bed => {
-            interaction_claimed.0 = true;
             if calendar.hour < 18 {
+                interaction_claimed.0 = true;
                 toast_events.send(ToastEvent {
                     message: "It's too early to sleep. Come back after 6 PM.".into(),
                     duration_secs: 3.0,
                 });
-            } else {
-                toast_events.send(ToastEvent {
-                    message: "Time to rest... Goodnight!".into(),
-                    duration_secs: 2.0,
-                });
-                day_end_events.send(DayEndEvent {
-                    day: calendar.day,
-                    season: calendar.season,
-                    year: calendar.year,
-                });
             }
+            // If hour >= 18, intentionally do NOT claim interaction.
+            // This allows trigger_sleep (in calendar) to handle the full
+            // sleep flow with cutscene, DayEndEvent, and day transition.
         }
     }
 }
