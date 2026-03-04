@@ -36,6 +36,8 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<inventory_screen::UseItemEvent>()
+            .init_resource::<settings::GameSettings>()
+            .init_resource::<settings::VolumeSettings>()
             .add_systems(Startup, load_font)
             .add_systems(
                 Update,

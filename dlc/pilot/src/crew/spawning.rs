@@ -17,22 +17,23 @@ pub struct CrewSpriteData {
     pub images: HashMap<String, Handle<Image>>,
 }
 
-fn crew_sprite_file(sprite_index: usize) -> String {
-    let files = [
-        "sprites/npcs/npc_blacksmith.png",
-        "sprites/npcs/npc_farmer.png",
-        "sprites/npcs/npc_guard.png",
-        "sprites/npcs/npc_healer.png",
-        "sprites/npcs/npc_mage.png",
-        "sprites/npcs/npc_merchant.png",
-        "sprites/npcs/npc_miner.png",
-        "sprites/npcs/npc_noble.png",
-        "sprites/npcs/npc_pirate.png",
-        "sprites/npcs/npc_scholar.png",
-        "sprites/npcs/npc_traveler.png",
-        "sprites/npcs/npc_child.png",
-    ];
-    files[sprite_index % files.len()].to_string()
+#[derive(Resource, Default)]
+pub struct CrewPortraitData {
+    pub loaded: bool,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub image: Handle<Image>,
+}
+
+fn crew_sprite_file(_sprite_index: usize) -> String {
+    "sprites/crew_sheet.png".to_string()
+}
+
+fn crew_sprite_index(sprite_index: usize) -> usize {
+    sprite_index % 10
+}
+
+fn crew_portrait_file() -> &'static str {
+    "sprites/crew_portraits.png"
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -46,6 +47,7 @@ pub fn spawn_crew_for_zone(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut crew_sprites: ResMut<CrewSpriteData>,
+    mut crew_portraits: ResMut<CrewPortraitData>,
 ) {
     // Only respawn if zone or airport changed
     if crew_spawned.for_zone == Some(player_location.zone)
@@ -100,9 +102,15 @@ pub fn spawn_crew_for_zone(
 
             // Load shared atlas layout on first use
             if !crew_sprites.loaded {
-                let layout = TextureAtlasLayout::from_grid(UVec2::new(48, 48), 4, 4, None, None);
+                let layout = TextureAtlasLayout::from_grid(UVec2::new(16, 16), 10, 1, None, None);
                 crew_sprites.layout = layouts.add(layout);
                 crew_sprites.loaded = true;
+            }
+            if !crew_portraits.loaded {
+                let layout = TextureAtlasLayout::from_grid(UVec2::new(16, 16), 10, 1, None, None);
+                crew_portraits.layout = layouts.add(layout);
+                crew_portraits.image = asset_server.load(crew_portrait_file());
+                crew_portraits.loaded = true;
             }
 
             let sprite_file = crew_sprite_file(member.sprite_index as usize);
@@ -113,7 +121,13 @@ pub fn spawn_crew_for_zone(
 
             commands.spawn((
                 CrewMember { id: id.clone() },
-                Sprite::from_atlas_image(image, TextureAtlas { layout: layout_handle, index: 0 }),
+                Sprite::from_atlas_image(
+                    image,
+                    TextureAtlas {
+                        layout: layout_handle,
+                        index: crew_sprite_index(member.sprite_index as usize),
+                    },
+                ),
                 Transform::from_xyz(pos.x, pos.y, Z_PLAYER - 1.0),
                 Interactable {
                     prompt: format!("[F] Talk to {}", member.name),
