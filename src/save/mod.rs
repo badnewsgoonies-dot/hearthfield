@@ -205,6 +205,7 @@ struct ExtendedResources<'w> {
     pub fishing_skill: Res<'w, crate::fishing::skill::FishingSkill>,
     pub harvest_stats: Res<'w, crate::economy::stats::HarvestStats>,
     pub animal_product_stats: Res<'w, crate::economy::stats::AnimalProductStats>,
+    pub economy_stats: Res<'w, crate::economy::gold::EconomyStats>,
 }
 
 /// Mutable bundle of the extended resources (for loading / new game).
@@ -226,6 +227,7 @@ struct ExtendedResourcesMut<'w> {
     pub fishing_skill: ResMut<'w, crate::fishing::skill::FishingSkill>,
     pub harvest_stats: ResMut<'w, crate::economy::stats::HarvestStats>,
     pub animal_product_stats: ResMut<'w, crate::economy::stats::AnimalProductStats>,
+    pub economy_stats: ResMut<'w, crate::economy::gold::EconomyStats>,
 }
 
 /// Chest-related resources needed during load (for restoring chest entities).
@@ -378,6 +380,8 @@ struct FullSaveFile {
     pub harvest_stats: crate::economy::stats::HarvestStats,
     #[serde(default)]
     pub animal_product_stats: crate::economy::stats::AnimalProductStats,
+    #[serde(default)]
+    pub economy_stats: crate::economy::gold::EconomyStats,
     /// Storage chest contents placed by the player.
     #[serde(default)]
     pub chests: Vec<StorageChest>,
@@ -433,6 +437,7 @@ fn write_save(
     fishing_skill: &crate::fishing::skill::FishingSkill,
     harvest_stats: &crate::economy::stats::HarvestStats,
     animal_product_stats: &crate::economy::stats::AnimalProductStats,
+    economy_stats: &crate::economy::gold::EconomyStats,
     chests: &[StorageChest],
 ) -> Result<(), String> {
     ensure_saves_dir().map_err(|e| format!("Could not create saves directory: {}", e))?;
@@ -470,6 +475,7 @@ fn write_save(
         fishing_skill: fishing_skill.clone(),
         harvest_stats: harvest_stats.clone(),
         animal_product_stats: animal_product_stats.clone(),
+        economy_stats: economy_stats.clone(),
         chests: chests.to_vec(),
     };
 
@@ -521,6 +527,7 @@ fn write_save(
     _fishing_skill: &crate::fishing::skill::FishingSkill,
     _harvest_stats: &crate::economy::stats::HarvestStats,
     _animal_product_stats: &crate::economy::stats::AnimalProductStats,
+    _economy_stats: &crate::economy::gold::EconomyStats,
     _chests: &[StorageChest],
 ) -> Result<(), String> {
     Ok(())
@@ -682,6 +689,7 @@ fn handle_save_request(
             &ext.fishing_skill,
             &ext.harvest_stats,
             &ext.animal_product_stats,
+            &ext.economy_stats,
             &chests,
         ) {
             Ok(()) => {
@@ -770,6 +778,7 @@ fn handle_load_request(
                 *ext.fishing_skill = file.fishing_skill;
                 *ext.harvest_stats = file.harvest_stats;
                 *ext.animal_product_stats = file.animal_product_stats;
+                *ext.economy_stats = file.economy_stats;
 
                 // Restore storage chests: despawn any existing chest entities
                 // and spawn saved ones.
@@ -901,6 +910,7 @@ fn handle_new_game(
         *ext.fishing_skill = crate::fishing::skill::FishingSkill::default();
         *ext.harvest_stats = crate::economy::stats::HarvestStats::default();
         *ext.animal_product_stats = crate::economy::stats::AnimalProductStats::default();
+        *ext.economy_stats = crate::economy::gold::EconomyStats::default();
 
         // Starter seeds — enough for one small plot on Day 1
         core.inventory.try_add("turnip_seeds", 15, 99);

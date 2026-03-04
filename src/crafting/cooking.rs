@@ -32,6 +32,7 @@ pub fn handle_cook_item(
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     house_state: Res<HouseState>,
+    mut achievements: ResMut<Achievements>,
 ) {
     for event in events.read() {
         let recipe_id = &event.recipe_id;
@@ -138,6 +139,7 @@ pub fn handle_cook_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
+        *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Cooked {} x{}", recipe.name, recipe.result_quantity)

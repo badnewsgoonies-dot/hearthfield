@@ -44,6 +44,7 @@ pub fn tool_use(
     mut tool_events: EventWriter<ToolUseEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
 ) {
     if input_blocks.is_blocked() {
         return;
@@ -69,6 +70,14 @@ pub fn tool_use(
 
     let tool = player_state.equipped_tool;
     let cost = stamina_cost(&tool);
+
+    // Block usage if tool is being upgraded at the blacksmith
+    if upgrade_queue.is_upgrading(tool) {
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "error".to_string(),
+        });
+        return;
+    }
 
     // Check stamina — disallow if insufficient.
     if player_state.stamina < cost {
