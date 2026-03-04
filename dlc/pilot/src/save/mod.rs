@@ -1,7 +1,9 @@
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::shared::*;
+use crate::aircraft::maintenance::MaintenanceTracker;
 
 pub mod autosave;
 
@@ -59,6 +61,8 @@ pub struct SaveFile {
     pub economy_stats: EconomyStats,
     #[serde(default)]
     pub tutorial_state: TutorialState,
+    #[serde(default)]
+    pub maintenance_tracker: MaintenanceTracker,
 }
 
 // ─── Staging resources ───────────────────────────────────────────────────────
@@ -79,46 +83,75 @@ fn save_path(slot: usize) -> std::path::PathBuf {
     std::path::PathBuf::from(format!("saves/slot_{slot}.json"))
 }
 
+// ─── SystemParam bundles (stay within Bevy's 16-param limit) ────────────────
+
+/// Read-only bundle of all game-state resources for saving.
+#[derive(SystemParam)]
+struct SaveResources<'w> {
+    pub calendar: Res<'w, Calendar>,
+    pub pilot_state: Res<'w, PilotState>,
+    pub fleet: Res<'w, Fleet>,
+    pub gold: Res<'w, Gold>,
+    pub inventory: Res<'w, Inventory>,
+    pub player_location: Res<'w, PlayerLocation>,
+    pub relationships: Res<'w, Relationships>,
+    pub achievements: Res<'w, Achievements>,
+    pub play_stats: Res<'w, PlayStats>,
+    pub mission_log: Res<'w, MissionLog>,
+    pub mission_board: Res<'w, MissionBoard>,
+    pub weather_state: Res<'w, WeatherState>,
+    pub economy_stats: Res<'w, EconomyStats>,
+    pub tutorial_state: Res<'w, TutorialState>,
+    pub maintenance_tracker: Res<'w, MaintenanceTracker>,
+}
+
+/// Mutable bundle of all game-state resources for loading.
+#[derive(SystemParam)]
+struct LoadResources<'w> {
+    pub calendar: ResMut<'w, Calendar>,
+    pub pilot_state: ResMut<'w, PilotState>,
+    pub fleet: ResMut<'w, Fleet>,
+    pub gold: ResMut<'w, Gold>,
+    pub inventory: ResMut<'w, Inventory>,
+    pub player_location: ResMut<'w, PlayerLocation>,
+    pub relationships: ResMut<'w, Relationships>,
+    pub achievements: ResMut<'w, Achievements>,
+    pub play_stats: ResMut<'w, PlayStats>,
+    pub mission_log: ResMut<'w, MissionLog>,
+    pub mission_board: ResMut<'w, MissionBoard>,
+    pub weather_state: ResMut<'w, WeatherState>,
+    pub economy_stats: ResMut<'w, EconomyStats>,
+    pub tutorial_state: ResMut<'w, TutorialState>,
+    pub maintenance_tracker: ResMut<'w, MaintenanceTracker>,
+}
+
 // ─── Save (two-phase) ───────────────────────────────────────────────────────
 
 /// Phase 1: read events + gather all resource data into `PendingSave`.
-#[allow(clippy::too_many_arguments)]
 fn save_gather(
     mut events: EventReader<SaveRequestEvent>,
-    calendar: Res<Calendar>,
-    pilot_state: Res<PilotState>,
-    fleet: Res<Fleet>,
-    gold: Res<Gold>,
-    inventory: Res<Inventory>,
-    player_location: Res<PlayerLocation>,
-    relationships: Res<Relationships>,
-    achievements: Res<Achievements>,
-    play_stats: Res<PlayStats>,
-    mission_log: Res<MissionLog>,
-    mission_board: Res<MissionBoard>,
-    weather_state: Res<WeatherState>,
-    economy_stats: Res<EconomyStats>,
-    tutorial_state: Res<TutorialState>,
+    res: SaveResources,
     mut pending: ResMut<PendingSave>,
 ) {
     for ev in events.read() {
         pending.requests.push((
             ev.slot,
             SaveFile {
-                calendar: calendar.clone(),
-                pilot_state: pilot_state.clone(),
-                fleet: fleet.clone(),
-                gold: gold.clone(),
-                inventory: inventory.clone(),
-                player_location: player_location.clone(),
-                relationships: relationships.clone(),
-                achievements: achievements.clone(),
-                play_stats: play_stats.clone(),
-                mission_log: mission_log.clone(),
-                mission_board: mission_board.clone(),
-                weather_state: weather_state.clone(),
-                economy_stats: economy_stats.clone(),
-                tutorial_state: tutorial_state.clone(),
+                calendar: res.calendar.clone(),
+                pilot_state: res.pilot_state.clone(),
+                fleet: res.fleet.clone(),
+                gold: res.gold.clone(),
+                inventory: res.inventory.clone(),
+                player_location: res.player_location.clone(),
+                relationships: res.relationships.clone(),
+                achievements: res.achievements.clone(),
+                play_stats: res.play_stats.clone(),
+                mission_log: res.mission_log.clone(),
+                mission_board: res.mission_board.clone(),
+                weather_state: res.weather_state.clone(),
+                economy_stats: res.economy_stats.clone(),
+                tutorial_state: res.tutorial_state.clone(),
+                maintenance_tracker: res.maintenance_tracker.clone(),
             },
         ));
     }
@@ -187,43 +220,30 @@ fn load_read(
 }
 
 /// Phase 2: overwrite all resources from loaded data, fire transition event.
-#[allow(clippy::too_many_arguments)]
 fn load_apply(
     mut pending: ResMut<PendingLoad>,
-    mut calendar: ResMut<Calendar>,
-    mut pilot_state: ResMut<PilotState>,
-    mut fleet: ResMut<Fleet>,
-    mut gold: ResMut<Gold>,
-    mut inventory: ResMut<Inventory>,
-    mut player_location: ResMut<PlayerLocation>,
-    mut relationships: ResMut<Relationships>,
-    mut achievements: ResMut<Achievements>,
-    mut play_stats: ResMut<PlayStats>,
-    mut mission_log: ResMut<MissionLog>,
-    mut mission_board: ResMut<MissionBoard>,
-    mut weather_state: ResMut<WeatherState>,
-    mut economy_stats: ResMut<EconomyStats>,
-    mut tutorial_state: ResMut<TutorialState>,
+    mut res: LoadResources,
     mut zone_ev: EventWriter<ZoneTransitionEvent>,
 ) {
     for file in pending.files.drain(..) {
         let dest_airport = file.player_location.airport;
         let dest_zone = file.player_location.zone;
 
-        *calendar = file.calendar;
-        *pilot_state = file.pilot_state;
-        *fleet = file.fleet;
-        *gold = file.gold;
-        *inventory = file.inventory;
-        *player_location = file.player_location;
-        *relationships = file.relationships;
-        *achievements = file.achievements;
-        *play_stats = file.play_stats;
-        *mission_log = file.mission_log;
-        *mission_board = file.mission_board;
-        *weather_state = file.weather_state;
-        *economy_stats = file.economy_stats;
-        *tutorial_state = file.tutorial_state;
+        *res.calendar = file.calendar;
+        *res.pilot_state = file.pilot_state;
+        *res.fleet = file.fleet;
+        *res.gold = file.gold;
+        *res.inventory = file.inventory;
+        *res.player_location = file.player_location;
+        *res.relationships = file.relationships;
+        *res.achievements = file.achievements;
+        *res.play_stats = file.play_stats;
+        *res.mission_log = file.mission_log;
+        *res.mission_board = file.mission_board;
+        *res.weather_state = file.weather_state;
+        *res.economy_stats = file.economy_stats;
+        *res.tutorial_state = file.tutorial_state;
+        *res.maintenance_tracker = file.maintenance_tracker;
 
         zone_ev.send(ZoneTransitionEvent {
             to_airport: dest_airport,

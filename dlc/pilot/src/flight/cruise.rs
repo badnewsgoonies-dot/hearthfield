@@ -3,6 +3,20 @@
 use bevy::prelude::*;
 use crate::shared::*;
 
+/// Reference cargo weight for performance penalty normalisation (kg).
+const CARGO_WEIGHT_REF_KG: f32 = 5_000.0;
+/// Maximum climb-rate reduction fraction at full cargo load.
+const CARGO_CLIMB_PENALTY: f32 = 0.30;
+/// Maximum cruise-speed reduction fraction at full cargo load.
+const CARGO_SPEED_PENALTY: f32 = 0.10;
+
+/// Wind component along the flight heading.
+/// Positive = headwind (slows us), negative = tailwind (speeds us up).
+fn headwind_component(wind_speed: f32, wind_dir_deg: f32, heading_deg: f32) -> f32 {
+    let relative_deg = wind_dir_deg - heading_deg;
+    wind_speed * relative_deg.to_radians().cos()
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn update_flight(
     time: Res<Time>,
@@ -11,6 +25,7 @@ pub fn update_flight(
     weather_state: Res<WeatherState>,
     fleet: Res<Fleet>,
     aircraft_registry: Res<AircraftRegistry>,
+    mission_board: Res<MissionBoard>,
     mut phase_events: EventWriter<FlightPhaseChangeEvent>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
@@ -23,6 +38,13 @@ pub fn update_flight(
 
     let dt = time.delta_secs();
     flight_state.flight_time_secs += dt;
+
+    // Cargo weight from the active mission (0 if no mission)
+    let cargo_kg = mission_board
+        .active
+        .as_ref()
+        .map_or(0.0, |m| m.mission.cargo_kg);
+    let cargo_ratio = (cargo_kg / CARGO_WEIGHT_REF_KG).min(1.0);
 
     // Throttle control
     if input.throttle_up {
@@ -55,18 +77,36 @@ pub fn update_flight(
     };
     flight_state.fuel_remaining -= burn_rate * flight_state.throttle * dt / 60.0;
 
-    // Distance progress
-    let speed_nm_per_sec = flight_state.speed_knots / 3600.0;
-    flight_state.distance_remaining_nm -= speed_nm_per_sec * dt;
+    // ── Weather: wind effect on ground speed ────────────────────────────
+    // Headwind reduces ground speed; tailwind increases it.
+    let headwind = headwind_component(
+        weather_state.wind_speed_knots,
+        weather_state.wind_direction_deg,
+        flight_state.heading_deg,
+    );
+    // Wind factor: headwind (positive cos) slows us, tailwind speeds us up.
+    // Clamp so wind can't reverse or more than double ground speed.
+    let wind_factor = (1.0 - headwind / FLIGHT_SPEED_BASE.max(1.0)).clamp(0.5, 1.5);
 
-    // Turbulence effects
-    let turb = weather_state.turbulence_level;
-    flight_state.turbulence_shake = match turb {
+    // ── Weather: turbulence altitude variance ───────────────────────────
+    let turbulence_intensity = match weather_state.turbulence_level {
         TurbulenceLevel::None => 0.0,
         TurbulenceLevel::Light => 1.0,
         TurbulenceLevel::Moderate => 3.0,
         TurbulenceLevel::Severe => 6.0,
     };
+    flight_state.turbulence_shake = turbulence_intensity;
+
+    if turbulence_intensity > 0.0 {
+        // Altitude jitter proportional to turbulence intensity (±feet)
+        let t = time.elapsed_secs();
+        let alt_variance = (t * 7.3).sin() * turbulence_intensity * 15.0;
+        flight_state.altitude_ft = (flight_state.altitude_ft + alt_variance * dt).max(0.0);
+    }
+
+    // Distance progress (ground speed accounts for wind)
+    let speed_nm_per_sec = flight_state.speed_knots * wind_factor / 3600.0;
+    flight_state.distance_remaining_nm -= speed_nm_per_sec * dt;
 
     // Passenger happiness affected by turbulence
     if flight_state.turbulence_shake > 2.0 {
@@ -120,8 +160,10 @@ pub fn update_flight(
 
     match flight_state.phase {
         FlightPhase::Climb => {
+            // Cargo weight reduces climb rate (heavier = slower climb)
+            let cargo_climb_factor = 1.0 - cargo_ratio * CARGO_CLIMB_PENALTY;
             flight_state.altitude_ft +=
-                (CLIMB_RATE_FT_PER_MIN / 60.0) * flight_state.throttle * dt;
+                (CLIMB_RATE_FT_PER_MIN / 60.0) * flight_state.throttle * cargo_climb_factor * dt;
         }
         FlightPhase::Descent => {
             flight_state.altitude_ft =
@@ -140,5 +182,8 @@ pub fn update_flight(
     } else {
         FLIGHT_SPEED_BASE
     };
-    flight_state.speed_knots = base_speed * flight_state.throttle;
+
+    // Cargo weight reduces cruise speed slightly
+    let cargo_speed_factor = 1.0 - cargo_ratio * CARGO_SPEED_PENALTY;
+    flight_state.speed_knots = base_speed * flight_state.throttle * cargo_speed_factor;
 }

@@ -37,8 +37,15 @@ pub fn handle_mine_entry(
                 fade_in: true,
             });
 
-            // If player has elevator floors, show elevator selection
-            if !mine_state.elevator_floors.is_empty() {
+            // If mine_state.current_floor is already set (e.g. restored from
+            // a save file), resume on that floor instead of resetting to 1.
+            if mine_state.current_floor > 0 {
+                let floor = mine_state.current_floor;
+                floor_req.pending = true;
+                floor_req.floor = floor;
+                active_floor.spawned = false;
+            } else if !mine_state.elevator_floors.is_empty() {
+                // If player has elevator floors, show elevator selection
                 elevator_ui.0 = true;
                 // Don't spawn floor yet; wait for elevator selection
             } else {

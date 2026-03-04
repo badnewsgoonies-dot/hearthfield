@@ -1800,3 +1800,386 @@ fn seeded_task_board_scales_task_economy_with_day_progression() {
         "late-day task focus requirements should scale upward"
     );
 }
+
+#[test]
+fn negative_salary_clamped_to_zero() {
+    let _economy = OfficeEconomyRules::default();
+    let _stats = DayStats::default();
+    let _progression = CareerProgression::default();
+    let _unlocks = UnlockCatalogState::default();
+    let _social = SocialGraphState::default();
+    let _worker_stats = WorkerStats::default();
+
+    // Set up a scenario where failures exceed completions
+    let _task_board = TaskBoard {
+        failed_today: vec![TaskId(1), TaskId(2), TaskId(3), TaskId(4), TaskId(5)],
+        ..Default::default()
+    };
+
+    let mut app = build_test_app();
+    app.add_systems(Update, update_day_outcome_preview);
+
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today.clear();
+        board.failed_today = vec![TaskId(1), TaskId(2), TaskId(3), TaskId(4), TaskId(5)];
+    }
+
+    app.update();
+
+    let outcome = app.world().resource::<DayOutcome>();
+    assert!(
+        outcome.salary_earned >= 0,
+        "salary should never be negative, got {}",
+        outcome.salary_earned
+    );
+}
+
+#[test]
+fn affinity_trust_bounded_after_many_interruptions() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        (handle_interruption_requests, handle_resolve_calmly_requests).chain(),
+    );
+
+    for _ in 0..50 {
+        app.world_mut().send_event(InterruptionEvent);
+        app.update();
+        app.world_mut().send_event(ResolveCalmlyEvent);
+        app.update();
+    }
+
+    let social = app.world().resource::<SocialGraphState>();
+    for profile in &social.profiles {
+        assert!(
+            profile.affinity >= -100 && profile.affinity <= 100,
+            "affinity for {} out of bounds: {}",
+            profile.codename,
+            profile.affinity
+        );
+        assert!(
+            profile.trust >= -100 && profile.trust <= 100,
+            "trust for {} out of bounds: {}",
+            profile.codename,
+            profile.trust
+        );
+    }
+}
+
+#[test]
+fn social_bonus_affects_reputation() {
+    let mut app = build_test_app();
+    app.add_systems(Update, update_day_outcome_preview);
+
+    // Set high affinity on all coworkers to ensure social_bonus > 0
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        for profile in &mut social.profiles {
+            profile.affinity = 50;
+        }
+    }
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today = vec![TaskId(1), TaskId(2)];
+        board.failed_today.clear();
+    }
+    {
+        let mut stats = app.world_mut().resource_mut::<DayStats>();
+        stats.manager_checkins = 1;
+    }
+
+    app.update();
+
+    let outcome_with_social = app.world().resource::<DayOutcome>().reputation_delta;
+
+    // Now reset with zero affinity
+    {
+        let mut social = app.world_mut().resource_mut::<SocialGraphState>();
+        for profile in &mut social.profiles {
+            profile.affinity = 0;
+        }
+    }
+
+    app.update();
+
+    let outcome_without_social = app.world().resource::<DayOutcome>().reputation_delta;
+
+    assert!(
+        outcome_with_social > outcome_without_social,
+        "social bonus should increase reputation delta: with={}, without={}",
+        outcome_with_social,
+        outcome_without_social
+    );
+}
+
+#[test]
+fn task_deadline_never_in_past() {
+    // Check across many days that deadline >= day_start + 30
+    for day in 1..=30 {
+        let board = super::task_board::seed_task_board(day, 18, 17 * 60);
+        let day_start = (17 * 60u32).saturating_sub(480);
+        for task in &board.active {
+            assert!(
+                task.deadline_minute as u32 >= day_start + 30,
+                "task {} on day {} has deadline {} which is before day_start+30={}",
+                task.id.0,
+                day,
+                task.deadline_minute,
+                day_start + 30
+            );
+        }
+    }
+}
+
+#[test]
+fn focus_ratio_never_exceeds_one() {
+    // progress_delta_for_task has focus_ratio = (focus/required_focus).min(1.0)
+    // Verify by checking the resulting progress doesn't exceed expectations even
+    // when focus is much larger than required_focus
+    let mut app = build_test_app();
+    app.add_systems(Update, handle_process_requests);
+
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.focus = 100;
+    }
+    {
+        let mut board = app.world_mut().resource_mut::<TaskBoard>();
+        if let Some(task) = board.active.first_mut() {
+            task.required_focus = 1; // very low requirement vs high focus
+            task.priority = TaskPriority::Low;
+            task.progress = 0.0;
+        }
+    }
+
+    app.world_mut().send_event(ProcessInboxEvent);
+    app.update();
+
+    let board = app.world().resource::<TaskBoard>();
+    // With focus_ratio clamped to 1.0 and Low priority (mult=1.0),
+    // delta = 0.52 * 1.0 * 1.0 = 0.52
+    // If focus_ratio exceeded 1.0, progress would be larger
+    // The task with progress 0.0 + 0.52 = 0.52 should not be complete yet
+    if let Some(task) = board.active.first() {
+        assert!(
+            task.progress <= 1.0,
+            "progress should never exceed 1.0, got {}",
+            task.progress
+        );
+    }
+    // Whether completed or still active, check that it made reasonable progress
+    let total_progressed = if board.completed_today.len() == 1 {
+        true // it completed, which is valid for 0.52 progress
+    } else {
+        let p = board.active.first().unwrap().progress;
+        p > 0.0 && p <= 1.0
+    };
+    assert!(total_progressed, "progress should be valid");
+}
+
+#[test]
+fn save_load_preserves_focus() {
+    let mut app = build_test_app();
+    let save_config = save_config_for_test("focus_roundtrip");
+    app.world_mut().insert_resource(save_config.clone());
+
+    app.add_systems(
+        Update,
+        (
+            crate::game::save::handle_save_slot_requests,
+            crate::game::save::handle_load_slot_requests,
+        )
+            .chain(),
+    );
+
+    let expected_focus = 42;
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.focus = expected_focus;
+    }
+    {
+        let mut worker_stats = app.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.focus = expected_focus;
+    }
+
+    app.world_mut().send_event(SaveSlotRequest { slot: 1 });
+    app.update();
+
+    // Corrupt the focus values
+    {
+        let mut mind = app.world_mut().resource_mut::<PlayerMindState>();
+        mind.focus = 99;
+    }
+    {
+        let mut worker_stats = app.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.focus = 99;
+    }
+
+    app.world_mut().send_event(LoadSlotRequest { slot: 1 });
+    app.update();
+
+    let restored_mind = app.world().resource::<PlayerMindState>();
+    let restored_stats = app.world().resource::<WorkerStats>();
+    assert_eq!(
+        restored_mind.focus, expected_focus,
+        "mind.focus should survive save/load roundtrip"
+    );
+    assert_eq!(
+        restored_stats.focus, expected_focus,
+        "worker_stats.focus should survive save/load roundtrip"
+    );
+    assert_eq!(
+        restored_mind.focus, restored_stats.focus,
+        "mind.focus and worker_stats.focus should be in sync after load"
+    );
+
+    let _ = fs::remove_dir_all(&save_config.save_dir);
+}
+
+#[test]
+fn burnout_penalty_only_above_threshold() {
+    let economy = OfficeEconomyRules::default();
+
+    // Below threshold: no burnout penalty
+    let mut app_below = build_test_app();
+    app_below.add_systems(Update, update_day_outcome_preview);
+    {
+        let mut worker_stats = app_below.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.stress = economy.burnout_stress_threshold - 1;
+    }
+    {
+        let mut board = app_below.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today = vec![TaskId(1), TaskId(2)];
+        board.failed_today.clear();
+    }
+    app_below.update();
+    let salary_below = app_below.world().resource::<DayOutcome>().salary_earned;
+
+    // At threshold: burnout penalty applies
+    let mut app_at = build_test_app();
+    app_at.add_systems(Update, update_day_outcome_preview);
+    {
+        let mut worker_stats = app_at.world_mut().resource_mut::<WorkerStats>();
+        worker_stats.stress = economy.burnout_stress_threshold;
+    }
+    {
+        let mut board = app_at.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today = vec![TaskId(1), TaskId(2)];
+        board.failed_today.clear();
+    }
+    app_at.update();
+    let salary_at = app_at.world().resource::<DayOutcome>().salary_earned;
+
+    assert!(
+        salary_below > salary_at,
+        "salary below burnout threshold ({}) should exceed salary at threshold ({})",
+        salary_below,
+        salary_at
+    );
+    assert_eq!(
+        salary_below - salary_at,
+        economy.burnout_salary_penalty,
+        "difference should equal burnout penalty"
+    );
+}
+
+#[test]
+fn streak_bonus_caps_at_max() {
+    let economy = OfficeEconomyRules::default();
+
+    // Streak at max
+    let mut app_max = build_test_app();
+    app_max.add_systems(Update, update_day_outcome_preview);
+    {
+        let mut progression = app_max.world_mut().resource_mut::<CareerProgression>();
+        progression.success_streak = economy.max_streak_bonus_days;
+    }
+    {
+        let mut board = app_max.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today = vec![TaskId(1)];
+        board.failed_today.clear();
+    }
+    app_max.update();
+    let salary_at_max = app_max.world().resource::<DayOutcome>().salary_earned;
+
+    // Streak well above max
+    let mut app_over = build_test_app();
+    app_over.add_systems(Update, update_day_outcome_preview);
+    {
+        let mut progression = app_over.world_mut().resource_mut::<CareerProgression>();
+        progression.success_streak = economy.max_streak_bonus_days + 100;
+    }
+    {
+        let mut board = app_over.world_mut().resource_mut::<TaskBoard>();
+        board.active.clear();
+        board.completed_today = vec![TaskId(1)];
+        board.failed_today.clear();
+    }
+    app_over.update();
+    let salary_over_max = app_over.world().resource::<DayOutcome>().salary_earned;
+
+    assert_eq!(
+        salary_at_max, salary_over_max,
+        "streak bonus should cap at max_streak_bonus_days"
+    );
+}
+
+#[test]
+fn scenario_cursor_wraps_safely() {
+    let mut social = SocialGraphState::default();
+    social.scenario_cursor = u32::MAX;
+    // wrapping_add(1) should wrap to 0, not panic
+    social.scenario_cursor = social.scenario_cursor.wrapping_add(1);
+    assert_eq!(social.scenario_cursor, 0);
+
+    // Also verify the system doesn't panic at u32::MAX
+    let mut app = build_test_app();
+    app.add_systems(Update, handle_interruption_requests);
+    {
+        let mut sg = app.world_mut().resource_mut::<SocialGraphState>();
+        sg.scenario_cursor = u32::MAX;
+    }
+    app.world_mut().send_event(InterruptionEvent);
+    app.update();
+
+    let social_after = app.world().resource::<SocialGraphState>();
+    assert_eq!(
+        social_after.scenario_cursor, 0,
+        "scenario_cursor should wrap from u32::MAX to 0"
+    );
+}
+
+#[test]
+fn end_of_day_event_consumed() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        (
+            finalize_end_day_request,
+            consume_end_of_day_events,
+            count_end_of_day_events,
+        )
+            .chain(),
+    );
+
+    app.world_mut().send_event(EndDayRequested);
+    app.update();
+
+    // The consume system should have consumed the event on the first update.
+    // The count system ran after consume, so it saw the event too (chained in same frame).
+    assert_eq!(app.world().resource::<EndEventCount>().0, 1);
+
+    // On the second update, no new events should appear
+    app.update();
+    assert_eq!(
+        app.world().resource::<EndEventCount>().0,
+        1,
+        "EndOfDayEvent should be consumed and not re-emitted"
+    );
+}

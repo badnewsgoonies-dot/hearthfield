@@ -255,6 +255,7 @@ pub fn apply_day_summary_rollover(
     mut unlocks: ResMut<UnlockCatalogState>,
     mut worker_stats: ResMut<WorkerStats>,
     mut career: ResMut<PlayerCareerState>,
+    mut mind: ResMut<PlayerMindState>,
 ) {
     if !clock.ended {
         return;
@@ -272,6 +273,8 @@ pub fn apply_day_summary_rollover(
     career.reputation = (career.reputation + day_outcome.reputation_delta).clamp(-100, 100);
     worker_stats.reputation = career.reputation;
     worker_stats.normalize();
+    mind.stress = worker_stats.stress;
+    mind.focus = worker_stats.focus;
 
     if day_outcome.completed_tasks > 0 && day_outcome.failed_tasks == 0 {
         progression.success_streak = progression.success_streak.saturating_add(1);

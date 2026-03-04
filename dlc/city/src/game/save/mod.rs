@@ -485,6 +485,8 @@ pub fn apply_snapshot(
     day_stats.coworker_helps = snapshot.day_stats.coworker_helps;
 
     mind.pending_interruptions = snapshot.pending_interruptions;
+    mind.stress = worker_stats.stress;
+    mind.focus = worker_stats.focus;
     progression.level = snapshot.progression.level.max(1);
     progression.xp = snapshot.progression.xp;
     progression.success_streak = snapshot.progression.success_streak;
