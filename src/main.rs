@@ -15,6 +15,7 @@ mod save;
 mod data;
 
 use bevy::prelude::*;
+use bevy::asset::AssetMetaCheck;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::window::{PresentMode, WindowResolution};
 
@@ -24,6 +25,10 @@ fn main() {
     App::new()
         .add_plugins(
             DefaultPlugins
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Hearthfield".into(),
