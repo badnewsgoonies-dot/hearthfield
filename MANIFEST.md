@@ -10,7 +10,7 @@
 
 ## Type Contract
 - File: `src/shared/mod.rs` (2,252 lines)
-- Checksum: `a484c5ec249c9b2acc9cae850b42dfa37e6c350f8d126db30f5f517958939e90`
+- Checksum: `a6b95251fcc56437ba0b21ec73b407b50861b2cf06183a2689a93d82ea4d80dc`
 - Status: FROZEN — no worker may modify
 - Verify: `shasum -a 256 -c .contract.sha256`
 

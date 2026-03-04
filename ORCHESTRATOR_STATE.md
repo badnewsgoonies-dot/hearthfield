@@ -18,16 +18,25 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 - Use `subagent_type: "Explore"` for read-only investigation
 - These are Claude sub-agents, more expensive per the user's preference
 
-## Current Phase: Wave 6 — Cross-Project UI Parity (COMPLETE)
-
-### Branch: claude/setup-orchestration-framework-L8ILN
+## Current Phase: Wave 7 — Audit Fix Campaign (COMPLETE)
 
 ### Waves 1-3 (COMPLETED) — 7 bugs + 10 fixes + 3 UI screens
 ### Wave 4a-d (COMPLETED) — DLC audit, pilot critical fixes, test coverage, deep parity
 ### Wave 5 (COMPLETED — 84cb491) — Pilot DLC: 12 GameState variants, 12 screens wired, economy UI, inventory
 
 ### Wave 6a: Main Game UI Completion (COMPLETED — 7b508ca)
-- Calendar overlay (F1): 4x7 grid, festivals, NPC birthdays, current day highlight
+### Wave 6b: City DLC Full UI Layer (COMPLETED — 65dd8c7)
+
+### Wave 7: Deep Research Audit Fixes (COMPLETED — 1dc3680)
+Source: External deep research audit verified against code by orchestrator.
+5 confirmed bugs, all fixed in 2 commits (contract amendment + 3 parallel workers):
+- R key collision: open_relationships moved KeyR→KeyL (contract amendment + re-checksum)
+- Animal atlas mismatch: character_spritesheet.png slicing 16×16/12×16 → 48×48/4×4 (matches actual 192×192)
+- Hotbar icon sizing: 28px→32px (integer 2× of 16px source)
+- Bed sleep cutscene: interaction handler no longer preempts trigger_sleep's cutscene flow
+- Dynamic key prompts: HUD strings now derive from KeyBindings resource instead of hardcoded [F]/[R]
+Regression audit: all 5 PASS, 0 new issues, gates green.
+Cost: 5 premium requests. Time: ~5 min wall clock. Scope violations: 0.- Calendar overlay (F1): 4x7 grid, festivals, NPC birthdays, current day highlight
 - Statistics overlay (F2): all 10 PlayStats fields, two-column layout
 - Settings overlay (F4): volume control + keybinds display
 - Overlay pattern: no shared/mod.rs changes, contract intact (shasum OK)
