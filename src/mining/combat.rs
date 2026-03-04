@@ -215,6 +215,7 @@ pub fn enemy_attack_player(
     mut player_state: ResMut<PlayerState>,
     mut iframes: ResMut<PlayerIFrames>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
@@ -242,10 +243,16 @@ pub fn enemy_attack_player(
         let dist = (grid_pos.x - px).abs() + (grid_pos.y - py).abs();
         if dist <= 1 {
             // Attack!
-            player_state.health = (player_state.health - monster.damage).max(0.0);
+            let damage = monster.damage;
+            player_state.health = (player_state.health - damage).max(0.0);
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "player_hurt".to_string(),
+            });
+
+            toast_events.send(ToastEvent {
+                message: format!("-{} HP", damage as i32),
+                duration_secs: 1.5,
             });
 
             // Grant brief invincibility to prevent multi-hit stacking

@@ -65,6 +65,17 @@ pub fn catch_fish(
         quantity: 1,
     });
 
+    // Toast for the catch
+    let catch_name = fish_registry
+        .fish
+        .get(&valid_id)
+        .map(|f| f.name.clone())
+        .unwrap_or_else(|| valid_id.clone());
+    toast_events.send(ToastEvent {
+        message: format!("Caught a {}!", catch_name),
+        duration_secs: 2.5,
+    });
+
     // ── Fish Encyclopedia ──────────────────────────────────────────────────
     let total_days = calendar.total_days_elapsed();
     let is_new = encyclopedia.record_catch(&valid_id, total_days, calendar.season);

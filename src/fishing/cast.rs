@@ -252,6 +252,7 @@ pub fn handle_bite_reaction_window(
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
     skill: Res<FishingSkill>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     if fishing_state.phase != FishingPhase::BitePending {
         return;
@@ -310,6 +311,10 @@ pub fn handle_bite_reaction_window(
         next_state.set(GameState::Fishing);
     } else if reaction_expired {
         // Fish got away — too slow
+        toast_events.send(ToastEvent {
+            message: "The fish got away!".into(),
+            duration_secs: 2.0,
+        });
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         let fs: &mut FishingState = &mut fishing_state;
         let ns: &mut NextState<GameState> = &mut next_state;

@@ -56,6 +56,7 @@ pub fn handle_harvest_attempt(
     mut item_pickup_events: EventWriter<ItemPickupEvent>,
     mut crop_harvested_events: EventWriter<CropHarvestedEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     crop_registry: Res<CropRegistry>,
 ) {
     for event in harvest_events.read() {
@@ -71,7 +72,7 @@ pub fn handle_harvest_attempt(
         ];
 
         for target_pos in candidates {
-            if try_harvest_at(
+            if let Some(crop_name) = try_harvest_at(
                 target_pos,
                 &mut farm_state,
                 &mut farm_entities,
@@ -81,13 +82,17 @@ pub fn handle_harvest_attempt(
                 &crop_registry,
             ) {
                 sfx_events.send(PlaySfxEvent { sfx_id: "harvest".to_string() });
+                if !crop_name.is_empty() {
+                    toast_events.send(ToastEvent { message: format!("Harvested {}!", crop_name), duration_secs: 2.0 });
+                }
                 break; // Only harvest one crop per input.
             }
         }
     }
 }
 
-/// Try to harvest the crop at `pos`. Returns true if a harvest occurred.
+/// Try to harvest the crop at `pos`. Returns `Some(crop_name)` if a harvest
+/// occurred (empty string for dead crop removal), or `None` if nothing happened.
 fn try_harvest_at(
     pos: (i32, i32),
     farm_state: &mut FarmState,
@@ -96,19 +101,19 @@ fn try_harvest_at(
     item_pickup_events: &mut EventWriter<ItemPickupEvent>,
     crop_harvested_events: &mut EventWriter<CropHarvestedEvent>,
     crop_registry: &CropRegistry,
-) -> bool {
+) -> Option<String> {
     let Some(crop) = farm_state.crops.get(&pos) else {
-        return false;
+        return None;
     };
 
     if crop.dead {
         // Remove dead crop.
         despawn_crop(pos, farm_state, farm_entities, commands);
-        return true;
+        return Some(String::new());
     }
 
     let Some(def) = crop_registry.crops.get(&crop.crop_id).cloned() else {
-        return false;
+        return None;
     };
 
     // A crop is mature when current_stage == growth_days.len() (all stages done).
@@ -116,7 +121,7 @@ fn try_harvest_at(
     let crop_stage = crop.current_stage;
 
     if crop_stage < mature_stage {
-        return false; // Not ready.
+        return None; // Not ready.
     }
 
     // Harvest!
@@ -136,6 +141,8 @@ fn try_harvest_at(
         y: pos.1,
         quality: Some(quality),
     });
+
+    let crop_name = def.name.clone();
 
     if def.regrows {
         // Reset to regrow stage.  The crop goes back to the last stage and
@@ -163,7 +170,7 @@ fn try_harvest_at(
         }
     }
 
-    true
+    Some(crop_name)
 }
 
 /// Remove a crop from FarmState and despawn its entity.

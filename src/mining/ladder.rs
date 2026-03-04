@@ -68,6 +68,11 @@ pub fn handle_ladder_interaction(
 
             mine_state.current_floor = next_floor;
 
+            toast_events.send(ToastEvent {
+                message: format!("Floor {}", next_floor),
+                duration_secs: 1.5,
+            });
+
             // Track deepest floor
             if next_floor > mine_state.deepest_floor_reached {
                 mine_state.deepest_floor_reached = next_floor;

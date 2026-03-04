@@ -168,6 +168,7 @@ pub fn on_season_change(
     mut farm_entities: ResMut<FarmEntities>,
     mut commands: Commands,
     crop_registry: Res<CropRegistry>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for event in season_events.read() {
         let new_season = event.new_season;
@@ -189,10 +190,15 @@ pub fn on_season_change(
         }
 
         // Kill out-of-season crops immediately (mark dead, visual handled by render).
+        let had_deaths = !to_kill.is_empty();
         for pos in to_kill {
             if let Some(crop) = farm_state.crops.get_mut(&pos) {
                 crop.dead = true;
             }
+        }
+
+        if had_deaths {
+            toast_events.send(ToastEvent { message: "Some crops have withered...".into(), duration_secs: 3.0 });
         }
 
         // Winter also resets all soil back to untilled (frost kills tilled ground).
