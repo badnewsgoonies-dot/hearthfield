@@ -100,7 +100,7 @@ impl OfficeTask {
     }
 
     pub fn is_complete(&self) -> bool {
-        self.progress >= 1.0
+        self.progress >= 0.999
     }
 }
 
@@ -524,6 +524,14 @@ impl SocialGraphState {
 
     pub fn teammate_mut_by_id(&mut self, id: u8) -> Option<&mut CoworkerProfile> {
         self.profiles.iter_mut().find(|profile| profile.id == id)
+    }
+
+    pub fn average_affinity(&self) -> i32 {
+        if self.profiles.is_empty() {
+            return 0;
+        }
+        let total: i32 = self.profiles.iter().map(|p| p.affinity).sum();
+        total / self.profiles.len() as i32
     }
 
     pub fn teammate_for_help(&self, seed: u64, day_number: u32, help_count: u32) -> Option<u8> {

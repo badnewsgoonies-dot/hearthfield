@@ -6,7 +6,7 @@ use crate::game::events::{DayAdvanced, EndDayRequested, EndOfDayEvent, TaskFaile
 use crate::game::resources::{
     format_clock, CareerProgression, DayClock, DayOutcome, DayStats, InboxState,
     OfficeEconomyRules, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
-    TaskBoard, UnlockCatalogState, WorkerStats,
+    SocialGraphState, TaskBoard, UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
 
@@ -21,6 +21,7 @@ fn build_day_outcome(
     progression: &CareerProgression,
     economy: &OfficeEconomyRules,
     unlocks: &UnlockCatalogState,
+    social: &SocialGraphState,
 ) -> DayOutcome {
     let completed_tasks = task_board.completed_today.len() as u32;
     let failed_tasks = task_board.failed_today.len() as u32;
@@ -45,12 +46,14 @@ fn build_day_outcome(
         - burnout_penalty)
         .max(0);
 
+    let social_bonus = social.average_affinity() / 25;
     let reputation_delta = stats.manager_checkins as i32 * 2
         + stats.coworker_helps as i32 * 3
         + (completed_tasks as i32 / 6)
         - failed_tasks as i32
         - stats.panic_responses as i32 * 2
-        + progression.reputation_bonus(economy);
+        + progression.reputation_bonus(economy)
+        + social_bonus;
     let reputation_delta = reputation_delta + unlocks.reputation_bonus();
 
     let stress_delta = stats.interruptions_triggered as i32 * 3 + stats.panic_responses as i32 * 5
@@ -85,6 +88,7 @@ pub fn sync_taskboard_bridge(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn update_day_outcome_preview(
     stats: Res<DayStats>,
     task_board: Res<TaskBoard>,
@@ -92,6 +96,7 @@ pub fn update_day_outcome_preview(
     progression: Res<CareerProgression>,
     economy: Res<OfficeEconomyRules>,
     unlocks: Res<UnlockCatalogState>,
+    social: Res<SocialGraphState>,
     mut day_outcome: ResMut<DayOutcome>,
 ) {
     *day_outcome = build_day_outcome(
@@ -101,6 +106,7 @@ pub fn update_day_outcome_preview(
         &progression,
         &economy,
         &unlocks,
+        &social,
     );
 }
 
@@ -145,6 +151,7 @@ pub fn finalize_end_day_request(
             &params.progression,
             &params.economy,
             &params.unlocks,
+            &params.social,
         );
 
         let summary = EndOfDayEvent {
@@ -225,6 +232,7 @@ pub struct FinalizeEndDayParams<'w, 's> {
     progression: Res<'w, CareerProgression>,
     economy: Res<'w, OfficeEconomyRules>,
     unlocks: Res<'w, UnlockCatalogState>,
+    social: Res<'w, SocialGraphState>,
     day_outcome: ResMut<'w, DayOutcome>,
 }
 

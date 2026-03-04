@@ -94,7 +94,7 @@ pub fn handle_interruption_requests(
 
         let scenario =
             scenario_for_interrupt(run_config.seed, clock.day_number, social.scenario_cursor);
-        social.scenario_cursor = social.scenario_cursor.saturating_add(1);
+        social.scenario_cursor = social.scenario_cursor.wrapping_add(1);
 
         clock.advance(rules.interruption_minutes);
         mind.stress = (mind.stress + rules.interruption_stress_increase + scenario.stress_modifier)

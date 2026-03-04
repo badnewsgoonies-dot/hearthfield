@@ -95,27 +95,50 @@ pub fn evaluate_landing(
     }
 }
 
+// ── Landing quality scoring constants ─────────────────────────────────
+
+/// Speed factor thresholds (knots).
+const SPEED_GOOD_THRESHOLD: f32 = 80.0;
+const SPEED_OK_THRESHOLD: f32 = 120.0;
+
+/// Speed factor values for good / ok / fast landings.
+const SPEED_FACTOR_GOOD: f32 = 1.0;
+const SPEED_FACTOR_OK: f32 = 0.7;
+const SPEED_FACTOR_FAST: f32 = 0.3;
+
+/// Score component weights (must sum to 1.0).
+const WEIGHT_SPEED: f32 = 0.4;
+const WEIGHT_FLAPS: f32 = 0.2;
+const WEIGHT_PASSENGERS: f32 = 0.4;
+
+/// Landing grade thresholds applied to the composite score.
+const GRADE_PERFECT_THRESHOLD: f32 = 0.9;
+const GRADE_GOOD_THRESHOLD: f32 = 0.7;
+const GRADE_ACCEPTABLE_THRESHOLD: f32 = 0.5;
+const GRADE_HARD_THRESHOLD: f32 = 0.3;
+
 fn evaluate_landing_quality(state: &FlightState) -> LandingGrade {
-    let speed_factor = if state.speed_knots < 80.0 {
-        1.0
-    } else if state.speed_knots < 120.0 {
-        0.7
+    let speed_factor = if state.speed_knots < SPEED_GOOD_THRESHOLD {
+        SPEED_FACTOR_GOOD
+    } else if state.speed_knots < SPEED_OK_THRESHOLD {
+        SPEED_FACTOR_OK
     } else {
-        0.3
+        SPEED_FACTOR_FAST
     };
 
     let flaps_factor = if state.flaps_deployed { 1.0 } else { 0.5 };
     let passenger_factor = state.passengers_happy / 100.0;
 
-    let score = speed_factor * 0.4 + flaps_factor * 0.2 + passenger_factor * 0.4;
+    let score =
+        speed_factor * WEIGHT_SPEED + flaps_factor * WEIGHT_FLAPS + passenger_factor * WEIGHT_PASSENGERS;
 
-    if score > 0.9 {
+    if score > GRADE_PERFECT_THRESHOLD {
         LandingGrade::Perfect
-    } else if score > 0.7 {
+    } else if score > GRADE_GOOD_THRESHOLD {
         LandingGrade::Good
-    } else if score > 0.5 {
+    } else if score > GRADE_ACCEPTABLE_THRESHOLD {
         LandingGrade::Acceptable
-    } else if score > 0.3 {
+    } else if score > GRADE_HARD_THRESHOLD {
         LandingGrade::Hard
     } else {
         LandingGrade::Rough

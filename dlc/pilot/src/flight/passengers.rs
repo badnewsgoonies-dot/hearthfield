@@ -156,7 +156,7 @@ impl Default for CabinState {
 /// Update passenger mood based on turbulence, announcements, and service.
 pub fn update_passenger_mood(
     time: Res<Time>,
-    flight_state: Res<FlightState>,
+    mut flight_state: ResMut<FlightState>,
     weather: Res<WeatherState>,
     mut cabin: ResMut<CabinState>,
     mut toast_events: EventWriter<ToastEvent>,
@@ -183,6 +183,7 @@ pub fn update_passenger_mood(
 
     // Apply to flight_state's passenger happiness
     let new_happy = (flight_state.passengers_happy + net_change).clamp(0.0, 100.0);
+    flight_state.passengers_happy = new_happy;
     let new_mood = PassengerMood::from_satisfaction(new_happy);
 
     // Notify on mood change

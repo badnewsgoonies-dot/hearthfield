@@ -114,13 +114,18 @@ pub fn update_flight(
     }
 
     // Altitude changes during climb/descent
+    // Rates are in ft/min; divide by 60.0 to get ft/sec for per-frame delta.
+    const CLIMB_RATE_FT_PER_MIN: f32 = 2000.0;
+    const DESCENT_RATE_FT_PER_MIN: f32 = 1500.0;
+
     match flight_state.phase {
         FlightPhase::Climb => {
-            flight_state.altitude_ft += 2000.0 * flight_state.throttle * dt;
+            flight_state.altitude_ft +=
+                (CLIMB_RATE_FT_PER_MIN / 60.0) * flight_state.throttle * dt;
         }
         FlightPhase::Descent => {
             flight_state.altitude_ft =
-                (flight_state.altitude_ft - 1500.0 * dt).max(2000.0);
+                (flight_state.altitude_ft - (DESCENT_RATE_FT_PER_MIN / 60.0) * dt).max(2000.0);
         }
         _ => {}
     }

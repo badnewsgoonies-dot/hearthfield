@@ -242,7 +242,7 @@ fn evaluate_condition(
         "mine_crawler"    => mine.deepest_floor_reached >= 20,
 
         // ── Crafting/Cooking ─────────────────────────────────────────────
-        "chef"            => stats.recipes_cooked >= 20,
+        "chef"            => stats.food_eaten >= 20,
 
         // ── Time / Seasons ───────────────────────────────────────────────
         "all_seasons"     => calendar.year >= 2 || stats.days_played >= 112,

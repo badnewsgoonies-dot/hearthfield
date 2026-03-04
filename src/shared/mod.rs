@@ -1449,8 +1449,10 @@ pub struct PlayStats {
     pub items_shipped: u64,
     pub gifts_given: u64,
     pub mine_floors_cleared: u64,
-    pub animals_petted: u64,
-    pub recipes_cooked: u64,
+    #[serde(alias = "animals_petted")]
+    pub animal_products_collected: u64,
+    #[serde(alias = "recipes_cooked")]
+    pub food_eaten: u64,
     pub total_gold_earned: u64,
     pub total_steps_taken: u64,
     pub days_played: u64,

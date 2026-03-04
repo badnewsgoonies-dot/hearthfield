@@ -107,7 +107,19 @@ pub struct SaveSlotInfoCache {
     pub slots: Vec<SaveSlotInfo>,
 }
 
-/// Statistics accumulated during gameplay. Persisted in SaveData.
+/// Save-file metadata accumulated during gameplay.
+///
+/// NOTE: `total_gold_earned` and `total_items_shipped` overlap with the same
+/// fields on `PlayStats` (shared) and `EconomyStats` (economy). All three
+/// resources track independently from separate event readers because they serve
+/// distinct consumers:
+///
+/// - `GameStatistics` feeds save-file header fields read by the slot picker.
+/// - `PlayStats` feeds achievement condition checks (`check_achievements`).
+/// - `EconomyStats` feeds the year-end evaluation scorer (`handle_evaluation`).
+///
+/// Consolidating would require cross-domain coupling, so the duplication is
+/// intentional.
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameStatistics {
     pub total_gold_earned: u64,
