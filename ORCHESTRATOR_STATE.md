@@ -18,89 +18,78 @@ copilot -p "$(cat objectives/fix-something.md)" --allow-all-tools --model claude
 - Use `subagent_type: "Explore"` for read-only investigation
 - These are Claude sub-agents, more expensive per the user's preference
 
-## Current Phase: Wave 3 — New UI Screens (IN PROGRESS)
+## Current Phase: Wave 4 — Pilot DLC Parity (IN PROGRESS)
 
 ### Branch: claude/setup-orchestration-framework-L8ILN
 
-### Wave 1 (COMPLETED — committed as 0cb9202)
-7 critical bugs fixed:
-1. Double gold deduction in shops (economy/shop.rs)
-2. Talking doesn't increase friendship (npcs/dialogue.rs)
-3. Talk quest requires gift instead of dialogue (npcs/quests.rs)
-4. Cooking restores stamina twice (crafting/cooking.rs)
-5. Kitchen accessible without upgrade (crafting/cooking.rs)
-6. Hay has no dispatch path (player/item_use.rs)
-7. Duplicate ToastEvent registration (world/mod.rs)
+### Wave 1 (COMPLETED — 0cb9202) — 7 critical bugs fixed
+### Wave 2a-d (COMPLETED — 80ba40a → 0510331) — 10 more fixes
+### Wave 3a-c (COMPLETED — 566b266 → 5ca809f) — 3 new UI screens (Journal, Relationships, Map)
 
-### Wave 2a (COMPLETED — committed as 80ba40a)
-- FeedTrough position: moved from (-10,-8) to (5,19) near barn (animals/spawning.rs)
-- Spouse happiness: now counts talking via DailyTalkTracker (npcs/romance.rs)
+### Wave 4a: DLC Audit + City Fixes (COMPLETED — 22ad657)
+- Removed duplicate city_office_worker_dlc/ directory
+- City DLC: task pacing (0.28 base), auto-interruptions, stress persistence, inbox balance
+- 40/40 city tests passing
 
-### Wave 2b (COMPLETED — committed as b1179e2)
-- Tool lock during upgrade (player/tools.rs)
-- Night-fish time wrapping for Eel/Squid/Anglerfish (fishing/fish_select.rs)
-- Crafts counter for Artisan achievement (crafting/bench.rs + cooking.rs)
-- EconomyStats serialization (economy/gold.rs + save/mod.rs)
+### Wave 4b: Pilot DLC Critical Fixes (COMPLETED — cd77e9a)
+- setup_new_game() registered + starter Cessna 172 + starter items
+- TransactionLog, GoldMilestones, FuelWarnings added to SaveFile
 
-### Wave 2c (COMPLETED — committed as 932f760 + d3c28da)
-- Chef achievement checks recipes_cooked instead of food_eaten (economy/achievements.rs)
-- recipes_cooked counter added to cooking (crafting/cooking.rs)
-- 7 missing animal ItemDefs added (data/items.rs): goat, duck, rabbit, pig, horse, cat, dog
-- Animal pen bounds fixed to be within farm map (animals/spawning.rs)
+### Wave 4c: Test Coverage + Main Save (COMPLETED — 7cf470e)
+- 12 new pilot headless tests (save roundtrip, airports, data validation) — 76/76 pass
+- 5 missing main game resources in FullSaveFile (ToolUpgradeQueue, ShippingBinQuality, FestivalState, FarmVisitTracker, ProcessingMachineRegistry)
+- Main game: 88/88 tests pass
 
-### Wave 2d (COMPLETED — committed as 0510331)
-- DailyTalkTracker + GiftDecayTracker persistence in save/load (npcs + save domains)
+### Wave 4d: Pilot DLC Deep Parity (COMPLETED — b6531a8)
+- 6 more resources persisted in pilot SaveFile (PilotSkills, StoryProgress, LoanPortfolio, InsuranceState, AirlineBusiness, RelationshipDetails)
+- Story missions injected into mission board with ★ STORY prefix
+- 3 UI screens wired (RadioComm, CrewLounge, Cutscene)
+- Shop buy buttons functional with PurchaseEvent + hover feedback
+- All gates green: main 88/88, pilot 76/76, city 40/40
 
-### Wave 3a (COMPLETED — committed as 566b266)
-- Quest Log / Journal screen (J key): 426 lines, GameState::Journal added to contract
-- Full quest list with cursor navigation, detail panel, all 6 objective types
+### REMAINING PILOT DLC GAPS (from deep audit)
+**High Priority:**
+- Load Game screen missing (main_menu.rs:94 TODO)
+- 7 more UI screens exist but need GameState variants added to shared/mod.rs: logbook, profile, achievement, settings, map, notification, tutorial/intro
+- Inventory screen is read-only (no use/equip items)
+- Loan/Insurance/Business UI screens missing (backend exists)
+- Aircraft upgrades have no purchase UI
 
-### Wave 3b (COMPLETED — committed as aadd6b6)
-- Relationships screen (R key): 330 lines, GameState::RelationshipsView + keybind
-- NPC list with heart display, birthday, loved gifts, marriageable status
+**Medium Priority:**
+- No dialogue branching/choices (crew conversations are monologue)
+- No romance/quest system for crew
+- settings.apply_settings is a no-op
+- PilotSkills systems not all registered in plugin
 
-### Wave 3c (IN PROGRESS — copilot worker running)
-- Full Map screen (M key): GameState::MapView, location display with player marker
+**Lower Priority:**
+- No crafting/cooking equivalent
+- Content volume thin (40 items vs main game's ~80)
 
-### REMAINING KNOWN ISSUES (lower priority)
-- Hay proximity check (player eats hay anywhere, should need trough)
-- Shop sell gold not tracked in PlayStats
-- Settings screen (no key bindings, audio, graphics options)
-- Calendar view screen
-- Character/Stats screen
-
-### AUDIT RESULTS (all verified)
-- Prior fix audit: 13/13 PASS — all fixes correctly applied
-- Second-0 gameplay trace: ZERO SOFT-LOCKS — fully playable from boot to minute 10
-- Game is ~80% feature-complete — core loops all work, 3 of 6 missing UI screens added
+### REMAINING MAIN GAME ISSUES (lower priority)
+- Hay proximity check, shop sell tracking, Settings/Calendar/Stats screens
 
 ### Game Completeness Snapshot
-| System | Status |
-|--------|--------|
-| Calendar & Time | 100% |
-| Crops & Farming | 100% |
-| Fishing | 100% (night fish fixed) |
-| Mining & Combat | 100% |
-| Animals | 100% (pens + ItemDefs fixed) |
-| NPCs & Schedules | 100% |
-| Romance & Marriage | 100% |
-| Crafting & Cooking | 100% (counters fixed) |
-| Shops & Economy | 100% (gold bug fixed) |
-| Save/Load | 100% (trackers + EconomyStats persisted) |
-| UI — Core | 100% |
-| UI — New screens | 50% (Journal, Relationships, Map added; Settings, Calendar, Stats remaining) |
+| System | Main Game | Pilot DLC | City DLC |
+|--------|-----------|-----------|----------|
+| Core Loop | 100% | 95% | 85% |
+| Save/Load | 100% | 100% (24 fields) | 100% |
+| Tests | 88/88 | 76/76 | 40/40 |
+| UI Screens | 85% | 50% (8/17 wired) | 60% |
+| Economy | 100% | 90% (backend done, UI gaps) | 80% |
+| NPCs/Crew | 100% | 80% (no romance/quests) | N/A |
+| Content Volume | 100% | 75% | 60% |
 
 ## DLC Status
 
-### dlc/city/ — City Office Worker (R6 in progress)
+### dlc/city/ — City Office Worker
 - ~5,000 LOC, 40/40 tests passing
-- **Fixed:** task pacing (0.28 base, 2-5 actions/task), auto-interruptions, stress persistence, inbox balance (12 items)
+- **Fixed:** task pacing, auto-interruptions, stress persistence, inbox balance
 - **Remaining:** main menu UI, HUD screen, day summary screen, content variety
 
-### dlc/pilot/ — Skywarden Flight Sim (production-ready)
-- ~31,000 LOC, 64/64 tests passing, 14 domains
-- Full flight sim loop, aircraft management, crew relationships, weather, missions
-- No known blockers
+### dlc/pilot/ — Skywarden Pilot Career Sim
+- ~31,000 LOC, 76/76 tests passing, 14 domains
+- **Fixed this session:** new game init, 9 save fields, story board, 3 UI screens, shop buttons, 12 tests
+- **Remaining:** Load Game UI, 7 more screen wirings, inventory interactions, loan/insurance/business UI, dialogue branching
 
 ## Architecture Quick Reference
 - Rust + Bevy 0.15 ECS, plugin-per-domain (15 domains, ~41k LOC)
