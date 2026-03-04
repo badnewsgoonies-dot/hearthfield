@@ -244,15 +244,15 @@ fn mine_description(rng: &mut impl Rng, giver: &str, quantity: u8, item_id: &str
 fn talk_description(rng: &mut impl Rng, giver: &str, target_npc: &str) -> String {
     match rng.gen_range(0..3) {
         0 => format!(
-            "{} wants you to check on {}. Give {} a gift to complete.",
-            giver, target_npc, target_npc
+            "{} wants you to check on {}. Have a chat with them.",
+            giver, target_npc
         ),
         1 => format!(
-            "{} needs a messenger. Visit {} and offer a gift.",
+            "{} needs a messenger. Visit {} and have a conversation.",
             giver, target_npc
         ),
         _ => format!(
-            "Please speak with {} on behalf of {} and bring a small gift.",
+            "Please speak with {} on behalf of {}.",
             target_npc, giver
         ),
     }
@@ -574,11 +574,11 @@ pub fn handle_quest_accepted(
 /// Tracked events:
 /// - `CropHarvestedEvent` -> `QuestObjective::Harvest`
 /// - `ItemPickupEvent` -> `QuestObjective::Deliver`, `QuestObjective::Mine`, `QuestObjective::Catch`
-/// - `GiftGivenEvent` -> `QuestObjective::Talk` (giving a gift = visiting the NPC)
+/// - `DialogueStartEvent` -> `QuestObjective::Talk` (talking to the NPC)
 pub fn track_quest_progress(
     mut crop_events: EventReader<CropHarvestedEvent>,
     mut item_events: EventReader<ItemPickupEvent>,
-    mut gift_events: EventReader<GiftGivenEvent>,
+    mut dialogue_events: EventReader<DialogueStartEvent>,
     mut quest_log: ResMut<QuestLog>,
     mut completed_writer: EventWriter<QuestCompletedEvent>,
 ) {
@@ -647,8 +647,8 @@ pub fn track_quest_progress(
         }
     }
 
-    // --- GiftGivenEvent -> Talk objectives ---
-    for event in gift_events.read() {
+    // --- DialogueStartEvent -> Talk objectives ---
+    for event in dialogue_events.read() {
         for quest in quest_log.active.iter_mut() {
             if let QuestObjective::Talk {
                 ref npc_name,
