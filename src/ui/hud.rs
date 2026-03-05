@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::shared::*;
+use crate::input::{TouchZoneState, TouchZone};
 use super::UiFontHandle;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1244,12 +1245,17 @@ pub fn despawn_floating_gold_text(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// TOUCH CONTROLS OVERLAY — visual-only on-screen buttons for mobile
+// TOUCH CONTROLS OVERLAY — functional on-screen buttons for mobile
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Marker component for the touch controls overlay root node.
 #[derive(Component)]
 pub struct TouchControlsOverlay;
+
+/// Marker for a touch overlay button that should highlight when its zone
+/// is pressed.  The `TouchZone` identifies which zone it maps to.
+#[derive(Component)]
+pub struct TouchButton(pub TouchZone);
 
 /// Tracks how long since the last keyboard or gamepad input was detected,
 /// used to decide when to show the touch overlay for mobile players.
@@ -1273,7 +1279,13 @@ impl Default for TouchOverlayTimer {
 /// Seconds of keyboard/gamepad inactivity before showing touch overlay.
 const TOUCH_OVERLAY_IDLE_THRESHOLD: f32 = 5.0;
 
-/// Spawns the touch controls overlay (hidden by default).
+/// Normal (unpressed) background alpha for touch buttons.
+const TOUCH_BTN_ALPHA: f32 = 0.18;
+/// Pressed (highlighted) background alpha for touch buttons.
+const TOUCH_BTN_PRESSED_ALPHA: f32 = 0.45;
+
+/// Spawns the touch controls overlay (hidden by default, auto-shows on idle).
+/// Each button is tagged with `TouchButton(zone)` for highlight feedback.
 pub fn spawn_touch_overlay(
     mut commands: Commands,
     font_handle: Res<UiFontHandle>,
@@ -1287,6 +1299,8 @@ pub fn spawn_touch_overlay(
         margin: UiRect::all(Val::Px(4.0)),
         ..default()
     };
+    let btn_bg = BackgroundColor(Color::srgba(1.0, 1.0, 1.0, TOUCH_BTN_ALPHA));
+    let btn_radius = BorderRadius::all(Val::Px(30.0)); // circular buttons
 
     commands
         .spawn((
@@ -1296,9 +1310,9 @@ pub fn spawn_touch_overlay(
                 bottom: Val::Px(8.0),
                 left: Val::Px(0.0),
                 right: Val::Px(0.0),
-                height: Val::Px(80.0),
+                height: Val::Auto,
                 justify_content: JustifyContent::SpaceBetween,
-                align_items: AlignItems::Center,
+                align_items: AlignItems::FlexEnd,
                 padding: UiRect::horizontal(Val::Px(16.0)),
                 ..default()
             },
@@ -1306,7 +1320,7 @@ pub fn spawn_touch_overlay(
             PickingBehavior::IGNORE,
         ))
         .with_children(|parent| {
-            // ── Left side: D-pad / movement indicator ──
+            // ── Left side: D-pad ──
             parent
                 .spawn(Node {
                     flex_direction: FlexDirection::Column,
@@ -1316,19 +1330,16 @@ pub fn spawn_touch_overlay(
                 .with_children(|dpad| {
                     // Top row: Up
                     dpad.spawn((
+                        TouchButton(TouchZone::DpadUp),
                         btn_style.clone(),
-                        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
-                        BorderRadius::all(Val::Px(8.0)),
+                        btn_bg,
+                        btn_radius,
                     ))
                     .with_children(|b| {
                         b.spawn((
-                            Text::new("W"),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 14.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
+                            Text::new("\u{25B2}"), // ▲
+                            TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                            TextColor(Color::WHITE),
                         ));
                     });
                     // Middle row: Left, Down, Right
@@ -1337,28 +1348,52 @@ pub fn spawn_touch_overlay(
                         ..default()
                     })
                     .with_children(|row| {
-                        for label in ["A", "S", "D"] {
-                            row.spawn((
-                                btn_style.clone(),
-                                BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
-                                BorderRadius::all(Val::Px(8.0)),
-                            ))
-                            .with_children(|b| {
-                                b.spawn((
-                                    Text::new(label),
-                                    TextFont {
-                                        font: font.clone(),
-                                        font_size: 14.0,
-                                        ..default()
-                                    },
-                                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
-                                ));
-                            });
-                        }
+                        // Left
+                        row.spawn((
+                            TouchButton(TouchZone::DpadLeft),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("\u{25C0}"), // ◀
+                                TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
+                        // Down
+                        row.spawn((
+                            TouchButton(TouchZone::DpadDown),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("\u{25BC}"), // ▼
+                                TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
+                        // Right
+                        row.spawn((
+                            TouchButton(TouchZone::DpadRight),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("\u{25B6}"), // ▶
+                                TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
                     });
                 });
 
-            // ── Right side: Action buttons ──
+            // ── Right side: Action buttons (diamond layout) ──
             parent
                 .spawn(Node {
                     flex_direction: FlexDirection::Column,
@@ -1366,47 +1401,68 @@ pub fn spawn_touch_overlay(
                     ..default()
                 })
                 .with_children(|actions| {
-                    // Top: "Item" (Y)
+                    // Top: Use / Tool (Space equivalent)
                     actions.spawn((
+                        TouchButton(TouchZone::ActionUse),
                         btn_style.clone(),
-                        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
-                        BorderRadius::all(Val::Px(8.0)),
+                        btn_bg,
+                        btn_radius,
                     ))
                     .with_children(|b| {
                         b.spawn((
-                            Text::new("Item"),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 11.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
+                            Text::new("Use"),
+                            TextFont { font: font.clone(), font_size: 12.0, ..default() },
+                            TextColor(Color::WHITE),
                         ));
                     });
-                    // Middle row: "Menu" (B), "Use" (X), "Talk" (A)
+                    // Middle row: Menu, Item, Talk
                     actions.spawn(Node {
                         flex_direction: FlexDirection::Row,
                         ..default()
                     })
                     .with_children(|row| {
-                        for label in ["Menu", "Use", "Talk"] {
-                            row.spawn((
-                                btn_style.clone(),
-                                BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
-                                BorderRadius::all(Val::Px(8.0)),
-                            ))
-                            .with_children(|b| {
-                                b.spawn((
-                                    Text::new(label),
-                                    TextFont {
-                                        font: font.clone(),
-                                        font_size: 11.0,
-                                        ..default()
-                                    },
-                                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
-                                ));
-                            });
-                        }
+                        // Left: Menu (Esc equivalent)
+                        row.spawn((
+                            TouchButton(TouchZone::ActionMenu),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("Menu"),
+                                TextFont { font: font.clone(), font_size: 11.0, ..default() },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
+                        // Center: Item / secondary (R equivalent)
+                        row.spawn((
+                            TouchButton(TouchZone::ActionItem),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("Item"),
+                                TextFont { font: font.clone(), font_size: 11.0, ..default() },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
+                        // Right: Talk / Interact (F equivalent)
+                        row.spawn((
+                            TouchButton(TouchZone::ActionTalk),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("Talk"),
+                                TextFont { font: font.clone(), font_size: 11.0, ..default() },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
                     });
                 });
         });
@@ -1414,22 +1470,36 @@ pub fn spawn_touch_overlay(
     commands.insert_resource(TouchOverlayTimer::default());
 }
 
-/// Shows the touch overlay when no keyboard/gamepad input detected for 5+ seconds,
-/// hides it immediately if keyboard or gamepad input is detected.
+/// Shows the touch overlay when no keyboard/gamepad input detected for a few
+/// seconds, or immediately if any touch input is detected.  Hides it when
+/// keyboard or gamepad input resumes.
+///
+/// Also updates the visual highlight on each TouchButton based on whether its
+/// corresponding touch zone is currently held.
+#[allow(clippy::too_many_arguments)]
 pub fn update_touch_overlay(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
+    touches: Res<bevy::input::touch::Touches>,
     gamepads: Query<&Gamepad>,
+    zone_state: Res<TouchZoneState>,
     mut timer: ResMut<TouchOverlayTimer>,
     mut overlay_query: Query<&mut Visibility, With<TouchControlsOverlay>>,
+    mut btn_query: Query<(&TouchButton, &mut BackgroundColor)>,
 ) {
     let has_keyboard = keys.get_just_pressed().next().is_some()
         || keys.get_pressed().next().is_some();
     let has_gamepad = gamepads.iter().next().is_some();
+    let has_touch = touches.iter().next().is_some()
+        || touches.iter_just_pressed().next().is_some();
 
     if has_keyboard || has_gamepad {
         timer.idle_secs = 0.0;
         timer.visible = false;
+    } else if has_touch {
+        // Touch detected — show immediately and reset idle timer.
+        timer.idle_secs = TOUCH_OVERLAY_IDLE_THRESHOLD;
+        timer.visible = true;
     } else {
         timer.idle_secs += time.delta_secs();
         if timer.idle_secs >= TOUCH_OVERLAY_IDLE_THRESHOLD {
@@ -1443,6 +1513,16 @@ pub fn update_touch_overlay(
         } else {
             Visibility::Hidden
         };
+    }
+
+    // Update button highlights based on zone state.
+    for (btn, mut bg) in &mut btn_query {
+        let alpha = if zone_state.is_held(btn.0) {
+            TOUCH_BTN_PRESSED_ALPHA
+        } else {
+            TOUCH_BTN_ALPHA
+        };
+        *bg = BackgroundColor(Color::srgba(1.0, 1.0, 1.0, alpha));
     }
 }
 

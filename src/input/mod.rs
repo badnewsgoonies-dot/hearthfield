@@ -1,20 +1,36 @@
 use bevy::prelude::*;
 use bevy::input::gamepad::{GamepadButton, GamepadAxis};
+use bevy::input::touch::Touches;
 use crate::shared::*;
 
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
+        app.init_resource::<TouchZoneState>();
         app.add_systems(
             PreUpdate,
-            (reset_and_read_input, manage_input_context).chain(),
+            (
+                reset_and_read_input,
+                process_touch_input,
+                manage_input_context,
+            )
+                .chain(),
         );
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // GAMEPAD HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+//
+// Bevy 0.15 uses component-based gamepad API: gamepads are entities with
+// a `Gamepad` component.  On native, `bevy_gilrs` spawns these entities.
+// On WASM, gilrs 0.11 includes a web backend (via web-sys / wasm-bindgen)
+// that reads navigator.getGamepads() and spawns the same entities.
+//
+// If no gamepad entities appear, the Query simply returns empty and all
+// gamepad code gracefully falls back to keyboard + touch input.
 // ═══════════════════════════════════════════════════════════════════════
 
 const STICK_DEAD_ZONE: f32 = 0.2;
@@ -68,11 +84,254 @@ fn read_dpad_just_pressed(gamepad: &Gamepad) -> (bool, bool, bool, bool) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// TOUCH INPUT
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Identifies a touch zone on the overlay.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TouchZone {
+    DpadUp,
+    DpadDown,
+    DpadLeft,
+    DpadRight,
+    ActionUse,    // top button — tool use (Space)
+    ActionTalk,   // right button — interact (F)
+    ActionItem,   // bottom button — tool secondary (R)
+    ActionMenu,   // left button — pause (Esc)
+}
+
+/// Tracks which touch zones are currently active and which were just pressed
+/// this frame. Updated each frame by `process_touch_input`.
+#[derive(Resource, Default)]
+pub struct TouchZoneState {
+    /// Which zones are currently held (touch active in the zone).
+    pub held: [bool; 8],
+    /// Which zones transitioned from not-held to held this frame.
+    pub just_pressed: [bool; 8],
+    /// Previous frame's held state (for edge detection).
+    prev_held: [bool; 8],
+}
+
+impl TouchZoneState {
+    fn zone_index(zone: TouchZone) -> usize {
+        match zone {
+            TouchZone::DpadUp => 0,
+            TouchZone::DpadDown => 1,
+            TouchZone::DpadLeft => 2,
+            TouchZone::DpadRight => 3,
+            TouchZone::ActionUse => 4,
+            TouchZone::ActionTalk => 5,
+            TouchZone::ActionItem => 6,
+            TouchZone::ActionMenu => 7,
+        }
+    }
+
+    pub fn is_held(&self, zone: TouchZone) -> bool {
+        self.held[Self::zone_index(zone)]
+    }
+
+    pub fn is_just_pressed(&self, zone: TouchZone) -> bool {
+        self.just_pressed[Self::zone_index(zone)]
+    }
+}
+
+/// Touch zone layout uses screen-percentage coordinates so it scales with
+/// any viewport size.  The d-pad occupies the bottom-left quadrant and the
+/// action buttons occupy the bottom-right quadrant.
+///
+/// All coordinates are in "percentage of screen" (0.0 – 1.0).
+/// Touch zones are circles defined by (center_x%, center_y%, radius%).
+struct ZoneDef {
+    zone: TouchZone,
+    /// Center X as fraction of screen width (0.0 = left, 1.0 = right).
+    cx: f32,
+    /// Center Y as fraction of screen height (0.0 = top, 1.0 = bottom).
+    cy: f32,
+    /// Radius as fraction of screen width.
+    radius: f32,
+}
+
+/// Zone definitions: percentage-based so they work at any resolution.
+/// Based on the visual overlay layout:
+///   D-pad center ~(12.5%, 81.5%) with ~6.25% radius per direction
+///   Action buttons center ~(87.5%, 81.5%) with ~5.2% radius per button
+const TOUCH_ZONES: &[ZoneDef] = &[
+    // D-pad directions (centered on bottom-left)
+    ZoneDef { zone: TouchZone::DpadUp,    cx: 0.125, cy: 0.72, radius: 0.055 },
+    ZoneDef { zone: TouchZone::DpadDown,  cx: 0.125, cy: 0.92, radius: 0.055 },
+    ZoneDef { zone: TouchZone::DpadLeft,  cx: 0.060, cy: 0.82, radius: 0.055 },
+    ZoneDef { zone: TouchZone::DpadRight, cx: 0.190, cy: 0.82, radius: 0.055 },
+    // Action buttons (centered on bottom-right)
+    ZoneDef { zone: TouchZone::ActionUse,  cx: 0.875, cy: 0.72, radius: 0.050 },
+    ZoneDef { zone: TouchZone::ActionTalk, cx: 0.940, cy: 0.82, radius: 0.050 },
+    ZoneDef { zone: TouchZone::ActionItem, cx: 0.875, cy: 0.92, radius: 0.050 },
+    ZoneDef { zone: TouchZone::ActionMenu, cx: 0.810, cy: 0.82, radius: 0.050 },
+];
+
+/// Reads Bevy's `Touches` resource and maps active touch positions to zones,
+/// then merges the results into `PlayerInput` (OR'd with keyboard/gamepad).
+///
+/// Runs after `reset_and_read_input` in PreUpdate so it can OR with existing
+/// keyboard and gamepad input.
+fn process_touch_input(
+    touches: Res<Touches>,
+    windows: Query<&Window>,
+    context: Res<InputContext>,
+    mut input: ResMut<PlayerInput>,
+    mut zone_state: ResMut<TouchZoneState>,
+) {
+    // Save previous held state for edge detection.
+    zone_state.prev_held = zone_state.held;
+    zone_state.held = [false; 8];
+    zone_state.just_pressed = [false; 8];
+
+    let Ok(window) = windows.get_single() else {
+        return;
+    };
+    let w = window.width();
+    let h = window.height();
+
+    if w < 1.0 || h < 1.0 {
+        return;
+    }
+
+    // Check all active touches against all zones.
+    for touch in touches.iter() {
+        let pos = touch.position();
+        // Bevy touch coordinates: (0,0) = top-left, Y increases downward.
+        let nx = pos.x / w; // normalized 0..1
+        let ny = pos.y / h; // normalized 0..1
+
+        for zone_def in TOUCH_ZONES {
+            let dx = nx - zone_def.cx;
+            let dy = ny - zone_def.cy;
+            // Use screen-width-normalized radius for both axes to keep circles
+            // roughly circular even on non-square viewports.  We scale the Y
+            // delta by the aspect ratio so a "radius" in screen-width units
+            // corresponds to the same physical distance vertically.
+            let aspect = w / h;
+            let dy_adj = dy * aspect;
+            if dx * dx + dy_adj * dy_adj <= zone_def.radius * zone_def.radius {
+                let idx = TouchZoneState::zone_index(zone_def.zone);
+                zone_state.held[idx] = true;
+            }
+        }
+    }
+
+    // Compute just_pressed: held this frame but not last frame.
+    for i in 0..8 {
+        zone_state.just_pressed[i] = zone_state.held[i] && !zone_state.prev_held[i];
+    }
+
+    // Also count any touch press as any_key (for title screen).
+    if touches.iter_just_pressed().next().is_some() {
+        input.any_key = true;
+    }
+
+    // Map zones to PlayerInput based on current context.
+    match *context {
+        InputContext::Disabled => {}
+
+        InputContext::Gameplay => {
+            // D-pad → movement
+            let mut touch_axis = Vec2::ZERO;
+            if zone_state.is_held(TouchZone::DpadUp) {
+                touch_axis.y += 1.0;
+            }
+            if zone_state.is_held(TouchZone::DpadDown) {
+                touch_axis.y -= 1.0;
+            }
+            if zone_state.is_held(TouchZone::DpadLeft) {
+                touch_axis.x -= 1.0;
+            }
+            if zone_state.is_held(TouchZone::DpadRight) {
+                touch_axis.x += 1.0;
+            }
+
+            if touch_axis != Vec2::ZERO {
+                // Merge with existing movement.
+                let combined = input.move_axis + touch_axis;
+                input.move_axis = if combined != Vec2::ZERO {
+                    combined.normalize()
+                } else {
+                    Vec2::ZERO
+                };
+            }
+
+            // Action buttons (just_pressed)
+            input.tool_use = input.tool_use
+                || zone_state.is_just_pressed(TouchZone::ActionUse);
+            input.attack = input.tool_use;
+            input.interact = input.interact
+                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+            input.tool_secondary = input.tool_secondary
+                || zone_state.is_just_pressed(TouchZone::ActionItem);
+            input.pause = input.pause
+                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+        }
+
+        InputContext::Menu => {
+            // D-pad → UI navigation (just_pressed)
+            input.ui_up = input.ui_up
+                || zone_state.is_just_pressed(TouchZone::DpadUp);
+            input.ui_down = input.ui_down
+                || zone_state.is_just_pressed(TouchZone::DpadDown);
+            input.ui_left = input.ui_left
+                || zone_state.is_just_pressed(TouchZone::DpadLeft);
+            input.ui_right = input.ui_right
+                || zone_state.is_just_pressed(TouchZone::DpadRight);
+            // Action buttons
+            input.ui_confirm = input.ui_confirm
+                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+            input.ui_cancel = input.ui_cancel
+                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+            input.pause = input.pause
+                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+        }
+
+        InputContext::Dialogue => {
+            // Talk → advance dialogue
+            input.interact = input.interact
+                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+            // D-pad up/down → choice selection
+            input.ui_up = input.ui_up
+                || zone_state.is_just_pressed(TouchZone::DpadUp);
+            input.ui_down = input.ui_down
+                || zone_state.is_just_pressed(TouchZone::DpadDown);
+            // Menu → cancel
+            input.ui_cancel = input.ui_cancel
+                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+        }
+
+        InputContext::Fishing => {
+            // Use button held → reel
+            input.fishing_reel = input.fishing_reel
+                || zone_state.is_held(TouchZone::ActionUse);
+            // Use button just pressed → cast
+            input.tool_use = input.tool_use
+                || zone_state.is_just_pressed(TouchZone::ActionUse);
+            // Menu → cancel fishing
+            input.ui_cancel = input.ui_cancel
+                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+        }
+
+        InputContext::Cutscene => {
+            // Any action button → skip cutscene
+            input.skip_cutscene = input.skip_cutscene
+                || zone_state.is_just_pressed(TouchZone::ActionUse)
+                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // INPUT READING
 // ═══════════════════════════════════════════════════════════════════════
 
 /// The single point where hardware input becomes game actions.
 /// Reads keyboard first, then merges gamepad input (OR'd together).
+/// Touch input is merged separately by `process_touch_input` which runs
+/// immediately after this system.
 #[allow(clippy::too_many_arguments)]
 fn reset_and_read_input(
     keys: Res<ButtonInput<KeyCode>>,
@@ -87,6 +346,8 @@ fn reset_and_read_input(
     interaction_claimed.0 = false;
 
     // Grab the first connected gamepad (if any).
+    // On native this is provided by bevy_gilrs; on WASM, gilrs's web backend
+    // reads navigator.getGamepads() and spawns gamepad entities the same way.
     let gp = gamepads.iter().next();
 
     input.any_key =
