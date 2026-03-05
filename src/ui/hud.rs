@@ -1242,3 +1242,217 @@ pub fn despawn_floating_gold_text(
         commands.entity(entity).despawn_recursive();
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// TOUCH CONTROLS OVERLAY — visual-only on-screen buttons for mobile
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Marker component for the touch controls overlay root node.
+#[derive(Component)]
+pub struct TouchControlsOverlay;
+
+/// Tracks how long since the last keyboard or gamepad input was detected,
+/// used to decide when to show the touch overlay for mobile players.
+#[derive(Resource)]
+pub struct TouchOverlayTimer {
+    /// Seconds since last keyboard/gamepad input.
+    pub idle_secs: f32,
+    /// Whether the overlay is currently visible.
+    pub visible: bool,
+}
+
+impl Default for TouchOverlayTimer {
+    fn default() -> Self {
+        Self {
+            idle_secs: 0.0,
+            visible: false,
+        }
+    }
+}
+
+/// Seconds of keyboard/gamepad inactivity before showing touch overlay.
+const TOUCH_OVERLAY_IDLE_THRESHOLD: f32 = 5.0;
+
+/// Spawns the touch controls overlay (hidden by default).
+pub fn spawn_touch_overlay(
+    mut commands: Commands,
+    font_handle: Res<UiFontHandle>,
+) {
+    let font = font_handle.0.clone();
+    let btn_style = Node {
+        width: Val::Px(60.0),
+        height: Val::Px(60.0),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        margin: UiRect::all(Val::Px(4.0)),
+        ..default()
+    };
+
+    commands
+        .spawn((
+            TouchControlsOverlay,
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(8.0),
+                left: Val::Px(0.0),
+                right: Val::Px(0.0),
+                height: Val::Px(80.0),
+                justify_content: JustifyContent::SpaceBetween,
+                align_items: AlignItems::Center,
+                padding: UiRect::horizontal(Val::Px(16.0)),
+                ..default()
+            },
+            Visibility::Hidden,
+            PickingBehavior::IGNORE,
+        ))
+        .with_children(|parent| {
+            // ── Left side: D-pad / movement indicator ──
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|dpad| {
+                    // Top row: Up
+                    dpad.spawn((
+                        btn_style.clone(),
+                        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
+                        BorderRadius::all(Val::Px(8.0)),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new("W"),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 14.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
+                        ));
+                    });
+                    // Middle row: Left, Down, Right
+                    dpad.spawn(Node {
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    })
+                    .with_children(|row| {
+                        for label in ["A", "S", "D"] {
+                            row.spawn((
+                                btn_style.clone(),
+                                BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
+                                BorderRadius::all(Val::Px(8.0)),
+                            ))
+                            .with_children(|b| {
+                                b.spawn((
+                                    Text::new(label),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 14.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
+                                ));
+                            });
+                        }
+                    });
+                });
+
+            // ── Right side: Action buttons ──
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|actions| {
+                    // Top: "Item" (Y)
+                    actions.spawn((
+                        btn_style.clone(),
+                        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
+                        BorderRadius::all(Val::Px(8.0)),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new("Item"),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 11.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
+                        ));
+                    });
+                    // Middle row: "Menu" (B), "Use" (X), "Talk" (A)
+                    actions.spawn(Node {
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    })
+                    .with_children(|row| {
+                        for label in ["Menu", "Use", "Talk"] {
+                            row.spawn((
+                                btn_style.clone(),
+                                BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
+                                BorderRadius::all(Val::Px(8.0)),
+                            ))
+                            .with_children(|b| {
+                                b.spawn((
+                                    Text::new(label),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 11.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
+                                ));
+                            });
+                        }
+                    });
+                });
+        });
+
+    commands.insert_resource(TouchOverlayTimer::default());
+}
+
+/// Shows the touch overlay when no keyboard/gamepad input detected for 5+ seconds,
+/// hides it immediately if keyboard or gamepad input is detected.
+pub fn update_touch_overlay(
+    time: Res<Time>,
+    keys: Res<ButtonInput<KeyCode>>,
+    gamepads: Query<&Gamepad>,
+    mut timer: ResMut<TouchOverlayTimer>,
+    mut overlay_query: Query<&mut Visibility, With<TouchControlsOverlay>>,
+) {
+    let has_keyboard = keys.get_just_pressed().next().is_some()
+        || keys.get_pressed().next().is_some();
+    let has_gamepad = gamepads.iter().next().is_some();
+
+    if has_keyboard || has_gamepad {
+        timer.idle_secs = 0.0;
+        timer.visible = false;
+    } else {
+        timer.idle_secs += time.delta_secs();
+        if timer.idle_secs >= TOUCH_OVERLAY_IDLE_THRESHOLD {
+            timer.visible = true;
+        }
+    }
+
+    for mut vis in &mut overlay_query {
+        *vis = if timer.visible {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+    }
+}
+
+/// Despawns the touch controls overlay (called on HUD exit).
+pub fn despawn_touch_overlay(
+    mut commands: Commands,
+    query: Query<Entity, With<TouchControlsOverlay>>,
+) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+    commands.remove_resource::<TouchOverlayTimer>();
+}

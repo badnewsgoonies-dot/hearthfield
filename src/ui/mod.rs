@@ -142,9 +142,9 @@ impl Plugin for UiPlugin {
         });
         app.add_systems(
             OnEnter(GameState::Playing),
-            (hud::preload_item_atlas, hud::preload_weather_icon_atlas, hud::spawn_hud),
+            (hud::preload_item_atlas, hud::preload_weather_icon_atlas, hud::spawn_hud, hud::spawn_touch_overlay),
         );
-        app.add_systems(OnExit(GameState::Playing), (hud::despawn_hud, hud::despawn_floating_gold_text));
+        app.add_systems(OnExit(GameState::Playing), (hud::despawn_hud, hud::despawn_floating_gold_text, hud::despawn_touch_overlay));
         app.add_systems(
             Update,
             (
@@ -162,6 +162,7 @@ impl Plugin for UiPlugin {
                 hud::update_objective_display,
                 hud::update_interaction_prompt,
                 hud::update_controls_hint,
+                hud::update_touch_overlay,
                 hud::spawn_floating_gold_text,
                 hud::update_floating_gold_text,
             )
