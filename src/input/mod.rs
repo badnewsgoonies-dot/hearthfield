@@ -264,7 +264,8 @@ fn process_touch_input(
             input.attack = input.tool_use;
             input.interact = input.interact
                 || zone_state.is_just_pressed(TouchZone::ActionTalk);
-            input.tool_secondary = input.tool_secondary
+            // Item button → open inventory (most useful on mobile)
+            input.open_inventory = input.open_inventory
                 || zone_state.is_just_pressed(TouchZone::ActionItem);
             input.pause = input.pause
                 || zone_state.is_just_pressed(TouchZone::ActionMenu);
@@ -280,13 +281,19 @@ fn process_touch_input(
                 || zone_state.is_just_pressed(TouchZone::DpadLeft);
             input.ui_right = input.ui_right
                 || zone_state.is_just_pressed(TouchZone::DpadRight);
-            // Action buttons
+            // Talk → confirm, Use → confirm (either button works)
             input.ui_confirm = input.ui_confirm
-                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+                || zone_state.is_just_pressed(TouchZone::ActionTalk)
+                || zone_state.is_just_pressed(TouchZone::ActionUse);
+            // Menu OR Item → cancel/close (both ways to exit a screen)
             input.ui_cancel = input.ui_cancel
-                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+                || zone_state.is_just_pressed(TouchZone::ActionMenu)
+                || zone_state.is_just_pressed(TouchZone::ActionItem);
             input.pause = input.pause
                 || zone_state.is_just_pressed(TouchZone::ActionMenu);
+            // Item also triggers open_inventory for toggle-close
+            input.open_inventory = input.open_inventory
+                || zone_state.is_just_pressed(TouchZone::ActionItem);
         }
 
         InputContext::Dialogue => {
