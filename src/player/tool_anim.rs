@@ -43,13 +43,24 @@ fn action_atlas_index(tool: ToolKind, frame: usize) -> usize {
     tool_offset + frame
 }
 
+/// Per-tool frame duration in seconds. Heavy tools feel weighty,
+/// light tools feel snappy. Total animation = duration × 4 frames.
+fn tool_frame_duration(tool: ToolKind) -> f32 {
+    match tool {
+        ToolKind::Axe => 0.15,        // 0.60s total — heavy, impactful chop
+        ToolKind::Pickaxe => 0.14,    // 0.56s total — heavy swing
+        ToolKind::Hoe => 0.12,        // 0.48s total — deliberate tilling
+        ToolKind::FishingRod => 0.11, // 0.44s total — quick cast flick
+        ToolKind::WateringCan => 0.10,// 0.40s total — smooth pour
+        ToolKind::Scythe => 0.08,     // 0.32s total — fast sweep
+    }
+}
+
 /// System: when PlayerAnimState is ToolUse, swap to action atlas and
-/// advance frames each tick. When animation completes, swap back to
-/// walk atlas and reset state to Idle.
-///
-/// Each frame of the tool animation advances once per system tick.
-/// At 60 FPS this yields ~0.067s per frame, 4 frames ≈ 0.27s total.
+/// advance frames on a timer. Each tool has a distinct frame duration
+/// so heavy tools feel weighty and light tools feel snappy.
 pub fn animate_tool_use(
+    time: Res<Time>,
     action_sprites: Option<Res<ActionSpriteData>>,
     walk_sprites: Res<PlayerSpriteData>,
     mut query: Query<(
@@ -59,23 +70,32 @@ pub fn animate_tool_use(
         &LogicalPosition,
     ), With<Player>>,
     mut impact_events: EventWriter<ToolImpactEvent>,
+    mut frame_timer: Local<f32>,
+    mut impact_fired: Local<bool>,
 ) {
     let Some(action_data) = action_sprites else { return };
     if !action_data.loaded { return; }
 
     for (entity, mut movement, mut sprite, logical_pos) in query.iter_mut() {
         if let PlayerAnimState::ToolUse { tool, frame, total_frames } = movement.anim_state {
-            if frame == 0 {
-                // First frame: swap atlas to action sheet
+            let duration = tool_frame_duration(tool);
+
+            if frame == 0 && *frame_timer == 0.0 {
+                // First frame: swap atlas to action sheet, reset impact flag
                 sprite.image = action_data.image.clone();
                 if let Some(atlas) = &mut sprite.texture_atlas {
                     atlas.layout = action_data.layout.clone();
                     atlas.index = action_atlas_index(tool, 0);
                 }
+                *impact_fired = false;
             }
 
-            // Emit impact event on frame 2 — target the faced tile, not the player's tile
-            if frame == 2 {
+            // Accumulate time
+            *frame_timer += time.delta_secs();
+
+            // Emit impact event on frame 2 (once)
+            if frame >= 2 && !*impact_fired {
+                *impact_fired = true;
                 let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
                 let (px, py) = (g.x, g.y);
                 let (dx, dy) = facing_offset(&movement.facing);
@@ -87,27 +107,37 @@ pub fn animate_tool_use(
                 });
             }
 
-            let new_frame = frame + 1;
+            // Check if enough time has passed to advance frame
+            if *frame_timer >= duration {
+                *frame_timer -= duration;
+                let new_frame = frame + 1;
 
-            if new_frame >= total_frames {
-                // Animation complete — swap back to walk atlas
-                sprite.image = walk_sprites.image.clone();
-                if let Some(atlas) = &mut sprite.texture_atlas {
-                    atlas.layout = walk_sprites.layout.clone();
-                    atlas.index = 0;
+                if new_frame >= total_frames {
+                    // Animation complete — swap back to walk atlas
+                    sprite.image = walk_sprites.image.clone();
+                    if let Some(atlas) = &mut sprite.texture_atlas {
+                        atlas.layout = walk_sprites.layout.clone();
+                        atlas.index = 0;
+                    }
+                    movement.anim_state = PlayerAnimState::Idle;
+                    *frame_timer = 0.0;
+                    *impact_fired = false;
+                } else {
+                    // Advance frame
+                    if let Some(atlas) = &mut sprite.texture_atlas {
+                        atlas.index = action_atlas_index(tool, new_frame as usize);
+                    }
+                    movement.anim_state = PlayerAnimState::ToolUse {
+                        tool,
+                        frame: new_frame,
+                        total_frames,
+                    };
                 }
-                movement.anim_state = PlayerAnimState::Idle;
-            } else {
-                // Advance frame
-                if let Some(atlas) = &mut sprite.texture_atlas {
-                    atlas.index = action_atlas_index(tool, new_frame as usize);
-                }
-                movement.anim_state = PlayerAnimState::ToolUse {
-                    tool,
-                    frame: new_frame,
-                    total_frames,
-                };
             }
+        } else {
+            // Not in tool animation — reset timer
+            *frame_timer = 0.0;
+            *impact_fired = false;
         }
     }
 }

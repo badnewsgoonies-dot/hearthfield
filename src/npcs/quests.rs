@@ -809,3 +809,137 @@ pub fn track_monster_slain(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// System 7: check_story_quests — hand-crafted Year 1 narrative quests
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Posts hand-crafted story quests on specific days during Year 1.
+/// These provide guided progression and introduce the player to game systems
+/// and NPCs. Each quest fires exactly once, tracked by a `Local<Vec<String>>`.
+pub fn check_story_quests(
+    calendar: Res<Calendar>,
+    mut quest_log: ResMut<QuestLog>,
+    mut posted_events: EventWriter<QuestPostedEvent>,
+    mut accepted_events: EventWriter<QuestAcceptedEvent>,
+    mut tracker: Local<Vec<String>>,
+) {
+    // Only fire during Year 1
+    if calendar.year != 1 {
+        return;
+    }
+
+    let story_id: &str;
+    let quest: Quest;
+
+    match (calendar.season, calendar.day) {
+        // Quest 1: "Mayor's Welcome" — Day 2, Spring
+        (Season::Spring, 2) if !tracker.contains(&"mayors_welcome".to_string()) => {
+            story_id = "mayors_welcome";
+            quest = Quest {
+                id: "story_mayors_welcome".to_string(),
+                title: "A Warm Welcome".to_string(),
+                description: "Mayor Rex wants to see how you're settling in. Bring him 5 turnips from your farm.".to_string(),
+                giver: "mayor_rex".to_string(),
+                objective: QuestObjective::Deliver {
+                    item_id: "turnip".to_string(),
+                    quantity: 5,
+                    delivered: 0,
+                },
+                reward_gold: 300,
+                reward_items: Vec::new(),
+                reward_friendship: 50,
+                days_remaining: Some(10),
+                accepted_day: (2, season_to_idx(&Season::Spring), 1),
+            };
+        }
+        // Quest 2: "Margaret's Bread Run" — Day 5, Spring
+        (Season::Spring, 5) if !tracker.contains(&"bread_run".to_string()) => {
+            story_id = "bread_run";
+            quest = Quest {
+                id: "story_bread_run".to_string(),
+                title: "Fresh Bread Delivery".to_string(),
+                description: "Margaret needs someone to bring bread to Doc at his clinic. He's been too busy to eat!".to_string(),
+                giver: "margaret".to_string(),
+                objective: QuestObjective::Talk {
+                    npc_name: "doc".to_string(),
+                    talked: false,
+                },
+                reward_gold: 200,
+                reward_items: Vec::new(),
+                reward_friendship: 30,
+                days_remaining: Some(5),
+                accepted_day: (5, season_to_idx(&Season::Spring), 1),
+            };
+        }
+        // Quest 3: "Elena's Ore Request" — Day 8, Spring
+        (Season::Spring, 8) if !tracker.contains(&"ore_request".to_string()) => {
+            story_id = "ore_request";
+            quest = Quest {
+                id: "story_ore_request".to_string(),
+                title: "Forge Materials".to_string(),
+                description: "Elena the blacksmith needs copper ore for a special project. Can you bring her 10 from the mines?".to_string(),
+                giver: "elena".to_string(),
+                objective: QuestObjective::Deliver {
+                    item_id: "copper_ore".to_string(),
+                    quantity: 10,
+                    delivered: 0,
+                },
+                reward_gold: 500,
+                reward_items: vec![("copper_bar".to_string(), 1)],
+                reward_friendship: 50,
+                days_remaining: Some(14),
+                accepted_day: (8, season_to_idx(&Season::Spring), 1),
+            };
+        }
+        // Quest 4: "Old Tom's Fishing Challenge" — Day 12, Spring
+        (Season::Spring, 12) if !tracker.contains(&"fishing_challenge".to_string()) => {
+            story_id = "fishing_challenge";
+            quest = Quest {
+                id: "story_fishing_challenge".to_string(),
+                title: "Catch of the Day".to_string(),
+                description: "Old Tom wants to see if you've got what it takes. Catch a bass and show him!".to_string(),
+                giver: "old_tom".to_string(),
+                objective: QuestObjective::Catch {
+                    fish_id: "bass".to_string(),
+                    delivered: false,
+                },
+                reward_gold: 400,
+                reward_items: Vec::new(),
+                reward_friendship: 50,
+                days_remaining: Some(7),
+                accepted_day: (12, season_to_idx(&Season::Spring), 1),
+            };
+        }
+        // Quest 5: "Community Contribution" — Day 20, Spring
+        (Season::Spring, 20) if !tracker.contains(&"community_contribution".to_string()) => {
+            story_id = "community_contribution";
+            quest = Quest {
+                id: "story_community_contribution".to_string(),
+                title: "Town Prosperity".to_string(),
+                description: "The mayor wants to see Hearthfield thrive. Harvest 10 crops of any kind to show the town is prospering!".to_string(),
+                giver: "mayor_rex".to_string(),
+                objective: QuestObjective::Harvest {
+                    crop_id: "turnip".to_string(),
+                    quantity: 10,
+                    harvested: 0,
+                },
+                reward_gold: 1000,
+                reward_items: Vec::new(),
+                reward_friendship: 100,
+                days_remaining: Some(8),
+                accepted_day: (20, season_to_idx(&Season::Spring), 1),
+            };
+        }
+        _ => return,
+    }
+
+    // Track, post, and auto-accept the quest
+    tracker.push(story_id.to_string());
+    let quest_id = quest.id.clone();
+    posted_events.send(QuestPostedEvent {
+        quest: quest.clone(),
+    });
+    quest_log.active.push(quest);
+    accepted_events.send(QuestAcceptedEvent { quest_id });
+}
+

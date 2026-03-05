@@ -54,6 +54,7 @@ use quests::{
     track_monster_slain,
     handle_quest_completed,
     expire_quests,
+    check_story_quests,
 };
 
 pub struct NpcPlugin;
@@ -125,6 +126,7 @@ impl Plugin for NpcPlugin {
                 handle_spouse_action,
                 update_spouse_happiness,
                 post_daily_quests,
+                check_story_quests,
                 log_quest_posted,
                 handle_quest_accepted,
                 track_quest_progress,
