@@ -30,6 +30,8 @@ bevy = { version = "0.15", default-features = false, features = [
     # Audio
     "bevy_audio",
     "vorbis",
+    # Gamepad support (native; WASM uses browser Gamepad API via winit)
+    "bevy_gilrs",
     # Image format
     "png",
     # WASM support
