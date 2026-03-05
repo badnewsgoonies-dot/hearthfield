@@ -55,6 +55,32 @@ pub struct NpcSpriteData {
     pub images: std::collections::HashMap<String, Handle<Image>>,
 }
 
+/// System: eagerly loads all NPC sprite atlases on `OnEnter(Playing)`.
+/// This ensures NPC sprites are ready before any spawn system runs,
+/// eliminating first-frame colored-rectangle fallbacks.
+pub fn preload_npc_sprites(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut npc_sprites: ResMut<NpcSpriteData>,
+) {
+    if npc_sprites.loaded {
+        return;
+    }
+    npc_sprites.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(48, 48),
+        4,
+        4,
+        None,
+        None,
+    ));
+    for &npc_id in ALL_NPC_IDS {
+        let path = npc_sprite_file(npc_id);
+        let handle = asset_server.load(path);
+        npc_sprites.images.insert(npc_id.to_string(), handle);
+    }
+    npc_sprites.loaded = true;
+}
+
 /// System: on entering Playing state, spawn NPCs for the current map.
 #[allow(clippy::too_many_arguments)]
 pub fn spawn_initial_npcs(
@@ -142,13 +168,14 @@ pub fn spawn_npcs_for_map(
             .unwrap_or_else(|| asset_server.load(npc_sprite_file(npc_id)));
 
         // Index 0 = first frame of Walk-down row, used as the default idle pose.
-        let sprite = Sprite::from_atlas_image(
+        let mut sprite = Sprite::from_atlas_image(
             npc_image,
             TextureAtlas {
                 layout: npc_sprites.layout.clone(),
                 index: 0,
             },
         );
+        sprite.custom_size = Some(Vec2::new(48.0, 48.0));
 
         let entity = commands.spawn((
             Npc {

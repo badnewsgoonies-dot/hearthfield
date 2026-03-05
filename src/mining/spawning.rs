@@ -47,9 +47,9 @@ const ROCK_COPPER_COLOR: Color = Color::srgb(0.72, 0.45, 0.20);
 const ROCK_IRON_COLOR: Color = Color::srgb(0.55, 0.55, 0.60);
 const ROCK_GOLD_COLOR: Color = Color::srgb(0.85, 0.75, 0.20);
 const ROCK_GEM_COLOR: Color = Color::srgb(0.60, 0.20, 0.80);
-const LADDER_COLOR: Color = Color::srgb(0.65, 0.50, 0.25);
+const LADDER_COLOR: Color = Color::srgb(0.75, 0.60, 0.30);
 const LADDER_HIDDEN_COLOR: Color = Color::srgb(0.15, 0.12, 0.18); // same as floor when hidden
-const EXIT_COLOR: Color = Color::srgb(0.30, 0.55, 0.30);
+const EXIT_COLOR: Color = Color::srgb(0.40, 0.70, 0.40);
 
 /// System: detects when a floor spawn is requested and carries it out.
 pub fn spawn_mine_floor(
@@ -108,6 +108,8 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlas: &Min
             let world_x = x as f32 * TILE_SIZE;
             let world_y = y as f32 * TILE_SIZE;
 
+            // Subtle checkerboard: every other tile gets a slight brightness bump
+            let checker_bright = (x + y) % 2 == 0;
             let sprite = if atlas.loaded {
                 let idx = if is_wall { 3 } else { 0 };
                 let mut s = Sprite::from_atlas_image(
@@ -115,9 +117,18 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlas: &Min
                     TextureAtlas { layout: atlas.layout.clone(), index: idx },
                 );
                 s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+                if !is_wall && checker_bright {
+                    s.color = Color::srgb(1.02, 1.02, 1.02);
+                }
                 s
             } else {
-                let color = if is_wall { WALL_COLOR } else { FLOOR_COLOR };
+                let color = if is_wall {
+                    WALL_COLOR
+                } else if checker_bright {
+                    Color::srgb(0.15 + 0.02, 0.12 + 0.02, 0.18 + 0.02)
+                } else {
+                    FLOOR_COLOR
+                };
                 Sprite {
                     color,
                     custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
@@ -221,7 +232,8 @@ fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint, enemy_atla
                     index: atlas_index,
                 },
             ),
-            Transform::from_xyz(world_x, world_y, 2.0),
+            Transform::from_xyz(world_x, world_y, 2.0)
+                .with_scale(Vec3::splat(1.2)),
             MineFloorEntity,
             MineGridPos { x: enemy_bp.x, y: enemy_bp.y },
             MineMonster {

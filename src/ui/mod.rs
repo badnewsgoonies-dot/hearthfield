@@ -51,7 +51,7 @@ impl Plugin for UiPlugin {
         app.init_resource::<audio::MusicState>();
         app.init_resource::<hud::ItemAtlasData>();
         app.init_resource::<hud::WeatherIconAtlas>();
-        app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music));
+        app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music, audio::toast_sfx));
         app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
         app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
         app.add_systems(
@@ -59,6 +59,7 @@ impl Plugin for UiPlugin {
             (
                 audio::switch_music_on_season_change,
                 audio::switch_music_on_map_change,
+                audio::door_sfx_on_map_change,
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -131,8 +132,19 @@ impl Plugin for UiPlugin {
         );
 
         // ─── HUD — visible during Playing state ───
-        app.add_systems(OnEnter(GameState::Playing), hud::spawn_hud);
-        app.add_systems(OnExit(GameState::Playing), hud::despawn_hud);
+        app.insert_resource(hud::FloatingGoldCooldown {
+            timer: {
+                let mut t = Timer::from_seconds(0.5, TimerMode::Once);
+                // Start finished so the first gold event can fire immediately.
+                t.tick(std::time::Duration::from_millis(501));
+                t
+            },
+        });
+        app.add_systems(
+            OnEnter(GameState::Playing),
+            (hud::preload_item_atlas, hud::preload_weather_icon_atlas, hud::spawn_hud),
+        );
+        app.add_systems(OnExit(GameState::Playing), (hud::despawn_hud, hud::despawn_floating_gold_text));
         app.add_systems(
             Update,
             (
@@ -149,6 +161,9 @@ impl Plugin for UiPlugin {
                 hud::update_map_name,
                 hud::update_objective_display,
                 hud::update_interaction_prompt,
+                hud::update_controls_hint,
+                hud::spawn_floating_gold_text,
+                hud::update_floating_gold_text,
             )
                 .run_if(in_state(GameState::Playing)),
         );

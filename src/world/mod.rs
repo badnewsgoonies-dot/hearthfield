@@ -28,6 +28,7 @@ use objects::{
     update_tree_sprites_on_season_change,
     spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board, spawn_building_signs,
     spawn_building_sprites, spawn_interior_decorations,
+    update_forage_sparkles,
     WorldObject,
 };
 use seasonal::{
@@ -101,6 +102,8 @@ impl Plugin for WorldPlugin {
                     weather_change_notification,
                     // Weed scythe clearing
                     handle_weed_scythe,
+                    // Forageable sparkle particles
+                    update_forage_sparkles,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -532,13 +535,42 @@ fn load_map(
     world_map.solid_tiles.clear();
 
     // Mark inherently solid tiles
+    // Stone is solid on outdoor maps (building walls) but walkable in the Mine
+    // and interior maps (where it serves as floor/counters).
+    let stone_is_solid = matches!(
+        map_id,
+        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::MineEntrance
+    );
     for y in 0..map_def.height {
         for x in 0..map_def.width {
             let tile = map_def.tiles[y * map_def.width + x];
             if matches!(tile, TileKind::Water | TileKind::Void) {
                 world_map.solid_tiles.insert((x as i32, y as i32));
             }
+            if stone_is_solid && tile == TileKind::Stone {
+                world_map.solid_tiles.insert((x as i32, y as i32));
+            }
         }
+    }
+
+    // Exempt building door tiles so players can still trigger transitions.
+    // These coordinates match the door-entry zones in edge_transition()
+    // (src/player/interaction.rs).
+    if map_id == MapId::Farm {
+        // Player House door at (15-16, 2)
+        world_map.solid_tiles.remove(&(15, 2));
+        world_map.solid_tiles.remove(&(16, 2));
+    }
+    if map_id == MapId::Town {
+        // General Store door at (5-6, 2)
+        world_map.solid_tiles.remove(&(5, 2));
+        world_map.solid_tiles.remove(&(6, 2));
+        // Animal Shop door at (22-23, 2)
+        world_map.solid_tiles.remove(&(22, 2));
+        world_map.solid_tiles.remove(&(23, 2));
+        // Blacksmith door at (22-23, 13)
+        world_map.solid_tiles.remove(&(22, 13));
+        world_map.solid_tiles.remove(&(23, 13));
     }
 
     // Spawn tile sprites using texture atlases

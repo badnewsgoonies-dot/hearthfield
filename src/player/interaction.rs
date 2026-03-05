@@ -31,6 +31,32 @@ fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
 fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
     let (min_x, max_x, min_y, max_y) = map_bounds(map);
 
+    // ── Door-entry zone checks (BEFORE edge checks) ──────────────────
+    // These trigger when the player walks onto a building door tile
+    // within a map, NOT at map edges.
+
+    // Farm: Player House door at (15-16, 2) — south edge of building footprint
+    if *map == MapId::Farm && (15..=16).contains(&gx) && gy == 2 {
+        return Some((MapId::PlayerHouse, 8, 14));
+    }
+
+    // Town: General Store door at (5-6, 2)
+    if *map == MapId::Town && (5..=6).contains(&gx) && gy == 2 {
+        return Some((MapId::GeneralStore, 6, 10));
+    }
+
+    // Town: Animal Shop door at (22-23, 2)
+    if *map == MapId::Town && (22..=23).contains(&gx) && gy == 2 {
+        return Some((MapId::AnimalShop, 6, 10));
+    }
+
+    // Town: Blacksmith door at (22-23, 13)
+    if *map == MapId::Town && (22..=23).contains(&gx) && gy == 13 {
+        return Some((MapId::Blacksmith, 6, 10));
+    }
+
+    // ── Edge-boundary transitions ────────────────────────────────────
+
     // Farm exits (32x24)
     if *map == MapId::Farm {
         // South edge → Town (28x22)
@@ -54,9 +80,9 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
         if gy >= max_y {
             return Some((MapId::Farm, gx.clamp(0, 31), 1));
         }
-        // South edge → Beach (20x14)
+        // South edge → Beach (20x14) — spawn on sand (y=7), not ocean
         if gy <= min_y {
-            return Some((MapId::Beach, gx.clamp(0, 19), 12));
+            return Some((MapId::Beach, gx.clamp(0, 19), 7));
         }
         // East edge → Forest (22x18)
         if gx >= max_x {
@@ -101,13 +127,13 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
         return Some((MapId::Farm, 16, 1));
     }
     if *map == MapId::GeneralStore && gy >= max_y {
-        return Some((MapId::Town, 14, 10));
+        return Some((MapId::Town, 6, 8));
     }
     if *map == MapId::AnimalShop && gy >= max_y {
-        return Some((MapId::Town, 6, 10));
+        return Some((MapId::Town, 22, 8));
     }
     if *map == MapId::Blacksmith && gy >= max_y {
-        return Some((MapId::Town, 22, 10));
+        return Some((MapId::Town, 22, 18));
     }
 
     None
@@ -373,6 +399,7 @@ pub fn grant_starter_items(
         ("potato_seeds", 5),      // Second spring crop
         ("wood", 20),             // For crafting a chest or fence
         ("stone", 15),            // Basic materials
+        ("bread", 3),             // Food to restore stamina on Day 1
     ];
 
     for (item_id, qty) in &starters {

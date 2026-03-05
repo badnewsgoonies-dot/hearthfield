@@ -134,8 +134,8 @@ pub fn spawn_weather_particles(
                 commands.spawn((
                     RainDrop { speed },
                     Sprite {
-                        color: Color::srgba(0.5, 0.6, 1.0, 0.6),
-                        custom_size: Some(Vec2::new(1.0, 6.0)),
+                        color: Color::srgba(0.5, 0.6, 1.0, 0.75),
+                        custom_size: Some(Vec2::new(2.0, 8.0)),
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
@@ -152,8 +152,8 @@ pub fn spawn_weather_particles(
                 commands.spawn((
                     RainDrop { speed },
                     Sprite {
-                        color: Color::srgba(0.4, 0.5, 0.9, 0.7),
-                        custom_size: Some(Vec2::new(1.0, 6.0)),
+                        color: Color::srgba(0.4, 0.5, 0.9, 0.8),
+                        custom_size: Some(Vec2::new(2.5, 8.0)),
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
@@ -181,7 +181,7 @@ pub fn spawn_weather_particles(
                     },
                     Sprite {
                         color: Color::srgba(1.0, 1.0, 1.0, 0.7),
-                        custom_size: Some(Vec2::new(3.0, 3.0)),
+                        custom_size: Some(Vec2::new(4.0, 4.0)),
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),

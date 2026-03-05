@@ -148,11 +148,19 @@ pub fn spawn_menu_footer(
     ));
 }
 
-/// Updates a button's atlas index based on selection state.
+/// Updates a button's atlas index and tint based on selection state.
+/// Selected buttons get a golden-yellow tint overlay for stronger visual feedback.
 pub fn set_button_visual(image_node: &mut ImageNode, selected: bool) {
     if let Some(ref mut atlas) = image_node.texture_atlas {
         atlas.index = if selected { BTN_SELECTED } else { BTN_NORMAL };
     }
+    // Apply a tint colour so the selected button is visually brighter.
+    image_node.color = if selected {
+        // Golden-yellow highlight tint (multiplied against the atlas sprite)
+        Color::srgb(1.0, 0.92, 0.6)
+    } else {
+        Color::WHITE
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════

@@ -45,7 +45,7 @@ use schedules::{
 };
 use animation::animate_npc_sprites;
 use emotes::{EmoteAtlas, NpcEmoteEvent, spawn_emote_bubbles, animate_emote_bubbles};
-use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
+use spawning::{preload_npc_sprites, spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
 use quests::{
     log_quest_posted,
     post_daily_quests,
@@ -80,7 +80,7 @@ impl Plugin for NpcPlugin {
         // correct seasonal positions.
         app.add_systems(
             OnEnter(GameState::Playing),
-            (apply_enhanced_schedules, spawn_initial_npcs).chain(),
+            (preload_npc_sprites, apply_enhanced_schedules, spawn_initial_npcs).chain(),
         );
 
         // NPC interaction runs before the world interaction dispatcher so NPCs

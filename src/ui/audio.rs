@@ -48,6 +48,7 @@ fn sfx_path(sfx_id: &str) -> Option<&'static str> {
         "craft_success" => Some("audio/sfx/sfx_sounds_fanfare1.ogg"),
         "craft_fail" => Some("audio/sfx/sfx_sounds_error1.ogg"),
         "ui_deny" => Some("audio/sfx/sfx_sounds_error1.ogg"),
+        "ui_notification" => Some("audio/sfx/sfx_menu_select1.ogg"),
         "blacksmith_forge" => Some("audio/sfx/sfx_sounds_impact3.ogg"),
         "upgrade_complete" => Some("audio/sfx/sfx_sounds_powerup1.ogg"),
         "item_pickup" => Some("audio/sfx/sfx_coin_single1.ogg"),
@@ -220,4 +221,50 @@ pub fn start_menu_music(mut music_events: EventWriter<PlayMusicEvent>) {
         track_id: "menu".to_string(),
         fade_in: true,
     });
+}
+
+/// Play a notification SFX when a toast fires, with a 0.3s cooldown to avoid
+/// rapid-fire sounds from batched events (e.g. multiple harvest pickups).
+pub fn toast_sfx(
+    mut toast_events: EventReader<ToastEvent>,
+    mut sfx_writer: EventWriter<PlaySfxEvent>,
+    time: Res<Time>,
+    mut cooldown: Local<f32>,
+) {
+    // Tick the cooldown down
+    *cooldown -= time.delta_secs();
+    if *cooldown < 0.0 {
+        *cooldown = 0.0;
+    }
+
+    for _event in toast_events.read() {
+        if *cooldown <= 0.0 {
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "ui_notification".to_string(),
+            });
+            *cooldown = 0.3;
+        }
+    }
+}
+
+/// Play a door SFX when the player transitions to or from an interior map.
+pub fn door_sfx_on_map_change(
+    mut map_events: EventReader<MapTransitionEvent>,
+    mut sfx_writer: EventWriter<PlaySfxEvent>,
+    player_state: Res<PlayerState>,
+) {
+    fn is_interior(map: MapId) -> bool {
+        matches!(
+            map,
+            MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+        )
+    }
+
+    for event in map_events.read() {
+        if is_interior(event.to_map) || is_interior(player_state.current_map) {
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "door".to_string(),
+            });
+        }
+    }
 }

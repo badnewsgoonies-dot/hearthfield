@@ -96,6 +96,77 @@ pub struct HudObjective;
 #[derive(Component, Debug)]
 pub struct HudInteractionPrompt;
 
+/// Component for floating "+Xg" text that drifts upward and fades out.
+#[derive(Component)]
+pub struct FloatingGoldText {
+    /// Upward velocity in pixels per second.
+    pub velocity: f32,
+    /// Total lifetime of the animation.
+    pub lifetime: f32,
+    /// Time elapsed so far.
+    pub elapsed: f32,
+}
+
+/// Cooldown resource to prevent spamming floating gold text.
+#[derive(Resource)]
+pub struct FloatingGoldCooldown {
+    pub timer: Timer,
+}
+
+/// Marker for the early-game controls hint at the bottom of the screen.
+#[derive(Component)]
+pub struct HudControlsHint;
+
+/// Timer resource that counts down the 60-second controls hint display.
+#[derive(Resource)]
+pub struct ControlsHintTimer {
+    pub timer: Timer,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// EAGER PRELOADING — runs on OnEnter(Playing) before any HUD update
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Eagerly loads the item atlas so hotbar icons are ready on the first frame.
+pub fn preload_item_atlas(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas_data: ResMut<ItemAtlasData>,
+) {
+    if atlas_data.loaded {
+        return;
+    }
+    atlas_data.image = asset_server.load("sprites/items_atlas.png");
+    atlas_data.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        13,
+        10,
+        None,
+        None,
+    ));
+    atlas_data.loaded = true;
+}
+
+/// Eagerly loads the weather icon atlas so icons are ready on the first frame.
+pub fn preload_weather_icon_atlas(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas: ResMut<WeatherIconAtlas>,
+) {
+    if atlas.loaded {
+        return;
+    }
+    atlas.image = asset_server.load("ui/weather_icons.png");
+    atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        6,
+        None,
+        None,
+    ));
+    atlas.loaded = true;
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
@@ -333,12 +404,44 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
         ));
     });
 
+    // ─── CONTROLS HINT — absolute position, bottom-center, above hotbar ───
+    commands.spawn((
+        HudControlsHint,
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(64.0),
+            left: Val::Px(0.0),
+            right: Val::Px(0.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        PickingBehavior::IGNORE,
+    ))
+    .with_children(|parent| {
+        parent.spawn((
+            Text::new("WASD: Move | Space: Use Tool | F: Interact | E: Inventory"),
+            TextFont {
+                font: font.clone(),
+                font_size: 12.0,
+                ..default()
+            },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.45)),
+            PickingBehavior::IGNORE,
+        ));
+    });
+
     // Initialise the fade timer resource every time the HUD spawns.
     commands.insert_resource(MapNameFadeTimer {
         display_timer: Timer::from_seconds(2.0, TimerMode::Once),
         fade_timer: Timer::from_seconds(0.8, TimerMode::Once),
         alpha: 0.0,
         last_map: None,
+    });
+
+    // Initialise the controls hint timer (60 real seconds).
+    commands.insert_resource(ControlsHintTimer {
+        timer: Timer::from_seconds(60.0, TimerMode::Once),
     });
 }
 
@@ -387,7 +490,7 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
                             Text::new(key_label),
                             TextFont {
                                 font: font.clone(),
-                                font_size: 7.0,
+                                font_size: 10.0,
                                 ..default()
                             },
                             TextColor(Color::srgba(0.5, 0.5, 0.45, 0.7)),
@@ -416,7 +519,7 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
                             Text::new(""),
                             TextFont {
                                 font: font.clone(),
-                                font_size: 10.0,
+                                font_size: 12.0,
                                 ..default()
                             },
                             TextColor(Color::WHITE),
@@ -448,6 +551,7 @@ pub fn despawn_hud(
     hud_query: Query<Entity, With<HudRoot>>,
     map_name_query: Query<Entity, With<HudMapName>>,
     objective_query: Query<Entity, With<HudObjective>>,
+    controls_hint_query: Query<Entity, With<HudControlsHint>>,
 ) {
     for entity in &hud_query {
         commands.entity(entity).despawn_recursive();
@@ -458,7 +562,11 @@ pub fn despawn_hud(
     for entity in &objective_query {
         commands.entity(entity).despawn_recursive();
     }
+    for entity in &controls_hint_query {
+        commands.entity(entity).despawn_recursive();
+    }
     commands.remove_resource::<MapNameFadeTimer>();
+    commands.remove_resource::<ControlsHintTimer>();
 }
 
 // ─── MAP NAME DISPLAY HELPER ──────────────────────────────────────────
@@ -595,22 +703,38 @@ pub fn update_gold_display(
 
 pub fn update_stamina_bar(
     player: Res<PlayerState>,
+    time: Res<Time>,
     mut query: Query<(&mut Node, &mut BackgroundColor), With<HudStaminaFill>>,
 ) {
-    if !player.is_changed() {
+    let ratio = (player.stamina / player.max_stamina).clamp(0.0, 1.0);
+    let is_critical = ratio < 0.25;
+
+    // Skip update if player hasn't changed and we're not in critical pulse mode
+    if !player.is_changed() && !is_critical {
         return;
     }
+
     for (mut node, mut bg) in &mut query {
-        let ratio = (player.stamina / player.max_stamina).clamp(0.0, 1.0);
         node.width = Val::Percent(ratio * 100.0);
-        let color = if ratio > 0.6 {
+        let base_color = if ratio > 0.6 {
             Color::srgb(0.2, 0.8, 0.2)
         } else if ratio >= 0.3 {
             Color::srgb(0.9, 0.7, 0.1)
         } else {
             Color::srgb(0.9, 0.2, 0.2)
         };
-        *bg = BackgroundColor(color);
+
+        if is_critical {
+            // Gentle pulse: alpha oscillates between 0.70 and 1.0
+            let pulse = (time.elapsed_secs() * 3.0).sin() * 0.15 + 0.85;
+            let Color::Srgba(srgba) = base_color else {
+                *bg = BackgroundColor(base_color);
+                continue;
+            };
+            *bg = BackgroundColor(Color::srgba(srgba.red, srgba.green, srgba.blue, pulse));
+        } else {
+            *bg = BackgroundColor(base_color);
+        }
     }
 }
 
@@ -876,6 +1000,46 @@ pub fn update_objective_display(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// CONTROLS HINT — subtle overlay for Day 1 Year 1, auto-hides after 60s
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Shows the controls hint only on Day 1, Year 1 for the first 60 real
+/// seconds of gameplay, then fades it out. Hidden entirely outside Day 1.
+pub fn update_controls_hint(
+    time: Res<Time>,
+    calendar: Res<Calendar>,
+    mut timer: ResMut<ControlsHintTimer>,
+    mut hint_query: Query<(&Children, &mut Visibility), With<HudControlsHint>>,
+    mut text_query: Query<&mut TextColor>,
+) {
+    let is_day1 = calendar.day == 1 && calendar.year == 1;
+
+    for (children, mut vis) in &mut hint_query {
+        if !is_day1 || timer.timer.finished() {
+            *vis = Visibility::Hidden;
+            continue;
+        }
+
+        *vis = Visibility::Inherited;
+        timer.timer.tick(time.delta());
+
+        // Fade out over the last 5 seconds.
+        let remaining = timer.timer.remaining_secs();
+        let alpha = if remaining < 5.0 {
+            (remaining / 5.0).clamp(0.0, 1.0) * 0.45
+        } else {
+            0.45
+        };
+
+        for &child in children.iter() {
+            if let Ok(mut tc) = text_query.get_mut(child) {
+                tc.0 = Color::srgba(1.0, 1.0, 1.0, alpha);
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // INTERACTION PROMPT — show "[F] label" near interactables/NPCs
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -982,5 +1146,99 @@ pub fn update_interaction_prompt(
             text.0.clear();
             tc.0 = Color::srgba(1.0, 1.0, 1.0, 0.0);
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FLOATING GOLD TEXT — "+Xg" floats up near gold counter on gold gain
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Spawns a floating "+Xg" text entity when gold is gained.
+/// Rate-limited to at most one per 0.5 seconds to prevent spam.
+pub fn spawn_floating_gold_text(
+    mut commands: Commands,
+    mut gold_events: EventReader<GoldChangeEvent>,
+    font_handle: Res<UiFontHandle>,
+    mut cooldown: ResMut<FloatingGoldCooldown>,
+    time: Res<Time>,
+) {
+    cooldown.timer.tick(time.delta());
+
+    for event in gold_events.read() {
+        if event.amount <= 0 {
+            continue;
+        }
+        if !cooldown.timer.finished() {
+            continue;
+        }
+        cooldown.timer.reset();
+
+        let font = font_handle.0.clone();
+        commands.spawn((
+            FloatingGoldText {
+                velocity: 13.0, // ~20px over 1.5s
+                lifetime: 1.5,
+                elapsed: 0.0,
+            },
+            Text::new(format!("+{}g", event.amount)),
+            TextFont {
+                font,
+                font_size: 16.0,
+                ..default()
+            },
+            TextColor(Color::srgb(1.0, 0.84, 0.0)),
+            Node {
+                position_type: PositionType::Absolute,
+                // Position near the gold counter in the top-right area.
+                top: Val::Px(48.0),
+                right: Val::Px(140.0),
+                ..default()
+            },
+            PickingBehavior::IGNORE,
+        ));
+    }
+}
+
+/// Animates floating gold text: moves upward, fades out, then despawns.
+pub fn update_floating_gold_text(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut FloatingGoldText, &mut Node, &mut TextColor)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut fgt, mut node, mut tc) in &mut query {
+        fgt.elapsed += dt;
+
+        if fgt.elapsed >= fgt.lifetime {
+            commands.entity(entity).despawn_recursive();
+            continue;
+        }
+
+        // Move upward: reduce top offset.
+        let current_top = match node.top {
+            Val::Px(v) => v,
+            _ => 48.0,
+        };
+        node.top = Val::Px(current_top - fgt.velocity * dt);
+
+        // Fade out based on progress through lifetime.
+        let progress = (fgt.elapsed / fgt.lifetime).clamp(0.0, 1.0);
+        // Start fading after 40% of lifetime.
+        let alpha = if progress < 0.4 {
+            1.0
+        } else {
+            1.0 - ((progress - 0.4) / 0.6).clamp(0.0, 1.0)
+        };
+        tc.0 = Color::srgba(1.0, 0.84, 0.0, alpha);
+    }
+}
+
+/// Despawns all floating gold text entities (called on HUD exit).
+pub fn despawn_floating_gold_text(
+    mut commands: Commands,
+    query: Query<Entity, With<FloatingGoldText>>,
+) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
     }
 }

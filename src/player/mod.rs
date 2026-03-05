@@ -46,6 +46,7 @@ impl Plugin for PlayerPlugin {
                 // tool_use sets ToolUse anim state; must run before movement reads it
                 tools::tool_use.before(movement::player_movement),
                 movement::player_movement,
+                movement::footstep_sfx.after(movement::player_movement),
                 movement::animate_player_sprite,
                 tool_anim::animate_tool_use.after(movement::player_movement),
                 tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),

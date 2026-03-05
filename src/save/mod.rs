@@ -1077,11 +1077,8 @@ fn handle_new_game(
         *ext.festival_state = FestivalState::default();
         *ext.farm_visit_tracker = FarmVisitTracker::default();
 
-        // Starter seeds — enough for one small plot on Day 1
-        core.inventory.try_add("turnip_seeds", 15, 99);
-        core.inventory.try_add("potato_seeds", 5, 99);
-        // One food item so the player can eat on Day 1
-        core.inventory.try_add("bread", 3, 99);
+        // Starter items are granted by grant_starter_items in player/interaction.rs
+        // (runs on first frame of Playing state when inventory is empty).
 
         info!("New game initialized.");
     }

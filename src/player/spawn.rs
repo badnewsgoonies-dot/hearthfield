@@ -53,14 +53,17 @@ pub fn spawn_player(
         // Animated sprite — frame 0 = idle-down (first frame of Row 0).
         // The 48×48 frame at PIXEL_SCALE 3.0 renders as 144px on screen
         // because the camera uses Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)).
-        // No custom_size needed; let the atlas frame's natural dimensions drive size.
-        Sprite::from_atlas_image(
-            texture,
-            TextureAtlas {
-                layout: layout_handle,
-                index: 0,
-            },
-        ),
+        {
+            let mut s = Sprite::from_atlas_image(
+                texture,
+                TextureAtlas {
+                    layout: layout_handle,
+                    index: 0,
+                },
+            );
+            s.custom_size = Some(Vec2::new(48.0, 48.0));
+            s
+        },
         // Logical position for pixel-perfect rendering (movement writes here)
         LogicalPosition(Vec2::new(world_x, world_y)),
         // World-space transform — Y-sort system sets Z from LogicalPosition each frame.

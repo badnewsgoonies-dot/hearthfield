@@ -363,7 +363,7 @@ pub fn handle_animal_purchase(
             parent.spawn((
                 Text2d::new(name.clone()),
                 TextFont {
-                    font_size: 6.0,
+                    font_size: 11.0,
                     ..default()
                 },
                 TextColor(Color::WHITE),

@@ -32,6 +32,16 @@ const HINTS: &[HintDef] = &[
         id: "low_stamina",
         message: "Low energy! Eat food or go to bed early to recover.",
     },
+    // Fix 4: Shipping bin hint
+    HintDef {
+        id: "shipping_bin",
+        message: "Put items in the Shipping Bin near your house to sell them overnight for gold!",
+    },
+    // Fix 5: Inventory hint
+    HintDef {
+        id: "open_inventory",
+        message: "Press E to open your inventory and see your items and tools!",
+    },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -96,6 +106,14 @@ pub fn check_tutorial_hints(
                     && calendar.total_days_elapsed() > 0
             }
             "low_stamina" => player_state.stamina < 20.0,
+            // Fix 4: Shipping bin hint — triggers when any crop is nearing maturity
+            "shipping_bin" => {
+                farm_state.crops.values().any(|c| c.current_stage >= 3)
+            }
+            // Fix 5: Inventory hint — triggers on Day 1 morning
+            "open_inventory" => {
+                calendar.day == 1 && calendar.year == 1 && calendar.hour >= 7
+            }
             _ => false,
         };
 
@@ -139,15 +157,28 @@ pub fn forward_hint_to_toast(
 
 // ═══════════════════════════════════════════════════════════════════════
 // OBJECTIVE-DRIVEN TUTORIAL
-// Sequential objectives that guide the player through Day 1.
+// Sequential objectives that guide the player through Days 1-3.
 // ═══════════════════════════════════════════════════════════════════════
 
+// Fix 1: Added "exit_house" as the first objective (index 0).
+// Fix 2: Updated all objective descriptions for clarity.
 pub const OBJECTIVES: &[(&str, &str)] = &[
-    ("till_soil",    "Till some soil with your hoe (Space)"),
-    ("plant_seeds",  "Plant your turnip seeds (press 1 to select seeds, then F)"),
-    ("water_crops",  "Water your crops (press [ or ] to switch tools, then Space)"),
-    ("visit_town",   "Visit the town (walk south from the farm)"),
-    ("go_to_bed",    "End the day (go home and press F near your bed to sleep)"),
+    ("exit_house",   "Leave your house \u{2014} walk south to the door and exit"),
+    ("till_soil",    "Till some soil \u{2014} select your Hoe with [ or ], then press Space on grass"),
+    ("plant_seeds",  "Plant seeds \u{2014} press E to open inventory, click turnip seeds to select, close inventory, then press F on tilled soil"),
+    ("water_crops",  "Water your crops \u{2014} select Watering Can with [ or ], then press Space on planted soil"),
+    ("visit_town",   "Visit the town \u{2014} walk south from your farm to explore"),
+    ("go_to_bed",    "End the day \u{2014} go home, walk to your bed, and press F to sleep"),
+];
+
+// Fix 3: Day 2 objectives
+const DAY2_OBJECTIVES: &[(&str, &str)] = &[
+    ("check_crops", "Check your crops \u{2014} walk to your farm and see how they're growing"),
+];
+
+// Fix 3: Day 3+ objectives
+const DAY3_OBJECTIVES: &[(&str, &str)] = &[
+    ("use_shipping_bin", "Ship your items for gold \u{2014} walk to the shipping bin near your house and press F with an item selected"),
 ];
 
 fn is_objective_complete(
@@ -155,13 +186,20 @@ fn is_objective_complete(
     farm: &FarmState,
     calendar: &Calendar,
     player: &PlayerState,
+    shipping_bin: &ShippingBin,
 ) -> bool {
     match id {
+        // Fix 1: exit_house completion check
+        "exit_house"   => player.current_map != MapId::PlayerHouse,
         "till_soil"    => farm.soil.values().any(|s| *s == SoilState::Tilled || *s == SoilState::Watered),
         "plant_seeds"  => !farm.crops.is_empty(),
         "water_crops"  => farm.soil.values().any(|s| *s == SoilState::Watered),
         "visit_town"   => player.current_map == MapId::Town,
         "go_to_bed"    => calendar.day >= 2,
+        // Fix 3: Day 2 objective
+        "check_crops"  => player.current_map == MapId::Farm && calendar.hour >= 7,
+        // Fix 3: Day 3+ objective
+        "use_shipping_bin" => !shipping_bin.items.is_empty(),
         _ => false,
     }
 }
@@ -174,18 +212,27 @@ pub fn check_objectives(
     farm_state: Res<FarmState>,
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
+    shipping_bin: Res<ShippingBin>,
 ) {
     if tutorial.tutorial_complete {
         return;
     }
 
-    // Initialize first objective on Day 1 morning.
+    // Initialize objectives based on current day.
     if tutorial.current_objective.is_none()
         && !tutorial.hints_shown.iter().any(|h| h == "objectives_done")
     {
-        // Only start objectives on Day 1.
-        if calendar.day == 1 && calendar.year == 1 {
-            tutorial.current_objective = Some(OBJECTIVES[0].0.to_string());
+        if calendar.year == 1 {
+            if calendar.day == 1 {
+                // Day 1: start the main tutorial sequence.
+                tutorial.current_objective = Some(OBJECTIVES[0].0.to_string());
+            } else if calendar.day == 2 {
+                // Fix 3: Day 2 objectives.
+                tutorial.current_objective = Some(DAY2_OBJECTIVES[0].0.to_string());
+            } else if calendar.day >= 3 && !tutorial.hints_shown.iter().any(|h| h == "shipped_once") {
+                // Fix 3: Day 3+ shipping objective (only if player has never shipped).
+                tutorial.current_objective = Some(DAY3_OBJECTIVES[0].0.to_string());
+            }
         }
         return;
     }
@@ -195,31 +242,43 @@ pub fn check_objectives(
         return;
     };
 
-    if !is_objective_complete(current_id, &farm_state, &calendar, &player_state) {
+    if !is_objective_complete(current_id, &farm_state, &calendar, &player_state, &shipping_bin) {
         return;
     }
 
-    // Find current objective index.
-    let current_idx = OBJECTIVES
-        .iter()
-        .position(|(id, _)| *id == current_id.as_str());
-
-    let Some(idx) = current_idx else {
+    // Determine which objective list the current objective belongs to and find its index.
+    let (obj_list, current_idx) = if let Some(idx) = OBJECTIVES.iter().position(|(id, _)| *id == current_id.as_str()) {
+        (OBJECTIVES, Some(idx))
+    } else if let Some(idx) = DAY2_OBJECTIVES.iter().position(|(id, _)| *id == current_id.as_str()) {
+        (DAY2_OBJECTIVES, Some(idx))
+    } else if let Some(idx) = DAY3_OBJECTIVES.iter().position(|(id, _)| *id == current_id.as_str()) {
+        (DAY3_OBJECTIVES, Some(idx))
+    } else {
         // Unknown objective — clear it.
         tutorial.current_objective = None;
         return;
     };
 
+    let Some(idx) = current_idx else {
+        tutorial.current_objective = None;
+        return;
+    };
+
     // Send completion toast.
-    let (_, display) = OBJECTIVES[idx];
+    let (_, display) = obj_list[idx];
     toast_writer.send(ToastEvent {
         message: format!("Done: {}", display),
         duration_secs: 3.0,
     });
 
-    // Advance to next objective, or finish.
-    if idx + 1 < OBJECTIVES.len() {
-        tutorial.current_objective = Some(OBJECTIVES[idx + 1].0.to_string());
+    // Mark shipping as done so we don't re-trigger the objective.
+    if current_id == "use_shipping_bin" {
+        tutorial.hints_shown.push("shipped_once".to_string());
+    }
+
+    // Advance to next objective in the same list, or finish.
+    if idx + 1 < obj_list.len() {
+        tutorial.current_objective = Some(obj_list[idx + 1].0.to_string());
     } else {
         tutorial.current_objective = None;
         // Mark objectives as complete so hints system knows.
@@ -236,8 +295,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_hints_table_has_5_entries() {
-        assert_eq!(HINTS.len(), 5);
+    fn test_hints_table_has_7_entries() {
+        assert_eq!(HINTS.len(), 7);
     }
 
     #[test]
@@ -256,8 +315,23 @@ mod tests {
     }
 
     #[test]
-    fn test_objectives_table_has_5_entries() {
-        assert_eq!(OBJECTIVES.len(), 5);
+    fn test_objectives_table_has_6_entries() {
+        assert_eq!(OBJECTIVES.len(), 6);
+    }
+
+    #[test]
+    fn test_exit_house_is_first_objective() {
+        assert_eq!(OBJECTIVES[0].0, "exit_house");
+    }
+
+    #[test]
+    fn test_day2_objectives_table_has_1_entry() {
+        assert_eq!(DAY2_OBJECTIVES.len(), 1);
+    }
+
+    #[test]
+    fn test_day3_objectives_table_has_1_entry() {
+        assert_eq!(DAY3_OBJECTIVES.len(), 1);
     }
 
     #[test]

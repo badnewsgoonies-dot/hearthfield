@@ -17,6 +17,10 @@ pub struct ToastItem {
     pub fade_timer: Option<Timer>,
 }
 
+/// Marker for the coloured left accent bar inside a toast.
+#[derive(Component)]
+pub struct ToastAccent;
+
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN / DESPAWN CONTAINER
 // ═══════════════════════════════════════════════════════════════════════
@@ -56,6 +60,27 @@ pub fn despawn_toast_container(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ACCENT COLOUR HELPER — infers toast category from message text
+// ═══════════════════════════════════════════════════════════════════════
+
+fn toast_accent_color(message: &str) -> Color {
+    let lower = message.to_lowercase();
+    if lower.contains("gold") || lower.contains("earned") || lower.contains("+") || lower.ends_with("g") {
+        // Gold/yellow accent for gold-related messages.
+        Color::srgb(1.0, 0.84, 0.0)
+    } else if lower.contains("achievement") {
+        // Purple accent for achievements.
+        Color::srgb(0.7, 0.4, 1.0)
+    } else if lower.contains("full") || lower.contains("can't") || lower.contains("not enough") {
+        // Red accent for error/warning messages.
+        Color::srgb(0.95, 0.25, 0.25)
+    } else {
+        // Neutral white/grey accent for everything else.
+        Color::srgba(0.8, 0.8, 0.8, 0.6)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // HANDLE TOAST EVENTS — spawn a child node per event
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -84,6 +109,9 @@ pub fn handle_toast_events(
         let message = event.message.clone();
         let duration = event.duration_secs;
 
+        // Determine category accent colour from message content.
+        let accent_color = toast_accent_color(&message);
+
         // Spawn the toast as a child of the container.
         let toast_entity = commands
             .spawn((
@@ -92,12 +120,8 @@ pub fn handle_toast_events(
                     fade_timer: None,
                 },
                 Node {
-                    padding: UiRect {
-                        left: Val::Px(12.0),
-                        right: Val::Px(12.0),
-                        top: Val::Px(5.0),
-                        bottom: Val::Px(5.0),
-                    },
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Stretch,
                     border: UiRect::all(Val::Px(1.0)),
                     ..default()
                 },
@@ -106,6 +130,18 @@ pub fn handle_toast_events(
                 PickingBehavior::IGNORE,
             ))
             .with_children(|parent| {
+                // Coloured left accent bar (4px wide).
+                parent.spawn((
+                    ToastAccent,
+                    Node {
+                        width: Val::Px(4.0),
+                        min_height: Val::Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(accent_color),
+                    PickingBehavior::IGNORE,
+                ));
+                // Text content with padding.
                 parent.spawn((
                     Text::new(message),
                     TextFont {
@@ -114,6 +150,15 @@ pub fn handle_toast_events(
                         ..default()
                     },
                     TextColor(Color::WHITE),
+                    Node {
+                        padding: UiRect {
+                            left: Val::Px(8.0),
+                            right: Val::Px(12.0),
+                            top: Val::Px(5.0),
+                            bottom: Val::Px(5.0),
+                        },
+                        ..default()
+                    },
                     PickingBehavior::IGNORE,
                 ));
             })
@@ -132,6 +177,7 @@ pub fn update_toasts(
     time: Res<Time>,
     mut toast_query: Query<(Entity, &mut ToastItem, &mut BackgroundColor, &Children)>,
     mut text_color_query: Query<&mut TextColor>,
+    mut accent_bg_query: Query<&mut BackgroundColor, (With<ToastAccent>, Without<ToastItem>)>,
 ) {
     for (entity, mut toast, mut bg_color, children) in &mut toast_query {
         // If not yet in fade mode, tick main timer.
@@ -166,10 +212,14 @@ pub fn update_toasts(
                     0.75 * alpha,
                 );
 
-                // Fade the text children.
+                // Fade the text children and accent bar.
                 for &child in children.iter() {
                     if let Ok(mut text_color) = text_color_query.get_mut(child) {
                         text_color.0 = Color::srgba(1.0, 1.0, 1.0, alpha);
+                    }
+                    if let Ok(mut accent_bg) = accent_bg_query.get_mut(child) {
+                        let ac = accent_bg.0.to_srgba();
+                        accent_bg.0 = Color::srgba(ac.red, ac.green, ac.blue, alpha);
                     }
                 }
             }

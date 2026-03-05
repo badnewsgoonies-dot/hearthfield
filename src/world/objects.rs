@@ -4,10 +4,82 @@
 //! use events and can be destroyed to drop items.
 
 use bevy::prelude::*;
+use rand::Rng;
 use crate::shared::*;
 
 use super::maps::{WorldObjectKind, ObjectPlacement};
 use super::WorldMap;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Forageable sparkle particle
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A small sparkle particle spawned when a forageable is collected.
+#[derive(Component, Debug)]
+pub struct ForageSparkle {
+    pub velocity: Vec2,
+    pub lifetime: f32,
+    pub elapsed: f32,
+}
+
+/// Spawn 2-3 sparkle particles at the given world position.
+fn spawn_forage_sparkles(commands: &mut Commands, world_pos: Vec2) {
+    let mut rng = rand::thread_rng();
+    let count = rng.gen_range(2..=3);
+    let colors = [
+        Color::srgb(1.0, 1.0, 1.0),   // white
+        Color::srgb(1.0, 0.95, 0.55),  // bright yellow
+    ];
+
+    for _ in 0..count {
+        let vx = rng.gen_range(-40.0_f32..40.0);
+        let vy = rng.gen_range(20.0_f32..60.0);
+        let lifetime = rng.gen_range(0.4_f32..0.6);
+        let color = colors[rng.gen_range(0..colors.len())];
+
+        commands.spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(3.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, Z_EFFECTS)),
+            ForageSparkle {
+                velocity: Vec2::new(vx, vy),
+                lifetime,
+                elapsed: 0.0,
+            },
+        ));
+    }
+}
+
+/// Move, fade, and despawn forageable sparkle particles each frame.
+pub fn update_forage_sparkles(
+    mut commands: Commands,
+    mut particles: Query<(Entity, &mut Transform, &mut Sprite, &mut ForageSparkle)>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut transform, mut sprite, mut particle) in particles.iter_mut() {
+        particle.elapsed += dt;
+
+        if particle.elapsed >= particle.lifetime {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        // Apply gravity
+        particle.velocity.y -= 80.0 * dt;
+
+        // Move
+        transform.translation.x += particle.velocity.x * dt;
+        transform.translation.y += particle.velocity.y * dt;
+
+        // Fade alpha based on elapsed / lifetime
+        let alpha = 1.0 - (particle.elapsed / particle.lifetime);
+        sprite.color = sprite.color.with_alpha(alpha);
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // OBJECT ATLAS RESOURCE
@@ -763,6 +835,11 @@ pub fn handle_forageable_pickup(
                 sfx_writer.send(PlaySfxEvent {
                     sfx_id: "pickup".to_string(),
                 });
+
+                // Spawn sparkle particles at the forageable's position
+                let world_pos = grid_to_world_center(forageable.grid_x, forageable.grid_y);
+                spawn_forage_sparkles(&mut commands, world_pos);
+
                 commands.entity(entity).despawn();
                 break;
             }

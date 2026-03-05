@@ -121,6 +121,35 @@ pub fn animate_player_sprite(
     }
 }
 
+/// Emit a footstep SFX every 32 pixels of distance traveled while walking.
+pub fn footstep_sfx(
+    query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
+    mut sfx_writer: EventWriter<PlaySfxEvent>,
+    mut distance_acc: Local<f32>,
+    mut last_pos: Local<Vec2>,
+) {
+    let Ok((pos, movement)) = query.get_single() else {
+        return;
+    };
+
+    if movement.is_moving {
+        let delta = pos.0 - *last_pos;
+        let dist = delta.length();
+        *distance_acc += dist;
+
+        if *distance_acc >= 32.0 {
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "footstep".to_string(),
+            });
+            *distance_acc = 0.0;
+        }
+    } else {
+        *distance_acc = 0.0;
+    }
+
+    *last_pos = pos.0;
+}
+
 /// Check whether a world position is blocked.
 fn is_blocked(
     wx: f32,

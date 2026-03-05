@@ -6,6 +6,78 @@ use crate::shared::*;
 use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Harvest particle component + systems
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A small particle that bursts outward when a crop is harvested.
+#[derive(Component, Debug)]
+pub struct HarvestParticle {
+    pub velocity: Vec2,
+    pub lifetime: f32,
+    pub elapsed: f32,
+}
+
+/// Spawn 4-6 small coloured particles at the given world position.
+fn spawn_harvest_particles(commands: &mut Commands, world_pos: Vec2) {
+    let mut rng = rand::thread_rng();
+    let count = rng.gen_range(4..=6);
+    let colors = [
+        Color::srgb(0.35, 0.70, 0.25), // green
+        Color::srgb(0.85, 0.78, 0.20), // yellow
+        Color::srgb(0.60, 0.45, 0.25), // brown
+    ];
+
+    for _ in 0..count {
+        let vx = rng.gen_range(-40.0_f32..40.0);
+        let vy = rng.gen_range(20.0_f32..60.0);
+        let lifetime = rng.gen_range(0.6_f32..1.0);
+        let color = colors[rng.gen_range(0..colors.len())];
+
+        commands.spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(3.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, Z_EFFECTS)),
+            HarvestParticle {
+                velocity: Vec2::new(vx, vy),
+                lifetime,
+                elapsed: 0.0,
+            },
+        ));
+    }
+}
+
+/// Move, fade, and despawn harvest particles each frame.
+pub fn update_harvest_particles(
+    mut commands: Commands,
+    mut particles: Query<(Entity, &mut Transform, &mut Sprite, &mut HarvestParticle)>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut transform, mut sprite, mut particle) in particles.iter_mut() {
+        particle.elapsed += dt;
+
+        if particle.elapsed >= particle.lifetime {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        // Apply gravity
+        particle.velocity.y -= 80.0 * dt;
+
+        // Move
+        transform.translation.x += particle.velocity.x * dt;
+        transform.translation.y += particle.velocity.y * dt;
+
+        // Fade alpha based on elapsed / lifetime
+        let alpha = 1.0 - (particle.elapsed / particle.lifetime);
+        sprite.color = sprite.color.with_alpha(alpha);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Detect harvest input (Space bar)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -85,6 +157,11 @@ pub fn handle_harvest_attempt(
                 if !crop_name.is_empty() {
                     toast_events.send(ToastEvent { message: format!("Harvested {}!", crop_name), duration_secs: 2.0 });
                 }
+
+                // Spawn harvest particle burst at the tile position
+                let world_pos = grid_to_world_center(target_pos.0, target_pos.1);
+                spawn_harvest_particles(&mut commands, world_pos);
+
                 break; // Only harvest one crop per input.
             }
         }

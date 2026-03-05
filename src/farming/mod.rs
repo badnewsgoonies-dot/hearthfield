@@ -177,6 +177,8 @@ impl Plugin for FarmingPlugin {
                     remove_sprinkler,
                     // Farm object placement (fence, scarecrow)
                     handle_place_farm_object,
+                    // Harvest particle animation
+                    harvest::update_harvest_particles,
                 )
                     .run_if(in_state(GameState::Playing)),
             )

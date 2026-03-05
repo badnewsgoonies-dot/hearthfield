@@ -9,10 +9,11 @@ use crate::shared::*;
 /// 2. ShowText — grandfather's letter
 /// 3. ShowText — the letter contents
 /// 4. ShowText — day card
-/// 5. FadeIn — reveal the farm
-/// 6. Wait — let player see the farm
-/// 7. StartDialogueCustom — Mayor Rex greets the player
-/// 8. WaitForDialogueEnd
+/// 5. ShowText — controls card (shown early, while still on black)
+/// 6. FadeIn — reveal the farm
+/// 7. Wait — let player see the farm
+/// 8. StartDialogueCustom — Mayor Rex greets the player
+/// 9. WaitForDialogueEnd
 pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     let mut steps = VecDeque::new();
 
@@ -35,6 +36,16 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
         2.5,
     ));
 
+    // Controls reference card — shown early so the player reads controls
+    // while the screen is still black, before they need to do anything.
+    steps.push_back(CutsceneStep::ShowText(
+        "Controls: WASD = Move | Space = Use Tool | F = Interact\n\
+         R = Eat Food / Place Item | E = Inventory | C = Crafting\n\
+         [ ] = Cycle Tools | 1-9 = Select Hotbar | Esc = Pause"
+            .into(),
+        8.0,
+    ));
+
     // Reveal the farm.
     steps.push_back(CutsceneStep::FadeIn(1.5));
 
@@ -53,15 +64,6 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
         portrait_index: Some(7),
     });
     steps.push_back(CutsceneStep::WaitForDialogueEnd);
-
-    // Controls reference card — show after dialogue so the player sees it on the farm.
-    steps.push_back(CutsceneStep::ShowText(
-        "Controls: WASD = Move | Space = Use Tool | F = Interact\n\
-         R = Eat Food / Place Item | E = Inventory | C = Crafting\n\
-         [ ] = Cycle Tools | 1-9 = Select Hotbar | Esc = Pause"
-            .into(),
-        8.0,
-    ));
 
     steps
 }
