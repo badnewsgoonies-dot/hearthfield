@@ -557,9 +557,14 @@ fn load_map(
     // These coordinates match the door-entry zones in edge_transition()
     // (src/player/interaction.rs).
     if map_id == MapId::Farm {
-        // Player House door at (15-16, 2)
+        // Player House door at (15-16, 2) and exit landing tiles (15-16, 1)
         world_map.solid_tiles.remove(&(15, 2));
         world_map.solid_tiles.remove(&(16, 2));
+        world_map.solid_tiles.remove(&(15, 1));
+        world_map.solid_tiles.remove(&(16, 1));
+        // Also clear a path south from the house (15-16, 0) so player can walk away
+        world_map.solid_tiles.remove(&(15, 0));
+        world_map.solid_tiles.remove(&(16, 0));
     }
     if map_id == MapId::Town {
         // General Store door at (5-6, 2)
