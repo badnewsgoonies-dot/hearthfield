@@ -123,3 +123,29 @@ pub fn track_food_eaten(mut events: EventReader<EatFoodEvent>, mut stats: ResMut
         stats.food_eaten = stats.food_eaten.saturating_add(1);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::shared::*;
+
+    #[test]
+    fn test_play_stats_default_all_zero() {
+        let stats = PlayStats::default();
+        assert_eq!(stats.crops_harvested, 0);
+        assert_eq!(stats.fish_caught, 0);
+        assert_eq!(stats.days_played, 0);
+        assert_eq!(stats.gifts_given, 0);
+        assert_eq!(stats.animal_products_collected, 0);
+        assert_eq!(stats.total_gold_earned, 0);
+        assert_eq!(stats.food_eaten, 0);
+        assert_eq!(stats.items_shipped, 0);
+    }
+
+    #[test]
+    fn test_play_stats_saturating_add() {
+        let mut stats = PlayStats::default();
+        stats.crops_harvested = u64::MAX;
+        stats.crops_harvested = stats.crops_harvested.saturating_add(1);
+        assert_eq!(stats.crops_harvested, u64::MAX);
+    }
+}

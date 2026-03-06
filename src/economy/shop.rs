@@ -190,11 +190,16 @@ pub fn try_buy(
         };
     }
 
-    // Check inventory capacity.
-    let added = inventory.try_add(item_id, quantity, item_def.stack_size);
-    if added == 0 {
+    // Check inventory capacity. try_add returns the number of items that
+    // could NOT be added (remaining). If remaining == quantity, nothing was added.
+    let remaining = inventory.try_add(item_id, quantity, item_def.stack_size);
+    if remaining == quantity {
         return TransactionResult::InventoryFull;
     }
+    // If partially added, we still consider it a success for the items that fit.
+    // In practice the caller should check capacity first.
+    let actually_added = quantity - remaining;
+    let total_cost = price_per_unit.saturating_mul(actually_added as u32);
 
     // Deduct gold.
     player_state.gold = player_state.gold.saturating_sub(total_cost);
@@ -229,10 +234,10 @@ pub fn try_sell(
 
     // Check inventory.
     let held = inventory.count(item_id);
-    if held < quantity {
+    if held < quantity as u32 {
         return TransactionResult::InsufficientItems {
             need: quantity,
-            have: held,
+            have: held.min(255) as u8,
         };
     }
 
