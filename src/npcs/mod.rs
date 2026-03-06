@@ -74,15 +74,23 @@ impl Plugin for NpcPlugin {
         app.add_systems(
             Update,
             handle_npc_interaction
+                .in_set(UpdatePhase::Intent)
                 .run_if(in_state(GameState::Playing))
                 .before(crate::player::interact_dispatch::dispatch_world_interaction),
+        );
+
+        // Deterministic schedule resolution cadence.
+        app.add_systems(
+            FixedUpdate,
+            update_npc_schedules
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
         );
 
         // Playing-state systems: core NPC behaviour
         app.add_systems(
             Update,
             (
-                update_npc_schedules,
                 move_npcs_toward_targets,
                 animate_npc_sprites,
                 handle_gift_input,
@@ -95,6 +103,7 @@ impl Plugin for NpcPlugin {
                 animate_emote_bubbles,
                 reset_daily_talks,
             )
+                .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -119,6 +128,7 @@ impl Plugin for NpcPlugin {
                 handle_quest_completed,
                 expire_quests,
             )
+                .in_set(UpdatePhase::Reactions)
                 .run_if(in_state(GameState::Playing)),
         );
     }
