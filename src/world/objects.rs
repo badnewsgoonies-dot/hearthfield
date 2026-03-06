@@ -2201,6 +2201,8 @@ pub fn spawn_interior_decorations(
                 kind: InteractionKind::Bed,
                 label: "Sleep".into(),
             },
+            YSorted,
+            LogicalPosition(Vec2::new(bed_wc.x, bed_wc.y)),
             Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
         ));
@@ -2214,6 +2216,8 @@ pub fn spawn_interior_decorations(
                 kind: InteractionKind::KitchenStove,
                 label: "Cook".into(),
             },
+            YSorted,
+            LogicalPosition(Vec2::new(stove_wc.x, stove_wc.y)),
             Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
         ));
