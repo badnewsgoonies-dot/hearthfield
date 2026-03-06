@@ -47,6 +47,12 @@ pub struct HudStaminaBar;
 pub struct HudStaminaFill;
 
 #[derive(Component)]
+pub struct HudHealthBar;
+
+#[derive(Component)]
+pub struct HudHealthFill;
+
+#[derive(Component)]
 pub struct HudToolText;
 
 #[derive(Component)]
@@ -304,31 +310,68 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                                 PickingBehavior::IGNORE,
                             ));
 
-                            // Stamina bar container
+                            // Bars group (health + stamina stacked)
                             right
                                 .spawn((
-                                    HudStaminaBar,
                                     Node {
-                                        width: Val::Px(120.0),
-                                        height: Val::Px(14.0),
-                                        border: UiRect::all(Val::Px(1.0)),
+                                        flex_direction: FlexDirection::Column,
+                                        row_gap: Val::Px(2.0),
                                         ..default()
                                     },
-                                    BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
-                                    BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
                                     PickingBehavior::IGNORE,
                                 ))
-                                .with_children(|bar| {
-                                    bar.spawn((
-                                        HudStaminaFill,
+                                .with_children(|bars| {
+                                    // Health bar container
+                                    bars.spawn((
+                                        HudHealthBar,
                                         Node {
-                                            width: Val::Percent(100.0),
-                                            height: Val::Percent(100.0),
+                                            width: Val::Px(120.0),
+                                            height: Val::Px(10.0),
+                                            border: UiRect::all(Val::Px(1.0)),
                                             ..default()
                                         },
-                                        BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+                                        BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
                                         PickingBehavior::IGNORE,
-                                    ));
+                                    ))
+                                    .with_children(|bar| {
+                                        bar.spawn((
+                                            HudHealthFill,
+                                            Node {
+                                                width: Val::Percent(100.0),
+                                                height: Val::Percent(100.0),
+                                                ..default()
+                                            },
+                                            BackgroundColor(Color::srgb(0.85, 0.2, 0.2)),
+                                            PickingBehavior::IGNORE,
+                                        ));
+                                    });
+
+                                    // Stamina bar container
+                                    bars.spawn((
+                                        HudStaminaBar,
+                                        Node {
+                                            width: Val::Px(120.0),
+                                            height: Val::Px(10.0),
+                                            border: UiRect::all(Val::Px(1.0)),
+                                            ..default()
+                                        },
+                                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+                                        BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
+                                        PickingBehavior::IGNORE,
+                                    ))
+                                    .with_children(|bar| {
+                                        bar.spawn((
+                                            HudStaminaFill,
+                                            Node {
+                                                width: Val::Percent(100.0),
+                                                height: Val::Percent(100.0),
+                                                ..default()
+                                            },
+                                            BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                                            PickingBehavior::IGNORE,
+                                        ));
+                                    });
                                 });
                         });
                 });
@@ -745,6 +788,41 @@ pub fn update_stamina_bar(
         if is_critical {
             // Gentle pulse: alpha oscillates between 0.70 and 1.0
             let pulse = (time.elapsed_secs() * 3.0).sin() * 0.15 + 0.85;
+            let Color::Srgba(srgba) = base_color else {
+                *bg = BackgroundColor(base_color);
+                continue;
+            };
+            *bg = BackgroundColor(Color::srgba(srgba.red, srgba.green, srgba.blue, pulse));
+        } else {
+            *bg = BackgroundColor(base_color);
+        }
+    }
+}
+
+pub fn update_health_bar(
+    player: Res<PlayerState>,
+    time: Res<Time>,
+    mut query: Query<(&mut Node, &mut BackgroundColor), With<HudHealthFill>>,
+) {
+    let ratio = (player.health / player.max_health).clamp(0.0, 1.0);
+    let is_critical = ratio < 0.25;
+
+    if !player.is_changed() && !is_critical {
+        return;
+    }
+
+    for (mut node, mut bg) in &mut query {
+        node.width = Val::Percent(ratio * 100.0);
+        let base_color = if ratio > 0.6 {
+            Color::srgb(0.85, 0.2, 0.2)
+        } else if ratio >= 0.3 {
+            Color::srgb(0.9, 0.5, 0.1)
+        } else {
+            Color::srgb(0.6, 0.1, 0.1)
+        };
+
+        if is_critical {
+            let pulse = (time.elapsed_secs() * 3.5).sin() * 0.15 + 0.85;
             let Color::Srgba(srgba) = base_color else {
                 *bg = BackgroundColor(base_color);
                 continue;

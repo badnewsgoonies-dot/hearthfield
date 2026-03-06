@@ -174,6 +174,7 @@ impl Plugin for UiPlugin {
                 hud::update_weather_icon,
                 hud::update_gold_display,
                 hud::update_stamina_bar,
+                hud::update_health_bar,
                 hud::update_tool_display,
                 hud::update_hotbar,
                 hud::hydrate_hotbar_icons,
