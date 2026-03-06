@@ -20,12 +20,15 @@ pub struct ScreenFade {
     pub hold_timer: f32,
 }
 
+/// Default fade speed: 1.0 / 0.3s = ~3.33 alpha/s for 0.3s transitions.
+const FADE_SPEED: f32 = 1.0 / 0.3;
+
 impl Default for ScreenFade {
     fn default() -> Self {
         Self {
             alpha: 0.0,
             target_alpha: 0.0,
-            speed: 2.5,
+            speed: FADE_SPEED,
             active: false,
             hold_timer: 0.0,
         }
