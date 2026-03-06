@@ -59,7 +59,7 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
     let spawn_pos = (MINE_WIDTH / 2, 1);
 
     // --- Determine rock count (8-15, increasing with depth) ---
-    let min_rocks = 8 + (floor as usize) / 5; // 8 at floor 1, up to 12 at floor 20
+    let min_rocks = (8 + (floor as usize) / 5).min(15); // 8 at floor 1, up to 12 at floor 20
     let max_rocks_cap = 15usize;
     let max_rocks = rng.gen_range(min_rocks..=max_rocks_cap);
 
