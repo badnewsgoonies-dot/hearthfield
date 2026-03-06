@@ -1,8 +1,8 @@
 //! Treasure chest loot logic for the fishing system.
 //!
-//! A small percentage of successful catches also yield a treasure chest containing
-//! a random selection of items and some gold. The base chance is 5%, but certain
-//! bait types (magnet_bait, wild_bait) raise that probability significantly.
+//! A percentage of successful catches also yield a treasure chest containing
+//! a random selection of items and some gold. The base chance is 10% (spec), and
+//! certain bait types (magnet_bait, wild_bait) raise that probability further.
 //!
 //! # Loot table
 //! | Tier     | Weight | Example items                          |
