@@ -57,7 +57,8 @@ impl Plugin for UiPlugin {
                 audio::handle_play_sfx,
                 audio::handle_play_music,
                 audio::toast_sfx,
-            ),
+            )
+                .in_set(UpdatePhase::Reactions),
         );
         app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
         app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
@@ -68,6 +69,7 @@ impl Plugin for UiPlugin {
                 audio::switch_music_on_map_change,
                 audio::door_sfx_on_map_change,
             )
+                .in_set(UpdatePhase::Reactions)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -79,7 +81,8 @@ impl Plugin for UiPlugin {
                 transitions::trigger_fade_on_transition,
                 transitions::update_fade,
             )
-                .chain(),
+                .chain()
+                .in_set(UpdatePhase::Presentation),
         );
 
         // ─── CUTSCENE RUNNER ───
@@ -94,7 +97,9 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             Update,
-            cutscene_runner::run_cutscene_queue.run_if(in_state(GameState::Cutscene)),
+            cutscene_runner::run_cutscene_queue
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Cutscene)),
         );
         // When entering Playing, check if a cutscene queue was pre-populated
         // (e.g. intro sequence from main menu) and redirect to Cutscene state.
@@ -117,6 +122,7 @@ impl Plugin for UiPlugin {
                 dialogue_box::listen_for_dialogue_start,
                 dialogue_box::handle_dialogue_end,
             )
+                .in_set(UpdatePhase::Reactions)
                 .run_if(in_state(GameState::Playing).or(in_state(GameState::Cutscene))),
         );
 
@@ -130,6 +136,7 @@ impl Plugin for UiPlugin {
                 main_menu::main_menu_navigation,
                 main_menu::handle_load_complete_in_main_menu,
             )
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::MainMenu)),
         );
 
@@ -180,6 +187,7 @@ impl Plugin for UiPlugin {
                 hud::spawn_floating_gold_text,
                 hud::update_floating_gold_text,
             )
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -197,6 +205,7 @@ impl Plugin for UiPlugin {
                 toast::wire_season_toasts,
                 toast::wire_pickup_toasts,
             )
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -209,6 +218,7 @@ impl Plugin for UiPlugin {
                 tutorial::check_objectives,
             )
                 .chain()
+                .in_set(UpdatePhase::Reactions)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -231,7 +241,8 @@ impl Plugin for UiPlugin {
                         .or(in_state(GameState::RelationshipsView))
                         .or(in_state(GameState::MapView)),
                 ),
-            ),
+            )
+                .in_set(UpdatePhase::Input),
         );
 
         // ─── INVENTORY SCREEN ───

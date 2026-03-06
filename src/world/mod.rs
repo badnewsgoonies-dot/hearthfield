@@ -88,6 +88,15 @@ impl Plugin for WorldPlugin {
                     chests::place_chest,
                     chests::interact_with_chest,
                     chests::close_chest_on_escape,
+                    // Weed scythe clearing
+                    handle_weed_scythe,
+                )
+                    .in_set(UpdatePhase::Simulation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
                     // Seasonal tinting and leaf particles
                     apply_seasonal_tint,
                     spawn_falling_leaves,
@@ -100,11 +109,10 @@ impl Plugin for WorldPlugin {
                     update_weather_particles,
                     cleanup_weather_on_change,
                     weather_change_notification,
-                    // Weed scythe clearing
-                    handle_weed_scythe,
                     // Forageable sparkle particles
                     update_forage_sparkles,
                 )
+                    .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
             )
             .add_systems(
@@ -119,14 +127,25 @@ impl Plugin for WorldPlugin {
                     spawn_interior_decorations,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
+                )
+                    .in_set(UpdatePhase::Simulation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
                     // Subtle pulse on nearby interactable objects
                     highlight_nearby_interactables,
                 )
+                    .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
             )
             // Listen for day-end events (forageable respawn + weed spawning) in any state
             // so we don't miss the event
-            .add_systems(Update, (handle_day_end_forageables, spawn_daily_weeds))
+            .add_systems(
+                Update,
+                (handle_day_end_forageables, spawn_daily_weeds).in_set(UpdatePhase::Reactions),
+            )
             // Listen for season changes for visual updates + tree regrowth.
             // This handles season-switch atlas swaps (index-based).
             // apply_seasonal_tint handles multiplicative colour tinting.
@@ -136,7 +155,8 @@ impl Plugin for WorldPlugin {
                     handle_season_change,
                     regrow_trees_on_season_change,
                     update_tree_sprites_on_season_change,
-                ),
+                )
+                    .in_set(UpdatePhase::Reactions),
             )
             // Y-sort + pixel-snap: runs after all movement, writes Transform
             .add_systems(PostUpdate, ysort::sync_position_and_ysort);
