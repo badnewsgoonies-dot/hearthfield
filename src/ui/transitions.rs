@@ -60,7 +60,7 @@ pub fn trigger_fade_on_transition(
 ) {
     for _event in events.read() {
         fade.target_alpha = 1.0;
-        fade.speed = 2.5;
+        fade.speed = FADE_SPEED;
         fade.hold_timer = 0.1;
         fade.active = true;
     }
