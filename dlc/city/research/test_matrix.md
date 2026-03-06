@@ -1,24 +1,24 @@
 # City Office Worker DLC Prototype - Test & Validation Matrix
 
 Scope basis:
-- Contract: `city_office_worker_dlc/CONTRACT.md` (determinism/invariants/end-of-day expectations)
-- Implementation: `city_office_worker_dlc/src/game/resources.rs`, `city_office_worker_dlc/src/game/systems.rs`
+- Contract: `dlc/city/CONTRACT.md` (determinism/invariants/end-of-day expectations)
+- Implementation: `dlc/city/src/game/resources.rs`, `dlc/city/src/game/systems.rs`
 
 Current baseline (2026-03-03):
-- `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` -> pass
-- `cargo test --manifest-path city_office_worker_dlc/Cargo.toml` -> pass (0 tests)
+- `cargo check --manifest-path dlc/city/Cargo.toml` -> pass
+- `cargo test --manifest-path dlc/city/Cargo.toml` -> pass (0 tests)
 
 ## Run Commands
 
 ```bash
 # compile gate
-cargo check --manifest-path city_office_worker_dlc/Cargo.toml
+cargo check --manifest-path dlc/city/Cargo.toml
 
 # test gate (currently no automated tests yet)
-cargo test --manifest-path city_office_worker_dlc/Cargo.toml -- --nocapture
+cargo test --manifest-path dlc/city/Cargo.toml -- --nocapture
 
 # manual validation run (use P/C/N keys)
-RUST_LOG=info cargo run --manifest-path city_office_worker_dlc/Cargo.toml
+RUST_LOG=info cargo run --manifest-path dlc/city/Cargo.toml
 ```
 
 ## Matrix

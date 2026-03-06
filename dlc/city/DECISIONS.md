@@ -7,7 +7,7 @@ Format: concise ADR log for accepted prototype decisions.
 - Date: 2026-03-03
 - Status: Accepted
 - Context: We needed fast iteration without destabilizing the main game crate.
-- Decision: Implement the DLC as its own Rust crate at `city_office_worker_dlc/` with an independent `Cargo.toml`.
+- Decision: Implement the DLC as its own Rust crate at `dlc/city/` with an independent `Cargo.toml`.
 - Why: This keeps build/run/test loops isolated (`--manifest-path`) and lowers cross-project risk.
 
 ## ADR-002 - Use One Top-Level Game Plugin for Wave 0
