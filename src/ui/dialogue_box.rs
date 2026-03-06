@@ -246,7 +246,7 @@ pub fn typewriter_update(
     let Some(ref mut state) = ui_state else {
         return;
     };
-    let Some(full_line) = state.lines.get(state.current_line) else {
+    let Some(full_line) = state.lines.get(state.current_line).cloned() else {
         return;
     };
     let total_chars = full_line.chars().count();
