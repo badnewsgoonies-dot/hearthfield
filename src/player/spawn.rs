@@ -62,6 +62,7 @@ pub fn spawn_player(
                 },
             );
             s.custom_size = Some(Vec2::new(48.0, 48.0));
+            s.anchor = bevy::sprite::Anchor::BottomCenter;
             s
         },
         // Logical position for pixel-perfect rendering (movement writes here)
