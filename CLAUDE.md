@@ -80,11 +80,33 @@ Update MANIFEST.md after every completed domain with: current phase, completed d
 
 ## Worker Dispatch
 
+Two dispatch backends are available. Use whichever is functional in the current environment.
+
+### Option A: Codex CLI (preferred when available)
 ```bash
 codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
 ```
-
 Stagger launches by ~3 seconds to avoid rate limits. Workers run fully autonomous.
+
+### Option B: Claude Sub-Agent Orchestrator (fallback, or primary)
+When `codex exec` is unavailable (sandbox restrictions, auth issues), or when using Claude Code natively, use the **nested orchestrator pattern**:
+
+```
+You (chat) → Orchestrator sub-agent (Agent tool) → Worker sub-agents (Agent tool, parallel)
+```
+
+1. Launch an **orchestrator sub-agent** via the Agent tool with the full wave spec (domains, objectives, sequencing)
+2. The orchestrator reads specs from disk, then launches **worker sub-agents** in parallel (one per domain, using `isolation: "worktree"` if needed)
+3. Each worker reads `objectives/{domain}.md`, implements within scope, runs `cargo check` + `cargo clippy`
+4. The orchestrator collects results, runs gates, reports back
+
+This gives the same mechanical isolation as Codex: workers are scope-limited, specs live on disk, and the orchestrator validates rather than implements.
+
+### Option C: GitHub Copilot CLI
+```bash
+gh copilot -p "$(cat objectives/{domain}.md)" --yolo --add-dir /home/user/hearthfield
+```
+Same protocol as Codex — stagger launches, clamp scope after completion.
 
 ## Worker Spec Template (objectives/{domain}.md)
 
