@@ -81,7 +81,7 @@ Update MANIFEST.md after every completed domain with: current phase, completed d
 ## Worker Dispatch
 
 ```bash
-codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
+codex exec --dangerously-bypass-approvals-and-sandbox -C /home/user/hearthfield "$(cat objectives/{domain}.md)"
 ```
 
 Stagger launches by ~3 seconds to avoid rate limits. Workers run fully autonomous.
