@@ -69,6 +69,7 @@ impl FishingSkill {
     /// Maximum catch-zone bonus.
     pub const MAX_CATCH_ZONE: f32 = 0.3;
     /// Catches required to advance one level (legacy, kept for compatibility).
+    #[allow(dead_code)]
     pub const CATCHES_PER_LEVEL: u32 = 10;
     /// Bite-speed improvement per level.
     pub const BITE_SPEED_PER_LEVEL: f32 = 0.05;
@@ -103,6 +104,7 @@ impl FishingSkill {
     }
 
     /// Apply the bite-speed bonus to a raw wait duration (in seconds).
+    #[allow(dead_code)]
     pub fn apply_bite_speed(&self, base_wait: f32) -> f32 {
         base_wait * (1.0 - self.bite_speed_bonus)
     }

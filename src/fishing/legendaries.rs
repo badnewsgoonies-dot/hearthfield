@@ -20,14 +20,16 @@ use crate::shared::*;
 
 // ─── Legendary fish table ─────────────────────────────────────────────────────
 
+/// Entry in the legendary fish table.
+/// (fish_id, required_map, required_season, minigame_difficulty, spawn_chance, weather_required)
+type LegendaryEntry = (&'static str, MapId, Option<Season>, f32, f64, Option<Weather>);
+
 /// Static table of all legendary fish and their requirements.
-///
-/// Columns: (fish_id, required_map, required_season, minigame_difficulty, spawn_chance, weather_required)
 ///
 /// `spawn_chance` is the probability (0.0–1.0) that **this specific legendary**
 /// is offered on a qualifying cast. The value is intentionally very low so that
 /// legendary fish remain rare even when all conditions are met.
-pub const LEGENDARY_FISH: &[(&str, MapId, Option<Season>, f32, f64, Option<Weather>)] = &[
+pub const LEGENDARY_FISH: &[LegendaryEntry] = &[
     // Legend — Forest (River), any season, rainy weather required, very hard (0.95), 2% chance
     (
         "legend_fish",
