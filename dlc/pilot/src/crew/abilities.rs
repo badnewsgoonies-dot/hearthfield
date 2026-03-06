@@ -207,10 +207,7 @@ pub fn evaluate_crew_abilities(
 }
 
 /// Apply XP multiplier from crew bonuses to XP gain events.
-pub fn apply_xp_bonus(
-    bonuses: Res<CrewBonuses>,
-    mut xp_events: EventReader<XpGainEvent>,
-) {
+pub fn apply_xp_bonus(bonuses: Res<CrewBonuses>, mut xp_events: EventReader<XpGainEvent>) {
     if bonuses.xp_multiplier <= 1.0 && bonuses.landing_xp_bonus <= 0.0 {
         return;
     }

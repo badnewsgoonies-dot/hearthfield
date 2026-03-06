@@ -8,10 +8,10 @@
 //!
 //! | Bait / Condition | Treasure chance |
 //! |------------------|-----------------|
-//! | No bait          | 5%              |
-//! | Generic bait     | 5%              |
-//! | wild_bait        | 10%             |
-//! | magnet_bait      | 20%             |
+//! | No bait          | 10%             |
+//! | Generic bait     | 10%             |
+//! | wild_bait        | 15%             |
+//! | magnet_bait      | 25%             |
 
 use bevy::prelude::*;
 
@@ -114,9 +114,9 @@ pub fn catch_fish(
 
     // ── Treasure Chest ────────────────────────────────────────────────────
     // Bait affects treasure probability:
-    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)  → 20% total
-    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)       → 10% total
-    //   - any other bait / no bait: base rate only           →  5% total
+    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)  → 25% total
+    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)       → 15% total
+    //   - any other bait / no bait: base rate only           → 10% total
     let treasure_chance = match bait_id {
         Some("magnet_bait") => BASE_TREASURE_CHANCE + MAGNET_BAIT_EXTRA_CHANCE,
         Some("wild_bait") => BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE,

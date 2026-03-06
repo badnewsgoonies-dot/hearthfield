@@ -32,6 +32,12 @@ pub struct MinimapState {
     pub base_pixels: Vec<[u8; 4]>,
     pub map_width: usize,
     pub map_height: usize,
+    /// Last rendered player tile for redraw gating.
+    pub last_player_tile: Option<(usize, usize)>,
+    /// Last rendered player blink phase (true = white, false = yellow).
+    pub last_player_blink_on: Option<bool>,
+    /// Last rendered NPC tile set.
+    pub last_npc_tiles: Vec<(usize, usize)>,
 }
 
 /// Marker for the minimap UI node.
@@ -87,6 +93,9 @@ pub fn spawn_minimap(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
         base_pixels: vec![[20, 30, 20, 255]; MAX_MAP * MAX_MAP],
         map_width: MAX_MAP,
         map_height: MAX_MAP,
+        last_player_tile: None,
+        last_player_blink_on: None,
+        last_npc_tiles: Vec::new(),
     });
 
     // UI node: bottom-right corner, semi-transparent border.
@@ -131,9 +140,12 @@ pub fn update_minimap(
     mut images: ResMut<Assets<Image>>,
 ) {
     let current_map = player_state.current_map;
+    let mut base_dirty = false;
 
     // ── Rebuild base tiles on map change ──────────────────────────────────
-    if minimap.cached_map != Some(current_map) {
+    if minimap.cached_map != Some(current_map)
+        || (current_map == MapId::Farm && farm_state.is_changed())
+    {
         let map_def = generate_map(current_map);
         let w = map_def.width.min(MAX_MAP);
         let h = map_def.height.min(MAX_MAP);
@@ -186,6 +198,36 @@ pub fn update_minimap(
         }
 
         minimap.cached_map = Some(current_map);
+        base_dirty = true;
+    }
+
+    let w = minimap.map_width;
+    let h = minimap.map_height;
+    let player_tile = player_query
+        .get_single()
+        .ok()
+        .and_then(|grid| {
+            let px = grid.x as usize;
+            let py = grid.y as usize;
+            (px < w && py < h).then_some((px, py))
+        });
+    let player_blink_on = player_tile.map(|_| (time.elapsed_secs() * 4.0).sin() > 0.0);
+    let mut npc_tiles = Vec::new();
+    for (_npc, tf) in &npc_query {
+        let gx = (tf.translation.x / TILE_SIZE).round() as usize;
+        let gy = (tf.translation.y / TILE_SIZE).round() as usize;
+        if gx < w && gy < h {
+            npc_tiles.push((gx, gy));
+        }
+    }
+    npc_tiles.sort_unstable();
+    npc_tiles.dedup();
+
+    let overlay_dirty = minimap.last_player_tile != player_tile
+        || minimap.last_player_blink_on != player_blink_on
+        || minimap.last_npc_tiles != npc_tiles;
+    if !base_dirty && !overlay_dirty {
+        return;
     }
 
     // ── Write pixels to image ─────────────────────────────────────────────
@@ -206,51 +248,42 @@ pub fn update_minimap(
         }
     }
 
-    let w = minimap.map_width;
-    let h = minimap.map_height;
-
     // ── Overlay NPC positions (small colored dots) ────────────────────────
-    for (_npc, tf) in &npc_query {
-        let gx = (tf.translation.x / TILE_SIZE).round() as usize;
-        let gy = (tf.translation.y / TILE_SIZE).round() as usize;
-        if gx < w && gy < h {
-            let img_gy = h - 1 - gy;
-            let offset = (img_gy * MAX_MAP + gx) * 4;
-            data[offset] = 100;
-            data[offset + 1] = 200;
-            data[offset + 2] = 255;
-            data[offset + 3] = 255;
-        }
+    for (gx, gy) in &npc_tiles {
+        let img_gy = h - 1 - *gy;
+        let offset = (img_gy * MAX_MAP + *gx) * 4;
+        data[offset] = 100;
+        data[offset + 1] = 200;
+        data[offset + 2] = 255;
+        data[offset + 3] = 255;
     }
 
     // ── Overlay player position (blinking white/yellow dot) ───────────────
-    if let Ok(grid) = player_query.get_single() {
-        let px = grid.x as usize;
-        let py = grid.y as usize;
-        let blink = (time.elapsed_secs() * 4.0).sin() > 0.0;
+    if let Some((px, py)) = player_tile {
+        let color: [u8; 4] = if player_blink_on.unwrap_or(false) {
+            [255, 255, 255, 255]
+        } else {
+            [255, 200, 50, 255]
+        };
 
-        if px < w && py < h {
-            let color: [u8; 4] = if blink {
-                [255, 255, 255, 255]
-            } else {
-                [255, 200, 50, 255]
-            };
-
-            // 3×3 dot for visibility (flip Y for image coords)
-            for dy in 0..3i32 {
-                for dx in 0..3i32 {
-                    let nx = (px as i32 + dx - 1) as usize;
-                    let game_ny = (py as i32 + dy - 1) as usize;
-                    if nx < w && game_ny < h {
-                        let img_ny = h - 1 - game_ny;
-                        let offset = (img_ny * MAX_MAP + nx) * 4;
-                        data[offset] = color[0];
-                        data[offset + 1] = color[1];
-                        data[offset + 2] = color[2];
-                        data[offset + 3] = color[3];
-                    }
+        // 3×3 dot for visibility (flip Y for image coords)
+        for dy in 0..3i32 {
+            for dx in 0..3i32 {
+                let nx = (px as i32 + dx - 1) as usize;
+                let game_ny = (py as i32 + dy - 1) as usize;
+                if nx < w && game_ny < h {
+                    let img_ny = h - 1 - game_ny;
+                    let offset = (img_ny * MAX_MAP + nx) * 4;
+                    data[offset] = color[0];
+                    data[offset + 1] = color[1];
+                    data[offset + 2] = color[2];
+                    data[offset + 3] = color[3];
                 }
             }
         }
     }
+
+    minimap.last_player_tile = player_tile;
+    minimap.last_player_blink_on = player_blink_on;
+    minimap.last_npc_tiles = npc_tiles;
 }

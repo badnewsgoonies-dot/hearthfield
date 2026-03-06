@@ -80,11 +80,72 @@ Update MANIFEST.md after every completed domain with: current phase, completed d
 
 ## Worker Dispatch
 
+Two dispatch backends are available. Use whichever is functional in the current environment.
+
+### Option A: Codex CLI (preferred when available)
 ```bash
 codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
 ```
-
 Stagger launches by ~3 seconds to avoid rate limits. Workers run fully autonomous.
+
+### Option B: Claude Nested Orchestrator (recommended, compaction-safe)
+Sub-agents CANNOT spawn sub-agents (the Task/Agent tool is excluded from sub-agent tool sets).
+The workaround: sub-agents CAN use Bash, so they dispatch workers via `claude -p`.
+
+```
+You (chat) → Orchestrator sub-agent (Agent tool, general-purpose)
+                → Workers (claude -p via Bash, parallel)
+```
+
+**Dispatch an orchestrator sub-agent** with:
+- The list of domains for this wave
+- Instructions to launch workers via `claude -p` through Bash
+- Instructions to validate, clamp scope, run gates, commit
+
+The orchestrator sub-agent launches each worker like:
+```bash
+claude -p "$(cat objectives/{domain}.md)" \
+  --allowedTools "Read,Edit,Write,Bash,Grep,Glob" \
+  --max-turns 40 \
+  --output-format json \
+  --cwd /home/user/hearthfield \
+  2>&1 | tee status/workers/{domain}_output.json
+```
+
+Key flags for workers:
+- `--allowedTools` — scope what the worker can do
+- `--max-turns` — prevent runaway (30-50 typical)
+- `--output-format json` — structured result with cost/tokens
+- `--cwd` — ensure correct working directory
+- `--append-system-prompt` — add domain constraints without losing defaults
+
+After each worker: `bash scripts/clamp-scope.sh src/{domain}/`, verify contract, run gates.
+
+**Why this works:** The orchestrator holds full wave context in its own window, survives chat compaction, and can retry failed workers. Workers start fresh (no context inheritance from `-p`), which is fine because specs are on disk.
+
+**Cost note:** Each `-p` invocation carries ~20K token overhead. Reserve for genuinely multi-step domain work. For small fixes, the orchestrator should just do it directly via Bash/Edit.
+
+### Option C: Claude Direct Workers (flat, no compaction safety)
+Dispatch worker sub-agents directly from chat via the Agent tool:
+
+```
+You (chat, acting as orchestrator) → Worker sub-agents (Agent tool, parallel, run_in_background)
+```
+
+Fast and cheap (no `-p` overhead), but breaks on compaction — chat loses orchestrator state. Use MANIFEST.md and `status/workers/` to recover. Best for small waves (1-2 domains).
+
+### Option D: GitHub Copilot CLI
+```bash
+gh copilot -p "$(cat objectives/{domain}.md)" --yolo --add-dir /home/user/hearthfield
+```
+Same protocol as Codex — stagger launches, clamp scope after completion.
+
+### Option E: Codex CLI + Claude Orchestrator
+Same as Option B, but workers use `codex exec` instead of `claude -p`:
+```bash
+codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
+```
+The orchestrator sub-agent dispatches via Bash. Useful when Codex sandbox works but you still want compaction-safe orchestration.
 
 ## Worker Spec Template (objectives/{domain}.md)
 

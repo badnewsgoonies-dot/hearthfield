@@ -32,11 +32,14 @@ impl Plugin for PlayerPlugin {
             Update,
             interact_dispatch::dispatch_world_interaction
                 .before(interaction::item_pickup_check)
+                .in_set(UpdatePhase::Intent)
                 .run_if(in_state(GameState::Playing)),
         );
         app.add_systems(
             Update,
-            item_use::dispatch_item_use.run_if(in_state(GameState::Playing)),
+            item_use::dispatch_item_use
+                .in_set(UpdatePhase::Intent)
+                .run_if(in_state(GameState::Playing)),
         );
 
         // -- Systems that run every frame while Playing --
@@ -58,8 +61,14 @@ impl Plugin for PlayerPlugin {
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
                 interaction::check_stamina_consequences,
-                camera::camera_follow_player.after(interaction::handle_map_transition),
             )
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
+        );
+        app.add_systems(
+            Update,
+            camera::camera_follow_player
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -67,7 +76,9 @@ impl Plugin for PlayerPlugin {
         // handlers (also gated on Playing) process the MapTransitionEvent --
         app.add_systems(
             Update,
-            interaction::handle_day_end.run_if(in_state(GameState::Playing)),
+            interaction::handle_day_end
+                .in_set(UpdatePhase::Reactions)
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }

@@ -896,7 +896,8 @@ pub fn track_monster_slain(
 
 /// Posts hand-crafted story quests on specific days during Year 1.
 /// These provide guided progression and introduce the player to game systems
-/// and NPCs. Each quest fires exactly once, tracked by a `Local<Vec<String>>`.
+/// and NPCs. 12 total quests: 3 per season.
+/// Each quest fires exactly once, tracked by a `Local<Vec<String>>`.
 pub fn check_story_quests(
     calendar: Res<Calendar>,
     mut quest_log: ResMut<QuestLog>,
@@ -913,7 +914,11 @@ pub fn check_story_quests(
     let quest: Quest;
 
     match (calendar.season, calendar.day) {
-        // Quest 1: "Mayor's Welcome" — Day 2, Spring
+        // ═══════════════════════════════════════════════════════════════
+        // SPRING — 3 quests
+        // ═══════════════════════════════════════════════════════════════
+
+        // Spring Quest 1: "Mayor's Welcome" — Day 2
         (Season::Spring, 2) if !tracker.contains(&"mayors_welcome".to_string()) => {
             story_id = "mayors_welcome";
             quest = Quest {
@@ -933,26 +938,7 @@ pub fn check_story_quests(
                 accepted_day: (2, season_to_idx(&Season::Spring), 1),
             };
         }
-        // Quest 2: "Margaret's Bread Run" — Day 5, Spring
-        (Season::Spring, 5) if !tracker.contains(&"bread_run".to_string()) => {
-            story_id = "bread_run";
-            quest = Quest {
-                id: "story_bread_run".to_string(),
-                title: "Fresh Bread Delivery".to_string(),
-                description: "Margaret needs someone to bring bread to Doc at his clinic. He's been too busy to eat!".to_string(),
-                giver: "margaret".to_string(),
-                objective: QuestObjective::Talk {
-                    npc_name: "doc".to_string(),
-                    talked: false,
-                },
-                reward_gold: 200,
-                reward_items: Vec::new(),
-                reward_friendship: 30,
-                days_remaining: Some(5),
-                accepted_day: (5, season_to_idx(&Season::Spring), 1),
-            };
-        }
-        // Quest 3: "Elena's Ore Request" — Day 8, Spring
+        // Spring Quest 2: "Elena's Ore Request" — Day 8
         (Season::Spring, 8) if !tracker.contains(&"ore_request".to_string()) => {
             story_id = "ore_request";
             quest = Quest {
@@ -972,8 +958,8 @@ pub fn check_story_quests(
                 accepted_day: (8, season_to_idx(&Season::Spring), 1),
             };
         }
-        // Quest 4: "Old Tom's Fishing Challenge" — Day 12, Spring
-        (Season::Spring, 12) if !tracker.contains(&"fishing_challenge".to_string()) => {
+        // Spring Quest 3: "Old Tom's Fishing Challenge" — Day 18
+        (Season::Spring, 18) if !tracker.contains(&"fishing_challenge".to_string()) => {
             story_id = "fishing_challenge";
             quest = Quest {
                 id: "story_fishing_challenge".to_string(),
@@ -990,29 +976,202 @@ pub fn check_story_quests(
                 reward_items: Vec::new(),
                 reward_friendship: 50,
                 days_remaining: Some(7),
-                accepted_day: (12, season_to_idx(&Season::Spring), 1),
+                accepted_day: (18, season_to_idx(&Season::Spring), 1),
             };
         }
-        // Quest 5: "Community Contribution" — Day 20, Spring
-        (Season::Spring, 20) if !tracker.contains(&"community_contribution".to_string()) => {
-            story_id = "community_contribution";
+
+        // ═══════════════════════════════════════════════════════════════
+        // SUMMER — 3 quests
+        // ═══════════════════════════════════════════════════════════════
+
+        // Summer Quest 1: "Marco's Summer Recipe" — Day 3
+        (Season::Summer, 3) if !tracker.contains(&"summer_recipe".to_string()) => {
+            story_id = "summer_recipe";
             quest = Quest {
-                id: "story_community_contribution".to_string(),
-                title: "Town Prosperity".to_string(),
-                description: "The mayor wants to see Hearthfield thrive. Harvest 10 crops of any kind to show the town is prospering!".to_string(),
-                giver: "mayor_rex".to_string(),
+                id: "story_summer_recipe".to_string(),
+                title: "Summer Recipe Challenge".to_string(),
+                description: "Marco is perfecting his summer menu. He needs 5 tomatoes and wants you to deliver them fresh from the field.".to_string(),
+                giver: "marco".to_string(),
                 objective: QuestObjective::Harvest {
-                    crop_id: "turnip".to_string(),
-                    quantity: 10,
+                    crop_id: "tomato".to_string(),
+                    quantity: 5,
                     harvested: 0,
+                },
+                reward_gold: 400,
+                reward_items: vec![("spaghetti".to_string(), 2)],
+                reward_friendship: 60,
+                days_remaining: Some(10),
+                accepted_day: (3, season_to_idx(&Season::Summer), 1),
+            };
+        }
+        // Summer Quest 2: "Lily's Bouquet Materials" — Day 12
+        (Season::Summer, 12) if !tracker.contains(&"bouquet_materials".to_string()) => {
+            story_id = "bouquet_materials";
+            quest = Quest {
+                id: "story_bouquet_materials".to_string(),
+                title: "Flowers for the Festival".to_string(),
+                description: "Lily needs help gathering materials for the summer festival decorations. Talk to Nora about borrowing some garden shears.".to_string(),
+                giver: "lily".to_string(),
+                objective: QuestObjective::Talk {
+                    npc_name: "nora".to_string(),
+                    talked: false,
+                },
+                reward_gold: 250,
+                reward_items: Vec::new(),
+                reward_friendship: 40,
+                days_remaining: Some(5),
+                accepted_day: (12, season_to_idx(&Season::Summer), 1),
+            };
+        }
+        // Summer Quest 3: "Mira's Rare Trade" — Day 22
+        (Season::Summer, 22) if !tracker.contains(&"rare_trade".to_string()) => {
+            story_id = "rare_trade";
+            quest = Quest {
+                id: "story_rare_trade".to_string(),
+                title: "Exotic Goods Exchange".to_string(),
+                description: "Mira the traveling merchant has a special request. She needs 3 gold ore from the deep mines for a lucrative trade deal.".to_string(),
+                giver: "mira".to_string(),
+                objective: QuestObjective::Mine {
+                    item_id: "gold_ore".to_string(),
+                    quantity: 3,
+                    collected: 0,
+                },
+                reward_gold: 800,
+                reward_items: Vec::new(),
+                reward_friendship: 70,
+                days_remaining: Some(7),
+                accepted_day: (22, season_to_idx(&Season::Summer), 1),
+            };
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // FALL — 3 quests
+        // ═══════════════════════════════════════════════════════════════
+
+        // Fall Quest 1: "Margaret's Harvest Feast" — Day 4
+        (Season::Fall, 4) if !tracker.contains(&"harvest_feast".to_string()) => {
+            story_id = "harvest_feast";
+            quest = Quest {
+                id: "story_harvest_feast".to_string(),
+                title: "Harvest Feast Preparation".to_string(),
+                description: "Margaret is baking for the fall harvest feast. She needs 8 pumpkins for her famous pumpkin pies.".to_string(),
+                giver: "margaret".to_string(),
+                objective: QuestObjective::Deliver {
+                    item_id: "pumpkin".to_string(),
+                    quantity: 8,
+                    delivered: 0,
+                },
+                reward_gold: 600,
+                reward_items: vec![("cake".to_string(), 1)],
+                reward_friendship: 60,
+                days_remaining: Some(12),
+                accepted_day: (4, season_to_idx(&Season::Fall), 1),
+            };
+        }
+        // Fall Quest 2: "Doc's Research" — Day 14
+        (Season::Fall, 14) if !tracker.contains(&"docs_research".to_string()) => {
+            story_id = "docs_research";
+            quest = Quest {
+                id: "story_docs_research".to_string(),
+                title: "Medical Research".to_string(),
+                description: "Doc is researching winter remedies and needs a sturgeon for its medicinal properties. Catch one from the mountain lake.".to_string(),
+                giver: "doc".to_string(),
+                objective: QuestObjective::Catch {
+                    fish_id: "sturgeon".to_string(),
+                    delivered: false,
+                },
+                reward_gold: 700,
+                reward_items: Vec::new(),
+                reward_friendship: 80,
+                days_remaining: Some(10),
+                accepted_day: (14, season_to_idx(&Season::Fall), 1),
+            };
+        }
+        // Fall Quest 3: "Sam's Autumn Concert" — Day 24
+        (Season::Fall, 24) if !tracker.contains(&"autumn_concert".to_string()) => {
+            story_id = "autumn_concert";
+            quest = Quest {
+                id: "story_autumn_concert".to_string(),
+                title: "Concert Preparations".to_string(),
+                description: "Sam is organizing a fall concert in the town square. He needs you to talk to Mayor Rex about getting a permit.".to_string(),
+                giver: "sam".to_string(),
+                objective: QuestObjective::Talk {
+                    npc_name: "mayor_rex".to_string(),
+                    talked: false,
+                },
+                reward_gold: 350,
+                reward_items: Vec::new(),
+                reward_friendship: 50,
+                days_remaining: Some(4),
+                accepted_day: (24, season_to_idx(&Season::Fall), 1),
+            };
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // WINTER — 3 quests
+        // ═══════════════════════════════════════════════════════════════
+
+        // Winter Quest 1: "Nora's Winter Prep" — Day 3
+        (Season::Winter, 3) if !tracker.contains(&"winter_prep".to_string()) => {
+            story_id = "winter_prep";
+            quest = Quest {
+                id: "story_winter_prep".to_string(),
+                title: "Winter Preparations".to_string(),
+                description: "Nora wants to make sure the farm animals are safe for winter. Deliver 10 wood for reinforcing the barn walls.".to_string(),
+                giver: "nora".to_string(),
+                objective: QuestObjective::Deliver {
+                    item_id: "wood".to_string(),
+                    quantity: 10,
+                    delivered: 0,
+                },
+                reward_gold: 350,
+                reward_items: Vec::new(),
+                reward_friendship: 50,
+                days_remaining: Some(7),
+                accepted_day: (3, season_to_idx(&Season::Winter), 1),
+            };
+        }
+        // Winter Quest 2: "Elena's Masterwork" — Day 12
+        (Season::Winter, 12) if !tracker.contains(&"masterwork".to_string()) => {
+            story_id = "masterwork";
+            quest = Quest {
+                id: "story_masterwork".to_string(),
+                title: "The Masterwork".to_string(),
+                description: "Elena is crafting a masterwork blade and needs 5 iron bars and 2 gold bars. Help her gather the materials from the mine.".to_string(),
+                giver: "elena".to_string(),
+                objective: QuestObjective::Mine {
+                    item_id: "iron_bar".to_string(),
+                    quantity: 5,
+                    collected: 0,
+                },
+                reward_gold: 900,
+                reward_items: Vec::new(),
+                reward_friendship: 80,
+                days_remaining: Some(14),
+                accepted_day: (12, season_to_idx(&Season::Winter), 1),
+            };
+        }
+        // Winter Quest 3: "Mayor's Year-End Review" — Day 25
+        (Season::Winter, 25) if !tracker.contains(&"year_end_review".to_string()) => {
+            story_id = "year_end_review";
+            quest = Quest {
+                id: "story_year_end_review".to_string(),
+                title: "Year-End Celebration".to_string(),
+                description: "Mayor Rex wants to celebrate the town's first year with you. Deliver 3 cakes for the winter festival gathering.".to_string(),
+                giver: "mayor_rex".to_string(),
+                objective: QuestObjective::Deliver {
+                    item_id: "cake".to_string(),
+                    quantity: 3,
+                    delivered: 0,
                 },
                 reward_gold: 1000,
                 reward_items: Vec::new(),
                 reward_friendship: 100,
-                days_remaining: Some(8),
-                accepted_day: (20, season_to_idx(&Season::Spring), 1),
+                days_remaining: Some(3),
+                accepted_day: (25, season_to_idx(&Season::Winter), 1),
             };
         }
+
         _ => return,
     }
 

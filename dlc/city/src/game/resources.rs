@@ -526,6 +526,30 @@ pub enum CoworkerRole {
     Analyst,
     Coordinator,
     Intern,
+    Specialist,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub enum CoworkerPersonality {
+    #[default]
+    Neutral,
+    Ambitious,    // competitive, seeks promotions
+    Nurturing,    // helpful, mentoring
+    Skeptical,    // suspicious, needs proof
+    Enthusiastic, // energetic, sometimes overwhelming
+    Reserved,     // quiet, observant
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ManagerArcStage {
+    #[default]
+    Stranger,     // trust < 10
+    Acquaintance, // trust 10-29
+    Mentor,       // trust 30-59, affinity >= 20
+    Evaluator,    // trust 30-59, affinity < 20
+    Ally,         // trust >= 60, affinity >= 40
+    Antagonist,   // trust >= 60, affinity < 0
 }
 
 impl CoworkerRole {
@@ -536,6 +560,7 @@ impl CoworkerRole {
             CoworkerRole::Analyst => NpcRole::Analyst,
             CoworkerRole::Coordinator => NpcRole::Coordinator,
             CoworkerRole::Intern => NpcRole::Intern,
+            CoworkerRole::Specialist => NpcRole::Analyst, // Specialists appear as Analysts in NPC representation
         }
     }
 }
@@ -553,6 +578,74 @@ impl CoworkerDialogue {
         }
         let index = (seed.wrapping_add(cursor as u64 * 11) % lines.len() as u64) as usize;
         lines.get(index).map(String::as_str)
+    }
+
+    /// Returns a dialogue line that varies based on personality.
+    /// Ambitious and Enthusiastic get energetic lines, Skeptical gets cautious lines, etc.
+    #[allow(dead_code)]
+    pub fn line_for_personality(
+        &self,
+        role: CoworkerRole,
+        personality: CoworkerPersonality,
+        seed: u64,
+    ) -> String {
+        let base_lines = self.lines.get(&role.npc_role());
+        let base = base_lines
+            .and_then(|lines| {
+                if lines.is_empty() {
+                    None
+                } else {
+                    let index = (seed % lines.len() as u64) as usize;
+                    lines.get(index)
+                }
+            })
+            .map(String::as_str)
+            .unwrap_or("...");
+
+        // Personality-specific prefixes/suffixes that color the dialogue
+        match personality {
+            CoworkerPersonality::Ambitious => {
+                let variants = [
+                    format!("{} We should aim higher.", base),
+                    format!("Let's be strategic: {}", base),
+                    format!("{} This could be our breakthrough.", base),
+                ];
+                variants[(seed % 3) as usize].clone()
+            }
+            CoworkerPersonality::Nurturing => {
+                let variants = [
+                    format!("{} Let me know if you need help.", base),
+                    format!("Don't worry, you've got this. {}", base),
+                    format!("{} I'm here if you want to talk it through.", base),
+                ];
+                variants[(seed % 3) as usize].clone()
+            }
+            CoworkerPersonality::Skeptical => {
+                let variants = [
+                    format!("{} ...but let's verify that.", base),
+                    format!("Hmm. {} We'll see.", base),
+                    format!("{} I'll believe it when I see the data.", base),
+                ];
+                variants[(seed % 3) as usize].clone()
+            }
+            CoworkerPersonality::Enthusiastic => {
+                let variants = [
+                    format!("Oh! {} This is exciting!", base),
+                    format!("{} I love this!", base),
+                    format!("Amazing! {}", base),
+                ];
+                variants[(seed % 3) as usize].clone()
+            }
+            CoworkerPersonality::Reserved => {
+                let variants = [
+                    format!("...{}", base),
+                    format!("{} *nods quietly*", base),
+                    format!("Mm. {}", base),
+                ];
+                variants[(seed % 3) as usize].clone()
+            }
+            CoworkerPersonality::Neutral => base.to_string(),
+        }
     }
 }
 
@@ -612,12 +705,23 @@ pub struct CoworkerProfile {
     pub role: CoworkerRole,
     pub affinity: i32,
     pub trust: i32,
+    pub personality: CoworkerPersonality,
+    pub backstory: &'static str,
 }
 
 #[derive(Resource, Debug, Clone, PartialEq, Eq)]
 pub struct SocialGraphState {
     pub profiles: Vec<CoworkerProfile>,
     pub scenario_cursor: u32,
+    pub reached_milestones: HashSet<(u8, AffinityMilestone)>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AffinityMilestone {
+    CoffeeInvite,   // affinity >= 15
+    LunchTogether,  // affinity >= 30
+    ProjectCollab,  // affinity >= 50, trust >= 30
+    WorkBuddy,      // affinity >= 70, trust >= 50
 }
 
 impl Default for SocialGraphState {
@@ -630,6 +734,8 @@ impl Default for SocialGraphState {
                     role: CoworkerRole::Manager,
                     affinity: 2,
                     trust: 4,
+                    personality: CoworkerPersonality::Ambitious,
+                    backstory: "Rose through the ranks in record time. Never misses a deadline.",
                 },
                 CoworkerProfile {
                     id: 2,
@@ -637,6 +743,8 @@ impl Default for SocialGraphState {
                     role: CoworkerRole::Clerk,
                     affinity: 0,
                     trust: 0,
+                    personality: CoworkerPersonality::Enthusiastic,
+                    backstory: "Former barista who brings that same energy to inbox zero.",
                 },
                 CoworkerProfile {
                     id: 3,
@@ -644,6 +752,8 @@ impl Default for SocialGraphState {
                     role: CoworkerRole::Analyst,
                     affinity: 1,
                     trust: 1,
+                    personality: CoworkerPersonality::Nurturing,
+                    backstory: "The unofficial mentor who always has time to explain things.",
                 },
                 CoworkerProfile {
                     id: 4,
@@ -651,6 +761,8 @@ impl Default for SocialGraphState {
                     role: CoworkerRole::Coordinator,
                     affinity: -1,
                     trust: 0,
+                    personality: CoworkerPersonality::Skeptical,
+                    backstory: "Has seen three reorganizations. Trusts spreadsheets, not promises.",
                 },
                 CoworkerProfile {
                     id: 5,
@@ -658,9 +770,39 @@ impl Default for SocialGraphState {
                     role: CoworkerRole::Intern,
                     affinity: 0,
                     trust: -1,
+                    personality: CoworkerPersonality::Reserved,
+                    backstory: "Quiet observer taking notes. Surprisingly insightful when asked.",
+                },
+                CoworkerProfile {
+                    id: 6,
+                    codename: "Derek".to_string(),
+                    role: CoworkerRole::Specialist,
+                    affinity: 0,
+                    trust: 0,
+                    personality: CoworkerPersonality::Reserved,
+                    backstory: "Expert in legacy systems. Prefers documentation to meetings.",
+                },
+                CoworkerProfile {
+                    id: 7,
+                    codename: "Jun".to_string(),
+                    role: CoworkerRole::Analyst,
+                    affinity: 0,
+                    trust: 0,
+                    personality: CoworkerPersonality::Ambitious,
+                    backstory: "Transferred from a competitor. Hungry to prove their worth.",
+                },
+                CoworkerProfile {
+                    id: 8,
+                    codename: "Priya".to_string(),
+                    role: CoworkerRole::Coordinator,
+                    affinity: 0,
+                    trust: 0,
+                    personality: CoworkerPersonality::Nurturing,
+                    backstory: "Organizes the team events. Remembers everyone's birthday.",
                 },
             ],
             scenario_cursor: 0,
+            reached_milestones: HashSet::new(),
         }
     }
 }
@@ -678,6 +820,12 @@ impl SocialGraphState {
     pub fn manager_mut(&mut self) -> Option<&mut CoworkerProfile> {
         self.profiles
             .iter_mut()
+            .find(|profile| profile.role == CoworkerRole::Manager)
+    }
+
+    pub fn manager(&self) -> Option<&CoworkerProfile> {
+        self.profiles
+            .iter()
             .find(|profile| profile.role == CoworkerRole::Manager)
     }
 
@@ -709,6 +857,69 @@ impl SocialGraphState {
             .wrapping_add(help_count as u64 * 17)
             % teammate_ids.len() as u64) as usize;
         teammate_ids.get(index).copied()
+    }
+
+    /// Compute the current manager arc stage based on the manager's trust and affinity.
+    pub fn manager_arc_stage(&self) -> ManagerArcStage {
+        let Some(manager) = self.manager() else {
+            return ManagerArcStage::Stranger;
+        };
+        let trust = manager.trust;
+        let affinity = manager.affinity;
+
+        if trust >= 60 {
+            if affinity >= 40 {
+                ManagerArcStage::Ally
+            } else if affinity < 0 {
+                ManagerArcStage::Antagonist
+            } else {
+                // trust >= 60, 0 <= affinity < 40: treat as Mentor (closest fit)
+                ManagerArcStage::Mentor
+            }
+        } else if trust >= 30 {
+            if affinity >= 20 {
+                ManagerArcStage::Mentor
+            } else {
+                ManagerArcStage::Evaluator
+            }
+        } else if trust >= 10 {
+            ManagerArcStage::Acquaintance
+        } else {
+            ManagerArcStage::Stranger
+        }
+    }
+
+    /// Check all coworkers for new affinity milestones.
+    /// Returns a list of newly reached milestones (not previously in reached_milestones).
+    #[allow(dead_code)]
+    pub fn check_new_milestones(&mut self) -> Vec<(u8, AffinityMilestone)> {
+        let mut new_milestones = Vec::new();
+        for profile in &self.profiles {
+            let id = profile.id;
+            let affinity = profile.affinity;
+            let trust = profile.trust;
+
+            // Check each milestone in order
+            let candidates = [
+                (AffinityMilestone::CoffeeInvite, affinity >= 15, true),
+                (AffinityMilestone::LunchTogether, affinity >= 30, true),
+                (AffinityMilestone::ProjectCollab, affinity >= 50 && trust >= 30, true),
+                (AffinityMilestone::WorkBuddy, affinity >= 70 && trust >= 50, true),
+            ];
+
+            for (milestone, condition, _) in candidates {
+                if condition && !self.reached_milestones.contains(&(id, milestone)) {
+                    new_milestones.push((id, milestone));
+                }
+            }
+        }
+
+        // Add to reached_milestones
+        for &(id, milestone) in &new_milestones {
+            self.reached_milestones.insert((id, milestone));
+        }
+
+        new_milestones
     }
 }
 

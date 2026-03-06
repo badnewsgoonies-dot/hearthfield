@@ -36,6 +36,10 @@ impl ChestInteraction {
     }
 }
 
+/// InputBlocks tag used while the chest overlay is open.
+#[derive(Debug)]
+struct ChestOverlayInputBlock;
+
 // ═══════════════════════════════════════════════════════════════════════
 // CHEST SPRITE LOADING
 // ═══════════════════════════════════════════════════════════════════════
@@ -214,7 +218,7 @@ pub fn place_chest(
 /// open the chest by setting ChestInteraction.entity.
 pub fn interact_with_chest(
     player_input: Res<PlayerInput>,
-    input_blocks: Res<InputBlocks>,
+    mut input_blocks: ResMut<InputBlocks>,
     mut chest_interaction: ResMut<ChestInteraction>,
     player_query: Query<&Transform, With<Player>>,
     chest_query: Query<(Entity, &Transform), With<ChestMarker>>,
@@ -263,6 +267,7 @@ pub fn interact_with_chest(
 
     if let Some((entity, _)) = closest {
         chest_interaction.entity = Some(entity);
+        input_blocks.block::<ChestOverlayInputBlock>();
         info!("[Chest] Opened chest {:?}", entity);
     }
 }
@@ -271,6 +276,7 @@ pub fn interact_with_chest(
 /// by clearing the `ChestInteraction` resource.
 pub fn close_chest_on_escape(
     player_input: Res<PlayerInput>,
+    mut input_blocks: ResMut<InputBlocks>,
     mut chest_interaction: ResMut<ChestInteraction>,
 ) {
     if !chest_interaction.is_open() {
@@ -280,6 +286,7 @@ pub fn close_chest_on_escape(
     if player_input.ui_cancel {
         info!("[Chest] Closed chest {:?}", chest_interaction.entity);
         chest_interaction.entity = None;
+        input_blocks.unblock::<ChestOverlayInputBlock>();
     }
 }
 
