@@ -43,9 +43,9 @@ pub struct PendingProductQuality {
     pub quality: ItemQuality,
 }
 
-const HAPPINESS_FED_BONUS: u8 = 10;
+const HAPPINESS_FED_BONUS: u8 = 5;
 const HAPPINESS_PETTED_BONUS: u8 = 5;
-const HAPPINESS_UNFED_PENALTY: u8 = 20;
+const HAPPINESS_UNFED_PENALTY: u8 = 12;
 const HAPPINESS_OUTDOOR_SUNNY: u8 = 5;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,16 +55,16 @@ const HAPPINESS_OUTDOOR_SUNNY: u8 = 5;
 /// Returns the `ItemQuality` corresponding to an animal's happiness value.
 ///
 /// Thresholds:
-/// - 200-255 → Iridium (2.0x)
-/// - 150-199 → Gold    (1.5x)
-/// - 100-149 → Silver  (1.25x)
-/// -   0-99  → Normal  (1.0x)
+/// - 230-255 → Iridium (2.0x)
+/// - 200-229 → Gold    (1.5x)
+/// - 128-199 → Silver  (1.25x)
+/// -   0-127 → Normal  (1.0x)
 pub fn quality_from_happiness(happiness: u8) -> ItemQuality {
-    if happiness >= 200 {
+    if happiness >= 230 {
         ItemQuality::Iridium
-    } else if happiness >= 150 {
+    } else if happiness >= 200 {
         ItemQuality::Gold
-    } else if happiness >= 100 {
+    } else if happiness >= 128 {
         ItemQuality::Silver
     } else {
         ItemQuality::Normal
