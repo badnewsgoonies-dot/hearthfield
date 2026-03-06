@@ -1086,6 +1086,8 @@ fn test_farming_day_end_system() {
                 dead: false,
             },
         );
+        // Prevent random crow attacks from making this system-level test flaky.
+        fs.objects.insert((4, 4), FarmObject::Scarecrow);
     }
 
     // Set tracked weather to sunny
