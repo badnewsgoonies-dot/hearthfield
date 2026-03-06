@@ -3,10 +3,50 @@
 ## Current Phase: 3 (worker dispatch ready)
 
 ## Architecture
-- Orchestrator: Claude Opus (1M context, holds full codebase)
-- Workers: dispatched via `codex exec --full-auto --skip-git-repo-check`
+- Orchestrator: Claude Opus 4.6 (1M context, holds full codebase)
+- Workers: dispatched via Copilot CLI (preferred) or claude -p (fallback)
 - Coordination: frozen type contract + mechanical scope clamping + compiler gates
 - Scaffold: zero — orchestration logic lives in this conversation + disk artifacts
+
+## Copilot CLI Dispatch Recipe (VERIFIED WORKING in this container)
+```bash
+# Auth (tokens in ~/.env_tokens)
+source ~/.env_tokens
+# COPILOT_GITHUB_TOKEN must be fine-grained PAT (github_pat_...), NOT classic PAT
+
+# Orchestrator (GPT 5.4)
+copilot -p "orchestrator prompt" --model gpt-5.4 --yolo --add-dir /home/user/hearthfield
+
+# Worker (Opus 4.6 — 3 premium requests per call)
+copilot -p "$(cat objectives/{domain}.md)" --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield
+
+# Worker (Sonnet 4.6 — 1 premium request per call, cheaper)
+copilot -p "$(cat objectives/{domain}.md)" --model claude-sonnet-4.6 --yolo --add-dir /home/user/hearthfield
+
+# Parallel dispatch (max 2-3 concurrent, stagger 3s)
+copilot -p "..." --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield 2>&1 | tee status/workers/worker1.json &
+sleep 3
+copilot -p "..." --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield 2>&1 | tee status/workers/worker2.json &
+```
+
+### Available Models (copilot --model)
+claude-opus-4.6, claude-opus-4.6-fast, claude-sonnet-4.6, claude-sonnet-4.5, claude-haiku-4.5,
+gpt-5.4, gpt-5.3-codex, gpt-5.2-codex, gpt-5.2, gpt-5.1-codex, gpt-5.1, gpt-4.1,
+gemini-3-pro-preview
+
+### Auth Notes
+- `COPILOT_GITHUB_TOKEN` env var (NOT GITHUB_TOKEN or GH_TOKEN)
+- Must be fine-grained PAT with copilot scope
+- Classic PAT (ghp_...) works for git but NOT for Copilot auth
+- Tokens stored in `~/.env_tokens`
+
+### Fallback: Claude sub-agents (if Copilot network fails)
+```bash
+claude -p "$(cat objectives/{domain}.md)" \
+  --allowedTools "Read,Edit,Write,Bash,Grep,Glob" \
+  --max-turns 45 --output-format json \
+  --cwd /home/user/hearthfield
+```
 
 ## Type Contract
 - File: `src/shared/mod.rs` (2,252 lines)
@@ -81,7 +121,7 @@ cargo clippy -- -D warnings            # Lint gate
 ## Worker Dispatch Protocol
 1. Write spec → `docs/domains/{domain}.md` ✓
 2. Write objective → `objectives/{domain}.md` ✓
-3. Dispatch → `codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"`
+3. Dispatch → `source ~/.env_tokens && copilot -p "$(cat objectives/{domain}.md)" --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield`
 4. Wait for completion
 5. Clamp → `bash scripts/clamp-scope.sh src/{domain}/`
 6. Verify contract → `shasum -a 256 -c .contract.sha256`
@@ -105,3 +145,15 @@ cargo clippy -- -D warnings            # Lint gate
 - Phase 1: Domain boundaries drawn ✓
 - Phase 2: Full specs on disk for all 15 domains ✓
 - Phase 3: Worker objectives written for all 14 dispatchable domains ✓
+- Waves 5-7: Domain implementation (crafting, economy, fishing, npcs, mining, ui, animals, world, calendar, player, farming, save, data, input) ✓
+- Visual Audit: 5-worker parallel audit of all sprite/animation/z-order systems ✓
+- Visual Fix Pass 1: BottomCenter anchor, tool direction, water anim, grass variation, bed/stove y-sort, NPC face-player, portraits, forageables, floor tiles ✓
+
+## Remaining Visual Issues (from status/workers/visual_audit_report.md)
+- C1: Fish sprite_index OOB (indices 48-52 for 48-frame atlas) — no render consumer yet
+- C3: 8/10 animal types have no dedicated sprites (colored rectangles or tinted humans)
+- H4: No animal animation system
+- H6: Emote atlas indices are guesses
+- M2: Path/fence autotile bitmask assumption unverified
+- M4: Crop growth has no animation (instant jump between stages)
+- M6: No water edge transitions

@@ -1,6 +1,7 @@
 //! Dialogue system: handle player interaction with NPCs, build dialogue lines
 //! based on friendship level, and emit DialogueStartEvent.
 
+use super::spawning::NpcMovement;
 use crate::shared::*;
 use bevy::prelude::*;
 use std::collections::HashSet;
@@ -27,7 +28,7 @@ pub fn handle_npc_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
-    npc_query: Query<(&Npc, &Transform)>,
+    mut npc_query: Query<(Entity, &Npc, &Transform, Option<&mut NpcMovement>)>,
     mut relationships: ResMut<Relationships>,
     npc_registry: Res<NpcRegistry>,
     calendar: Res<Calendar>,
@@ -63,32 +64,41 @@ pub fn handle_npc_interaction(
     let interaction_range = TILE_SIZE * 1.5; // 1.5 tiles in world space
 
     // Find the closest adjacent NPC within range
-    let mut closest: Option<(&Npc, f32)> = None;
-    for (npc, npc_transform) in npc_query.iter() {
+    let mut closest: Option<(Entity, f32)> = None;
+    for (entity, _npc, npc_transform, _) in npc_query.iter() {
         let npc_pos = npc_transform.translation.truncate();
         let dist = player_pos.distance(npc_pos);
         if dist <= interaction_range {
             match closest {
-                None => closest = Some((npc, dist)),
-                Some((_, best_dist)) if dist < best_dist => closest = Some((npc, dist)),
+                None => closest = Some((entity, dist)),
+                Some((_, best_dist)) if dist < best_dist => closest = Some((entity, dist)),
                 _ => {}
             }
         }
     }
 
-    let Some((npc, _)) = closest else {
+    let Some((closest_entity, _)) = closest else {
         return;
     };
 
-    let npc_id = &npc.id;
-    let hearts = relationships.hearts(npc_id);
-    let lines = build_dialogue_lines(npc_id, hearts, &npc_registry, &relationships, &calendar);
+    // Get NPC data and make them face the player
+    let Ok((_, npc, _, npc_movement)) = npc_query.get_mut(closest_entity) else {
+        return;
+    };
+    let npc_id = npc.id.clone();
+    // Point NPC target toward player so the animation system picks the correct facing row
+    if let Some(mut movement) = npc_movement {
+        movement.target_x = player_pos.x;
+        movement.target_y = player_pos.y;
+    }
+    let hearts = relationships.hearts(&npc_id);
+    let lines = build_dialogue_lines(&npc_id, hearts, &npc_registry, &relationships, &calendar);
 
-    let portrait_index = npc_registry.npcs.get(npc_id).map(|def| def.portrait_index);
+    let portrait_index = npc_registry.npcs.get(&npc_id).map(|def| def.portrait_index);
 
     // Award 20 friendship points (1/5 of a heart) on first daily talk
-    if !daily_talks.talked.contains(npc_id) {
-        relationships.add_friendship(npc_id, 20);
+    if !daily_talks.talked.contains(&npc_id) {
+        relationships.add_friendship(&npc_id, 20);
         daily_talks.talked.insert(npc_id.clone());
     }
 

@@ -59,6 +59,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<chests::ChestSpriteData>()
             .init_resource::<SeasonalTintApplied>()
             .init_resource::<LeafSpawnAccumulator>()
+            .init_resource::<WaterAnimationTimer>()
             // Day/night + weather resources
             .init_resource::<DayNightTint>()
             .init_resource::<LightningFlash>()
@@ -111,6 +112,8 @@ impl Plugin for WorldPlugin {
                     weather_change_notification,
                     // Forageable sparkle particles
                     update_forage_sparkles,
+                    // Water tile animation
+                    animate_water_tiles,
                 )
                     .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
@@ -324,17 +327,21 @@ fn tile_atlas_info(
         // Different rows could represent seasonal variants; for now we pick
         // a reasonable base index per season.
         TileKind::Grass => {
-            // Row 0 = basic grass. Index 5 is middle of the first row.
-            let index = match _season {
-                Season::Spring => 5,  // lush green center
-                Season::Summer => 16, // row 1, col 5 — slightly different shade
-                Season::Fall => 27,   // row 2, col 5
-                Season::Winter => 38, // row 3, col 5
+            // Use positional hash for visual variety across the grass tileset.
+            // grass.png is 11 cols x 7 rows = 77 frames. Each season gets a row
+            // band of ~11 frames. We pick from 4 variants per season using a
+            // deterministic hash of (x, y) so it's stable without runtime cost.
+            let variant = (x.wrapping_mul(7).wrapping_add(y.wrapping_mul(13))) % 4;
+            let season_base = match _season {
+                Season::Spring => 4,  // row 0, starting at col 4
+                Season::Summer => 15, // row 1, starting at col 4
+                Season::Fall => 26,   // row 2, starting at col 4
+                Season::Winter => 37, // row 3, starting at col 4
             };
             Some((
                 atlases.grass_image.clone(),
                 atlases.grass_layout.clone(),
-                index,
+                season_base + variant,
             ))
         }
 
@@ -359,11 +366,11 @@ fn tile_atlas_info(
             46,
         )),
 
-        // Stone: use tilled_dirt.png with a stone-looking tile (index 22, row 2 col 0).
-        TileKind::Stone => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 22)),
+        // Stone: use hills.png for a proper rocky/stone texture (index 0, top-left).
+        TileKind::Stone => Some((atlases.hills_image.clone(), atlases.hills_layout.clone(), 0)),
 
-        // Wood floor: tilled_dirt.png with a wood-colored tile (index 33, row 3 col 0).
-        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 33)),
+        // Wood floor: tilled_dirt.png with a plank-like tile (index 6, row 0 col 6).
+        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 6)),
 
         TileKind::Path => {
             let mut mask: u8 = 0;
@@ -489,6 +496,20 @@ impl Default for CurrentMapId {
 /// Marker component for tile sprite entities (for bulk despawn).
 #[derive(Component, Debug)]
 pub struct MapTile;
+
+/// Marker component for water tile sprites (for animation cycling).
+#[derive(Component, Debug)]
+pub struct WaterTile;
+
+/// Timer resource for water tile animation (cycles 4 frames).
+#[derive(Resource)]
+pub struct WaterAnimationTimer(pub Timer);
+
+impl Default for WaterAnimationTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.5, TimerMode::Repeating))
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // TILE COLORS (fallback for Void tiles and season change)
@@ -653,7 +674,7 @@ fn spawn_tile_sprites(
             ) {
                 Some((image, layout, index)) => {
                     // Use texture atlas sprite
-                    commands.spawn((
+                    let mut entity_cmd = commands.spawn((
                         {
                             let mut sprite =
                                 Sprite::from_atlas_image(image, TextureAtlas { layout, index });
@@ -667,6 +688,10 @@ fn spawn_tile_sprites(
                         )),
                         MapTile,
                     ));
+                    // Tag water tiles for animation cycling
+                    if tile == TileKind::Water {
+                        entity_cmd.insert(WaterTile);
+                    }
                 }
                 None => {
                     // Void tile: use plain colored sprite (no texture needed)
@@ -700,6 +725,22 @@ fn despawn_map(
     }
     for entity in object_query.iter() {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+/// Animate water tiles by cycling through 4 atlas frames.
+fn animate_water_tiles(
+    time: Res<Time>,
+    mut timer: ResMut<WaterAnimationTimer>,
+    mut query: Query<&mut Sprite, With<WaterTile>>,
+) {
+    timer.0.tick(time.delta());
+    if timer.0.just_finished() {
+        for mut sprite in query.iter_mut() {
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = (atlas.index + 1) % 4;
+            }
+        }
     }
 }
 
