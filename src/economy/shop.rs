@@ -180,24 +180,23 @@ pub fn try_buy(
         None => return TransactionResult::UnknownItem,
     };
 
-    let total_cost = price_per_unit.saturating_mul(quantity as u32);
+    let max_cost = price_per_unit.saturating_mul(quantity as u32);
 
     // Check gold.
-    if player_state.gold < total_cost {
+    if player_state.gold < max_cost {
         return TransactionResult::InsufficientGold {
-            need: total_cost,
+            need: max_cost,
             have: player_state.gold,
         };
     }
 
-    // Check inventory capacity. try_add returns the number of items that
+    // Add to inventory. try_add returns the number of items that
     // could NOT be added (remaining). If remaining == quantity, nothing was added.
     let remaining = inventory.try_add(item_id, quantity, item_def.stack_size);
     if remaining == quantity {
         return TransactionResult::InventoryFull;
     }
-    // If partially added, we still consider it a success for the items that fit.
-    // In practice the caller should check capacity first.
+    // If partially added, we charge only for what was actually added.
     let actually_added = quantity - remaining;
     let total_cost = price_per_unit.saturating_mul(actually_added as u32);
 
