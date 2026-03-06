@@ -69,6 +69,7 @@ pub fn spawn_dialogue_box(
     font_handle: Res<UiFontHandle>,
     asset_server: Res<AssetServer>,
     npc_sprites: Res<NpcSpriteData>,
+    npc_registry: Res<NpcRegistry>,
 ) {
     let first_line = ui_state
         .as_ref()
@@ -78,7 +79,13 @@ pub fn spawn_dialogue_box(
 
     let npc_name = ui_state
         .as_ref()
-        .map(|s| s.npc_id.clone())
+        .map(|s| {
+            npc_registry
+                .npcs
+                .get(&s.npc_id)
+                .map(|def| def.name.clone())
+                .unwrap_or_else(|| s.npc_id.clone())
+        })
         .unwrap_or_else(|| "???".to_string());
 
     let font = font_handle.0.clone();

@@ -120,6 +120,10 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
         if gy <= min_y {
             return Some((MapId::Forest, 11, 16));
         }
+        // Cave entrance (top center, tiles 6-7 at y=1-2) → Mine floor 1 (24x24)
+        if (6..=7).contains(&gx) && (1..=2).contains(&gy) {
+            return Some((MapId::Mine, 8, 14));
+        }
     }
 
     // Interior rooms — exit through front door (y=max wall) → appropriate outdoor map
