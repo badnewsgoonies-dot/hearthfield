@@ -317,7 +317,12 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             Update,
-            dialogue_box::advance_dialogue.run_if(in_state(GameState::Dialogue)),
+            (
+                dialogue_box::typewriter_update,
+                dialogue_box::advance_dialogue,
+            )
+                .chain()
+                .run_if(in_state(GameState::Dialogue)),
         );
 
         // ─── SHOP SCREEN ───

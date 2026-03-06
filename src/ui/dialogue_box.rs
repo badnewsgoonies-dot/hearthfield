@@ -80,11 +80,13 @@ pub fn spawn_dialogue_box(
     npc_sprites: Res<NpcSpriteData>,
     npc_registry: Res<NpcRegistry>,
 ) {
-    let first_line = ui_state
+    // Start with empty text — the typewriter system will reveal characters.
+    let _first_line_full = ui_state
         .as_ref()
         .and_then(|s| s.lines.first())
         .cloned()
         .unwrap_or_else(|| "...".to_string());
+    let first_line = String::new();
 
     let npc_name = ui_state
         .as_ref()
@@ -233,6 +235,54 @@ pub fn despawn_dialogue_box(mut commands: Commands, query: Query<Entity, With<Di
 // INTERACTION — advance through dialogue lines
 // ═══════════════════════════════════════════════════════════════════════
 
+/// Typewriter system: reveals characters of the current dialogue line at
+/// ~30 chars/sec. Runs every frame while in Dialogue state.
+pub fn typewriter_update(
+    time: Res<Time>,
+    mut ui_state: Option<ResMut<DialogueUiState>>,
+    mut text_query: Query<&mut Text, With<DialogueText>>,
+    mut prompt_query: Query<&mut Text, (With<DialoguePrompt>, Without<DialogueText>)>,
+) {
+    let Some(ref mut state) = ui_state else {
+        return;
+    };
+    let Some(full_line) = state.lines.get(state.current_line) else {
+        return;
+    };
+    let total_chars = full_line.chars().count();
+
+    if state.chars_revealed >= total_chars {
+        // Already fully revealed — show the appropriate prompt.
+        let is_last = state.current_line >= state.lines.len() - 1;
+        for mut text in &mut prompt_query {
+            if is_last {
+                **text = "[F / Space] Close".to_string();
+            } else {
+                **text = "[F / Space] Continue".to_string();
+            }
+        }
+        return;
+    }
+
+    // Show "..." prompt while text is still typing
+    for mut text in &mut prompt_query {
+        **text = "...".to_string();
+    }
+
+    // Advance typewriter
+    state.char_accumulator += TYPEWRITER_SPEED * time.delta_secs();
+    let new_chars = state.char_accumulator as usize;
+    if new_chars > 0 {
+        state.chars_revealed = (state.chars_revealed + new_chars).min(total_chars);
+        state.char_accumulator -= new_chars as f32;
+
+        let partial: String = full_line.chars().take(state.chars_revealed).collect();
+        for mut text in &mut text_query {
+            **text = partial.clone();
+        }
+    }
+}
+
 pub fn advance_dialogue(
     player_input: Res<PlayerInput>,
     mut ui_state: Option<ResMut<DialogueUiState>>,
@@ -250,12 +300,28 @@ pub fn advance_dialogue(
         return;
     };
 
+    // If typewriter hasn't finished, skip to full line first.
+    let current_full = state
+        .lines
+        .get(state.current_line)
+        .cloned()
+        .unwrap_or_default();
+    let total_chars = current_full.chars().count();
+    if state.chars_revealed < total_chars {
+        state.chars_revealed = total_chars;
+        state.char_accumulator = 0.0;
+        for mut text in &mut text_query {
+            **text = current_full.clone();
+        }
+        return;
+    }
+
+    // Move to next line
     state.current_line += 1;
 
     if state.current_line >= state.lines.len() {
         // End dialogue
         end_event.send(DialogueEndEvent);
-        // Return to Cutscene if a cutscene is in progress, else Playing.
         if cutscene_queue.active {
             next_state.set(GameState::Cutscene);
         } else {
@@ -264,14 +330,16 @@ pub fn advance_dialogue(
         return;
     }
 
-    // Show next line
-    let line = state.lines[state.current_line].clone();
-    let is_last = state.current_line >= state.lines.len() - 1;
+    // Reset typewriter for new line
+    state.chars_revealed = 0;
+    state.char_accumulator = 0.0;
 
+    // Clear the text — typewriter_update will fill it in
     for mut text in &mut text_query {
-        **text = line.clone();
+        **text = String::new();
     }
 
+    let is_last = state.current_line >= state.lines.len() - 1;
     for mut text in &mut prompt_query {
         if is_last {
             **text = "[F / Space] Close".to_string();
