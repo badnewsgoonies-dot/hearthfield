@@ -152,17 +152,15 @@ fn weighted_pick(items: &[(&FishDef, u32)]) -> Option<ItemId> {
 // ─── Fish data constants ──────────────────────────────────────────────────────
 // NOTE: The data domain populates FishRegistry. This module only performs selection.
 // The 20 fish referenced in the spec are:
-//   River: sardine(common), herring(common), bass(uncommon), trout(uncommon),
-//          salmon(uncommon), catfish(uncommon), carp(common), eel(uncommon),
-//          pike(uncommon), legend_fish(legendary)
-//   Ocean: herring(common), sardine(common), tuna(uncommon), swordfish(rare),
-//          pufferfish(uncommon), squid(rare), octopus(rare), glacier_fish(legendary)
-//   Pond:  carp(common), perch(common), catfish(uncommon), sturgeon(rare), crimson_fish(legendary)
-//   Mine:  anglerfish(rare)
+//   River (Farm/Forest): Carp(common), Catfish(uncommon), Bass(uncommon),
+//                         Trout(uncommon), Salmon(rare)
+//   Ocean (Beach):       Sardine(common), Tuna(uncommon), Red Snapper(uncommon),
+//                         Pufferfish(rare), Octopus(rare)
+//   Pond (Town):         Bullhead(common), Bream(common), Sunfish(common),
+//                         Crayfish(uncommon)
+//   MinePool:            Cave Fish(common), Ghost Fish(uncommon), Stonefish(rare)
 //
-// Legendary fish added in the fishing skill expansion:
-//   Ocean/Summer:  crimson_king      (difficulty 0.95, 2% spawn)
-//   River/Winter:  glacier_pike      (difficulty 0.90, 1.5% spawn)
-//   Mine/Fall:     phantom_eel       (difficulty 0.85, 1.5% spawn)
-//   River/Spring:  golden_walleye    (difficulty 0.80, 2% spawn)
-//   Ocean/Winter:  ancient_coelacanth (difficulty 0.99, 1% spawn)
+// 3 Legendary fish (handled via try_roll_legendary, not in normal pool):
+//   Forest/Rainy:   Legend       (difficulty 0.95, 2% spawn)
+//   Beach/Summer:   Crimsonfish  (difficulty 0.90, 2% spawn)
+//   Forest/Winter:  Glacierfish  (difficulty 0.85, 1.5% spawn)

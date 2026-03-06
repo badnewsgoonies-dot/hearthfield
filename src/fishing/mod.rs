@@ -342,7 +342,13 @@ impl FishingMinigameState {
             _ => base_fish_zone,
         };
 
-        // Catch bar size: base 12.5 per half (25 total).
+        // Catch bar size: spec formula = 40px base + 3px per skill level.
+        // The bar size is in pixels; we convert to 0-100 scale half-height.
+        // The minigame bar is 200 screen-pixels tall mapping to 0-100 range,
+        // so 1 unit = 2 pixels. Bar size in units = bar_size_px / 2.0.
+        let bar_px = fishing_skill.bar_size_px();
+        let base_half = bar_px / 2.0 / 2.0; // half-height in 0-100 units
+
         // Rod tier grants a small size bonus.
         let tier_bonus = match rod_tier {
             ToolTier::Basic => 1.0,
@@ -351,17 +357,14 @@ impl FishingMinigameState {
             ToolTier::Gold => 1.15,
             ToolTier::Iridium => 1.20,
         };
-        // Generic tackle bonus (any tackle = +25% catch bar) is kept for non-Spinner tackle.
-        // Spinner's benefit is the fish zone, not the catch bar.
+        // Tackle bar bonus.
         let catch_bar_tackle_bonus = match tackle_kind {
             TackleKind::None => 1.0,
             TackleKind::Spinner => 1.0, // Spinner helps via fish zone instead
             TackleKind::TrapBobber => 1.0, // TrapBobber helps via drain rate instead
-            TackleKind::LeadBobber => 1.25, // LeadBobber was the old generic +25%
+            TackleKind::LeadBobber => 1.25, // LeadBobber gets +25% catch bar
         };
-        // Apply fishing skill catch_zone_bonus on top of tackle and tier.
-        let skill_bonus = 1.0 + fishing_skill.catch_zone_bonus;
-        self.catch_bar_half = 12.5 * catch_bar_tackle_bonus * tier_bonus * skill_bonus;
+        self.catch_bar_half = base_half * catch_bar_tackle_bonus * tier_bonus;
 
         // Trap Bobber: slow progress drain rate (stored on minigame state for
         // update_progress to read at runtime).
