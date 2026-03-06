@@ -286,7 +286,7 @@ pub fn check_player_knockout(
     }
 
     if player_state.health <= 0.0 {
-        // Knockout! Player wakes up at mine entrance with reduced health/gold.
+        // Knockout! Player wakes up at home with reduced health/gold.
         sfx_events.send(PlaySfxEvent {
             sfx_id: "player_knockout".to_string(),
         });
@@ -309,10 +309,10 @@ pub fn check_player_knockout(
         in_mine.0 = false;
         active_floor.spawned = false;
 
-        // Transition back to mine entrance
+        // Transition to player's house (wake up at home after knockout)
         map_events.send(MapTransitionEvent {
-            to_map: MapId::MineEntrance,
-            to_x: 7,
+            to_map: MapId::PlayerHouse,
+            to_x: 12,
             to_y: 4,
         });
     }

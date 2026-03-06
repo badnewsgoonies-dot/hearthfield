@@ -57,6 +57,12 @@ pub fn sync_soil_sprites(
     atlases: Res<FarmingAtlases>,
     mut soil_query: Query<(&SoilTileEntity, &mut Sprite)>,
 ) {
+    // Incremental short-circuit: if neither farm data nor atlas state changed,
+    // there is nothing to reconcile this frame.
+    if !farm_state.is_changed() && !atlases.is_changed() {
+        return;
+    }
+
     // ── Update existing entities ──────────────────────────────────────────────
     for (tile, mut sprite) in soil_query.iter_mut() {
         let pos = (tile.grid_x, tile.grid_y);
@@ -190,6 +196,11 @@ pub fn sync_crop_sprites(
     atlases: Res<FarmingAtlases>,
     mut crop_query: Query<(&CropTileEntity, &mut Sprite, &mut CropTile)>,
 ) {
+    // Incremental short-circuit for unchanged state/defs/atlas handles.
+    if !farm_state.is_changed() && !crop_registry.is_changed() && !atlases.is_changed() {
+        return;
+    }
+
     // ── Update existing entities ──────────────────────────────────────────────
     for (tile, mut sprite, mut crop_component) in crop_query.iter_mut() {
         let pos = (tile.grid_x, tile.grid_y);
@@ -402,6 +413,11 @@ pub fn sync_farm_objects_sprites(
     furniture: Res<crate::world::objects::FurnitureAtlases>,
     obj_atlases: Res<crate::world::objects::ObjectAtlases>,
 ) {
+    // Incremental short-circuit for unchanged object state and atlas resources.
+    if !farm_state.is_changed() && !furniture.is_changed() && !obj_atlases.is_changed() {
+        return;
+    }
+
     // ── Spawn missing ────────────────────────────────────────────────────────
     let missing: Vec<((i32, i32), FarmObject)> = farm_state
         .objects

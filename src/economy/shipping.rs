@@ -216,7 +216,7 @@ pub fn process_shipping_bin_on_day_end(
         });
 
         sfx_writer.send(PlaySfxEvent {
-            sfx_id: "day_end_coins".to_string(),
+            sfx_id: "sell".to_string(),
         });
 
         // Clear the bin and quality tracking for the next day.

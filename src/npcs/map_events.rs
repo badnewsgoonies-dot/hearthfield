@@ -3,7 +3,7 @@
 use super::spawning::{spawn_npcs_for_map, NpcMapTag, NpcSpriteData, SpawnedNpcs};
 use crate::shared::*;
 use bevy::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// NPC-domain resource tracking how many consecutive days each NPC has gone without a gift.
 /// When this counter exceeds 7, friendship starts decaying.
@@ -28,10 +28,10 @@ pub fn handle_map_transition(
 ) {
     for event in transition_reader.read() {
         // Despawn all currently loaded NPC entities
-        let mut despawned_entities = Vec::new();
+        let mut despawned_entities = HashSet::new();
         for (entity, _tag) in npc_map_tags.iter() {
             commands.entity(entity).despawn_recursive();
-            despawned_entities.push(entity);
+            despawned_entities.insert(entity);
         }
         // Clear the tracking map
         spawned

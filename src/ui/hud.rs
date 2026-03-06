@@ -47,6 +47,12 @@ pub struct HudStaminaBar;
 pub struct HudStaminaFill;
 
 #[derive(Component)]
+pub struct HudHealthBar;
+
+#[derive(Component)]
+pub struct HudHealthFill;
+
+#[derive(Component)]
 pub struct HudToolText;
 
 #[derive(Component)]
@@ -122,6 +128,18 @@ pub struct HudControlsHint;
 #[derive(Resource)]
 pub struct ControlsHintTimer {
     pub timer: Timer,
+}
+
+/// Cache for interaction prompt scans so we can skip full proximity rescans
+/// when player context hasn't changed.
+#[derive(Resource, Default)]
+pub struct InteractionPromptCache {
+    pub map: Option<MapId>,
+    pub player_tile: Option<(i32, i32)>,
+    pub best_label: Option<String>,
+    pub can_gift: Option<bool>,
+    pub interact_key: Option<KeyCode>,
+    pub secondary_key: Option<KeyCode>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -292,31 +310,68 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                                 PickingBehavior::IGNORE,
                             ));
 
-                            // Stamina bar container
+                            // Bars group (health + stamina stacked)
                             right
                                 .spawn((
-                                    HudStaminaBar,
                                     Node {
-                                        width: Val::Px(120.0),
-                                        height: Val::Px(14.0),
-                                        border: UiRect::all(Val::Px(1.0)),
+                                        flex_direction: FlexDirection::Column,
+                                        row_gap: Val::Px(2.0),
                                         ..default()
                                     },
-                                    BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
-                                    BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
                                     PickingBehavior::IGNORE,
                                 ))
-                                .with_children(|bar| {
-                                    bar.spawn((
-                                        HudStaminaFill,
+                                .with_children(|bars| {
+                                    // Health bar container
+                                    bars.spawn((
+                                        HudHealthBar,
                                         Node {
-                                            width: Val::Percent(100.0),
-                                            height: Val::Percent(100.0),
+                                            width: Val::Px(120.0),
+                                            height: Val::Px(10.0),
+                                            border: UiRect::all(Val::Px(1.0)),
                                             ..default()
                                         },
-                                        BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+                                        BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
                                         PickingBehavior::IGNORE,
-                                    ));
+                                    ))
+                                    .with_children(|bar| {
+                                        bar.spawn((
+                                            HudHealthFill,
+                                            Node {
+                                                width: Val::Percent(100.0),
+                                                height: Val::Percent(100.0),
+                                                ..default()
+                                            },
+                                            BackgroundColor(Color::srgb(0.85, 0.2, 0.2)),
+                                            PickingBehavior::IGNORE,
+                                        ));
+                                    });
+
+                                    // Stamina bar container
+                                    bars.spawn((
+                                        HudStaminaBar,
+                                        Node {
+                                            width: Val::Px(120.0),
+                                            height: Val::Px(10.0),
+                                            border: UiRect::all(Val::Px(1.0)),
+                                            ..default()
+                                        },
+                                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+                                        BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
+                                        PickingBehavior::IGNORE,
+                                    ))
+                                    .with_children(|bar| {
+                                        bar.spawn((
+                                            HudStaminaFill,
+                                            Node {
+                                                width: Val::Percent(100.0),
+                                                height: Val::Percent(100.0),
+                                                ..default()
+                                            },
+                                            BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                                            PickingBehavior::IGNORE,
+                                        ));
+                                    });
                                 });
                         });
                 });
@@ -447,6 +502,7 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
     commands.insert_resource(ControlsHintTimer {
         timer: Timer::from_seconds(60.0, TimerMode::Once),
     });
+    commands.insert_resource(InteractionPromptCache::default());
 }
 
 fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
@@ -571,6 +627,7 @@ pub fn despawn_hud(
     }
     commands.remove_resource::<MapNameFadeTimer>();
     commands.remove_resource::<ControlsHintTimer>();
+    commands.remove_resource::<InteractionPromptCache>();
 }
 
 // ─── MAP NAME DISPLAY HELPER ──────────────────────────────────────────
@@ -731,6 +788,41 @@ pub fn update_stamina_bar(
         if is_critical {
             // Gentle pulse: alpha oscillates between 0.70 and 1.0
             let pulse = (time.elapsed_secs() * 3.0).sin() * 0.15 + 0.85;
+            let Color::Srgba(srgba) = base_color else {
+                *bg = BackgroundColor(base_color);
+                continue;
+            };
+            *bg = BackgroundColor(Color::srgba(srgba.red, srgba.green, srgba.blue, pulse));
+        } else {
+            *bg = BackgroundColor(base_color);
+        }
+    }
+}
+
+pub fn update_health_bar(
+    player: Res<PlayerState>,
+    time: Res<Time>,
+    mut query: Query<(&mut Node, &mut BackgroundColor), With<HudHealthFill>>,
+) {
+    let ratio = (player.health / player.max_health).clamp(0.0, 1.0);
+    let is_critical = ratio < 0.25;
+
+    if !player.is_changed() && !is_critical {
+        return;
+    }
+
+    for (mut node, mut bg) in &mut query {
+        node.width = Val::Percent(ratio * 100.0);
+        let base_color = if ratio > 0.6 {
+            Color::srgb(0.85, 0.2, 0.2)
+        } else if ratio >= 0.3 {
+            Color::srgb(0.9, 0.5, 0.1)
+        } else {
+            Color::srgb(0.6, 0.1, 0.1)
+        };
+
+        if is_critical {
+            let pulse = (time.elapsed_secs() * 3.5).sin() * 0.15 + 0.85;
             let Color::Srgba(srgba) = base_color else {
                 *bg = BackgroundColor(base_color);
                 continue;
@@ -1097,11 +1189,16 @@ fn key_display(code: KeyCode) -> String {
 /// interactable object or NPC.
 #[allow(clippy::too_many_arguments)]
 pub fn update_interaction_prompt(
+    player_state: Res<PlayerState>,
     player_query: Query<&LogicalPosition, With<Player>>,
+    moved_interactable_query: Query<(), (With<Interactable>, Changed<Transform>)>,
+    moved_npc_query: Query<(), (With<Npc>, Changed<Transform>)>,
+    moved_chest_query: Query<(), (With<crate::world::chests::ChestMarker>, Changed<Transform>)>,
     interactable_query: Query<(&Transform, &Interactable)>,
     npc_query: Query<(&Npc, &Transform)>,
     chest_query: Query<&Transform, With<crate::world::chests::ChestMarker>>,
     npc_registry: Res<NpcRegistry>,
+    mut cache: ResMut<InteractionPromptCache>,
     mut prompt_query: Query<(&mut Text, &mut TextColor), With<HudInteractionPrompt>>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
@@ -1110,17 +1207,40 @@ pub fn update_interaction_prompt(
     let Ok(player_pos) = player_query.get_single() else {
         return;
     };
+    let player_tile = world_to_grid(player_pos.0.x, player_pos.0.y);
+    let player_tile_key = (player_tile.x, player_tile.y);
+    let current_map = player_state.current_map;
+    let has_gift = inventory
+        .slots
+        .get(inventory.selected_slot)
+        .and_then(|s| s.as_ref())
+        .and_then(|slot| item_registry.get(&slot.item_id))
+        .map(|def| def.category != ItemCategory::Tool)
+        .unwrap_or(false);
+    let can_reuse_cache = cache.map == Some(current_map)
+        && cache.player_tile == Some(player_tile_key)
+        && cache.can_gift == Some(has_gift)
+        && cache.interact_key == Some(bindings.interact)
+        && cache.secondary_key == Some(bindings.tool_secondary)
+        && !npc_registry.is_changed()
+        && moved_interactable_query.is_empty()
+        && moved_npc_query.is_empty()
+        && moved_chest_query.is_empty();
+
+    if can_reuse_cache {
+        return;
+    }
+
     let range = TILE_SIZE * 1.8;
     let mut best_label: Option<(f32, String)> = None;
+    let interact_key = key_display(bindings.interact);
+    let secondary_key = key_display(bindings.tool_secondary);
 
     // Check interactable objects.
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((
-                d,
-                format!("[{}] {}", key_display(bindings.interact), inter.label),
-            ));
+            best_label = Some((d, format!("[{}] {}", interact_key, inter.label)));
         }
     }
 
@@ -1128,7 +1248,7 @@ pub fn update_interaction_prompt(
     for tf in &chest_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((d, format!("[{}] Storage", key_display(bindings.interact))));
+            best_label = Some((d, format!("[{}] Storage", interact_key)));
         }
     }
 
@@ -1141,29 +1261,30 @@ pub fn update_interaction_prompt(
                 .get(&npc.id)
                 .map(|def| def.name.as_str())
                 .unwrap_or(&npc.id);
-            let has_gift = inventory
-                .slots
-                .get(inventory.selected_slot)
-                .and_then(|s| s.as_ref())
-                .and_then(|slot| item_registry.get(&slot.item_id))
-                .map(|def| def.category != ItemCategory::Tool)
-                .unwrap_or(false);
             let label = if has_gift {
                 format!(
                     "[{}] Talk to {} | [{}] Give Gift",
-                    key_display(bindings.interact),
+                    interact_key,
                     name,
-                    key_display(bindings.tool_secondary)
+                    secondary_key
                 )
             } else {
-                format!("[{}] Talk to {}", key_display(bindings.interact), name)
+                format!("[{}] Talk to {}", interact_key, name)
             };
             best_label = Some((d, label));
         }
     }
 
+    let best_label_text = best_label.map(|(_, label)| label);
+    cache.map = Some(current_map);
+    cache.player_tile = Some(player_tile_key);
+    cache.best_label = best_label_text.clone();
+    cache.can_gift = Some(has_gift);
+    cache.interact_key = Some(bindings.interact);
+    cache.secondary_key = Some(bindings.tool_secondary);
+
     for (mut text, mut tc) in &mut prompt_query {
-        if let Some((_, label)) = &best_label {
+        if let Some(label) = &best_label_text {
             **text = label.clone();
             tc.0 = Color::srgb(1.0, 0.95, 0.7);
         } else {

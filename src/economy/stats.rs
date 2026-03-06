@@ -109,3 +109,57 @@ pub fn track_animal_products(
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_harvest_stats_default_empty() {
+        let stats = HarvestStats::default();
+        assert!(stats.crops.is_empty());
+    }
+
+    #[test]
+    fn test_harvest_stats_insert_and_query() {
+        let mut stats = HarvestStats::default();
+        stats.crops.insert("turnip".to_string(), (5, 300));
+        assert_eq!(stats.crops.get("turnip"), Some(&(5, 300)));
+    }
+
+    #[test]
+    fn test_harvest_stats_accumulate() {
+        let mut stats = HarvestStats::default();
+        let entry = stats.crops.entry("potato".to_string()).or_insert((0, 0));
+        entry.0 += 3;
+        entry.1 += 240;
+
+        let entry = stats.crops.entry("potato".to_string()).or_insert((0, 0));
+        entry.0 += 2;
+        entry.1 += 160;
+
+        assert_eq!(stats.crops.get("potato"), Some(&(5, 400)));
+    }
+
+    #[test]
+    fn test_animal_product_stats_default() {
+        let stats = AnimalProductStats::default();
+        assert_eq!(stats.total_eggs, 0);
+        assert_eq!(stats.total_milk, 0);
+        assert_eq!(stats.total_wool, 0);
+        assert_eq!(stats.total_other, 0);
+        assert_eq!(stats.total_revenue, 0);
+    }
+
+    #[test]
+    fn test_animal_product_stats_accumulate() {
+        let mut stats = AnimalProductStats::default();
+        stats.total_eggs = stats.total_eggs.saturating_add(3);
+        stats.total_milk = stats.total_milk.saturating_add(2);
+        stats.total_revenue = stats.total_revenue.saturating_add(500);
+
+        assert_eq!(stats.total_eggs, 3);
+        assert_eq!(stats.total_milk, 2);
+        assert_eq!(stats.total_revenue, 500);
+    }
+}
