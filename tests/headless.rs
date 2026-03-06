@@ -716,7 +716,7 @@ fn test_baby_animal_grows_to_adult() {
             kind: AnimalKind::Chicken,
             name: "Chick".to_string(),
             age: AnimalAge::Baby,
-            days_old: 4, // will become 5 after day end → adult
+            days_old: 6, // will become 7 after day end → adult
             happiness: 150,
             fed_today: true,
             petted_today: false,
@@ -732,9 +732,9 @@ fn test_baby_animal_grows_to_adult() {
     assert_eq!(
         animal.age,
         AnimalAge::Adult,
-        "Baby should grow to adult after 5 days"
+        "Baby should grow to adult after 7 days"
     );
-    assert_eq!(animal.days_old, 5);
+    assert_eq!(animal.days_old, 7);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
