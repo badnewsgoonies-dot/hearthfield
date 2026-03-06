@@ -39,7 +39,7 @@ use seasonal::{
 };
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
-    update_weather_particles, weather_change_notification, PreviousWeather,
+    update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -63,6 +63,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<DayNightTint>()
             .init_resource::<LightningFlash>()
             .init_resource::<PreviousWeather>()
+            .init_resource::<WeatherParticleCounts>()
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
