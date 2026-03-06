@@ -69,11 +69,13 @@ const CITY_OFFICE_TARGET: DlcLaunchTarget = DlcLaunchTarget {
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-fn sibling_dlc_binary_path(binary_stem: &str) -> Result<PathBuf, String> {
-    let current_exe = std::env::current_exe()
-        .map_err(|err| format!("Could not locate executable directory: {err}"))?;
-    let exe_dir = current_exe.parent().unwrap_or_else(|| Path::new("."));
-    Ok(exe_dir.join(format!("{binary_stem}{}", std::env::consts::EXE_SUFFIX)))
+fn sibling_dlc_binary_path(binary_stem: &str) -> PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    exe_dir.join(format!("{binary_stem}{}", std::env::consts::EXE_SUFFIX))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -83,7 +85,7 @@ fn dlc_working_dir(relative_path: &str) -> PathBuf {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn launch_dlc(target: &DlcLaunchTarget) -> Result<(), String> {
-    let binary_path = sibling_dlc_binary_path(target.binary_stem)?;
+    let binary_path = sibling_dlc_binary_path(target.binary_stem);
     let working_dir = dlc_working_dir(target.working_dir);
     if !binary_path.is_file() {
         return Err(format!(
@@ -436,7 +438,7 @@ mod tests {
 
     #[test]
     fn sibling_dlc_binary_path_uses_platform_suffix() {
-        let path = sibling_dlc_binary_path("skywarden").expect("path should resolve");
+        let path = sibling_dlc_binary_path("skywarden");
         let expected = format!("skywarden{}", std::env::consts::EXE_SUFFIX);
         assert_eq!(
             path.file_name().and_then(|name| name.to_str()),

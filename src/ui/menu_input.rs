@@ -1,9 +1,9 @@
-use crate::shared::*;
-use bevy::prelude::*;
 use super::{
     calendar_screen::CalendarOverlayState, settings_screen::SettingsOverlayState,
     stats_screen::StatsOverlayState,
 };
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Reset MenuAction at frame start (before observers fire).
 pub fn reset_menu_action(mut action: ResMut<MenuAction>) {
