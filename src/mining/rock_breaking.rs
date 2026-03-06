@@ -10,9 +10,9 @@ fn pickaxe_damage(tier: ToolTier) -> u8 {
     match tier {
         ToolTier::Basic => 1,
         ToolTier::Copper => 2,
-        ToolTier::Iron => 2,
-        ToolTier::Gold => 3,
-        ToolTier::Iridium => 4,
+        ToolTier::Iron => 3,
+        ToolTier::Gold => 4,
+        ToolTier::Iridium => 5,
     }
 }
 

@@ -9,20 +9,20 @@ use bevy::prelude::*;
 //
 //   1. Track consecutive unfed days (UnfedDays component).
 //   2. Adjust happiness:
-//        - Fed today:   +5  (capped at u8::MAX = 255)
-//        - Not fed:     -12 (floors at 0)
+//        - Fed today:   +10 (capped at u8::MAX = 255)
+//        - Not fed:     -20 (floors at 0)
 //        - Petted today: +5 on top of the above
-//        - Outside on farm tiles: +2 on top of the above
+//        - Outside on farm tiles: +5 on top of the above
 //   3. Reset daily flags (fed_today, petted_today).
 //   4. Age babies → adults after 7 days.
 //   5. Generate product_ready (+ PendingProductQuality) for adult animals
 //      that were fed and are not blocked by a starvation streak.
 //
 // Happiness quality thresholds (deterministic — no RNG):
-//   happiness >= 230 → Iridium
-//   happiness >= 200 → Gold
-//   happiness >= 128 → Silver
-//   happiness  < 128 → Normal
+//   happiness 200-255 → Iridium (2.0x)
+//   happiness 150-199 → Gold    (1.5x)
+//   happiness 100-149 → Silver  (1.25x)
+//   happiness   0-99  → Normal  (1.0x)
 //
 // Starvation block: if an animal goes 3+ consecutive days without food it
 // will not produce anything until the day it is fed again (that very day it
@@ -43,7 +43,10 @@ pub struct PendingProductQuality {
     pub quality: ItemQuality,
 }
 
-const OUTSIDE_HAPPINESS_BONUS: u8 = 2;
+const HAPPINESS_FED_BONUS: u8 = 10;
+const HAPPINESS_PETTED_BONUS: u8 = 5;
+const HAPPINESS_UNFED_PENALTY: u8 = 20;
+const HAPPINESS_OUTDOOR_SUNNY: u8 = 5;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: derive quality tier from happiness (deterministic, no RNG)
@@ -52,16 +55,16 @@ const OUTSIDE_HAPPINESS_BONUS: u8 = 2;
 /// Returns the `ItemQuality` corresponding to an animal's happiness value.
 ///
 /// Thresholds:
-/// - >= 230 → Iridium  (very happy, maximally cared for)
-/// - >= 200 → Gold     (happy)
-/// - >= 128 → Silver   (content)
-/// -  < 128 → Normal   (neglected but alive)
+/// - 200-255 → Iridium (2.0x)
+/// - 150-199 → Gold    (1.5x)
+/// - 100-149 → Silver  (1.25x)
+/// -   0-99  → Normal  (1.0x)
 pub fn quality_from_happiness(happiness: u8) -> ItemQuality {
-    if happiness >= 230 {
+    if happiness >= 200 {
         ItemQuality::Iridium
-    } else if happiness >= 200 {
+    } else if happiness >= 150 {
         ItemQuality::Gold
-    } else if happiness >= 128 {
+    } else if happiness >= 100 {
         ItemQuality::Silver
     } else {
         ItemQuality::Normal
@@ -123,20 +126,21 @@ pub fn handle_day_end_for_animals(
             // All adjustments use saturating arithmetic so happiness stays
             // in [0, 255] — the valid range of a u8.
             if animal.fed_today {
-                // Fed today: +5 happiness.
-                animal.happiness = animal.happiness.saturating_add(5);
+                // Fed today: +10 happiness.
+                animal.happiness = animal.happiness.saturating_add(HAPPINESS_FED_BONUS);
             } else {
-                // Not fed: -12 happiness (midpoint of the 10-15 range).
-                animal.happiness = animal.happiness.saturating_sub(12);
+                // Not fed: -20 happiness.
+                animal.happiness = animal.happiness.saturating_sub(HAPPINESS_UNFED_PENALTY);
             }
 
             if animal.petted_today {
                 // Petting gives an additional +5.
-                animal.happiness = animal.happiness.saturating_add(5);
+                animal.happiness = animal.happiness.saturating_add(HAPPINESS_PETTED_BONUS);
             }
 
             if is_outside_on_farm_tile(logical_pos) {
-                animal.happiness = animal.happiness.saturating_add(OUTSIDE_HAPPINESS_BONUS);
+                // Sunny outdoor bonus: +5.
+                animal.happiness = animal.happiness.saturating_add(HAPPINESS_OUTDOOR_SUNNY);
             }
 
             // Warn via toast when an animal's happiness drops into danger zones.
@@ -401,7 +405,9 @@ mod tests {
             .unwrap()
             .happiness;
 
-        assert_eq!(outside_happiness, 90);
-        assert_eq!(not_outside_happiness, 88);
+        // Both animals are unfed: -20. Outside animal also gets +5 outdoor bonus.
+        // 100 - 20 + 5 = 85 for outside, 100 - 20 = 80 for not outside.
+        assert_eq!(outside_happiness, 85);
+        assert_eq!(not_outside_happiness, 80);
     }
 }
