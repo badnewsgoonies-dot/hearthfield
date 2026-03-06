@@ -93,6 +93,8 @@ pub fn animate_tool_use(
                     atlas.layout = action_data.layout.clone();
                     atlas.index = action_atlas_index(tool, 0);
                 }
+                // Mirror sprite when facing left for directional tool animations
+                sprite.flip_x = movement.facing == Facing::Left;
                 *impact_fired = false;
             }
 
@@ -125,7 +127,14 @@ pub fn animate_tool_use(
                         atlas.layout = walk_sprites.layout.clone();
                         atlas.index = 0;
                     }
-                    movement.anim_state = PlayerAnimState::Idle;
+                    // Reset flip since walk animation handles its own flipping
+                    sprite.flip_x = false;
+                    // Avoid 1-frame idle flicker: if player is moving, go straight to Walk
+                    movement.anim_state = if movement.is_moving {
+                        PlayerAnimState::Walk
+                    } else {
+                        PlayerAnimState::Idle
+                    };
                     *frame_timer = 0.0;
                     *impact_fired = false;
                 } else {

@@ -29,6 +29,7 @@ pub struct DialogueUiState {
     pub npc_id: NpcId,
     pub lines: Vec<String>,
     pub current_line: usize,
+    #[allow(dead_code)]
     pub portrait_index: Option<u32>,
     /// How many characters of the current line have been revealed (typewriter).
     pub chars_revealed: usize,
@@ -154,11 +155,10 @@ pub fn spawn_dialogue_box(
                                 image: portrait_image,
                                 texture_atlas: Some(TextureAtlas {
                                     layout: npc_sprites.layout.clone(),
-                                    index: ui_state
-                                        .as_ref()
-                                        .and_then(|s| s.portrait_index)
-                                        .unwrap_or(0)
-                                        as usize,
+                                    // Always use index 0: front-facing idle pose (walk-down, frame 0).
+                                    // The portrait_index previously picked random walk frames from the
+                                    // 4×4 spritesheet, showing tiny mid-stride sprites as "portraits".
+                                    index: 0,
                                 }),
                                 ..default()
                             },
