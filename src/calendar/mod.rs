@@ -226,13 +226,13 @@ pub fn trigger_sleep(
 
 /// Accumulates real delta-seconds and converts them to in-game minutes.
 ///
-/// Default time_scale = 10.0, meaning 1 real second = 10 game-minutes.
+/// Default time_scale = 1/6, meaning 1 real minute = 10 game-minutes.
 /// One game-minute triggers when:
-///     elapsed_real_seconds >= (60.0 / time_scale)
-/// At default that's every 6 real seconds = 1 game-hour.
+///     elapsed_real_seconds >= (1.0 / time_scale)
+/// At default that's every 6 real seconds = 1 game-minute.
 ///
 /// Day spans 6:00 AM → 26:00 (2:00 AM next day) = 20 game-hours = 1200 min.
-/// At time_scale 10 that's 120 real seconds (2 real minutes) per game-day.
+/// At time_scale 1/6 that's 7200 real seconds (120 real minutes) per game-day.
 fn tick_time(
     time: Res<Time>,
     mut calendar: ResMut<Calendar>,
@@ -247,7 +247,7 @@ fn tick_time(
     let secs_per_game_minute = if calendar.time_scale > 0.0 {
         1.0 / calendar.time_scale
     } else {
-        1.0 / 10.0
+        1.0 / (1.0 / 6.0)
     };
 
     // Record state before advancing so we can detect auto-2AM rollover.
@@ -731,6 +731,14 @@ mod tests {
             ..Default::default()
         };
         assert!((cal.time_float() - 14.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_default_time_scale_matches_spec_pacing() {
+        let cal = Calendar::default();
+        assert!((cal.time_scale - (1.0 / 6.0)).abs() < f32::EPSILON);
+        let secs_per_game_minute = 1.0 / cal.time_scale;
+        assert!((secs_per_game_minute - 6.0).abs() < f32::EPSILON);
     }
 
     #[test]

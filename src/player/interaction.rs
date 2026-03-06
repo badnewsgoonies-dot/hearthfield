@@ -68,9 +68,9 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
             return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
         // North edge → nothing (mountain boundary)
-        // West edge → Beach (20x14)
+        // West edge → MineEntrance (matches world/maps.rs path-to-mine layout)
         if gx <= min_x {
-            return Some((MapId::Beach, 18, gy.clamp(0, 13)));
+            return Some((MapId::MineEntrance, 12, 6));
         }
     }
 
@@ -163,6 +163,14 @@ mod tests {
         assert_eq!(
             edge_transition(&MapId::Farm, 16, 2),
             Some((MapId::PlayerHouse, 8, 14))
+        );
+    }
+
+    #[test]
+    fn farm_west_edge_routes_toward_mine_path_not_beach() {
+        assert_eq!(
+            edge_transition(&MapId::Farm, 0, 10),
+            Some((MapId::MineEntrance, 12, 6))
         );
     }
 }

@@ -91,7 +91,7 @@ pub struct Calendar {
     pub hour: u8,   // 6-25 (25 = 1:00 AM next day)
     pub minute: u8, // 0-59
     pub weather: Weather,
-    pub time_scale: f32, // game-minutes per real-second (default ~10)
+    pub time_scale: f32, // game-minutes per real-second (default 1/6 => 10 game-minutes per real-minute)
     pub time_paused: bool,
     pub elapsed_real_seconds: f32, // accumulator for sub-minute ticks
 }
@@ -105,7 +105,7 @@ impl Default for Calendar {
             hour: 6,
             minute: 0,
             weather: Weather::Sunny,
-            time_scale: 10.0,
+            time_scale: 1.0 / 6.0,
             time_paused: false,
             elapsed_real_seconds: 0.0,
         }
@@ -2204,6 +2204,7 @@ mod tests {
         assert_eq!(cal.day, 1);
         assert_eq!(cal.hour, 6);
         assert_eq!(cal.minute, 0);
+        assert!((cal.time_scale - (1.0 / 6.0)).abs() < f32::EPSILON);
     }
 
     #[test]

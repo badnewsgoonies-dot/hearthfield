@@ -12,8 +12,9 @@ use bevy::prelude::*;
 //        - Fed today:   +5  (capped at u8::MAX = 255)
 //        - Not fed:     -12 (floors at 0)
 //        - Petted today: +5 on top of the above
+//        - Outside on farm tiles: +2 on top of the above
 //   3. Reset daily flags (fed_today, petted_today).
-//   4. Age babies → adults after 5 days.
+//   4. Age babies → adults after 7 days.
 //   5. Generate product_ready (+ PendingProductQuality) for adult animals
 //      that were fed and are not blocked by a starvation streak.
 //
@@ -42,6 +43,8 @@ pub struct PendingProductQuality {
     pub quality: ItemQuality,
 }
 
+const OUTSIDE_HAPPINESS_BONUS: u8 = 2;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: derive quality tier from happiness (deterministic, no RNG)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,6 +68,14 @@ pub fn quality_from_happiness(happiness: u8) -> ItemQuality {
     }
 }
 
+fn is_outside_on_farm_tile(logical_pos: Option<&LogicalPosition>) -> bool {
+    let Some(lp) = logical_pos else {
+        return false;
+    };
+    let grid = world_to_grid(lp.0.x, lp.0.y);
+    (0..=31).contains(&grid.x) && (0..=23).contains(&grid.y)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main day-end system
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,11 +88,12 @@ pub fn handle_day_end_for_animals(
         &mut Animal,
         Option<&SheepWoolCooldown>,
         Option<&mut UnfedDays>,
+        Option<&LogicalPosition>,
     )>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
     for _event in day_end_events.read() {
-        for (entity, mut animal, wool_cd, unfed_days_opt) in animal_query.iter_mut() {
+        for (entity, mut animal, wool_cd, unfed_days_opt, logical_pos) in animal_query.iter_mut() {
             // ── 1. Track consecutive unfed days ──────────────────────────────
             //
             // Snapshot the previous count before any resets so we can
@@ -122,6 +134,10 @@ pub fn handle_day_end_for_animals(
                 animal.happiness = animal.happiness.saturating_add(5);
             }
 
+            if is_outside_on_farm_tile(logical_pos) {
+                animal.happiness = animal.happiness.saturating_add(OUTSIDE_HAPPINESS_BONUS);
+            }
+
             // Warn via toast when an animal's happiness drops into danger zones.
             if !animal.fed_today {
                 if new_unfed_count == 3 {
@@ -144,9 +160,9 @@ pub fn handle_day_end_for_animals(
             animal.fed_today = false;
             animal.petted_today = false;
 
-            // ── 4. Aging: baby → adult after 5 days ─────────────────────────
+            // ── 4. Aging: baby → adult after 7 days ─────────────────────────
             animal.days_old = animal.days_old.saturating_add(1);
-            if animal.age == AnimalAge::Baby && animal.days_old >= 5 {
+            if animal.age == AnimalAge::Baby && animal.days_old >= 7 {
                 animal.age = AnimalAge::Adult;
                 info!(
                     "Animal '{}' ({:?}) has grown into an adult!",
@@ -292,5 +308,99 @@ pub fn handle_day_end_for_animals(
         // ── 6. AnimalState resource sync ─────────────────────────────────────
         // sync_animal_state_resource (rendering.rs) rebuilds the Vec<Animal>
         // from ECS every frame, so no manual sync is needed here.
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::prelude::*;
+
+    fn test_animal(days_old: u16, happiness: u8) -> Animal {
+        Animal {
+            kind: AnimalKind::Chicken,
+            name: "Testy".to_string(),
+            age: AnimalAge::Baby,
+            days_old,
+            happiness,
+            fed_today: false,
+            petted_today: false,
+            product_ready: false,
+        }
+    }
+
+    #[test]
+    fn baby_matures_exactly_on_day_seven() {
+        let mut app = App::new();
+        app.add_event::<DayEndEvent>();
+        app.add_event::<ToastEvent>();
+        app.add_systems(Update, handle_day_end_for_animals);
+
+        let before_threshold = app.world_mut().spawn(test_animal(5, 128)).id();
+        let at_threshold = app.world_mut().spawn(test_animal(6, 128)).id();
+
+        app.world_mut().send_event(DayEndEvent {
+            day: 1,
+            season: Season::Spring,
+            year: 1,
+        });
+        app.update();
+
+        let before = app
+            .world()
+            .entity(before_threshold)
+            .get::<Animal>()
+            .unwrap();
+        let at = app.world().entity(at_threshold).get::<Animal>().unwrap();
+        assert_eq!(before.age, AnimalAge::Baby);
+        assert_eq!(before.days_old, 6);
+        assert_eq!(at.age, AnimalAge::Adult);
+        assert_eq!(at.days_old, 7);
+    }
+
+    #[test]
+    fn outside_animals_get_bounded_happiness_bonus() {
+        let mut app = App::new();
+        app.add_event::<DayEndEvent>();
+        app.add_event::<ToastEvent>();
+        app.add_systems(Update, handle_day_end_for_animals);
+
+        let outside = app
+            .world_mut()
+            .spawn((
+                test_animal(0, 100),
+                LogicalPosition(grid_to_world_center(10, 10)),
+            ))
+            .id();
+        let not_outside = app
+            .world_mut()
+            .spawn((
+                test_animal(0, 100),
+                LogicalPosition(grid_to_world_center(100, 100)),
+            ))
+            .id();
+
+        app.world_mut().send_event(DayEndEvent {
+            day: 1,
+            season: Season::Spring,
+            year: 1,
+        });
+        app.update();
+
+        let outside_happiness = app
+            .world()
+            .entity(outside)
+            .get::<Animal>()
+            .unwrap()
+            .happiness;
+        let not_outside_happiness = app
+            .world()
+            .entity(not_outside)
+            .get::<Animal>()
+            .unwrap()
+            .happiness;
+
+        assert_eq!(outside_happiness, 90);
+        assert_eq!(not_outside_happiness, 88);
     }
 }
