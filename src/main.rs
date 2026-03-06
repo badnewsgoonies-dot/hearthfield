@@ -57,8 +57,22 @@ fn main() {
         .add_plugins(default_plugins)
         // Clear color (dark navy, close to HTML background)
         .insert_resource(ClearColor(Color::srgb(0.15, 0.22, 0.12)))
+        // Fixed timestep for deterministic simulation islands.
+        .insert_resource(Time::<Fixed>::from_hz(5.0))
         // Game state
         .init_state::<GameState>()
+        // Shared update-phase ordering
+        .configure_sets(
+            Update,
+            (
+                UpdatePhase::Input,
+                UpdatePhase::Intent,
+                UpdatePhase::Simulation,
+                UpdatePhase::Reactions,
+                UpdatePhase::Presentation,
+            )
+                .chain(),
+        )
         // Shared resources
         .init_resource::<Calendar>()
         .init_resource::<PlayerState>()
