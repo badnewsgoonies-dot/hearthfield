@@ -58,10 +58,10 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
     // --- Player spawn (bottom-center) ---
     let spawn_pos = (MINE_WIDTH / 2, 1);
 
-    // --- Determine rock coverage (40-60%) ---
-    let total_tiles = (MINE_WIDTH * MINE_HEIGHT) as usize;
-    let coverage: f64 = rng.gen_range(0.40..=0.60);
-    let max_rocks = (total_tiles as f64 * coverage) as usize;
+    // --- Determine rock count (8-15, increasing with depth) ---
+    let min_rocks = 8 + (floor as usize) / 5; // 8 at floor 1, up to 12 at floor 20
+    let max_rocks_cap = 15usize;
+    let max_rocks = rng.gen_range(min_rocks..=max_rocks_cap);
 
     // Reserve tiles: spawn area (3x3 around spawn) and border row at bottom
     let mut occupied = std::collections::HashSet::new();
@@ -182,63 +182,74 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
 }
 
 /// Choose a rock drop based on floor depth.
+///
+/// Spec drop rates:
+/// - Floors 1-5:  Stone (70%), Copper ore (30%)
+/// - Floors 6-10: Stone (40%), Copper (40%), Iron ore (20%)
+/// - Floors 11-15: Stone (35%), Iron (40%), Gold ore (20%), gems (5%)
+/// - Floors 16-20: Stone (20%), Gold (30%), Iridium ore (10%), gems (10%), Iron (30%)
+///
+/// Rock health: 3 (stone) to 6 (ore/gem).
 fn rock_drop(floor: u8, rng: &mut StdRng) -> (String, u8, u8) {
     let roll: f64 = rng.gen();
 
     if floor <= 5 {
-        // Floors 1-5: Stone, Copper Ore (20%)
-        if roll < 0.20 {
-            (
-                "copper_ore".to_string(),
-                rng.gen_range(1..=2),
-                rng.gen_range(2..=3),
-            )
+        // Floors 1-5: Stone (70%), Copper ore (30%)
+        if roll < 0.30 {
+            ("copper_ore".to_string(), rng.gen_range(1..=2), 4)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     } else if floor <= 10 {
-        // Floors 6-10: Stone, Copper (30%), Iron (15%)
-        if roll < 0.15 {
-            (
-                "iron_ore".to_string(),
-                rng.gen_range(1..=2),
-                rng.gen_range(3..=4),
-            )
-        } else if roll < 0.45 {
-            (
-                "copper_ore".to_string(),
-                rng.gen_range(1..=2),
-                rng.gen_range(2..=3),
-            )
+        // Floors 6-10: Stone (40%), Copper (40%), Iron (20%)
+        if roll < 0.20 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 5)
+        } else if roll < 0.60 {
+            ("copper_ore".to_string(), rng.gen_range(1..=2), 4)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     } else if floor <= 15 {
-        // Floors 11-15: Stone (55%), Iron (30%), Gold (10%), Quartz (5%), Amethyst (5%)
-        if roll < 0.55 {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
-        } else if roll < 0.85 {
-            ("iron_ore".to_string(), rng.gen_range(1..=2), 3)
-        } else if roll < 0.90 {
-            ("quartz".to_string(), 1, 3)
-        } else if roll < 0.95 {
-            ("amethyst".to_string(), 1, 3)
+        // Floors 11-15: Stone (35%), Iron (40%), Gold (20%), gems (5%)
+        if roll < 0.05 {
+            (pick_gem(rng), 1, 5)
+        } else if roll < 0.25 {
+            ("gold_ore".to_string(), rng.gen_range(1..=2), 5)
+        } else if roll < 0.65 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 5)
         } else {
-            ("gold_ore".to_string(), rng.gen_range(1..=2), 4)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     } else {
-        // Floors 16-20: Stone, Gold (25%), Diamond (3%), Ruby (2%), Emerald (2%)
-        if roll < 0.02 {
-            ("emerald".to_string(), 1, 4)
-        } else if roll < 0.04 {
-            ("ruby".to_string(), 1, 4)
-        } else if roll < 0.07 {
-            ("diamond".to_string(), 1, 4)
-        } else if roll < 0.32 {
-            ("gold_ore".to_string(), rng.gen_range(1..=2), 4)
+        // Floors 16-20: Stone (20%), Gold (30%), Iridium (10%), gems (10%), Iron (30%)
+        if roll < 0.10 {
+            (pick_gem(rng), 1, 6)
+        } else if roll < 0.20 {
+            ("iridium_ore".to_string(), rng.gen_range(1..=2), 6)
+        } else if roll < 0.50 {
+            ("gold_ore".to_string(), rng.gen_range(1..=2), 5)
+        } else if roll < 0.80 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 5)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
+    }
+}
+
+/// Pick a gem type according to spec distribution:
+/// quartz 40%, amethyst 25%, emerald 15%, ruby 12%, diamond 8%
+fn pick_gem(rng: &mut StdRng) -> String {
+    let roll: f64 = rng.gen();
+    if roll < 0.40 {
+        "quartz".to_string()
+    } else if roll < 0.65 {
+        "amethyst".to_string()
+    } else if roll < 0.80 {
+        "emerald".to_string()
+    } else if roll < 0.92 {
+        "ruby".to_string()
+    } else {
+        "diamond".to_string()
     }
 }
 
