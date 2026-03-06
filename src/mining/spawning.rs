@@ -106,6 +106,7 @@ pub fn spawn_mine_floor(
         floor: floor_num,
         total_rocks: rock_count,
         rocks_remaining: rock_count,
+        rocks_broken_this_floor: 0,
         ladder_revealed: !blueprint.ladder_hidden,
         player_grid_x: blueprint.spawn_pos.0,
         player_grid_y: blueprint.spawn_pos.1,

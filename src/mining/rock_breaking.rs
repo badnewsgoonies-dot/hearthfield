@@ -1,6 +1,7 @@
 //! Rock breaking system — listens for ToolUseEvent with Pickaxe and damages mine rocks.
 
 use bevy::prelude::*;
+use rand::prelude::*;
 
 use super::components::*;
 use crate::shared::*;
@@ -95,14 +96,19 @@ pub fn handle_rock_breaking(
 
             // Track rock count
             active_floor.rocks_remaining = active_floor.rocks_remaining.saturating_sub(1);
+            active_floor.rocks_broken_this_floor += 1;
 
-            // Check if this rock had the ladder hidden in it, or if all rocks are gone
+            // Check if this rock had the ladder hidden in it, or probability triggers
             check_ladder_reveal(&mut active_floor, &mut ladders, rx, ry);
         }
     }
 }
 
-/// Reveal the ladder if the broken rock contained it, or if all rocks are destroyed.
+/// Reveal the ladder if the broken rock contained it, probability triggers, or all rocks gone.
+///
+/// Ladder probability: 5% base + 2% per rock broken this floor, max 30%.
+/// If the broken rock directly contains the ladder, it always reveals.
+/// If all rocks are destroyed, the ladder is always revealed.
 fn check_ladder_reveal(
     active_floor: &mut ActiveFloor,
     ladders: &mut Query<(&MineGridPos, &mut MineLadder, &mut Sprite), Without<MineRock>>,
@@ -113,12 +119,17 @@ fn check_ladder_reveal(
         return;
     }
 
-    let should_reveal = active_floor.rocks_remaining == 0;
+    // Always reveal if all rocks are gone
+    let all_gone = active_floor.rocks_remaining == 0;
+
+    // Probability-based reveal: 5% base + 2% per rock broken, max 30%
+    let probability = (0.05 + active_floor.rocks_broken_this_floor as f64 * 0.02).min(0.30);
+    let prob_reveal = rand::thread_rng().gen_bool(probability);
 
     for (grid_pos, mut ladder, mut sprite) in ladders.iter_mut() {
-        // Reveal if we broke the rock containing the ladder, or all rocks are gone
-        if !ladder.revealed && (should_reveal || (grid_pos.x == broken_x && grid_pos.y == broken_y))
-        {
+        // Reveal if: rock at ladder position was broken, all rocks gone, or probability hit
+        let is_ladder_rock = grid_pos.x == broken_x && grid_pos.y == broken_y;
+        if !ladder.revealed && (all_gone || is_ladder_rock || prob_reveal) {
             ladder.revealed = true;
             sprite.color = Color::srgb(0.65, 0.50, 0.25); // LADDER_COLOR
             active_floor.ladder_revealed = true;
