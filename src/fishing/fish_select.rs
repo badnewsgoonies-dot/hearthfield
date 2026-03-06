@@ -55,7 +55,7 @@ pub fn select_fish(
 
     // ── Step 1: Legendary check ───────────────────────────────────────────
     // Each legendary has a small independent spawn-chance per cast.
-    if let Some((legendary_id, _difficulty)) = try_roll_legendary(map_id, season) {
+    if let Some((legendary_id, _difficulty)) = try_roll_legendary(map_id, season, weather) {
         // Legendary triggered — verify it exists in registry (or return it
         // anyway; catch_fish will fall back to a default if it's missing).
         return Some(legendary_id.to_string());

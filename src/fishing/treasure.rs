@@ -18,8 +18,8 @@ use crate::shared::*;
 
 // ─── Treasure chance constants ────────────────────────────────────────────────
 
-/// Default treasure chance per catch (5%).
-pub const BASE_TREASURE_CHANCE: f64 = 0.05;
+/// Default treasure chance per catch (10% — spec requirement).
+pub const BASE_TREASURE_CHANCE: f64 = 0.10;
 /// Extra treasure chance when magnet_bait is equipped (+15%).
 pub const MAGNET_BAIT_EXTRA_CHANCE: f64 = 0.15;
 /// Extra treasure chance when wild_bait is equipped (+5%).
@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_treasure_chance_constants() {
-        assert!((BASE_TREASURE_CHANCE - 0.05).abs() < f64::EPSILON);
+        assert!((BASE_TREASURE_CHANCE - 0.10).abs() < f64::EPSILON);
         assert!((MAGNET_BAIT_EXTRA_CHANCE - 0.15).abs() < f64::EPSILON);
         assert!((WILD_BAIT_EXTRA_CHANCE - 0.05).abs() < f64::EPSILON);
     }
@@ -195,8 +195,8 @@ mod tests {
     fn test_treasure_chance_with_magnet_bait() {
         let effective_chance = BASE_TREASURE_CHANCE + MAGNET_BAIT_EXTRA_CHANCE;
         assert!(
-            (effective_chance - 0.20).abs() < f64::EPSILON,
-            "Magnet bait should give 20% treasure chance"
+            (effective_chance - 0.25).abs() < f64::EPSILON,
+            "Magnet bait should give 25% treasure chance"
         );
     }
 
@@ -204,8 +204,8 @@ mod tests {
     fn test_treasure_chance_with_wild_bait() {
         let effective_chance = BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE;
         assert!(
-            (effective_chance - 0.10).abs() < f64::EPSILON,
-            "Wild bait should give 10% treasure chance"
+            (effective_chance - 0.15).abs() < f64::EPSILON,
+            "Wild bait should give 15% treasure chance"
         );
     }
 }
