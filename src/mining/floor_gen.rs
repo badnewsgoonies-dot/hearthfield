@@ -254,34 +254,69 @@ fn pick_gem(rng: &mut StdRng) -> String {
 }
 
 /// How many enemies spawn on this floor.
+///
+/// Spec:
+/// - Floors 1-5:  1-2 GreenSlime → total 1-2
+/// - Floors 6-10: 2-3 GreenSlime + 1 Bat → total 3-4
+/// - Floors 11-15: 2-3 Bat + 1-2 RockCrab → total 3-5
+/// - Floors 16-20: 2-4 mixed → total 2-4
 fn enemy_count_for_floor(floor: u8, rng: &mut StdRng) -> usize {
-    let base = 2;
-    let extra = (floor as usize) / 4; // +1 every 4 floors
-    let count = base + extra + rng.gen_range(0..=1);
-    count.min(6) // cap at 6
+    if floor <= 5 {
+        rng.gen_range(1..=2)
+    } else if floor <= 10 {
+        rng.gen_range(3..=4)
+    } else if floor <= 15 {
+        rng.gen_range(3..=5)
+    } else {
+        rng.gen_range(2..=4)
+    }
 }
 
 /// Pick an enemy type appropriate for the floor depth.
+///
+/// Spec:
+/// - Floors 1-5:  GreenSlime only
+/// - Floors 6-10: mostly GreenSlime + some Bat
+/// - Floors 11-15: mostly Bat + some RockCrab
+/// - Floors 16-20: mixed (all three)
 fn pick_enemy_kind(floor: u8, rng: &mut StdRng) -> MineEnemy {
     let roll: f64 = rng.gen();
-    if floor < 5 {
+    if floor <= 5 {
         MineEnemy::GreenSlime
-    } else if floor < 10 {
-        if roll < 0.6 {
+    } else if floor <= 10 {
+        // 2-3 GreenSlime + 1 Bat → ~70% slime, 30% bat
+        if roll < 0.70 {
             MineEnemy::GreenSlime
         } else {
             MineEnemy::Bat
         }
-    } else if roll < 0.35 {
-        MineEnemy::GreenSlime
-    } else if roll < 0.65 {
-        MineEnemy::Bat
+    } else if floor <= 15 {
+        // 2-3 Bat + 1-2 RockCrab → ~60% bat, 40% crab
+        if roll < 0.60 {
+            MineEnemy::Bat
+        } else {
+            MineEnemy::RockCrab
+        }
     } else {
-        MineEnemy::RockCrab
+        // Floors 16-20: mixed
+        if roll < 0.30 {
+            MineEnemy::GreenSlime
+        } else if roll < 0.60 {
+            MineEnemy::Bat
+        } else {
+            MineEnemy::RockCrab
+        }
     }
 }
 
 /// Build an EnemyBlueprint with stats scaled to floor depth.
+///
+/// Base stats per spec:
+/// - GreenSlime: HP 20, DMG 5, Speed 30
+/// - Bat: HP 15, DMG 8, Speed 50
+/// - RockCrab: HP 40, DMG 12, Speed 15
+///
+/// Floor scaling: +1 HP per floor, +0.5 DMG per floor.
 fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlueprint {
     let f = floor as f32;
     match kind {
@@ -291,8 +326,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 20.0 + f,
             max_health: 20.0 + f,
-            damage: 5.0 + f / 2.0,
-            speed: 24.0, // slow
+            damage: 5.0 + f * 0.5,
+            speed: 30.0,
         },
         MineEnemy::Bat => EnemyBlueprint {
             x,
@@ -300,8 +335,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 15.0 + f,
             max_health: 15.0 + f,
-            damage: 8.0 + f / 2.0,
-            speed: 48.0, // fast
+            damage: 8.0 + f * 0.5,
+            speed: 50.0,
         },
         MineEnemy::RockCrab => EnemyBlueprint {
             x,
@@ -309,8 +344,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 40.0 + f,
             max_health: 40.0 + f,
-            damage: 12.0 + f / 2.0,
-            speed: 16.0, // very slow but tanky
+            damage: 12.0 + f * 0.5,
+            speed: 15.0,
         },
     }
 }
@@ -372,15 +407,29 @@ mod tests {
             let mut rng_floor_1 = StdRng::seed_from_u64(seed);
             let floor_1_count = enemy_count_for_floor(1, &mut rng_floor_1);
             assert!(
-                (1..=3).contains(&floor_1_count),
-                "floor 1 enemy count out of expected small range: {floor_1_count}"
+                (1..=2).contains(&floor_1_count),
+                "floor 1 enemy count out of expected range: {floor_1_count}"
+            );
+
+            let mut rng_floor_10 = StdRng::seed_from_u64(seed);
+            let floor_10_count = enemy_count_for_floor(10, &mut rng_floor_10);
+            assert!(
+                (3..=4).contains(&floor_10_count),
+                "floor 10 enemy count out of expected range: {floor_10_count}"
+            );
+
+            let mut rng_floor_15 = StdRng::seed_from_u64(seed);
+            let floor_15_count = enemy_count_for_floor(15, &mut rng_floor_15);
+            assert!(
+                (3..=5).contains(&floor_15_count),
+                "floor 15 enemy count out of expected range: {floor_15_count}"
             );
 
             let mut rng_floor_20 = StdRng::seed_from_u64(seed);
             let floor_20_count = enemy_count_for_floor(20, &mut rng_floor_20);
             assert!(
-                floor_20_count > floor_1_count,
-                "floor 20 enemy count should be larger than floor 1 ({floor_20_count} <= {floor_1_count})"
+                (2..=4).contains(&floor_20_count),
+                "floor 20 enemy count out of expected range: {floor_20_count}"
             );
         }
     }

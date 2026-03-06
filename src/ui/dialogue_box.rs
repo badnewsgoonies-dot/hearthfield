@@ -30,7 +30,14 @@ pub struct DialogueUiState {
     pub lines: Vec<String>,
     pub current_line: usize,
     pub portrait_index: Option<u32>,
+    /// How many characters of the current line have been revealed (typewriter).
+    pub chars_revealed: usize,
+    /// Accumulated fractional characters for smooth typewriter pacing.
+    pub char_accumulator: f32,
 }
+
+/// Typewriter text speed in characters per second.
+const TYPEWRITER_SPEED: f32 = 30.0;
 
 // ═══════════════════════════════════════════════════════════════════════
 // EVENT LISTENER — detect DialogueStartEvent and open dialogue
@@ -53,6 +60,8 @@ pub fn listen_for_dialogue_start(
             lines: event.lines.clone(),
             current_line: 0,
             portrait_index: event.portrait_index,
+            chars_revealed: 0,
+            char_accumulator: 0.0,
         });
 
         next_state.set(GameState::Dialogue);
