@@ -260,3 +260,51 @@ pub fn handle_evaluation(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_points_to_candles_low() {
+        assert_eq!(points_to_candles(0), 1);
+        assert_eq!(points_to_candles(3), 1);
+        assert_eq!(points_to_candles(5), 1);
+    }
+
+    #[test]
+    fn test_points_to_candles_medium() {
+        assert_eq!(points_to_candles(6), 2);
+        assert_eq!(points_to_candles(8), 2);
+        assert_eq!(points_to_candles(10), 2);
+    }
+
+    #[test]
+    fn test_points_to_candles_high() {
+        assert_eq!(points_to_candles(11), 3);
+        assert_eq!(points_to_candles(13), 3);
+        assert_eq!(points_to_candles(15), 3);
+    }
+
+    #[test]
+    fn test_points_to_candles_max() {
+        assert_eq!(points_to_candles(16), 4);
+        assert_eq!(points_to_candles(18), 4);
+        assert_eq!(points_to_candles(21), 4);
+    }
+
+    #[test]
+    fn test_points_to_candles_above_max() {
+        // Even if somehow more than 21 points, still 4 candles
+        assert_eq!(points_to_candles(50), 4);
+    }
+
+    #[test]
+    fn test_evaluation_score_default() {
+        let score = EvaluationScore::default();
+        assert_eq!(score.total_points, 0);
+        assert_eq!(score.candles_lit, 0);
+        assert!(!score.evaluated);
+        assert!(score.categories.is_empty());
+    }
+}
