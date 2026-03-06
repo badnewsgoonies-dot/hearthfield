@@ -366,11 +366,11 @@ fn tile_atlas_info(
             46,
         )),
 
-        // Stone: use tilled_dirt.png with a stone-looking tile (index 22, row 2 col 0).
-        TileKind::Stone => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 22)),
+        // Stone: use hills.png for a proper rocky/stone texture (index 0, top-left).
+        TileKind::Stone => Some((atlases.hills_image.clone(), atlases.hills_layout.clone(), 0)),
 
-        // Wood floor: tilled_dirt.png with a wood-colored tile (index 33, row 3 col 0).
-        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 33)),
+        // Wood floor: tilled_dirt.png with a plank-like tile (index 6, row 0 col 6).
+        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 6)),
 
         TileKind::Path => {
             let mut mask: u8 = 0;
