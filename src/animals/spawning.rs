@@ -284,6 +284,7 @@ pub fn handle_animal_purchase(
                         },
                     );
                     s.custom_size = Some(Vec2::new(16.0, 16.0));
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Cow => {
@@ -295,6 +296,7 @@ pub fn handle_animal_purchase(
                         },
                     );
                     s.custom_size = Some(Vec2::new(32.0, 32.0));
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Sheep => {
@@ -307,6 +309,7 @@ pub fn handle_animal_purchase(
                     );
                     s.custom_size = Some(Vec2::new(16.0, 16.0));
                     s.color = Color::srgb(0.95, 0.95, 0.98); // white-ish tint
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Cat => {
@@ -319,6 +322,7 @@ pub fn handle_animal_purchase(
                     );
                     s.custom_size = Some(Vec2::new(16.0, 16.0));
                     s.color = Color::srgb(1.0, 0.7, 0.3); // orange tint
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Dog => {
@@ -331,21 +335,28 @@ pub fn handle_animal_purchase(
                     );
                     s.custom_size = Some(Vec2::new(16.0, 16.0));
                     s.color = Color::srgb(0.6, 0.4, 0.25); // brown tint
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 // New animal kinds: use colored rectangles until sprite sheets exist.
-                _ => Sprite {
-                    color: vis.color,
-                    custom_size: Some(Vec2::new(vis.width, vis.height)),
-                    ..default()
-                },
+                _ => {
+                    let mut s = Sprite {
+                        color: vis.color,
+                        custom_size: Some(Vec2::new(vis.width, vis.height)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
             }
         } else {
-            Sprite {
+            let mut s = Sprite {
                 color: vis.color,
                 custom_size: Some(Vec2::new(vis.width, vis.height)),
                 ..default()
-            }
+            };
+            s.anchor = bevy::sprite::Anchor::BottomCenter;
+            s
         };
 
         let entity = commands
