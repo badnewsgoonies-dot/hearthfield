@@ -206,9 +206,14 @@ impl Plugin for FarmingPlugin {
                     render::sync_crop_sprites,
                     render::sync_farm_objects_sprites,
                 )
+                    .run_if(in_farm_map)
                     .run_if(in_state(GameState::Playing)),
             );
     }
+}
+
+fn in_farm_map(player_state: Res<PlayerState>) -> bool {
+    player_state.current_map == MapId::Farm
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

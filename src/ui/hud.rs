@@ -124,6 +124,18 @@ pub struct ControlsHintTimer {
     pub timer: Timer,
 }
 
+/// Cache for interaction prompt scans so we can skip full proximity rescans
+/// when player context hasn't changed.
+#[derive(Resource, Default)]
+pub struct InteractionPromptCache {
+    pub map: Option<MapId>,
+    pub player_tile: Option<(i32, i32)>,
+    pub best_label: Option<String>,
+    pub can_gift: Option<bool>,
+    pub interact_key: Option<KeyCode>,
+    pub secondary_key: Option<KeyCode>,
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // EAGER PRELOADING — runs on OnEnter(Playing) before any HUD update
 // ═══════════════════════════════════════════════════════════════════════
@@ -447,6 +459,7 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
     commands.insert_resource(ControlsHintTimer {
         timer: Timer::from_seconds(60.0, TimerMode::Once),
     });
+    commands.insert_resource(InteractionPromptCache::default());
 }
 
 fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
@@ -571,6 +584,7 @@ pub fn despawn_hud(
     }
     commands.remove_resource::<MapNameFadeTimer>();
     commands.remove_resource::<ControlsHintTimer>();
+    commands.remove_resource::<InteractionPromptCache>();
 }
 
 // ─── MAP NAME DISPLAY HELPER ──────────────────────────────────────────
@@ -1097,11 +1111,16 @@ fn key_display(code: KeyCode) -> String {
 /// interactable object or NPC.
 #[allow(clippy::too_many_arguments)]
 pub fn update_interaction_prompt(
+    player_state: Res<PlayerState>,
     player_query: Query<&LogicalPosition, With<Player>>,
+    moved_interactable_query: Query<(), (With<Interactable>, Changed<Transform>)>,
+    moved_npc_query: Query<(), (With<Npc>, Changed<Transform>)>,
+    moved_chest_query: Query<(), (With<crate::world::chests::ChestMarker>, Changed<Transform>)>,
     interactable_query: Query<(&Transform, &Interactable)>,
     npc_query: Query<(&Npc, &Transform)>,
     chest_query: Query<&Transform, With<crate::world::chests::ChestMarker>>,
     npc_registry: Res<NpcRegistry>,
+    mut cache: ResMut<InteractionPromptCache>,
     mut prompt_query: Query<(&mut Text, &mut TextColor), With<HudInteractionPrompt>>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
@@ -1110,17 +1129,40 @@ pub fn update_interaction_prompt(
     let Ok(player_pos) = player_query.get_single() else {
         return;
     };
+    let player_tile = world_to_grid(player_pos.0.x, player_pos.0.y);
+    let player_tile_key = (player_tile.x, player_tile.y);
+    let current_map = player_state.current_map;
+    let has_gift = inventory
+        .slots
+        .get(inventory.selected_slot)
+        .and_then(|s| s.as_ref())
+        .and_then(|slot| item_registry.get(&slot.item_id))
+        .map(|def| def.category != ItemCategory::Tool)
+        .unwrap_or(false);
+    let can_reuse_cache = cache.map == Some(current_map)
+        && cache.player_tile == Some(player_tile_key)
+        && cache.can_gift == Some(has_gift)
+        && cache.interact_key == Some(bindings.interact)
+        && cache.secondary_key == Some(bindings.tool_secondary)
+        && !npc_registry.is_changed()
+        && moved_interactable_query.is_empty()
+        && moved_npc_query.is_empty()
+        && moved_chest_query.is_empty();
+
+    if can_reuse_cache {
+        return;
+    }
+
     let range = TILE_SIZE * 1.8;
     let mut best_label: Option<(f32, String)> = None;
+    let interact_key = key_display(bindings.interact);
+    let secondary_key = key_display(bindings.tool_secondary);
 
     // Check interactable objects.
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((
-                d,
-                format!("[{}] {}", key_display(bindings.interact), inter.label),
-            ));
+            best_label = Some((d, format!("[{}] {}", interact_key, inter.label)));
         }
     }
 
@@ -1128,7 +1170,7 @@ pub fn update_interaction_prompt(
     for tf in &chest_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((d, format!("[{}] Storage", key_display(bindings.interact))));
+            best_label = Some((d, format!("[{}] Storage", interact_key)));
         }
     }
 
@@ -1141,29 +1183,30 @@ pub fn update_interaction_prompt(
                 .get(&npc.id)
                 .map(|def| def.name.as_str())
                 .unwrap_or(&npc.id);
-            let has_gift = inventory
-                .slots
-                .get(inventory.selected_slot)
-                .and_then(|s| s.as_ref())
-                .and_then(|slot| item_registry.get(&slot.item_id))
-                .map(|def| def.category != ItemCategory::Tool)
-                .unwrap_or(false);
             let label = if has_gift {
                 format!(
                     "[{}] Talk to {} | [{}] Give Gift",
-                    key_display(bindings.interact),
+                    interact_key,
                     name,
-                    key_display(bindings.tool_secondary)
+                    secondary_key
                 )
             } else {
-                format!("[{}] Talk to {}", key_display(bindings.interact), name)
+                format!("[{}] Talk to {}", interact_key, name)
             };
             best_label = Some((d, label));
         }
     }
 
+    let best_label_text = best_label.map(|(_, label)| label);
+    cache.map = Some(current_map);
+    cache.player_tile = Some(player_tile_key);
+    cache.best_label = best_label_text.clone();
+    cache.can_gift = Some(has_gift);
+    cache.interact_key = Some(bindings.interact);
+    cache.secondary_key = Some(bindings.tool_secondary);
+
     for (mut text, mut tc) in &mut prompt_query {
-        if let Some((_, label)) = &best_label {
+        if let Some(label) = &best_label_text {
             **text = label.clone();
             tc.0 = Color::srgb(1.0, 0.95, 0.7);
         } else {
