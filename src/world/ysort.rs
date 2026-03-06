@@ -7,6 +7,7 @@ use bevy::prelude::*;
 /// For Y-sorted entities with LogicalPosition: rounds XY, computes Z from logical Y.
 /// For non-Y-sorted entities with LogicalPosition: just rounds XY, keeps Z.
 /// For Y-sorted entities WITHOUT LogicalPosition (static objects): computes Z from current Y.
+#[allow(clippy::type_complexity)]
 pub fn sync_position_and_ysort(
     mut query: Query<
         (&mut Transform, Option<&LogicalPosition>, Has<YSorted>),

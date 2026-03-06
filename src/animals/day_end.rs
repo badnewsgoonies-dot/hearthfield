@@ -80,6 +80,7 @@ fn is_outside_on_farm_tile(logical_pos: Option<&LogicalPosition>) -> bool {
 // Main day-end system
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::type_complexity)]
 pub fn handle_day_end_for_animals(
     mut commands: Commands,
     mut day_end_events: EventReader<DayEndEvent>,
