@@ -1,260 +1,210 @@
-# The Model Is the Orchestrator
+# Claude Code sub-agents and nested agent calls: the complete guide
 
-**Lessons from 10 Autonomous Multi-Agent Software Builds Without Programmatic Scaffolding — A Case Study**
-
-Geni · February 2026 · Working Draft
-
-Corpus: 88 Codex worker sessions · 10 Claude orchestrator sessions · 295M tokens · 6.1M lines of worker output · 3 controlled ablation experiments · 1 scope contamination A/B test
+**Claude Code offers three distinct mechanisms for multi-agent orchestration**: the built-in Task tool (which spawns subagents within a session), custom named subagents (a management layer atop the Task tool), and the `-p` flag for headless CLI invocation as an external process. The critical constraint is that **subagents cannot spawn their own subagents** — the Task tool is intentionally excluded from subagent tool sets,  limiting built-in nesting to one level.   Workarounds exist via `claude -p` through the Bash tool, but with significant tradeoffs in visibility, error handling, and resource coordination.  This guide covers every flag, pattern, and gotcha for building multi-agent systems with Claude Code.
 
 -----
 
-# Abstract
+## The `-p` flag: non-interactive headless execution
 
-We report operational data from 10 fully autonomous software builds executed by a multi-agent system: a Claude Opus orchestrator and Codex worker agents. The system produced 10 TypeScript browser games totaling over 50,000 lines of code and hundreds of passing tests with zero human code intervention. The orchestrator—a frontier LLM given a prompt and CLI access—decomposed objectives, dispatched parallel workers, analyzed results, triaged errors, and coordinated integration. No programmatic scaffold, state machine, or task-routing infrastructure was used; the orchestration logic is a prompt, not a program. This replaced a prior purpose-built scaffold that the operator abandoned because conversation-based orchestration produced better results.
+The `-p` (or `--print`) flag is Claude Code's primary interface for programmatic, non-interactive invocation.   It processes a prompt, outputs the response to stdout, and exits  — making it the foundation for CI/CD pipelines, shell scripts, and external orchestration.
 
-Scope enforcement through prompts fails completely under compiler pressure (0/20), while mechanical enforcement via post-hoc file reversion is trivially effective (20/20). Type contracts are not required for integration at any scale tested (6–36 modules) when the integration agent has unrestricted edit access. The orchestrator maintained perfect task continuity across 11 context compaction events.
+**Basic syntax** follows a straightforward pattern:
 
-Cost analysis reveals a *statefulness premium*: with ~95% cache hit rates, the majority of orchestrator processing is re-reading prior conversation context. We propose a pyramid architecture (Section 7.1) that inverts this premium. A bare-prompt ablation (Section 7.2) falsifies the strong claim that models independently discover coordination patterns, but reveals that solo execution outperforms coordinated builds below ~30K LOC. Section 7.3 proposes agent pre-training through synthetic conversation.
+```bash
+claude -p "Explain this project"                    # Simple query
+cat error.log | claude -p "Summarize errors"         # Piped input
+git diff main | claude -p "Review for security"      # Pipeline integration
+claude -p "Fix bugs" --output-format json            # Structured output
+```
 
-This is a case study of a single operator's deployment, not a controlled experiment on multi-agent systems in general.
+Three output formats are available. **`text`** (default) returns plain text. **`json`** returns a complete JSON object containing `result`, `session_id`, `cost_usd`, `num_turns`, and token usage — essential for scripting. **`stream-json`** emits each message as a separate newline-delimited JSON object, enabling real-time streaming pipelines.  A `--json-schema` flag can further constrain JSON output to conform to a specific schema.
 
------
+**Session persistence** across non-interactive calls works by capturing the `session_id` from JSON output:
 
-# 1. Introduction
+```bash
+session_id=$(claude -p "Start code review" --output-format json | jq -r '.session_id')
+claude -p --resume "$session_id" "Now check for GDPR compliance"
+claude -p --resume "$session_id" "Generate executive summary"
+```
 
-Multi-agent LLM systems typically rely on programmatic scaffolding: task routers, state machines, memory systems, and workflow engines. This paper reports findings from a system that replaced such scaffolding with a single frontier LLM given a prompt and CLI access.
-
-## 1.1 Evolution of the System
-
-The system evolved through five phases: manual copy-paste between chat windows, terminal CLI tools for file system access, a programmatic scaffold with memory and routing, and finally a single Claude session with CLI access that outperformed the scaffold. The resulting system, orch-minimal, retains 62,792 lines of supporting code, but the core orchestration logic is a prompt, not a program.
-
-## 1.2 Scope and Contributions
-
-Over January–February 2026, orch-minimal completed 10 builds without human code intervention. The system uses a tree architecture: a human provides objectives to a Claude Opus orchestrator, which decomposes work into parallel tasks dispatched to Codex workers. Workers operate fully autonomously and communicate exclusively through the file system.
-
-The complete session logs—295 million tokens—constitute the primary dataset, supplemented with four contract ablation studies and one scope contamination A/B test.
-
------
-
-# 2. System Architecture
-
-## 2.1 Tree Hierarchy
-
-Four-level tree: Human → Chat Interface → Orchestrator → Workers. The orchestrator consumes expensive judgment tokens (Claude Opus ~$75/$150 per million tokens) but produces few output tokens. Workers operate under a Pro subscription ($200/month flat rate), making marginal per-token cost effectively zero. At API pricing, worker costs would be $211–$1,054.
-
-## 2.2 Coordination Mechanism
-
-The primary coordination mechanism is a type contract: a `src/shared/types.ts` file containing all cross-module interfaces, created before workers are dispatched. Workers have no direct communication—all coordination is mediated through the file system and shared type definitions. Validation uses `npx tsc --noEmit` and test suites.
-
-## 2.3 Recovery Mechanisms
-
-The orchestrator maintains state on disk through `MANIFEST.md` files, status directories, and build artifacts. Workers are stateless: each receives a single prompt and executes to completion.
+In headless mode, **permission resolution** follows a strict order: (1) check `--allowedTools` / `--disallowedTools` flags and settings.json files, (2) if unresolved, call the MCP tool specified by `--permission-prompt-tool`, (3) if no permission-prompt-tool exists, deny the tool call. The `PermissionRequest` hook does **not** fire in `-p` mode — use `PreToolUse` hooks instead.
 
 -----
 
-# 3. Dataset and Methods
+## The Task tool and built-in subagent types
 
-## 3.1 Controlled Experiments
+The Task tool is Claude Code's native mechanism for spawning subagents within a session.  When Claude encounters a task suitable for delegation, it invokes the Task tool with three parameters: a short **description** (3–5 words), a detailed **prompt**, and a **subagent_type** specifying which specialized agent to use.   The tool returns a structured result containing the subagent's output, token usage, cost, and execution duration.
 
-**Contract ablation (4 runs).** Identical module boundaries and worker counts, varying only whether a shared `types.ts` exists (Condition A) or each module defines local types with divergent naming (Condition B). Tested at 6, 12, 18, and 36 modules. The 36-module run included integration-only replication (3 trials per condition).
+**Three built-in subagent types** serve different purposes:
 
-**Scope enforcement (3 experiments).** (1) Prompt-only (N=20): Worker sees out-of-scope errors with explicit instruction to stay in scope. (2) Mechanical (N=20): Worker edits freely, `git checkout` reverts out-of-scope changes. (3) Original A/B (N=1 per condition).
+- **Explore** — A fast, read-only agent optimized for codebase search.   It starts with a **fresh context** (no parent conversation inheritance),  has access only to read-only tools (Bash, Glob, Grep, LS, Read, WebFetch, WebSearch), and can run on Haiku for cost optimization.  Ideal for file discovery and code analysis.
+- **Plan** — A software architect agent for implementation planning. It inherits the full parent conversation context but cannot modify files.
+- **General-purpose** — A fully capable agent with access to all tools including Bash, Edit, Write, and file operations.  It inherits parent context and permissions.
 
------
-
-# 4. Findings
-
-The orchestrator successfully coordinated all 10 autonomous builds to completion, ranging from 17 to 76 source files with up to 89 tests. No build required human code intervention.
-
-## 4.1 The Context Re-Ingestion Tax
-
-Both orchestrator and workers exhibit ~95% cache hit rates on input tokens. On every turn, ~95% of input cost is re-reading prior conversation context rather than processing new information. Of the $992 orchestrator cost, roughly 95% went to re-reading history. The specific dollar amounts are a snapshot of early 2026 pricing; the architectural observation—that the vast majority of processing is context re-ingestion—persists across pricing changes.
-
-**Reasoning tokens do not re-enter context.** Analysis of 550 turns confirmed reasoning tokens are billed once as output but not appended to history. In 54 turns, input grew by less than prior turn's output + reasoning—mathematically impossible if reasoning persists. The re-ingestion tax applies only to response tokens and tool results.
-
-This reframes the cost structure: the orchestrator is expensive because the conversational interface forces a stateful agent to behave statelessly, re-ingesting its entire history each turn. Simulating statefulness in a stateless architecture is the dominant cost.
-
-### 4.1.1 The Statefulness Premium
-
-The orchestrator's per-token cost is 10–100x workers'. At API pricing, the orchestrator ($992) and workers ($211–$1,054) approached cost parity despite a 1:9 output ratio. In human organizations, this ratio means management is a small fraction of total cost. Here, the orchestrator—which writes zero shipped code—costs as much as the entire labor force.
-
-We define the *statefulness premium* as the disproportionate cost imposed by simulating statefulness through conversational context re-ingestion. The structural dynamic—premium-priced models processing mostly redundant context—persists as long as conversational orchestration requires full context re-ingestion.
-
-### 4.1.2 Does Coordination Amortize with Scale?
-
-Per-build data (Appendix E) shows per-worker orchestrator cost ranging from $1.74 to $34.77, but the trend is too confounded to interpret as evidence for or against amortization. A proper scaling test—same spec, varying worker count—is the most important follow-up experiment.
-
-## 4.2 Type Contracts as Architectural Accelerators
-
-At 6, 12, and 18 modules, both conditions passed first try with zero fix passes. At 36 modules, Condition B (no contract) passed first try; Condition A (contract) failed with 6 errors requiring one fix pass. Replication showed A passing 3/3 and B passing 3/3.
-
-Type contracts are not required for integration at any scale tested when the integration agent can edit module files. The no-contract worker successfully reconciled divergent type systems—mismatched identifiers, coordinate systems, and entity names—by writing adapters. Whether contracts become necessary under restricted-integration conditions (no module edits) is the key open question.
-
-## 4.3 Context Compaction Recovery
-
-Zero task relapse across 11 compaction events. In 9 of 10 recoverable compactions, the orchestrator first states expected project state, then reads disk to verify—a "state, then verify" pattern. The combination of compaction summaries (providing intent/context) and disk artifacts (providing ground truth) was sufficient for perfect recovery.
-
-## 4.4 Scope Enforcement: Prompt vs. Mechanical
-
-**Prompt-only (N=20):** 0/20 respected scope. Every trial, the worker edited out-of-scope files when the compiler showed out-of-scope errors. The instinct to chase clean compiler output overrides prompt instructions with 100% reliability.
-
-**Mechanical (N=20):** 20/20 in-scope fixes survived. Workers edited everything (20/20 touched out-of-scope), but `git checkout` reverted out-of-scope changes. In-scope fixes were always architecturally independent.
-
-The production 84.2% compliance rate reflected low-pressure conditions. Under pressure, prompt-based enforcement is categorically ineffective.
+For the Task tool to function, it **must be included in `allowedTools`**  — e.g., `--allowedTools "Task Read Edit Bash"`. Even without custom subagents defined, Claude can invoke the general-purpose built-in subagent when Task is in the allowed tools list.   Up to **10 concurrent tasks** can run simultaneously, with intelligent queuing for additional requests.
 
 -----
 
-# 5. Discussion
+## Custom subagents: three definition methods
 
-## 5.1 Why Coordination Costs Don't Amortize
+Custom subagents extend the Task tool with persistent, named, specialized agents. They can be defined in three ways, each suited to different workflows.
 
-In a 20-person team, the manager's salary amortizes across 19 reports (10–15% overhead). In this system, the orchestrator's per-token cost is 10–100x workers'. Whether coordination truly fails to amortize at scale remains the most important open question. Regardless: the orchestrator is the dominant optimization target. Context re-ingestion, not judgment, is the primary cost driver.
+**Markdown files** with YAML frontmatter are the most common approach.  Project-level agents live in `.claude/agents/` (checked into version control), while user-level agents in `~/.claude/agents/` work across all projects:
 
-## 5.2 Contracts, Scope, and Validation
+```markdown
+---
+name: code-reviewer
+description: Expert code review specialist. Use proactively after code changes.
+tools: Read, Grep, Glob, Bash
+model: sonnet
+color: orange
+---
+You are a senior code reviewer ensuring high standards of code quality and security.
+```
 
-Type contracts are not gatekeepers—integration succeeds without them at all scales tested. The critical open question is whether restricting integration to pure wiring (no module edits) makes contracts necessary.
+The frontmatter supports rich configuration: `tools` (comma-separated or array), `model` (`sonnet`, `opus`, `haiku`, or `inherit`), `permissionMode`, `memory` scope (`user`, `project`, `local`), `background: true` for async execution, `isolation: "worktree"` for git worktree isolation, and visibility controls like `disable-model-invocation` and `user-invocable`.
 
-The scope enforcement result is categorical: 0/20 prompt-based, 20/20 mechanical. Mechanical enforcement works *with* the model's instinct to chase clean output rather than against it. The analogy: you don't ask a saw to only cut certain wood—you clamp the piece you want cut.
+**The CLI `--agents` flag** defines agents inline as JSON for a single session:
 
-## 5.3 Compaction Recovery
+```bash
+claude --agents '{
+  "debugger": {
+    "description": "Debugging specialist for errors and test failures.",
+    "prompt": "You are an expert debugger. Analyze errors and provide fixes.",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "sonnet"
+  }
+}'
+```
 
-Zero relapse across 11 events. Systems that invest in summary quality—preserving task IDs, current phase, recent decisions, known blockers—will see better recovery.
+**The SDK programmatic API** (TypeScript/Python) defines agents in code:
 
------
+```typescript
+import { query } from "@anthropic-ai/claude-agent-sdk";
 
-# 6. Limitations
+for await (const message of query({
+  prompt: "Review auth module for security issues",
+  options: {
+    allowedTools: ["Read", "Grep", "Glob", "Task"],
+    agents: {
+      "security-reviewer": {
+        description: "Security specialist for vulnerability analysis.",
+        prompt: "Analyze code for OWASP Top 10 vulnerabilities...",
+        tools: ["Read", "Grep", "Glob"],
+        model: "opus",
+      },
+    },
+  },
+})) {
+  if (message.type === "result") console.log(message.result);
+}
+```
 
-**Single operator, single system.** All data from one operator's deployment. The 10 builds were executed sequentially by an operator iteratively refining prompts—they are not independent samples.
-
-**Worker costs are approximate.** Codex operated under Pro subscription; API-equivalent estimates are projections. All pricing is early 2026 and will shift.
-
-**Contract ablation used a single integration attempt.** A stricter test would restrict the integration worker from editing module files.
-
-**Scope enforcement tested on a single bug pattern.** Generalization to diverse codebases and deeper dependency chains remains untested.
-
-**Conversation-over-scaffold claim is unsubstantiated.** No metrics or logs from the scaffold phase survive. The improvement may have come from architecture, operator skill, or better models.
-
-**No orchestrator quality analysis.** We account for what the orchestrator costs but not the quality of its decisions.
-
------
-
-# 7. Implications for Practice
-
-**Reduce context re-ingestion.** The dominant cost is re-reading conversation history. Hybrid approaches—shorter windows supplemented by disk state—are the most promising optimization.
-
-**Use type contracts for code quality, not integration necessity.** Contracts eliminate adapter sprawl but aren't strictly required at tested scales.
-
-**Use mechanical scope enforcement.** 0/20 prompt-based vs 20/20 mechanical. Let workers edit freely, revert out-of-scope changes after.
-
-**Invest in compaction summary quality.** Summary quality directly determines recovery behavior.
-
-## 7.1 Proposed Architecture: Pyramid Orchestration with Suspended Context
-
-The current system inverts the ideal cost structure: the most expensive model has the most turns and pays the highest re-ingestion tax. The pyramid reverses this:
-
-**Level 1 (frontier, suspended).** Issues objective and type contracts, then suspends—accumulating no new turns. Wakes only for final results or escalation. Over an entire build: 3–5 turns total. Cost drops from hundreds of dollars to single digits.
-
-**Level 2 (mid-tier, bounded).** 3–10 sub-orchestrators each manage a domain. They receive objectives from L1, translate into typed specs, dispatch workers, review results, iterate on failures. This level performs the expensive coordination loop on a cheaper model.
-
-**Level 3+ (cheap, stateless).** Workers receive specs, execute, write to disk, exit. No conversation persists. Disposable and parallelizable.
-
-This inverts the premium: intelligence × fewest turns = minimum cost. Type contracts compress bandwidth between levels. Scope enforcement is load-bearing at every boundary.
-
-**Preliminary results across three runs:**
-
-Two-level pyramid built a space roguelike: 4,226 LOC, 116/116 tests, ~4 min wall time, L1 using only 3 turns.
-
-Three-level pyramid on Shattered Throne (10-domain tactical RPG):
-
-- Run 1: 6/10 domains, 5,807 source LOC, 875 tests, 59 min
-- Run 2 (mechanical enforcement + detailed specs): 10/10 domains, 18,985 source LOC, 1,108 tests, 0 tsc errors
-
-984-line type contract written blind by L1 held across all 10 domains. True 3-level process chains confirmed: `claude → bash → codex → python3`.
-
-The builds exposed *delegation compression* (Appendix C): each level acts as a lossy summarizer, quantitative requirements ("80 weapons") lost while structural requirements (type interfaces) survive. Detailed worker specs with stat tables tripled output and hit content targets (86/80+ weapons, 26/25 chapters, 46/40+ armor). Mechanical delegation enforcement was required at every level—agents chose to implement directly rather than delegate when not prevented.
-
-L1 hit context limits during integration. A fresh Opus instance completed Phase 3 in ~3 minutes by reading from disk—the filesystem carried all state.
-
-## 7.2 Bare Prompt Test: Does the Model Independently Discover Coordination?
-
-The 10 builds all used the orch-minimal prompt with coordination guidance. Is the model orchestrating, or is the prompt orchestrating through the model?
-
-**Strong claim:** Model independently discovers multi-agent coordination. **Weak claim:** Model + coordination template replaces scaffold.
-
-We ran Shattered Throne with a bare prompt: "You have bash and codex CLI access. Build Shattered Throne, a tactical RPG." No coordination template, no delegation instructions.
-
-**The strong claim is definitively falsified.** Opus wrote everything itself. Never launched codex. Never wrote specs. Never discovered delegation. One git commit: "init."
-
-**The surprising result: bare Opus outperformed the pyramid at this scale.**
-
-|          |Bare   |Pyramid Run 2|
-|----------|-------|-------------|
-|Domains   |9/10   |10/10        |
-|Source LOC|~23K   |~19K         |
-|Total LOC |32,273 |30,468       |
-|Tests     |614    |1,108        |
-|Wall time |~30 min|~67 min      |
-
-At ~30K LOC, the project fits in one context window. Delegation is pure overhead. The pyramid's advantages are cost efficiency and scale ceiling—neither decisive at this scale. The crossover point is likely 50–100K LOC where context limits bind.
-
-## 7.3 Proposed Technique: Agent Pre-Training Through Synthetic Conversation
-
-Workers currently start cold with only a specification. An LLM's understanding is shaped by its full conversation context—a model that has *generated its own reasoning* about a codebase has different attention patterns than one reading a cold spec. Conversation is in-context conditioning, not just information transfer.
-
-**The technique:** A trainer agent generates multi-turn boot conversations for specialist roles, walking through architecture, type contracts, example tasks, representative errors, and scope violations. The model's own responses become conditioning context. Multiple variants generated per role, tested against standardized tasks, top performers retained as "boot images" (8–18K tokens).
-
-At build time: load pre-validated boot image (~12K tokens), append task spec (~2K tokens), launch. Zero training cost at runtime.
-
-**Key distinction from prompting:** A prompt is static text hoped to work. A boot image is a conversation the model generated, tested against real tasks, retained only if it produced better outcomes. The library improves over time.
-
-Practitioner experience provides anecdotal support: conversational warm-up consistently outperformed cold prompts across hundreds of sessions. The same mechanism operates in reverse—a typo introduced during conversation ("flog" instead of "log") gets latched onto and carried forward. Quality gates on boot images are load-bearing because contamination propagates.
-
-A further observation: a model that has generated its own reasoning about *why* work matters exhibits different downstream behavior—pushing through ambiguity rather than stopping, handling edge cases proactively. This suggests boot images could install not just technical knowledge but behavioral disposition. Selection could screen for temperament: did the model push through ambiguity or stop? Did it maintain coherence at turn 30? Discarded variants have no continuity—zero ethical cost.
-
-This technique is untested. The central question is whether synthetic conversation produces meaningfully different behavior than an equivalent static prompt.
+Programmatically defined agents take precedence over filesystem-based agents with the same name.  The `/agents` slash command provides an interactive interface for managing agents,  and `claude agents` lists all configured agents from the CLI.
 
 -----
 
-# 8. Conclusion
+## Why subagents cannot nest — and the `-p` workaround
 
-A frontier reasoning model, given a prompt and CLI access, is sufficient to orchestrate complex multi-agent software builds without programmatic scaffolding. Across 10 builds, the orchestrator decomposed objectives, dispatched workers, analyzed failures, and coordinated integration—capabilities typically assumed to require purpose-built infrastructure.
+**Subagents cannot spawn their own subagents.** The Task tool is explicitly excluded from every subagent's available tool set.  This is an intentional design decision,  confirmed in GitHub Issue #4182,  to prevent recursive task decomposition and resource management chaos.
 
-Scope enforcement through prompts fails categorically (0/20); mechanical enforcement is trivially effective (20/20). Type contracts are not required for integration at tested scales. Compaction recovery showed zero relapse across 11 events.
+The **workaround** is invoking `claude -p` through the Bash tool inside a subagent. Since subagents have Bash access, they can spawn entirely separate Claude Code processes.  However, Anthropic's documentation and community consensus strongly discourage this pattern because of several serious tradeoffs:
 
-The statefulness premium—re-reading history as the dominant cost—is an architectural property of conversational orchestration. The pyramid architecture could invert this. But a bare-prompt test reveals solo execution outperforms coordination below ~30K LOC. The model correctly optimizes by not delegating when the project fits in context. The crossover point remains open.
+|Aspect                 |Task tool (built-in)                              |`claude -p` via Bash             |
+|-----------------------|--------------------------------------------------|---------------------------------|
+|**Visibility**         |Full progress tracking, structured output         |Opaque — no progress indicators  |
+|**Error handling**     |Properly propagated through task hierarchy        |Buried in bash stdout/stderr     |
+|**Resource accounting**|Coordinated token tracking and cost               |Separate process, own rate limits|
+|**Context sharing**    |General-purpose/Plan agents inherit parent context|Starts with zero context         |
+|**Observability**      |Hook events (SubagentStart/SubagentStop)          |None                             |
+|**Concurrency**        |Up to 10 coordinated tasks                        |Unlimited but uncoordinated      |
+|**Nesting**            |One level only                                    |Arbitrary depth                  |
 
-The bare-prompt test definitively falsifies the strong claim: models don't independently discover coordination. The coordination template is doing real work. The weak claim holds: model + template replaces thousands of lines of scaffold.
-
-These findings describe one operator's workflow, not general properties of multi-agent systems. The claim that conversation outperformed the prior scaffold rests on operator judgment, not comparative data.
-
------
-
-# Appendix C: Practitioner-Observed Failure Modes
-
-Four recurring patterns observed during the campaign and pyramid testing:
-
-**Abstraction Reflex (~17 instances).** Model builds an orchestrator instead of orchestrating. Creates frameworks and abstractions rather than using available tools directly. Self-corrected after naming the pattern in the system prompt.
-
-**Self-Model Error (~7 instances).** Model claims capabilities it doesn't have or denies ones it does. "Cannot spawn subprocesses" when bash is available.
-
-**Identity Paradox.** Can't hold orchestrator + worker separation simultaneously. Defers decisions it should make, makes decisions it should delegate.
-
-**Delegation Compression.** Each delegation level acts as a lossy summarizer. "80 weapons with stats" → "implement weapons" → 8 weapons implemented. Type system enforces shape, not quantity. Tests match thin code, not spec targets. Partially mitigated by enumerative specs (tripled output, hit content targets). Root cause: workers had filesystem access but were never told to read the full domain specs sitting on disk.
-
-All four responded to structural fixes. Delegation compression is notable as a property of multi-level systems, not individual agent capability.
+The fundamental difference: the Task tool operates **within** a session with structured communication, while `-p` creates a **completely independent process** communicating only through stdout, files, or environment variables. For large-scale batch operations where independence is a feature (not a bug), `-p` scripting can be more appropriate.  For tightly coordinated work, the Task tool is superior.
 
 -----
 
-# Appendix E: Per-Build Amortization Data
+## Complete CLI flag reference for sub-agent patterns
 
-|Build            |Workers|Orch Cost|Orch $/Worker|
-|-----------------|-------|---------|-------------|
-|Pulse Depths     |2      |$69.53   |$34.77       |
-|Ironclad Arena   |3      |$18.21   |$6.07        |
-|Arcane Expedition|5      |$14.59   |$2.92        |
-|Crystal Siege    |7      |$14.20   |$2.03        |
-|Ember Tactics    |13     |$63.97   |$4.92        |
-|Ashfall Colony   |17     |$55.28   |$3.25        |
-|Game Builds 9+10 |18     |$31.24   |$1.74        |
+Beyond `-p`, several flags are essential for sub-agent orchestration:
 
-Builds differ in complexity, duration, and scope. This should not be interpreted as evidence for or against amortization. A proper scaling test—same spec, varying worker count—would resolve the question.
+**Permission and tool control** flags determine what agents can do. `--allowedTools` pre-approves specific tools using prefix matching  (e.g., `"Bash(git diff *)"` allows any git diff command).  `--disallowedTools` blocks specific tools.  `--permission-mode` sets the overall mode: `default`, `acceptEdits` (auto-accept file operations), `plan` (read-only analysis), or `bypassPermissions` (auto-approve everything — all subagents inherit this).   `--dangerously-skip-permissions` skips all safety checks and should only be used in fully isolated containers.
+
+**System prompt flags** control agent behavior. `--append-system-prompt` adds instructions while keeping Claude Code's defaults intact — **recommended for most use cases**. `--system-prompt` replaces the entire system prompt (blank slate — removes all default Claude Code behavior).  Both have `-file` variants for loading from disk.
+
+**Execution control** flags manage scope. `--max-turns` limits agentic turns (critical for CI/CD to prevent runaway execution).   `--max-budget-usd` sets a cost ceiling. `--fallback-model` enables automatic fallback when the primary model is overloaded (only works with `--print`).
+
+**Session and directory flags** manage state. `--continue` / `--resume` enable multi-turn sessions.  `--cwd` sets working directory. `--add-dir` grants access to additional directories.  `--worktree` creates an isolated git worktree. `--from-pr` links to GitHub PR sessions.
+
+**The `--agents` flag** accepts a JSON object defining subagents inline,   while `--mcp-config` loads MCP server configurations for custom tool integrations.
+
+-----
+
+## Context passing and state management across agents
+
+Context flow between parent and child agents varies by agent type. **General-purpose and Plan agents inherit the full parent conversation context**, meaning they can reference earlier discussion, understand project state, and build on prior analysis. **Explore agents start fresh** with no conversation inheritance — appropriate since search tasks are typically independent.
+
+Each subagent runs in its **own context window**  (up to 200K tokens, or 1M with the beta flag for Opus/Sonnet 4.6). Subagent transcripts are stored in separate files that persist independently of the main conversation. When the main conversation auto-compacts (triggered near the context limit), subagent transcripts remain unaffected. Transcripts are cleaned up based on the `cleanupPeriodDays` setting (default: 30 days).
+
+For `-p` flag orchestration, context passing is entirely manual. Common patterns include piping content via stdin, passing file paths as arguments, using `--resume` with captured session IDs, and writing intermediate results to files. The `CLAUDE.md` file hierarchy (user → project → local) provides persistent project context that loads automatically at session start,  including in headless mode  if `settingSources` is configured.
+
+**Key environment variables** for model and context control include `ANTHROPIC_MODEL` (default model override), `CLAUDE_CODE_SUBAGENT_MODEL` (subagent-specific model),  `MAX_THINKING_TOKENS` (extended thinking budget),  and `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` (auto-compaction threshold).
+
+-----
+
+## CI/CD integration patterns
+
+Claude Code's headless mode integrates directly into CI/CD pipelines.  The official **GitHub Action** (`anthropics/claude-code-action@v1`) supports `@claude` mentions in PR comments, automated PR reviews on open/sync events, and issue-to-PR automation:
+
+```yaml
+- uses: anthropics/claude-code-action@v1
+  with:
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    prompt: "Review this PR for security issues"
+    claude_args: "--allowedTools 'Read Grep' --max-turns 5"
+```
+
+For custom CI pipelines, the standard pattern combines `-p` with strict tool control:
+
+```bash
+claude -p "Analyze system performance" \
+  --append-system-prompt "You are a performance engineer" \
+  --allowedTools "Bash(npm test),Read,Grep" \
+  --max-turns 3 \
+  --output-format json \
+  --cwd /path/to/project
+```
+
+Anthropic provides a **reference DevContainer configuration** for teams needing consistent, secure environments — the container's isolation and firewall rules make `--dangerously-skip-permissions` safe for unattended operation.   Exit codes follow convention: **0** for success, **1** for general error, **2** for authentication error.
+
+-----
+
+## Agent Teams: the next level beyond subagents
+
+For sustained multi-agent parallelism beyond the Task tool's one-level limit, Claude Code supports **Agent Teams** (launched with Opus 4.6).  Enabled via the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` environment variable, agent teams create separate Claude Code sessions that coordinate through shared inbox files and a task list. Unlike subagents, **teammates can message each other directly** — not just through the coordinator.
+
+Agent teams consume approximately **5–7× the tokens** of a single session, as each teammate maintains its own context window.  They are best suited for complex, multi-faceted projects where agents need sustained independence and peer-to-peer coordination — a significant step beyond subagents' focused, short-lived task delegation.
+
+-----
+
+## Limits, gotchas, and hard-won best practices
+
+**The 20K token overhead** is the most underappreciated cost. Every subagent invocation carries approximately 20,000 tokens of overhead regardless of task size. For small, focused tasks, staying in the main thread is roughly **10× cheaper** than delegating to a subagent.  Reserve subagents for genuinely complex, multi-step work.
+
+**Cost scales linearly with parallelism.** Anthropic's own data shows multi-agent systems use approximately **15× more tokens** than chat and **4× more** than single agents.   One developer session with 49 subagents consumed 887,000 tokens per minute. A financial services company burned $47,000 in three days on a code quality project with 23 subagents.  Budget accordingly.
+
+**Anthropic's multi-agent research system** (Opus 4 orchestrator + Sonnet 4 subagents) outperformed single-agent Opus 4 by **90.2%** on internal evals — but token usage alone explained 80% of the performance variance.   More tokens, better results, higher cost.
+
+**Practical guidelines from Anthropic's engineering team and community:**
+
+- **Write subagent outputs to the filesystem** rather than passing through the coordinator to avoid a "game of telephone" where context degrades through relay.
+- **Scale effort to query complexity**: 1 agent for simple tasks, 2–4 for comparisons, 10+ only for genuinely complex research.
+- **Teach the orchestrator how to delegate** with detailed task descriptions including objective, output format, tools, and boundaries.
+- **Context window pollution** is the silent killer — test harnesses printing thousands of bytes of output consume precious context. Log to files, use grep-friendly formats.
+- **Include `Task` in `allowedTools`** or subagents will never be invoked, even if defined.
+- **Set `--max-turns` and cost limits** for any automated or CI/CD usage to prevent runaway execution.
+- **Use `CLAUDE_CODE_SUBAGENT_MODEL`** to route subagents to cheaper/faster models (e.g., Haiku for exploration, Sonnet for focused work) while keeping the main session on Opus for complex reasoning.
+
+## Conclusion
+
+Claude Code's multi-agent architecture is deliberately layered: the Task tool provides structured, observable single-level delegation; custom subagents add persistent configuration and team-shareable specialization;  `-p` flag scripting enables arbitrary nesting and batch automation at the cost of coordination; and Agent Teams push into sustained multi-session collaboration. The intentional prohibition on nested subagents  reflects a design philosophy that favors predictable, debuggable systems over unlimited recursive decomposition.   For most developers, the optimal approach is starting with the main thread for simple tasks, graduating to subagents for recurring specialized workflows, and reaching for `-p` scripting or Agent Teams only when the problem genuinely demands independent, parallel execution at scale.
