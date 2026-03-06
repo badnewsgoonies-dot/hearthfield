@@ -1,20 +1,20 @@
 use bevy::prelude::*;
 use rand::Rng;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::shared::*;
 
 // ─── Sub-modules ────────────────────────────────────────────────────────────
-mod cast;
 mod bite;
+mod cast;
 mod fish_select;
+pub mod legendaries;
 mod minigame;
 mod render;
 mod resolve;
 pub mod skill;
 pub mod treasure;
-pub mod legendaries;
 
 // ─── Plugin ─────────────────────────────────────────────────────────────────
 
@@ -32,7 +32,9 @@ fn load_fishing_atlas(
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut atlas: ResMut<FishingAtlas>,
 ) {
-    if atlas.loaded { return; }
+    if atlas.loaded {
+        return;
+    }
     // fishing_atlas.png: 128x96, 8 cols x 6 rows of 16x16 tiles (48 sprites)
     // Row 0: rod, old rod, bobber, hook, worm bait, spinner lure, tackle box, bucket
     // Row 1: net, crab trap, cooler, treasure chest, wooden crate, splash, ripple, fish shadow
@@ -42,7 +44,11 @@ fn load_fishing_atlas(
     // Row 5: ancient coin(40), sunken key(41), fish bone(42), crab(43), lobster(44), octopus(45), squid(46), jellyfish(47)
     atlas.image = asset_server.load("sprites/fishing_atlas.png");
     atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(16, 16), 8, 6, None, None,
+        UVec2::new(16, 16),
+        8,
+        6,
+        None,
+        None,
     ));
     atlas.loaded = true;
 }
@@ -86,13 +92,8 @@ impl Plugin for FishingPlugin {
             // that ItemPickupEvent written this frame are available).
             .add_systems(
                 PostUpdate,
-                (
-                    skill::update_fishing_skill,
-                    skill::track_fishing_level_up,
-                )
-                    .run_if(
-                        in_state(GameState::Playing).or(in_state(GameState::Fishing)),
-                    ),
+                (skill::update_fishing_skill, skill::track_fishing_level_up)
+                    .run_if(in_state(GameState::Playing).or(in_state(GameState::Fishing))),
             )
             // Setup/teardown on state transitions
             .add_systems(OnEnter(GameState::Playing), load_fishing_atlas)
@@ -106,9 +107,8 @@ impl Plugin for FishingPlugin {
             // Bobber animation runs in both Playing (while waiting for bite) and Fishing
             .add_systems(
                 Update,
-                render::animate_bobber.run_if(
-                    in_state(GameState::Playing).or(in_state(GameState::Fishing)),
-                ),
+                render::animate_bobber
+                    .run_if(in_state(GameState::Playing).or(in_state(GameState::Fishing))),
             )
             // Escape key to cancel fishing (in Playing state while waiting)
             .add_systems(
@@ -147,7 +147,6 @@ impl FishEncyclopedia {
             true
         }
     }
-
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -174,8 +173,7 @@ pub enum TackleKind {
     LeadBobber,
 }
 
-impl TackleKind {
-}
+impl TackleKind {}
 
 // ─── Fishing State Resource ──────────────────────────────────────────────────
 
@@ -357,7 +355,7 @@ impl FishingMinigameState {
         // Spinner's benefit is the fish zone, not the catch bar.
         let catch_bar_tackle_bonus = match tackle_kind {
             TackleKind::None => 1.0,
-            TackleKind::Spinner => 1.0,    // Spinner helps via fish zone instead
+            TackleKind::Spinner => 1.0, // Spinner helps via fish zone instead
             TackleKind::TrapBobber => 1.0, // TrapBobber helps via drain rate instead
             TackleKind::LeadBobber => 1.25, // LeadBobber was the old generic +25%
         };

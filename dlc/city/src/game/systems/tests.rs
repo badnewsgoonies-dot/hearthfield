@@ -9,7 +9,8 @@ use super::*;
 use crate::game::events::{
     CoffeeBreakEvent, CoworkerHelpEvent, DayAdvanced, EndDayRequested, EndOfDayEvent,
     InterruptionEvent, ManagerCheckInEvent, PanicResponseEvent, ProcessInboxEvent,
-    RelationshipMilestone, ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed, WaitEvent,
+    RelationshipMilestone, ResolveCalmlyEvent, TaskCompleted, TaskFailed, TaskProgressed,
+    WaitEvent,
 };
 use crate::game::resources::{
     ActiveInterruptionContext, CareerProgression, CoworkerRole, DayClock, DayOutcome, DayStats,
@@ -174,7 +175,11 @@ fn record_replay_summaries(
 
 fn build_test_app() -> App {
     let mut app = App::new();
-    app.add_plugins((MinimalPlugins, StatesPlugin, bevy::asset::AssetPlugin::default()));
+    app.add_plugins((
+        MinimalPlugins,
+        StatesPlugin,
+        bevy::asset::AssetPlugin::default(),
+    ));
     app.init_asset::<bevy::prelude::Image>();
     app.init_asset::<bevy::sprite::TextureAtlasLayout>();
 
@@ -269,11 +274,15 @@ fn push_action(world: &mut World, action: ScriptAction) {
             world.send_event(WaitEvent { minutes });
         }
         ScriptAction::InterruptionCalm => {
-            world.send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+            world.send_event(InterruptionEvent {
+                kind: InterruptionKind::ManagerRequest,
+            });
             world.send_event(ResolveCalmlyEvent);
         }
         ScriptAction::InterruptionPanic => {
-            world.send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+            world.send_event(InterruptionEvent {
+                kind: InterruptionKind::ManagerRequest,
+            });
             world.send_event(PanicResponseEvent);
         }
         ScriptAction::ManagerCheckIn => {
@@ -429,11 +438,15 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
         ),
     );
 
-    app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+    app.world_mut().send_event(InterruptionEvent {
+        kind: InterruptionKind::ManagerRequest,
+    });
     app.update();
     app.world_mut().send_event(ResolveCalmlyEvent);
     app.update();
-    app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+    app.world_mut().send_event(InterruptionEvent {
+        kind: InterruptionKind::ManagerRequest,
+    });
     app.update();
     app.world_mut().send_event(PanicResponseEvent);
     app.update();
@@ -454,7 +467,7 @@ fn interruption_and_npc_pressure_events_are_deterministic() {
     assert_eq!(stats.manager_checkins, 1);
     assert_eq!(stats.coworker_helps, 1);
     assert_eq!(career.reputation, 5);
-    assert_eq!(mind.stress, 49);
+    assert_eq!(mind.stress, 53);
     assert_eq!(mind.focus, 56);
     assert!(social.scenario_cursor >= 2);
 }
@@ -1424,11 +1437,15 @@ fn social_scenarios_are_seed_deterministic() {
         );
         app.world_mut().resource_mut::<OfficeRunConfig>().seed = seed;
 
-        app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+        app.world_mut().send_event(InterruptionEvent {
+            kind: InterruptionKind::ManagerRequest,
+        });
         app.update();
         app.world_mut().send_event(ResolveCalmlyEvent);
         app.update();
-        app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+        app.world_mut().send_event(InterruptionEvent {
+            kind: InterruptionKind::ManagerRequest,
+        });
         app.update();
         app.world_mut().send_event(PanicResponseEvent);
         app.update();
@@ -1876,7 +1893,9 @@ fn affinity_trust_bounded_after_many_interruptions() {
     );
 
     for _ in 0..50 {
-        app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+        app.world_mut().send_event(InterruptionEvent {
+            kind: InterruptionKind::ManagerRequest,
+        });
         app.update();
         app.world_mut().send_event(ResolveCalmlyEvent);
         app.update();
@@ -2176,7 +2195,9 @@ fn scenario_cursor_wraps_safely() {
         let mut sg = app.world_mut().resource_mut::<SocialGraphState>();
         sg.scenario_cursor = u32::MAX;
     }
-    app.world_mut().send_event(InterruptionEvent { kind: InterruptionKind::ManagerRequest });
+    app.world_mut().send_event(InterruptionEvent {
+        kind: InterruptionKind::ManagerRequest,
+    });
     app.update();
 
     let social_after = app.world().resource::<SocialGraphState>();
@@ -2228,10 +2249,7 @@ fn new_task_kinds_appear_in_seeded_board() {
         all_kinds.contains(&TaskKind::DataEntry),
         "DataEntry must appear"
     );
-    assert!(
-        all_kinds.contains(&TaskKind::Filing),
-        "Filing must appear"
-    );
+    assert!(all_kinds.contains(&TaskKind::Filing), "Filing must appear");
     assert!(
         all_kinds.contains(&TaskKind::EmailTriage),
         "EmailTriage must appear"
@@ -2256,7 +2274,11 @@ fn new_task_kinds_appear_in_seeded_board() {
         all_kinds.contains(&TaskKind::BudgetReview),
         "BudgetReview must appear"
     );
-    assert_eq!(all_kinds.len(), 8, "All 8 TaskKinds must appear over 10 days");
+    assert_eq!(
+        all_kinds.len(),
+        8,
+        "All 8 TaskKinds must appear over 10 days"
+    );
 }
 
 #[test]
@@ -2266,17 +2288,24 @@ fn interruption_kind_is_deterministic_for_seed() {
     let mut first_run = Vec::new();
     for day in 1..=3 {
         for hour in 9..=16 {
-            first_run.push(super::interruptions::pick_interruption_kind(seed, day, hour));
+            first_run.push(super::interruptions::pick_interruption_kind(
+                seed, day, hour,
+            ));
         }
     }
     // Run the same sequence again — must be identical
     let mut second_run = Vec::new();
     for day in 1..=3 {
         for hour in 9..=16 {
-            second_run.push(super::interruptions::pick_interruption_kind(seed, day, hour));
+            second_run.push(super::interruptions::pick_interruption_kind(
+                seed, day, hour,
+            ));
         }
     }
-    assert_eq!(first_run, second_run, "Same seed+day+hour must produce same InterruptionKind");
+    assert_eq!(
+        first_run, second_run,
+        "Same seed+day+hour must produce same InterruptionKind"
+    );
     // Also verify that we get more than one distinct kind across the whole sequence
     let unique: HashSet<_> = first_run.iter().collect();
     assert!(
@@ -2296,9 +2325,15 @@ fn active_interruption_context_populated_on_interrupt() {
     app.update();
 
     let context = app.world().resource::<ActiveInterruptionContext>();
-    assert!(context.kind.is_some(), "kind must be populated after interruption");
+    assert!(
+        context.kind.is_some(),
+        "kind must be populated after interruption"
+    );
     assert_eq!(context.kind.unwrap(), InterruptionKind::EmergencyMeeting);
-    assert!(!context.description.is_empty(), "description must be non-empty after interruption");
+    assert!(
+        !context.description.is_empty(),
+        "description must be non-empty after interruption"
+    );
 }
 
 #[test]
@@ -2330,8 +2365,14 @@ fn active_interruption_context_cleared_on_resolve() {
 
     // Context should be cleared
     let context = app.world().resource::<ActiveInterruptionContext>();
-    assert!(context.kind.is_none(), "kind must be cleared after calm resolve");
-    assert!(context.description.is_empty(), "description must be cleared after calm resolve");
+    assert!(
+        context.kind.is_none(),
+        "kind must be cleared after calm resolve"
+    );
+    assert!(
+        context.description.is_empty(),
+        "description must be cleared after calm resolve"
+    );
 
     // Now test panic path
     app.world_mut().send_event(InterruptionEvent {
@@ -2346,8 +2387,14 @@ fn active_interruption_context_cleared_on_resolve() {
     app.update();
 
     let context = app.world().resource::<ActiveInterruptionContext>();
-    assert!(context.kind.is_none(), "kind must be cleared after panic resolve");
-    assert!(context.description.is_empty(), "description must be cleared after panic resolve");
+    assert!(
+        context.kind.is_none(),
+        "kind must be cleared after panic resolve"
+    );
+    assert!(
+        context.description.is_empty(),
+        "description must be cleared after panic resolve"
+    );
 }
 
 #[test]
@@ -2355,8 +2402,7 @@ fn relationship_milestone_fires_at_affinity_threshold() {
     let mut app = build_test_app();
     app.add_systems(
         Update,
-        super::day_cycle::check_relationship_milestones
-            .in_set(crate::game::OfficeSimSet::Economy),
+        super::day_cycle::check_relationship_milestones.in_set(crate::game::OfficeSimSet::Economy),
     );
 
     // Set coworker Leo (id=2) affinity to 24 (just below threshold)
@@ -2387,7 +2433,10 @@ fn relationship_milestone_fires_at_affinity_threshold() {
             found_friendly = true;
         }
     }
-    assert!(found_friendly, "Friendly milestone should fire when affinity reaches 25");
+    assert!(
+        found_friendly,
+        "Friendly milestone should fire when affinity reaches 25"
+    );
 }
 
 #[test]
@@ -2395,8 +2444,7 @@ fn relationship_milestone_does_not_refire() {
     let mut app = build_test_app();
     app.add_systems(
         Update,
-        super::day_cycle::check_relationship_milestones
-            .in_set(crate::game::OfficeSimSet::Economy),
+        super::day_cycle::check_relationship_milestones.in_set(crate::game::OfficeSimSet::Economy),
     );
 
     // Set coworker Leo (id=2) affinity to 25 to trigger Friendly
@@ -2469,6 +2517,12 @@ fn career_progression_display_reflects_level_and_xp() {
     let bar: String = "\u{25a0}".repeat(filled) + &"\u{25a1}".repeat(empty);
     let display = format!("Lv.{} {} {} XP", progression.level, bar, progression.xp);
 
-    assert!(display.contains("Lv.3"), "display should contain Lv.3, got: {display}");
-    assert!(display.contains("50 XP"), "display should contain 50 XP, got: {display}");
+    assert!(
+        display.contains("Lv.3"),
+        "display should contain Lv.3, got: {display}"
+    );
+    assert!(
+        display.contains("50 XP"),
+        "display should contain 50 XP, got: {display}"
+    );
 }

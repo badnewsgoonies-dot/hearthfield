@@ -1,8 +1,8 @@
 //! Lighting system — time-of-day ambient lighting, indoor/outdoor detection,
 //! weather modifiers, runway lights at night.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES
@@ -96,10 +96,7 @@ fn weather_light_modifier(weather: &Weather) -> (Color, f32) {
 pub fn spawn_light_overlay(mut commands: Commands) {
     commands.spawn((
         LightOverlay,
-        Sprite::from_color(
-            Color::srgba(0.0, 0.0, 0.0, 0.0),
-            Vec2::new(2000.0, 2000.0),
-        ),
+        Sprite::from_color(Color::srgba(0.0, 0.0, 0.0, 0.0), Vec2::new(2000.0, 2000.0)),
         Transform::from_xyz(0.0, 0.0, Z_WEATHER - 1.0),
     ));
 }

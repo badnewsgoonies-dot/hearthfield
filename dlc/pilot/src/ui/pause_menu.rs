@@ -1,7 +1,7 @@
 //! Pause overlay — Resume / Save / Quit to Menu.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct PauseMenuRoot;
@@ -12,6 +12,10 @@ pub struct PauseButton(PauseAction);
 #[derive(Clone, Copy)]
 enum PauseAction {
     Resume,
+    Profile,
+    Logbook,
+    Notifications,
+    Achievements,
     Save,
     QuitToMenu,
 }
@@ -43,14 +47,14 @@ pub fn spawn_pause_menu(mut commands: Commands, font: Res<UiFontHandle>) {
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
         ))
         .with_children(|parent| {
-            parent.spawn((
-                Text::new("PAUSED"),
-                title_style,
-                TextColor(Color::WHITE),
-            ));
+            parent.spawn((Text::new("PAUSED"), title_style, TextColor(Color::WHITE)));
 
             for (label, action) in [
                 ("Resume", PauseAction::Resume),
+                ("Profile", PauseAction::Profile),
+                ("Logbook", PauseAction::Logbook),
+                ("Notifications", PauseAction::Notifications),
+                ("Achievements", PauseAction::Achievements),
                 ("Save Game", PauseAction::Save),
                 ("Quit to Menu", PauseAction::QuitToMenu),
             ] {
@@ -65,11 +69,7 @@ pub fn spawn_pause_menu(mut commands: Commands, font: Res<UiFontHandle>) {
                         BackgroundColor(Color::srgb(0.25, 0.25, 0.35)),
                     ))
                     .with_children(|btn| {
-                        btn.spawn((
-                            Text::new(label),
-                            btn_style.clone(),
-                            TextColor(Color::WHITE),
-                        ));
+                        btn.spawn((Text::new(label), btn_style.clone(), TextColor(Color::WHITE)));
                     });
             }
         });
@@ -91,6 +91,10 @@ pub fn handle_pause_input(
         if *interaction == Interaction::Pressed {
             match btn.0 {
                 PauseAction::Resume => next_state.set(GameState::Playing),
+                PauseAction::Profile => next_state.set(GameState::Profile),
+                PauseAction::Logbook => next_state.set(GameState::Logbook),
+                PauseAction::Notifications => next_state.set(GameState::Notifications),
+                PauseAction::Achievements => next_state.set(GameState::Achievements),
                 PauseAction::Save => {
                     save_evt.send(SaveRequestEvent { slot: 0 });
                 }

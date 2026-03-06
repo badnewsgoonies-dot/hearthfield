@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use super::{facing_offset, ActionSpriteData, PlayerSpriteData};
 use crate::shared::*;
-use super::{ActionSpriteData, PlayerSpriteData, facing_offset};
+use bevy::prelude::*;
 
 // Action atlas base indices (2 cols × 12 rows, indexed left-to-right, top-to-bottom)
 // Each tool gets 4 frames (2 frames × 2 rows per tool direction).
@@ -26,7 +26,9 @@ pub fn handle_tool_impact_sfx(
             ToolKind::FishingRod => "fishing_cast",
             _ => "tool_generic",
         };
-        sfx_writer.send(PlaySfxEvent { sfx_id: sfx_id.to_string() });
+        sfx_writer.send(PlaySfxEvent {
+            sfx_id: sfx_id.to_string(),
+        });
     }
 }
 
@@ -47,12 +49,12 @@ fn action_atlas_index(tool: ToolKind, frame: usize) -> usize {
 /// light tools feel snappy. Total animation = duration × 4 frames.
 fn tool_frame_duration(tool: ToolKind) -> f32 {
     match tool {
-        ToolKind::Axe => 0.15,        // 0.60s total — heavy, impactful chop
-        ToolKind::Pickaxe => 0.14,    // 0.56s total — heavy swing
-        ToolKind::Hoe => 0.12,        // 0.48s total — deliberate tilling
-        ToolKind::FishingRod => 0.11, // 0.44s total — quick cast flick
-        ToolKind::WateringCan => 0.10,// 0.40s total — smooth pour
-        ToolKind::Scythe => 0.08,     // 0.32s total — fast sweep
+        ToolKind::Axe => 0.15,         // 0.60s total — heavy, impactful chop
+        ToolKind::Pickaxe => 0.14,     // 0.56s total — heavy swing
+        ToolKind::Hoe => 0.12,         // 0.48s total — deliberate tilling
+        ToolKind::FishingRod => 0.11,  // 0.44s total — quick cast flick
+        ToolKind::WateringCan => 0.10, // 0.40s total — smooth pour
+        ToolKind::Scythe => 0.08,      // 0.32s total — fast sweep
     }
 }
 
@@ -63,21 +65,25 @@ pub fn animate_tool_use(
     time: Res<Time>,
     action_sprites: Option<Res<ActionSpriteData>>,
     walk_sprites: Res<PlayerSpriteData>,
-    mut query: Query<(
-        Entity,
-        &mut PlayerMovement,
-        &mut Sprite,
-        &LogicalPosition,
-    ), With<Player>>,
+    mut query: Query<(Entity, &mut PlayerMovement, &mut Sprite, &LogicalPosition), With<Player>>,
     mut impact_events: EventWriter<ToolImpactEvent>,
     mut frame_timer: Local<f32>,
     mut impact_fired: Local<bool>,
 ) {
-    let Some(action_data) = action_sprites else { return };
-    if !action_data.loaded { return; }
+    let Some(action_data) = action_sprites else {
+        return;
+    };
+    if !action_data.loaded {
+        return;
+    }
 
     for (entity, mut movement, mut sprite, logical_pos) in query.iter_mut() {
-        if let PlayerAnimState::ToolUse { tool, frame, total_frames } = movement.anim_state {
+        if let PlayerAnimState::ToolUse {
+            tool,
+            frame,
+            total_frames,
+        } = movement.anim_state
+        {
             let duration = tool_frame_duration(tool);
 
             if frame == 0 && *frame_timer == 0.0 {

@@ -1,6 +1,6 @@
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants — material requirements per tier upgrade
@@ -29,7 +29,6 @@ impl ToolUpgradeQueue {
     pub fn is_upgrading(&self, tool: ToolKind) -> bool {
         self.pending.iter().any(|p| p.tool == tool)
     }
-
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,18 +94,20 @@ pub fn handle_upgrade_request(
         let current_tier = match player_state.tools.get(&ev.tool) {
             Some(t) => *t,
             None => {
-                warn!("[Economy] Upgrade requested for unrecognised tool {:?}", ev.tool);
+                warn!(
+                    "[Economy] Upgrade requested for unrecognised tool {:?}",
+                    ev.tool
+                );
                 continue;
             }
         };
 
         // Already upgrading?
         if upgrade_queue.is_upgrading(ev.tool) {
-            info!(
-                "[Economy] {:?} is already in the upgrade queue.",
-                ev.tool
-            );
-            sfx_writer.send(PlaySfxEvent { sfx_id: "ui_deny".to_string() });
+            info!("[Economy] {:?} is already in the upgrade queue.", ev.tool);
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "ui_deny".to_string(),
+            });
             continue;
         }
 
@@ -115,7 +116,9 @@ pub fn handle_upgrade_request(
             Some(t) => t,
             None => {
                 info!("[Economy] {:?} is already at max tier (Iridium).", ev.tool);
-                sfx_writer.send(PlaySfxEvent { sfx_id: "ui_deny".to_string() });
+                sfx_writer.send(PlaySfxEvent {
+                    sfx_id: "ui_deny".to_string(),
+                });
                 continue;
             }
         };
@@ -127,7 +130,9 @@ pub fn handle_upgrade_request(
                 "[Economy] Cannot upgrade {:?} to {:?}: need {}g, have {}g.",
                 ev.tool, target_tier, gold_cost, player_state.gold
             );
-            sfx_writer.send(PlaySfxEvent { sfx_id: "ui_deny".to_string() });
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "ui_deny".to_string(),
+            });
             continue;
         }
 
@@ -135,7 +140,10 @@ pub fn handle_upgrade_request(
         let (bar_id, bar_qty) = match current_tier.upgrade_bar_item() {
             Some(id) => (id, current_tier.upgrade_bars_needed()),
             None => {
-                warn!("[Economy] No bar requirement defined for {:?}.", target_tier);
+                warn!(
+                    "[Economy] No bar requirement defined for {:?}.",
+                    target_tier
+                );
                 continue;
             }
         };
@@ -149,7 +157,9 @@ pub fn handle_upgrade_request(
                 bar_id,
                 inventory.count(bar_id)
             );
-            sfx_writer.send(PlaySfxEvent { sfx_id: "ui_deny".to_string() });
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "ui_deny".to_string(),
+            });
             continue;
         }
 
@@ -172,7 +182,9 @@ pub fn handle_upgrade_request(
             days_remaining: 2,
         });
 
-        sfx_writer.send(PlaySfxEvent { sfx_id: "blacksmith_forge".to_string() });
+        sfx_writer.send(PlaySfxEvent {
+            sfx_id: "blacksmith_forge".to_string(),
+        });
 
         info!(
             "[Economy] Upgrade started: {:?} → {:?}. Cost: {}g + {} × '{}'. Ready in 2 days.",
@@ -223,4 +235,3 @@ pub fn tick_upgrade_queue(
         }
     }
 }
-

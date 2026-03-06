@@ -1,21 +1,21 @@
 //! Flight domain — preflight, takeoff, cruise, landing mechanics.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-pub mod preflight;
-pub mod takeoff;
+pub mod atc;
+pub mod autopilot;
+pub mod checklists;
 pub mod cruise;
+pub mod emergencies;
+pub mod fuel_planning;
+pub mod instruments;
 pub mod landing;
 pub mod navigation;
-pub mod emergencies;
-pub mod autopilot;
-pub mod radio;
-pub mod instruments;
-pub mod atc;
-pub mod checklists;
-pub mod fuel_planning;
 pub mod passengers;
+pub mod preflight;
+pub mod radio;
+pub mod takeoff;
 pub mod weather_effects;
 
 pub struct FlightPlugin;

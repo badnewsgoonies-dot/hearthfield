@@ -1,8 +1,8 @@
 //! Gold management — transaction log, daily expenses, milestones.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 /// A recorded financial transaction.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,15 +28,27 @@ impl TransactionLog {
     }
 
     pub fn net_for_day(&self, day: u32) -> i32 {
-        self.entries.iter().filter(|t| t.day == day).map(|t| t.amount).sum()
+        self.entries
+            .iter()
+            .filter(|t| t.day == day)
+            .map(|t| t.amount)
+            .sum()
     }
 
     pub fn earnings_total(&self) -> u32 {
-        self.entries.iter().filter(|t| t.amount > 0).map(|t| t.amount as u32).sum()
+        self.entries
+            .iter()
+            .filter(|t| t.amount > 0)
+            .map(|t| t.amount as u32)
+            .sum()
     }
 
     pub fn spending_total(&self) -> u32 {
-        self.entries.iter().filter(|t| t.amount < 0).map(|t| t.amount.unsigned_abs()).sum()
+        self.entries
+            .iter()
+            .filter(|t| t.amount < 0)
+            .map(|t| t.amount.unsigned_abs())
+            .sum()
     }
 }
 
@@ -48,8 +60,16 @@ pub struct GoldMilestones {
 }
 
 /// Helper: attempt to spend gold.
-pub fn spend_gold(gold: &mut Gold, amount: u32, reason: &str, log: &mut TransactionLog, day: u32) -> bool {
-    if gold.amount < amount { return false; }
+pub fn spend_gold(
+    gold: &mut Gold,
+    amount: u32,
+    reason: &str,
+    log: &mut TransactionLog,
+    day: u32,
+) -> bool {
+    if gold.amount < amount {
+        return false;
+    }
     gold.amount -= amount;
     log.record(day, -(amount as i32), reason);
     true
@@ -63,11 +83,17 @@ pub fn add_gold(gold: &mut Gold, amount: u32, reason: &str, log: &mut Transactio
 
 /// Net worth including fleet value.
 pub fn net_worth(gold: &Gold, fleet: &Fleet, registry: &AircraftRegistry) -> u32 {
-    let fleet_value: u32 = fleet.aircraft.iter().map(|ac| {
-        let base_price = registry.get(&ac.aircraft_id).map_or(0, |d| d.purchase_price);
-        let depreciation = (base_price as f32 * 0.02 * ac.total_flights as f32) as u32;
-        base_price.saturating_sub(depreciation).max(base_price / 5)
-    }).sum();
+    let fleet_value: u32 = fleet
+        .aircraft
+        .iter()
+        .map(|ac| {
+            let base_price = registry
+                .get(&ac.aircraft_id)
+                .map_or(0, |d| d.purchase_price);
+            let depreciation = (base_price as f32 * 0.02 * ac.total_flights as f32) as u32;
+            base_price.saturating_sub(depreciation).max(base_price / 5)
+        })
+        .sum();
     gold.amount + fleet_value
 }
 
@@ -90,7 +116,9 @@ pub fn apply_gold_changes(
             log.record(day, ev.amount, &ev.reason);
 
             for &milestone in GOLD_MILESTONES {
-                if economy_stats.total_earned >= milestone && !milestones.reached.contains(&milestone) {
+                if economy_stats.total_earned >= milestone
+                    && !milestones.reached.contains(&milestone)
+                {
                     milestones.reached.push(milestone);
                     toast_events.send(ToastEvent {
                         message: format!("💰 Lifetime earnings: {}g!", format_gold(milestone)),

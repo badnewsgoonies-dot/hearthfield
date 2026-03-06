@@ -2,8 +2,8 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
+use crate::shared::*;
 
 /// Pickaxe damage per tool tier.
 fn pickaxe_damage(tier: ToolTier) -> u8 {
@@ -117,8 +117,7 @@ fn check_ladder_reveal(
 
     for (grid_pos, mut ladder, mut sprite) in ladders.iter_mut() {
         // Reveal if we broke the rock containing the ladder, or all rocks are gone
-        if !ladder.revealed
-            && (should_reveal || (grid_pos.x == broken_x && grid_pos.y == broken_y))
+        if !ladder.revealed && (should_reveal || (grid_pos.x == broken_x && grid_pos.y == broken_y))
         {
             ladder.revealed = true;
             sprite.color = Color::srgb(0.65, 0.50, 0.25); // LADDER_COLOR

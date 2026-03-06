@@ -165,8 +165,14 @@ pub fn update_interruption_visibility(
     mind: Res<PlayerMindState>,
     context: Res<ActiveInterruptionContext>,
     mut query: Query<&mut Visibility, With<InterruptionPopupRoot>>,
-    mut title_query: Query<(&mut Text, &mut TextColor), (With<InterruptionTitle>, Without<InterruptionBody>)>,
-    mut body_query: Query<(&mut Text, &mut TextColor), (With<InterruptionBody>, Without<InterruptionTitle>)>,
+    mut title_query: Query<
+        (&mut Text, &mut TextColor),
+        (With<InterruptionTitle>, Without<InterruptionBody>),
+    >,
+    mut body_query: Query<
+        (&mut Text, &mut TextColor),
+        (With<InterruptionBody>, Without<InterruptionTitle>),
+    >,
     calm_query: Query<&Interaction, (Changed<Interaction>, With<CalmButton>)>,
     panic_query: Query<&Interaction, (Changed<Interaction>, With<PanicButton>)>,
     mut calm_writer: EventWriter<ResolveCalmlyEvent>,

@@ -286,10 +286,7 @@ pub fn update_hud(
     inbox: Res<InboxState>,
     mind: Res<PlayerMindState>,
     mut time_q: Query<(&mut Text, &mut TextColor), With<HudTimeText>>,
-    mut energy_q: Query<
-        (&mut Text, &mut TextColor),
-        (With<HudEnergyText>, Without<HudTimeText>),
-    >,
+    mut energy_q: Query<(&mut Text, &mut TextColor), (With<HudEnergyText>, Without<HudTimeText>)>,
     mut stress_q: Query<
         (&mut Text, &mut TextColor),
         (
@@ -405,20 +402,8 @@ pub fn update_hud(
 #[allow(clippy::type_complexity)]
 pub fn update_career_hud(
     progression: Res<CareerProgression>,
-    mut level_q: Query<
-        &mut Text,
-        (
-            With<HudLevelText>,
-            Without<HudStreakText>,
-        ),
-    >,
-    mut streak_q: Query<
-        &mut Text,
-        (
-            With<HudStreakText>,
-            Without<HudLevelText>,
-        ),
-    >,
+    mut level_q: Query<&mut Text, (With<HudLevelText>, Without<HudStreakText>)>,
+    mut streak_q: Query<&mut Text, (With<HudStreakText>, Without<HudLevelText>)>,
 ) {
     if let Ok(mut text) = level_q.get_single_mut() {
         let threshold = progression.xp_for_next_level();
@@ -502,31 +487,32 @@ pub fn update_coworker_panel(
 }
 
 pub fn spawn_toast(mut commands: Commands) {
-    commands.spawn((
-        ToastRoot,
-        Node {
-            position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
-            height: Val::Px(40.0),
-            top: Val::Percent(40.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        BackgroundColor(Color::NONE),
-        Visibility::Hidden,
-        PickingBehavior::IGNORE,
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            Text::new(""),
-            TextFont {
-                font_size: 20.0,
+    commands
+        .spawn((
+            ToastRoot,
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Px(40.0),
+                top: Val::Percent(40.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
-            TextColor(Color::srgb(1.0, 1.0, 0.6)),
-        ));
-    });
+            BackgroundColor(Color::NONE),
+            Visibility::Hidden,
+            PickingBehavior::IGNORE,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(""),
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 1.0, 0.6)),
+            ));
+        });
 }
 
 pub fn despawn_toast(mut commands: Commands, query: Query<Entity, With<ToastRoot>>) {

@@ -1,5 +1,5 @@
+use super::menu_kit::{self, set_button_visual, MenuAssets};
 use super::UiFontHandle;
-use super::menu_kit::{self, MenuAssets, set_button_visual};
 use crate::save::{ActiveSaveSlot, SaveCompleteEvent, SaveRequestEvent};
 use crate::shared::*;
 use bevy::prelude::*;

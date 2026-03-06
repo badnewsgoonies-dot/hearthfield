@@ -10,9 +10,9 @@
 use bevy::prelude::*;
 use rand::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
-use super::floor_gen::{MINE_WIDTH, MINE_HEIGHT};
+use super::floor_gen::{MINE_HEIGHT, MINE_WIDTH};
+use crate::shared::*;
 
 /// Player combat damage based on pickaxe tier (doubles as weapon).
 fn player_attack_damage(tier: ToolTier) -> f32 {
@@ -143,7 +143,12 @@ fn enemy_loot(kind: MineEnemy) -> (String, u8) {
 /// Enemies move one tile toward the player on their move timer tick.
 pub fn enemy_ai_movement(
     time: Res<Time>,
-    mut enemies: Query<(&mut MineGridPos, &mut Transform, &MineMonster, &mut EnemyMoveTick)>,
+    mut enemies: Query<(
+        &mut MineGridPos,
+        &mut Transform,
+        &MineMonster,
+        &mut EnemyMoveTick,
+    )>,
     rocks: Query<&MineGridPos, (With<MineRock>, Without<MineMonster>)>,
     active_floor: Res<ActiveFloor>,
     in_mine: Res<InMine>,
@@ -156,10 +161,8 @@ pub fn enemy_ai_movement(
     let player_y = active_floor.player_grid_y;
 
     // Build a set of occupied tiles (rocks block enemy movement)
-    let rock_positions: std::collections::HashSet<(i32, i32)> = rocks
-        .iter()
-        .map(|p| (p.x, p.y))
-        .collect();
+    let rock_positions: std::collections::HashSet<(i32, i32)> =
+        rocks.iter().map(|p| (p.x, p.y)).collect();
 
     for (mut grid_pos, mut transform, _monster, mut move_tick) in enemies.iter_mut() {
         move_tick.timer.tick(time.delta());

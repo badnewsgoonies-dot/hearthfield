@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// Syncs LogicalPosition → Transform with pixel rounding and Y-sort Z.
 /// Runs in PostUpdate AFTER all movement systems.
@@ -8,18 +8,9 @@ use crate::shared::*;
 /// For non-Y-sorted entities with LogicalPosition: just rounds XY, keeps Z.
 /// For Y-sorted entities WITHOUT LogicalPosition (static objects): computes Z from current Y.
 pub fn sync_position_and_ysort(
-    mut ysorted_with_pos: Query<
-        (&LogicalPosition, &mut Transform),
-        With<YSorted>,
-    >,
-    mut not_ysorted_with_pos: Query<
-        (&LogicalPosition, &mut Transform),
-        Without<YSorted>,
-    >,
-    mut ysorted_no_pos: Query<
-        &mut Transform,
-        (With<YSorted>, Without<LogicalPosition>),
-    >,
+    mut ysorted_with_pos: Query<(&LogicalPosition, &mut Transform), With<YSorted>>,
+    mut not_ysorted_with_pos: Query<(&LogicalPosition, &mut Transform), Without<YSorted>>,
+    mut ysorted_no_pos: Query<&mut Transform, (With<YSorted>, Without<LogicalPosition>)>,
 ) {
     // Moving Y-sorted entities: pixel-snap XY, compute Z from logical Y
     for (logical_pos, mut transform) in &mut ysorted_with_pos {

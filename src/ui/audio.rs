@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MUSIC STATE — tracks the currently playing music entity
@@ -203,10 +203,9 @@ pub fn switch_music_on_map_change(
             MapId::Forest => "forest",
             MapId::Beach => "beach",
             MapId::MineEntrance => "forest",
-            MapId::PlayerHouse
-            | MapId::GeneralStore
-            | MapId::AnimalShop
-            | MapId::Blacksmith => "indoor",
+            MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith => {
+                "indoor"
+            }
         };
         music_events.send(PlayMusicEvent {
             track_id: track.to_string(),

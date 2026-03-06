@@ -8,15 +8,15 @@
 //! No other domain needs to seed these resources. All domain plugins can
 //! safely read them once GameState has advanced past Loading.
 
-mod items;
 mod crops;
 mod fish;
-mod recipes;
+mod items;
 mod npcs;
+mod recipes;
 mod shops;
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct DataPlugin;
 
@@ -43,28 +43,16 @@ fn load_all_data(
     info!("DataPlugin: populating registries…");
 
     items::populate_items(&mut item_registry);
-    info!(
-        "  Items loaded: {}",
-        item_registry.items.len()
-    );
+    info!("  Items loaded: {}", item_registry.items.len());
 
     crops::populate_crops(&mut crop_registry);
-    info!(
-        "  Crops loaded: {}",
-        crop_registry.crops.len()
-    );
+    info!("  Crops loaded: {}", crop_registry.crops.len());
 
     fish::populate_fish(&mut fish_registry);
-    info!(
-        "  Fish loaded: {}",
-        fish_registry.fish.len()
-    );
+    info!("  Fish loaded: {}", fish_registry.fish.len());
 
     recipes::populate_recipes(&mut recipe_registry);
-    info!(
-        "  Recipes loaded: {}",
-        recipe_registry.recipes.len()
-    );
+    info!("  Recipes loaded: {}", recipe_registry.recipes.len());
 
     npcs::populate_npcs(&mut npc_registry);
     info!(
@@ -101,11 +89,7 @@ mod tests {
         );
 
         for crop in crop_registry.crops.values() {
-            assert!(
-                !crop.id.trim().is_empty(),
-                "crop has empty id: {:?}",
-                crop
-            );
+            assert!(!crop.id.trim().is_empty(), "crop has empty id: {:?}", crop);
             assert!(
                 !crop.name.trim().is_empty(),
                 "crop has empty name: id={}",
@@ -163,8 +147,7 @@ mod tests {
             assert!(
                 valid_difficulty,
                 "fish has out-of-range difficulty: id={}, difficulty={}",
-                fish_def.id,
-                d
+                fish_def.id, d
             );
 
             assert!(

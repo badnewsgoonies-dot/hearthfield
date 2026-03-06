@@ -1,7 +1,7 @@
 //! Collectible items — souvenirs, postcards, model planes, stamps, patches, photos.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -115,7 +115,11 @@ impl Collections {
         true
     }
 
-    pub fn count_in_category(&self, category: CollectionCategory, all: &[Collectible]) -> (usize, usize) {
+    pub fn count_in_category(
+        &self,
+        category: CollectionCategory,
+        all: &[Collectible],
+    ) -> (usize, usize) {
         let total = all.iter().filter(|c| c.category == category).count();
         let found = all
             .iter()
@@ -243,10 +247,7 @@ pub fn auto_collect_stamp(
         if let Some(id) = stamp_id {
             if collections.add(&id) {
                 toast_events.send(ToastEvent {
-                    message: format!(
-                        "📮 Collected: {} Airport Stamp!",
-                        ev.airport.display_name()
-                    ),
+                    message: format!("📮 Collected: {} Airport Stamp!", ev.airport.display_name()),
                     duration_secs: 3.0,
                 });
             }
@@ -339,8 +340,10 @@ pub fn generate_trade_offers(
             }
 
             // Simple trade opportunity notification
-            if !collections.has(&format!("patch_{}", npc_id.split('_').next_back().unwrap_or("unknown")))
-            {
+            if !collections.has(&format!(
+                "patch_{}",
+                npc_id.split('_').next_back().unwrap_or("unknown")
+            )) {
                 toast_events.send(ToastEvent {
                     message: format!("💬 {} might have a rare collectible to trade...", npc_id),
                     duration_secs: 3.0,

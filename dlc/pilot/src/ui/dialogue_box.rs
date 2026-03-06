@@ -1,7 +1,7 @@
 //! Bottom-screen dialogue box — speaker name + text.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct DialogueBoxRoot;
@@ -66,10 +66,7 @@ pub fn spawn_dialogue_box(
         });
 }
 
-pub fn despawn_dialogue_box(
-    mut commands: Commands,
-    query: Query<Entity, With<DialogueBoxRoot>>,
-) {
+pub fn despawn_dialogue_box(mut commands: Commands, query: Query<Entity, With<DialogueBoxRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -85,8 +82,12 @@ pub fn update_dialogue_box(
     if !dialogue.is_changed() {
         return;
     }
-    let Ok(root) = root_q.get_single() else { return };
-    let Ok(children) = children_q.get(root) else { return };
+    let Ok(root) = root_q.get_single() else {
+        return;
+    };
+    let Ok(children) = children_q.get(root) else {
+        return;
+    };
 
     for child in children.iter() {
         if let Ok(mut text) = speaker_q.get_mut(*child) {

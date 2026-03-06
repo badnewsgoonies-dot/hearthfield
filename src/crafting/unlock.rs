@@ -1,9 +1,8 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::recipes::{
-    make_crafting_recipe, make_cooking_recipe,
-    ALL_CRAFTING_RECIPE_IDS, ALL_COOKING_RECIPE_IDS,
+    make_cooking_recipe, make_crafting_recipe, ALL_COOKING_RECIPE_IDS, ALL_CRAFTING_RECIPE_IDS,
 };
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // UNLOCK EVENT
@@ -31,35 +30,115 @@ pub struct FriendshipRecipeUnlock {
 
 pub const FRIENDSHIP_RECIPE_UNLOCKS: &[FriendshipRecipeUnlock] = &[
     // Elena (blacksmith) — healthy food
-    FriendshipRecipeUnlock { npc_id: "elena",     hearts: 3, recipe_id: "salad" },
-    FriendshipRecipeUnlock { npc_id: "elena",     hearts: 7, recipe_id: "fruit_salad" },
+    FriendshipRecipeUnlock {
+        npc_id: "elena",
+        hearts: 3,
+        recipe_id: "salad",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "elena",
+        hearts: 7,
+        recipe_id: "fruit_salad",
+    },
     // Marco (chef) — Italian-inspired
-    FriendshipRecipeUnlock { npc_id: "marco",     hearts: 2, recipe_id: "pancakes" },
-    FriendshipRecipeUnlock { npc_id: "marco",     hearts: 6, recipe_id: "pizza" },
+    FriendshipRecipeUnlock {
+        npc_id: "marco",
+        hearts: 2,
+        recipe_id: "pancakes",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "marco",
+        hearts: 6,
+        recipe_id: "pizza",
+    },
     // Margaret (baker) — baked goods and comfort food
-    FriendshipRecipeUnlock { npc_id: "margaret",  hearts: 4, recipe_id: "pumpkin_soup" },
-    FriendshipRecipeUnlock { npc_id: "margaret",  hearts: 8, recipe_id: "cheese_omelette" },
+    FriendshipRecipeUnlock {
+        npc_id: "margaret",
+        hearts: 4,
+        recipe_id: "pumpkin_soup",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "margaret",
+        hearts: 8,
+        recipe_id: "cheese_omelette",
+    },
     // Old Tom (fisherman) — seafood
-    FriendshipRecipeUnlock { npc_id: "old_tom",   hearts: 3, recipe_id: "fish_stew" },
+    FriendshipRecipeUnlock {
+        npc_id: "old_tom",
+        hearts: 3,
+        recipe_id: "fish_stew",
+    },
     // Sam (musician) — fun foods
-    FriendshipRecipeUnlock { npc_id: "sam",       hearts: 2, recipe_id: "spaghetti" },
-    FriendshipRecipeUnlock { npc_id: "sam",       hearts: 6, recipe_id: "ice_cream" },
+    FriendshipRecipeUnlock {
+        npc_id: "sam",
+        hearts: 2,
+        recipe_id: "spaghetti",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "sam",
+        hearts: 6,
+        recipe_id: "ice_cream",
+    },
     // Mira (traveling merchant) — exotic knowledge
-    FriendshipRecipeUnlock { npc_id: "mira",      hearts: 5, recipe_id: "bomb" },
-    FriendshipRecipeUnlock { npc_id: "mira",      hearts: 9, recipe_id: "mega_bomb" },
+    FriendshipRecipeUnlock {
+        npc_id: "mira",
+        hearts: 5,
+        recipe_id: "bomb",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "mira",
+        hearts: 9,
+        recipe_id: "mega_bomb",
+    },
     // Doc (doctor) — agricultural science
-    FriendshipRecipeUnlock { npc_id: "doc",       hearts: 4, recipe_id: "quality_sprinkler" },
-    FriendshipRecipeUnlock { npc_id: "doc",       hearts: 8, recipe_id: "bee_house" },
+    FriendshipRecipeUnlock {
+        npc_id: "doc",
+        hearts: 4,
+        recipe_id: "quality_sprinkler",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "doc",
+        hearts: 8,
+        recipe_id: "bee_house",
+    },
     // Mayor Rex — town industry
-    FriendshipRecipeUnlock { npc_id: "mayor_rex", hearts: 3, recipe_id: "keg" },
-    FriendshipRecipeUnlock { npc_id: "mayor_rex", hearts: 7, recipe_id: "oil_maker" },
+    FriendshipRecipeUnlock {
+        npc_id: "mayor_rex",
+        hearts: 3,
+        recipe_id: "keg",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "mayor_rex",
+        hearts: 7,
+        recipe_id: "oil_maker",
+    },
     // Lily (florist) — sweet baking
-    FriendshipRecipeUnlock { npc_id: "lily",      hearts: 6, recipe_id: "cake" },
-    FriendshipRecipeUnlock { npc_id: "lily",      hearts: 9, recipe_id: "cookie" },
+    FriendshipRecipeUnlock {
+        npc_id: "lily",
+        hearts: 6,
+        recipe_id: "cake",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "lily",
+        hearts: 9,
+        recipe_id: "cookie",
+    },
     // Nora (farmer) — processing equipment
-    FriendshipRecipeUnlock { npc_id: "nora",      hearts: 3, recipe_id: "furnace" },
-    FriendshipRecipeUnlock { npc_id: "nora",      hearts: 6, recipe_id: "preserves_jar" },
-    FriendshipRecipeUnlock { npc_id: "nora",      hearts: 9, recipe_id: "cheese_press" },
+    FriendshipRecipeUnlock {
+        npc_id: "nora",
+        hearts: 3,
+        recipe_id: "furnace",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "nora",
+        hearts: 6,
+        recipe_id: "preserves_jar",
+    },
+    FriendshipRecipeUnlock {
+        npc_id: "nora",
+        hearts: 9,
+        recipe_id: "cheese_press",
+    },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -75,16 +154,46 @@ pub struct MilestoneRecipeUnlock {
 }
 
 pub const MILESTONE_RECIPE_UNLOCKS: &[MilestoneRecipeUnlock] = &[
-    MilestoneRecipeUnlock { trigger_item: "copper_ore",  recipe_id: "furnace" },
-    MilestoneRecipeUnlock { trigger_item: "copper_bar",  recipe_id: "sprinkler" },
-    MilestoneRecipeUnlock { trigger_item: "copper_bar",  recipe_id: "recycler" },
-    MilestoneRecipeUnlock { trigger_item: "iron_bar",    recipe_id: "loom" },
-    MilestoneRecipeUnlock { trigger_item: "iron_bar",    recipe_id: "bomb" },
-    MilestoneRecipeUnlock { trigger_item: "gold_bar",    recipe_id: "seed_maker" },
-    MilestoneRecipeUnlock { trigger_item: "gold_bar",    recipe_id: "worm_bin" },
-    MilestoneRecipeUnlock { trigger_item: "hardwood",    recipe_id: "oil_maker" },
-    MilestoneRecipeUnlock { trigger_item: "maple_syrup", recipe_id: "bee_house" },
-    MilestoneRecipeUnlock { trigger_item: "truffle",     recipe_id: "oil_maker" },
+    MilestoneRecipeUnlock {
+        trigger_item: "copper_ore",
+        recipe_id: "furnace",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "copper_bar",
+        recipe_id: "sprinkler",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "copper_bar",
+        recipe_id: "recycler",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "iron_bar",
+        recipe_id: "loom",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "iron_bar",
+        recipe_id: "bomb",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "gold_bar",
+        recipe_id: "seed_maker",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "gold_bar",
+        recipe_id: "worm_bin",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "hardwood",
+        recipe_id: "oil_maker",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "maple_syrup",
+        recipe_id: "bee_house",
+    },
+    MilestoneRecipeUnlock {
+        trigger_item: "truffle",
+        recipe_id: "oil_maker",
+    },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -162,7 +271,10 @@ pub fn handle_unlock_recipe(
             unlocked.ids.push(recipe_id.clone());
             info!("Unlocked recipe: '{}'", recipe_id);
         } else {
-            warn!("UnlockRecipeEvent: recipe '{}' not found in registry", recipe_id);
+            warn!(
+                "UnlockRecipeEvent: recipe '{}' not found in registry",
+                recipe_id
+            );
         }
     }
 }

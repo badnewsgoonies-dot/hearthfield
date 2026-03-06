@@ -1,6 +1,6 @@
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // MACHINE TYPES
@@ -26,14 +26,14 @@ impl MachineType {
     pub fn processing_hours(&self) -> f32 {
         match self {
             MachineType::Furnace => 1.0,
-            MachineType::PreservesJar => 72.0,  // 3 days × 24h
-            MachineType::CheesePress => 24.0,   // 1 day
+            MachineType::PreservesJar => 72.0, // 3 days × 24h
+            MachineType::CheesePress => 24.0,  // 1 day
             MachineType::Loom => 24.0,
             MachineType::Keg => 72.0,
             MachineType::OilMaker => 24.0,
             MachineType::MayonnaiseMachine => 24.0,
-            MachineType::Tapper => 168.0,       // 7 days × 24h
-            MachineType::BeeHouse => 96.0,      // 4 days × 24h
+            MachineType::Tapper => 168.0,  // 7 days × 24h
+            MachineType::BeeHouse => 96.0, // 4 days × 24h
             MachineType::RecyclingMachine => 24.0,
             MachineType::CrabPot => 24.0,
         }
@@ -116,90 +116,90 @@ pub fn resolve_machine_output(machine: MachineType, input: &str) -> Option<(Item
     match machine {
         MachineType::Furnace => match input {
             "copper_ore" => Some(("copper_bar".to_string(), 1)),
-            "iron_ore"   => Some(("iron_bar".to_string(), 1)),
-            "gold_ore"   => Some(("gold_bar".to_string(), 1)),
+            "iron_ore" => Some(("iron_bar".to_string(), 1)),
+            "gold_ore" => Some(("gold_bar".to_string(), 1)),
             "iridium_ore" => Some(("iridium_bar".to_string(), 1)),
-            "coal"       => Some(("coal".to_string(), 1)), // passthrough (no-op but valid)
-            "quartz"     => Some(("refined_quartz".to_string(), 1)),
-            _            => None,
+            "coal" => Some(("coal".to_string(), 1)), // passthrough (no-op but valid)
+            "quartz" => Some(("refined_quartz".to_string(), 1)),
+            _ => None,
         },
         MachineType::PreservesJar => match input {
             // Fruits → Jelly
-            "blueberry"     => Some(("blueberry_jelly".to_string(), 1)),
-            "strawberry"    => Some(("strawberry_jelly".to_string(), 1)),
-            "melon"         => Some(("melon_jelly".to_string(), 1)),
-            "apple"         => Some(("apple_jelly".to_string(), 1)),
-            "cranberry"     => Some(("cranberry_sauce".to_string(), 1)),
+            "blueberry" => Some(("blueberry_jelly".to_string(), 1)),
+            "strawberry" => Some(("strawberry_jelly".to_string(), 1)),
+            "melon" => Some(("melon_jelly".to_string(), 1)),
+            "apple" => Some(("apple_jelly".to_string(), 1)),
+            "cranberry" => Some(("cranberry_sauce".to_string(), 1)),
             "ancient_fruit" => Some(("ancient_jelly".to_string(), 1)),
             // Vegetables → Pickles
-            "turnip"        => Some(("pickled_turnip".to_string(), 1)),
-            "potato"        => Some(("pickled_potato".to_string(), 1)),
-            "cauliflower"   => Some(("pickled_cauliflower".to_string(), 1)),
-            "pumpkin"       => Some(("pickled_pumpkin".to_string(), 1)),
-            "eggplant"      => Some(("pickled_eggplant".to_string(), 1)),
-            "yam"           => Some(("pickled_yam".to_string(), 1)),
-            "tomato"        => Some(("pickled_tomato".to_string(), 1)),
-            "corn"          => Some(("pickled_corn".to_string(), 1)),
-            _               => None,
+            "turnip" => Some(("pickled_turnip".to_string(), 1)),
+            "potato" => Some(("pickled_potato".to_string(), 1)),
+            "cauliflower" => Some(("pickled_cauliflower".to_string(), 1)),
+            "pumpkin" => Some(("pickled_pumpkin".to_string(), 1)),
+            "eggplant" => Some(("pickled_eggplant".to_string(), 1)),
+            "yam" => Some(("pickled_yam".to_string(), 1)),
+            "tomato" => Some(("pickled_tomato".to_string(), 1)),
+            "corn" => Some(("pickled_corn".to_string(), 1)),
+            _ => None,
         },
         MachineType::CheesePress => match input {
-            "milk"       => Some(("cheese".to_string(), 1)),
+            "milk" => Some(("cheese".to_string(), 1)),
             "large_milk" => Some(("large_cheese".to_string(), 1)),
-            _            => None,
+            _ => None,
         },
         MachineType::Loom => match input {
-            "wool"       => Some(("cloth".to_string(), 1)),
-            _            => None,
+            "wool" => Some(("cloth".to_string(), 1)),
+            _ => None,
         },
         MachineType::Keg => match input {
-            "wheat"         => Some(("beer".to_string(), 1)),
-            "hops"          => Some(("pale_ale".to_string(), 1)),
-            "blueberry"     => Some(("blueberry_wine".to_string(), 1)),
-            "strawberry"    => Some(("strawberry_wine".to_string(), 1)),
-            "melon"         => Some(("melon_wine".to_string(), 1)),
-            "pumpkin"       => Some(("pumpkin_juice".to_string(), 1)),
-            "corn"          => Some(("oil".to_string(), 1)),
-            "apple"         => Some(("apple_cider".to_string(), 1)),
+            "wheat" => Some(("beer".to_string(), 1)),
+            "hops" => Some(("pale_ale".to_string(), 1)),
+            "blueberry" => Some(("blueberry_wine".to_string(), 1)),
+            "strawberry" => Some(("strawberry_wine".to_string(), 1)),
+            "melon" => Some(("melon_wine".to_string(), 1)),
+            "pumpkin" => Some(("pumpkin_juice".to_string(), 1)),
+            "corn" => Some(("oil".to_string(), 1)),
+            "apple" => Some(("apple_cider".to_string(), 1)),
             "ancient_fruit" => Some(("ancient_fruit_wine".to_string(), 1)),
-            "honey"         => Some(("mead".to_string(), 1)),
-            _               => None,
+            "honey" => Some(("mead".to_string(), 1)),
+            _ => None,
         },
         MachineType::OilMaker => match input {
             "sunflower" => Some(("oil".to_string(), 1)),
-            "corn"      => Some(("oil".to_string(), 1)),
-            "truffle"   => Some(("truffle_oil".to_string(), 1)),
-            _           => None,
+            "corn" => Some(("oil".to_string(), 1)),
+            "truffle" => Some(("truffle_oil".to_string(), 1)),
+            _ => None,
         },
         MachineType::MayonnaiseMachine => match input {
-            "egg"       => Some(("mayonnaise".to_string(), 1)),
+            "egg" => Some(("mayonnaise".to_string(), 1)),
             "large_egg" => Some(("mayonnaise".to_string(), 2)),
-            "duck_egg"  => Some(("mayonnaise".to_string(), 2)),
-            _           => None,
+            "duck_egg" => Some(("mayonnaise".to_string(), 2)),
+            _ => None,
         },
         MachineType::Tapper => match input {
             // Tapper outputs are time-based, not input-based.
             // For the machine system, just accept sap as a "prime" input.
-            "sap"       => Some(("maple_syrup".to_string(), 1)),
-            "hardwood"  => Some(("oak_resin".to_string(), 1)),
-            "wood"      => Some(("pine_tar".to_string(), 1)),
-            _           => None,
+            "sap" => Some(("maple_syrup".to_string(), 1)),
+            "hardwood" => Some(("oak_resin".to_string(), 1)),
+            "wood" => Some(("pine_tar".to_string(), 1)),
+            _ => None,
         },
         MachineType::BeeHouse => match input {
             // Bee houses produce honey without specific input.
-            "honey"     => Some(("honey".to_string(), 1)),
-            _           => Some(("honey".to_string(), 1)),
+            "honey" => Some(("honey".to_string(), 1)),
+            _ => Some(("honey".to_string(), 1)),
         },
         MachineType::RecyclingMachine => match input {
-            "trash"     => Some(("stone".to_string(), 3)),
+            "trash" => Some(("stone".to_string(), 3)),
             "driftwood" => Some(("wood".to_string(), 3)),
             "old_glasses" => Some(("refined_quartz".to_string(), 1)),
             "newspaper" => Some(("cloth".to_string(), 1)),
-            _           => None,
+            _ => None,
         },
         MachineType::CrabPot => match input {
             // Crab pots use bait and produce random shellfish.
-            "bait"      => Some(("crab".to_string(), 1)),
-            _           => None,
+            "bait" => Some(("crab".to_string(), 1)),
+            _ => None,
         },
     }
 }
@@ -250,18 +250,18 @@ pub struct CollectMachineOutputEvent {
 /// the item is not a placeable machine.
 pub fn item_to_machine_type(item_id: &str) -> Option<MachineType> {
     match item_id {
-        "furnace"             => Some(MachineType::Furnace),
-        "preserves_jar"       => Some(MachineType::PreservesJar),
-        "cheese_press"        => Some(MachineType::CheesePress),
-        "loom"                => Some(MachineType::Loom),
-        "keg"                 => Some(MachineType::Keg),
-        "oil_maker"           => Some(MachineType::OilMaker),
-        "mayonnaise_machine"  => Some(MachineType::MayonnaiseMachine),
-        "tapper"              => Some(MachineType::Tapper),
-        "bee_house"           => Some(MachineType::BeeHouse),
-        "recycling_machine"   => Some(MachineType::RecyclingMachine),
-        "crab_pot"            => Some(MachineType::CrabPot),
-        _                     => None,
+        "furnace" => Some(MachineType::Furnace),
+        "preserves_jar" => Some(MachineType::PreservesJar),
+        "cheese_press" => Some(MachineType::CheesePress),
+        "loom" => Some(MachineType::Loom),
+        "keg" => Some(MachineType::Keg),
+        "oil_maker" => Some(MachineType::OilMaker),
+        "mayonnaise_machine" => Some(MachineType::MayonnaiseMachine),
+        "tapper" => Some(MachineType::Tapper),
+        "bee_house" => Some(MachineType::BeeHouse),
+        "recycling_machine" => Some(MachineType::RecyclingMachine),
+        "crab_pot" => Some(MachineType::CrabPot),
+        _ => None,
     }
 }
 
@@ -307,18 +307,12 @@ pub fn tick_processing_machines(
                 machine.processing_time_remaining = 0.0;
                 machine.is_ready = true;
 
-                let output_name = machine
-                    .output_item
-                    .as_deref()
-                    .unwrap_or("item")
-                    .to_string();
+                let output_name = machine.output_item.as_deref().unwrap_or("item").to_string();
                 let machine_name = machine.machine_type.display_name();
 
                 info!(
                     "{} finished processing {:?} → {:?}",
-                    machine_name,
-                    machine.input_item,
-                    machine.output_item
+                    machine_name, machine.input_item, machine.output_item
                 );
 
                 toast_events.send(ToastEvent {
@@ -374,10 +368,7 @@ pub fn handle_insert_machine_input(
                 machine.machine_type.display_name()
             );
             toast_events.send(ToastEvent {
-                message: format!(
-                    "{} is already busy!",
-                    machine.machine_type.display_name()
-                ),
+                message: format!("{} is already busy!", machine.machine_type.display_name()),
                 duration_secs: 2.0,
             });
             continue;
@@ -448,9 +439,7 @@ pub fn handle_insert_machine_input(
 
         info!(
             "Started processing '{}' in {} ({}h remaining)",
-            event.item_id,
-            machine_name,
-            processing_hours
+            event.item_id, machine_name, processing_hours
         );
 
         toast_events.send(ToastEvent {
@@ -522,11 +511,7 @@ pub fn handle_collect_machine_output(
                 quantity: 1,
             });
 
-            info!(
-                "Collected '{}' from {}",
-                output_id,
-                machine_name
-            );
+            info!("Collected '{}' from {}", output_id, machine_name);
 
             toast_events.send(ToastEvent {
                 message: format!("{} collected from your {}!", output_display, machine_name),
@@ -617,10 +602,7 @@ pub fn handle_place_machine(
             s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
             s
         } else {
-            Sprite::from_color(
-                Color::srgb(0.6, 0.4, 0.2),
-                Vec2::new(TILE_SIZE, TILE_SIZE),
-            )
+            Sprite::from_color(Color::srgb(0.6, 0.4, 0.2), Vec2::new(TILE_SIZE, TILE_SIZE))
         };
         let machine_entity = commands
             .spawn((

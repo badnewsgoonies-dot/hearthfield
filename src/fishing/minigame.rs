@@ -20,13 +20,13 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::shared::*;
-use super::{
-    FishingState, FishingMinigameState, FishEncyclopedia,
-    MinigameFishZone, MinigameCatchBar, MinigameProgressFill,
-};
 use super::resolve::{catch_fish, end_fishing_escape};
 use super::Bobber;
+use super::{
+    FishEncyclopedia, FishingMinigameState, FishingState, MinigameCatchBar, MinigameFishZone,
+    MinigameProgressFill,
+};
+use crate::shared::*;
 
 // ─── Tuning constants ─────────────────────────────────────────────────────────
 
@@ -85,17 +85,15 @@ pub fn update_fish_zone(
         let min_interval = 0.4 + (1.0 - difficulty) * 0.8;
         let max_interval = min_interval + 1.2 + (1.0 - difficulty) * 0.5;
         let next_interval = rng.gen_range(min_interval..max_interval);
-        minigame_state.direction_change_timer =
-            Timer::from_seconds(next_interval, TimerMode::Once);
+        minigame_state.direction_change_timer = Timer::from_seconds(next_interval, TimerMode::Once);
     }
 
     // Apply velocity to fish zone center
     let speed = minigame_state.fish_zone_velocity;
-    minigame_state.fish_zone_center =
-        (minigame_state.fish_zone_center + speed * dt).clamp(
-            minigame_state.fish_zone_half,
-            100.0 - minigame_state.fish_zone_half,
-        );
+    minigame_state.fish_zone_center = (minigame_state.fish_zone_center + speed * dt).clamp(
+        minigame_state.fish_zone_half,
+        100.0 - minigame_state.fish_zone_half,
+    );
 
     // Bounce: reverse velocity at edges
     let lo = minigame_state.fish_zone_half;
@@ -126,19 +124,13 @@ pub fn update_catch_bar(
     let catch_half = minigame_state.catch_bar_half;
 
     if space_held {
-        minigame_state.catch_bar_center =
-            (minigame_state.catch_bar_center + CATCH_RISE_SPEED * dt).clamp(
-                catch_half,
-                100.0 - catch_half,
-            );
+        minigame_state.catch_bar_center = (minigame_state.catch_bar_center + CATCH_RISE_SPEED * dt)
+            .clamp(catch_half, 100.0 - catch_half);
     } else {
         // Lead Bobber reduces fall speed so the bar is easier to hold up.
         let effective_fall = CATCH_FALL_SPEED * minigame_state.catch_fall_multiplier;
-        minigame_state.catch_bar_center =
-            (minigame_state.catch_bar_center - effective_fall * dt).clamp(
-                catch_half,
-                100.0 - catch_half,
-            );
+        minigame_state.catch_bar_center = (minigame_state.catch_bar_center - effective_fall * dt)
+            .clamp(catch_half, 100.0 - catch_half);
     }
 
     let catch_center = minigame_state.catch_bar_center;
@@ -251,8 +243,7 @@ pub fn check_minigame_result(
         }
 
         // Wild bait double-catch: 15% chance for a bonus fish (wild_bait only)
-        if bait_id.as_deref() == Some("wild_bait")
-            && super::cast::wild_bait_double_catch_roll() {
+        if bait_id.as_deref() == Some("wild_bait") && super::cast::wild_bait_double_catch_roll() {
             if let Some(ref fid) = selected_fish {
                 item_pickup_events.send(ItemPickupEvent {
                     item_id: fid.clone(),

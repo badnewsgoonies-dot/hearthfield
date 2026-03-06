@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::CollisionMap;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Map Transition Detection
@@ -13,16 +13,16 @@ use super::CollisionMap;
 fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
     // (min_x, max_x, min_y, max_y) — must match generate_*() in world/maps.rs
     match map {
-        MapId::Farm => (0, 31, 0, 23),          // 32×24
-        MapId::Town => (0, 27, 0, 21),          // 28×22
-        MapId::Beach => (0, 19, 0, 13),         // 20×14
-        MapId::Forest => (0, 21, 0, 17),        // 22×18
-        MapId::MineEntrance => (0, 13, 0, 11),  // 14×12
-        MapId::Mine => (0, 23, 0, 23),          // 24×24
-        MapId::PlayerHouse => (0, 15, 0, 15),   // 16×16
-        MapId::GeneralStore => (0, 11, 0, 11),  // 12×12
-        MapId::AnimalShop => (0, 11, 0, 11),    // 12×12
-        MapId::Blacksmith => (0, 11, 0, 11),    // 12×12
+        MapId::Farm => (0, 31, 0, 23),         // 32×24
+        MapId::Town => (0, 27, 0, 21),         // 28×22
+        MapId::Beach => (0, 19, 0, 13),        // 20×14
+        MapId::Forest => (0, 21, 0, 17),       // 22×18
+        MapId::MineEntrance => (0, 13, 0, 11), // 14×12
+        MapId::Mine => (0, 23, 0, 23),         // 24×24
+        MapId::PlayerHouse => (0, 15, 0, 15),  // 16×16
+        MapId::GeneralStore => (0, 11, 0, 11), // 12×12
+        MapId::AnimalShop => (0, 11, 0, 11),   // 12×12
+        MapId::Blacksmith => (0, 11, 0, 11),   // 12×12
     }
 }
 
@@ -124,7 +124,9 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
 
     // Interior rooms — exit through front door (y=max wall) → appropriate outdoor map
     if *map == MapId::PlayerHouse && gy >= max_y {
-        return Some((MapId::Farm, 16, 1));
+        // Land on the farmhouse path outside the door, not inside the
+        // building footprint or directly on the re-entry trigger.
+        return Some((MapId::Farm, 16, 3));
     }
     if *map == MapId::GeneralStore && gy >= max_y {
         return Some((MapId::Town, 6, 8));
@@ -137,6 +139,28 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn player_house_exit_lands_on_farm_path_outside_door_trigger() {
+        assert_eq!(
+            edge_transition(&MapId::PlayerHouse, 8, 15),
+            Some((MapId::Farm, 16, 3))
+        );
+    }
+
+    #[test]
+    fn farmhouse_path_tile_does_not_immediately_reenter_house() {
+        assert_eq!(edge_transition(&MapId::Farm, 16, 3), None);
+        assert_eq!(
+            edge_transition(&MapId::Farm, 16, 2),
+            Some((MapId::PlayerHouse, 8, 14))
+        );
+    }
 }
 
 /// Check whether the player has reached a map edge and send a
@@ -153,11 +177,7 @@ pub fn map_transition_check(
     if let Some((to_map, to_x, to_y)) =
         edge_transition(&player_state.current_map, grid_pos.x, grid_pos.y)
     {
-        map_events.send(MapTransitionEvent {
-            to_map,
-            to_x,
-            to_y,
-        });
+        map_events.send(MapTransitionEvent { to_map, to_x, to_y });
     }
 }
 
@@ -281,10 +301,7 @@ pub fn add_items_to_inventory(
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "item_pickup".to_string(),
             });
-            info!(
-                "[Player] Picked up {} × '{}'",
-                ev.quantity, ev.item_id
-            );
+            info!("[Player] Picked up {} × '{}'", ev.quantity, ev.item_id);
         } else {
             let name = item_registry
                 .get(&ev.item_id)
@@ -384,10 +401,7 @@ pub fn check_stamina_consequences(
 
 /// Grant starter items on first entering Playing state (inventory is empty).
 /// The intro dialogue mentions "seeds in your pack" so we deliver on that promise.
-pub fn grant_starter_items(
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
-) {
+pub fn grant_starter_items(mut inventory: ResMut<Inventory>, item_registry: Res<ItemRegistry>) {
     // Only grant if inventory is completely empty (fresh game, not a load).
     let has_items = inventory.slots.iter().any(|s| s.is_some());
     if has_items {
@@ -395,11 +409,11 @@ pub fn grant_starter_items(
     }
 
     let starters = [
-        ("turnip_seeds", 15u8),   // Spring crop — enough for a starter plot
-        ("potato_seeds", 5),      // Second spring crop
-        ("wood", 20),             // For crafting a chest or fence
-        ("stone", 15),            // Basic materials
-        ("bread", 3),             // Food to restore stamina on Day 1
+        ("turnip_seeds", 15u8), // Spring crop — enough for a starter plot
+        ("potato_seeds", 5),    // Second spring crop
+        ("wood", 20),           // For crafting a chest or fence
+        ("stone", 15),          // Basic materials
+        ("bread", 3),           // Food to restore stamina on Day 1
     ];
 
     for (item_id, qty) in &starters {

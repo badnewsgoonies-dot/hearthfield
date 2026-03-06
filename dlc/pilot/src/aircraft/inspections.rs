@@ -1,21 +1,16 @@
 //! Pre-flight inspection system — walk-around checks before takeoff.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct InspectionPlugin;
 
 impl Plugin for InspectionPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<InspectionState>()
-            .add_systems(
-                Update,
-                (
-                    perform_inspection,
-                    evaluate_inspection_result,
-                )
-                    .run_if(in_state(GameState::Playing)),
-            );
+        app.init_resource::<InspectionState>().add_systems(
+            Update,
+            (perform_inspection, evaluate_inspection_result).run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -97,7 +92,11 @@ fn build_default_checklist() -> Vec<InspectionItem> {
         InspectionItem::new("Control Surfaces", "Move ailerons, elevators, rudder", 12.0),
         InspectionItem::new("Lights", "Test nav, strobe, and landing lights", 3.0),
         InspectionItem::new("Instruments", "Power up and verify readings", 7.0),
-        InspectionItem::new("Emergency Equipment", "Check fire extinguisher and first aid", 5.0),
+        InspectionItem::new(
+            "Emergency Equipment",
+            "Check fire extinguisher and first aid",
+            5.0,
+        ),
     ]
 }
 

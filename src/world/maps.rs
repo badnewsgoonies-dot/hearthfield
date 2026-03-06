@@ -32,7 +32,6 @@ impl MapDef {
             self.tiles[y as usize * self.width + x as usize]
         }
     }
-
 }
 
 /// Describes an object placed on the map at load time.
@@ -105,17 +104,18 @@ fn generate_farm() -> MapDef {
     let h = 24usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Player house footprint (top center)
     fill_rect(&mut tiles, 13, 0, 6, 3, TileKind::Stone);
@@ -128,9 +128,9 @@ fn generate_farm() -> MapDef {
     fill_rect(&mut tiles, 6, 6, 20, 10, TileKind::Dirt);
 
     // Animal buildings (bottom-left)
-    fill_rect(&mut tiles, 3, 16, 5, 3, TileKind::Stone);   // Barn
-    fill_rect(&mut tiles, 9, 17, 3, 2, TileKind::Stone);    // Chicken coop
-    fill_rect(&mut tiles, 8, 19, 4, 1, TileKind::Path);     // Path connecting
+    fill_rect(&mut tiles, 3, 16, 5, 3, TileKind::Stone); // Barn
+    fill_rect(&mut tiles, 9, 17, 3, 2, TileKind::Stone); // Chicken coop
+    fill_rect(&mut tiles, 8, 19, 4, 1, TileKind::Path); // Path connecting
 
     // Pond (bottom-right)
     fill_rect(&mut tiles, 24, 17, 5, 4, TileKind::Water);
@@ -190,31 +190,60 @@ fn generate_farm() -> MapDef {
 
     // Trees along top edge (around house)
     for x in (1..12).step_by(3) {
-        objects.push(ObjectPlacement { x, y: 1, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x,
+            y: 1,
+            kind: WorldObjectKind::Tree,
+        });
     }
     for x in (22..30).step_by(3) {
-        objects.push(ObjectPlacement { x, y: 1, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x,
+            y: 1,
+            kind: WorldObjectKind::Tree,
+        });
     }
 
     // Rocks in the dirt (player clears to farm)
     let rock_positions = [
-        (8, 7), (12, 8), (18, 7), (22, 9), (10, 12),
-        (16, 11), (20, 13), (14, 14), (24, 8),
+        (8, 7),
+        (12, 8),
+        (18, 7),
+        (22, 9),
+        (10, 12),
+        (16, 11),
+        (20, 13),
+        (14, 14),
+        (24, 8),
     ];
     for (rx, ry) in &rock_positions {
-        objects.push(ObjectPlacement { x: *rx, y: *ry, kind: WorldObjectKind::Rock });
+        objects.push(ObjectPlacement {
+            x: *rx,
+            y: *ry,
+            kind: WorldObjectKind::Rock,
+        });
     }
 
     // Stumps
-    objects.push(ObjectPlacement { x: 7, y: 14, kind: WorldObjectKind::Stump });
-    objects.push(ObjectPlacement { x: 25, y: 14, kind: WorldObjectKind::Stump });
+    objects.push(ObjectPlacement {
+        x: 7,
+        y: 14,
+        kind: WorldObjectKind::Stump,
+    });
+    objects.push(ObjectPlacement {
+        x: 25,
+        y: 14,
+        kind: WorldObjectKind::Stump,
+    });
 
     // Bushes near pond
-    objects.push(ObjectPlacement { x: 23, y: 17, kind: WorldObjectKind::Bush });
+    objects.push(ObjectPlacement {
+        x: 23,
+        y: 17,
+        kind: WorldObjectKind::Bush,
+    });
 
-    let forage_points = vec![
-        (2, 4), (29, 3), (2, 20), (29, 20), (5, 22),
-    ];
+    let forage_points = vec![(2, 4), (29, 3), (2, 20), (29, 20), (5, 22)];
 
     MapDef {
         id: MapId::Farm,
@@ -236,17 +265,18 @@ fn generate_town() -> MapDef {
     let h = 22usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Main road N-S through center
     fill_rect(&mut tiles, 13, 0, 2, 22, TileKind::Path);
@@ -255,23 +285,23 @@ fn generate_town() -> MapDef {
 
     // Central plaza (stone square with fountain)
     fill_rect(&mut tiles, 11, 7, 6, 6, TileKind::Stone);
-    fill_rect(&mut tiles, 13, 9, 2, 2, TileKind::Water);  // Fountain
+    fill_rect(&mut tiles, 13, 9, 2, 2, TileKind::Water); // Fountain
 
     // General Store (north-west)
     fill_rect(&mut tiles, 2, 2, 8, 5, TileKind::Stone);
-    fill_rect(&mut tiles, 5, 7, 2, 2, TileKind::Path);   // Path to plaza
+    fill_rect(&mut tiles, 5, 7, 2, 2, TileKind::Path); // Path to plaza
 
     // Animal Shop (north-east)
     fill_rect(&mut tiles, 18, 2, 8, 5, TileKind::Stone);
-    fill_rect(&mut tiles, 21, 7, 2, 2, TileKind::Path);   // Path to plaza
+    fill_rect(&mut tiles, 21, 7, 2, 2, TileKind::Path); // Path to plaza
 
     // Blacksmith (east, below plaza)
     fill_rect(&mut tiles, 20, 13, 6, 4, TileKind::Stone);
-    fill_rect(&mut tiles, 17, 14, 3, 2, TileKind::Path);  // Path to main road
+    fill_rect(&mut tiles, 17, 14, 3, 2, TileKind::Path); // Path to main road
 
     // NPC houses (west, below plaza)
-    fill_rect(&mut tiles, 2, 13, 5, 3, TileKind::Stone);  // House 1 (doc/librarian)
-    fill_rect(&mut tiles, 8, 13, 5, 3, TileKind::Stone);  // House 2 (fisher/kid)
+    fill_rect(&mut tiles, 2, 13, 5, 3, TileKind::Stone); // House 1 (doc/librarian)
+    fill_rect(&mut tiles, 8, 13, 5, 3, TileKind::Stone); // House 2 (fisher/kid)
 
     // Restaurant area (south center-east)
     fill_rect(&mut tiles, 14, 16, 5, 3, TileKind::Stone);
@@ -328,21 +358,43 @@ fn generate_town() -> MapDef {
     let mut objects = Vec::new();
     // Trees along top
     for x in (0..12).step_by(3) {
-        objects.push(ObjectPlacement { x, y: 0, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x,
+            y: 0,
+            kind: WorldObjectKind::Tree,
+        });
     }
     for x in (16..28).step_by(3) {
-        objects.push(ObjectPlacement { x, y: 0, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x,
+            y: 0,
+            kind: WorldObjectKind::Tree,
+        });
     }
     // Park trees
-    objects.push(ObjectPlacement { x: 2, y: 17, kind: WorldObjectKind::Tree });
-    objects.push(ObjectPlacement { x: 9, y: 17, kind: WorldObjectKind::Tree });
+    objects.push(ObjectPlacement {
+        x: 2,
+        y: 17,
+        kind: WorldObjectKind::Tree,
+    });
+    objects.push(ObjectPlacement {
+        x: 9,
+        y: 17,
+        kind: WorldObjectKind::Tree,
+    });
     // Bushes near plaza
-    objects.push(ObjectPlacement { x: 10, y: 7, kind: WorldObjectKind::Bush });
-    objects.push(ObjectPlacement { x: 17, y: 7, kind: WorldObjectKind::Bush });
+    objects.push(ObjectPlacement {
+        x: 10,
+        y: 7,
+        kind: WorldObjectKind::Bush,
+    });
+    objects.push(ObjectPlacement {
+        x: 17,
+        y: 7,
+        kind: WorldObjectKind::Bush,
+    });
 
-    let forage_points = vec![
-        (1, 19), (9, 20), (26, 19),
-    ];
+    let forage_points = vec![(1, 19), (9, 20), (26, 19)];
 
     MapDef {
         id: MapId::Town,
@@ -364,17 +416,18 @@ fn generate_beach() -> MapDef {
     let h = 14usize;
     let mut tiles = vec![TileKind::Sand; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Ocean (bottom)
     for y in 9..h {
@@ -414,14 +467,24 @@ fn generate_beach() -> MapDef {
     ];
 
     let objects = vec![
-        ObjectPlacement { x: 17, y: 1, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 7, y: 7, kind: WorldObjectKind::Log },
-        ObjectPlacement { x: 12, y: 6, kind: WorldObjectKind::Log },
+        ObjectPlacement {
+            x: 17,
+            y: 1,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 7,
+            y: 7,
+            kind: WorldObjectKind::Log,
+        },
+        ObjectPlacement {
+            x: 12,
+            y: 6,
+            kind: WorldObjectKind::Log,
+        },
     ];
 
-    let forage_points = vec![
-        (4, 5), (8, 4), (13, 5), (6, 7),
-    ];
+    let forage_points = vec![(4, 5), (8, 4), (13, 5), (6, 7)];
 
     MapDef {
         id: MapId::Beach,
@@ -443,21 +506,22 @@ fn generate_forest() -> MapDef {
     let h = 18usize;
     let mut tiles = vec![TileKind::Grass; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Main path from west (farm) winding east
     fill_rect(&mut tiles, 0, 7, 10, 2, TileKind::Path);
-    fill_rect(&mut tiles, 10, 6, 4, 2, TileKind::Path);  // Curve up
+    fill_rect(&mut tiles, 10, 6, 4, 2, TileKind::Path); // Curve up
     fill_rect(&mut tiles, 14, 5, 8, 2, TileKind::Path);
 
     // South branch path
@@ -498,37 +562,91 @@ fn generate_forest() -> MapDef {
     // Dense trees (top area)
     for x in (0..22).step_by(2) {
         for y in (0..2).step_by(2) {
-            objects.push(ObjectPlacement { x, y, kind: WorldObjectKind::Tree });
+            objects.push(ObjectPlacement {
+                x,
+                y,
+                kind: WorldObjectKind::Tree,
+            });
         }
     }
     // Scattered forest trees
     let tree_positions = [
-        (1, 4), (1, 10), (3, 8), (5, 10), (7, 4),
-        (12, 3), (14, 3), (11, 10), (13, 14), (15, 10),
-        (19, 2), (20, 8), (20, 12), (20, 16),
+        (1, 4),
+        (1, 10),
+        (3, 8),
+        (5, 10),
+        (7, 4),
+        (12, 3),
+        (14, 3),
+        (11, 10),
+        (13, 14),
+        (15, 10),
+        (19, 2),
+        (20, 8),
+        (20, 12),
+        (20, 16),
     ];
     for (tx, ty) in &tree_positions {
-        objects.push(ObjectPlacement { x: *tx, y: *ty, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x: *tx,
+            y: *ty,
+            kind: WorldObjectKind::Tree,
+        });
     }
     // Pine trees (evergreen accents in the forest)
     let pine_positions = [(3, 5), (9, 3), (17, 8), (18, 14), (6, 14)];
     for (px, py) in &pine_positions {
-        objects.push(ObjectPlacement { x: *px, y: *py, kind: WorldObjectKind::Pine });
+        objects.push(ObjectPlacement {
+            x: *px,
+            y: *py,
+            kind: WorldObjectKind::Pine,
+        });
     }
 
     // Rocks near river
-    objects.push(ObjectPlacement { x: 16, y: 3, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 16, y: 10, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement {
+        x: 16,
+        y: 3,
+        kind: WorldObjectKind::Rock,
+    });
+    objects.push(ObjectPlacement {
+        x: 16,
+        y: 10,
+        kind: WorldObjectKind::Rock,
+    });
     // Stump
-    objects.push(ObjectPlacement { x: 5, y: 3, kind: WorldObjectKind::Stump });
-    objects.push(ObjectPlacement { x: 13, y: 14, kind: WorldObjectKind::Stump });
+    objects.push(ObjectPlacement {
+        x: 5,
+        y: 3,
+        kind: WorldObjectKind::Stump,
+    });
+    objects.push(ObjectPlacement {
+        x: 13,
+        y: 14,
+        kind: WorldObjectKind::Stump,
+    });
     // Bushes
-    objects.push(ObjectPlacement { x: 1, y: 12, kind: WorldObjectKind::Bush });
-    objects.push(ObjectPlacement { x: 9, y: 12, kind: WorldObjectKind::Bush });
+    objects.push(ObjectPlacement {
+        x: 1,
+        y: 12,
+        kind: WorldObjectKind::Bush,
+    });
+    objects.push(ObjectPlacement {
+        x: 9,
+        y: 12,
+        kind: WorldObjectKind::Bush,
+    });
 
     let forage_points = vec![
-        (4, 3), (6, 4), (3, 14), (4, 16), (5, 14),  // Mushroom grove
-        (12, 13), (14, 15), (8, 11), (10, 14),
+        (4, 3),
+        (6, 4),
+        (3, 14),
+        (4, 16),
+        (5, 14), // Mushroom grove
+        (12, 13),
+        (14, 15),
+        (8, 11),
+        (10, 14),
     ];
 
     MapDef {
@@ -550,17 +668,18 @@ fn generate_mine_entrance() -> MapDef {
     let h = 12usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Open ground
     fill_rect(&mut tiles, 2, 4, 10, 7, TileKind::Dirt);
@@ -599,11 +718,23 @@ fn generate_mine_entrance() -> MapDef {
     let mut objects = Vec::new();
     let rock_positions = [(1, 2), (11, 2), (3, 6), (10, 6), (5, 10), (9, 10)];
     for (rx, ry) in &rock_positions {
-        objects.push(ObjectPlacement { x: *rx, y: *ry, kind: WorldObjectKind::LargeRock });
+        objects.push(ObjectPlacement {
+            x: *rx,
+            y: *ry,
+            kind: WorldObjectKind::LargeRock,
+        });
     }
     // Mountain pines
-    objects.push(ObjectPlacement { x: 1, y: 8, kind: WorldObjectKind::Pine });
-    objects.push(ObjectPlacement { x: 12, y: 8, kind: WorldObjectKind::Pine });
+    objects.push(ObjectPlacement {
+        x: 1,
+        y: 8,
+        kind: WorldObjectKind::Pine,
+    });
+    objects.push(ObjectPlacement {
+        x: 12,
+        y: 8,
+        kind: WorldObjectKind::Pine,
+    });
 
     let forage_points = vec![(4, 9), (9, 9)];
 
@@ -627,17 +758,18 @@ fn generate_mine_floor() -> MapDef {
     let h = 24usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
-    let fill_rect = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Void border (cave walls)
     for x in 0..w {
@@ -688,26 +820,27 @@ fn generate_player_house() -> MapDef {
     let h = 16usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // ── Void perimeter (walls) ──
     for x in 0..w {
-        tiles[x] = TileKind::Void;               // y=0 back wall
-        tiles[(h - 1) * w + x] = TileKind::Void;  // y=15 front wall
+        tiles[x] = TileKind::Void; // y=0 back wall
+        tiles[(h - 1) * w + x] = TileKind::Void; // y=15 front wall
     }
     for y in 0..h {
-        tiles[y * w] = TileKind::Void;            // x=0 left wall
-        tiles[y * w + (w - 1)] = TileKind::Void;  // x=15 right wall
+        tiles[y * w] = TileKind::Void; // x=0 left wall
+        tiles[y * w + (w - 1)] = TileKind::Void; // x=15 right wall
     }
 
     // ── Door opening at front wall (y=15) ──
@@ -730,14 +863,12 @@ fn generate_player_house() -> MapDef {
     tiles[14 * w + 7] = TileKind::Path;
     tiles[14 * w + 8] = TileKind::Path;
 
-    let transitions = vec![
-        MapTransition {
-            from_map: MapId::PlayerHouse,
-            from_rect: (7, 15, 2, 1),
-            to_map: MapId::Farm,
-            to_pos: (16, 1),  // just south of house door at (15,0)
-        },
-    ];
+    let transitions = vec![MapTransition {
+        from_map: MapId::PlayerHouse,
+        from_rect: (7, 15, 2, 1),
+        to_map: MapId::Farm,
+        to_pos: (16, 1), // just south of house door at (15,0)
+    }];
 
     MapDef {
         id: MapId::PlayerHouse,
@@ -758,28 +889,37 @@ fn generate_general_store() -> MapDef {
     let h = 12usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Void perimeter
-    for x in 0..w { tiles[x] = TileKind::Void; tiles[(h-1)*w+x] = TileKind::Void; }
-    for y in 0..h { tiles[y*w] = TileKind::Void; tiles[y*w+(w-1)] = TileKind::Void; }
+    for x in 0..w {
+        tiles[x] = TileKind::Void;
+        tiles[(h - 1) * w + x] = TileKind::Void;
+    }
+    for y in 0..h {
+        tiles[y * w] = TileKind::Void;
+        tiles[y * w + (w - 1)] = TileKind::Void;
+    }
 
     // Door at y=11 (front wall)
     tiles[11 * w + 5] = TileKind::WoodFloor;
     tiles[11 * w + 6] = TileKind::WoodFloor;
 
     // Sales counter — stone strip at y=4
-    for x in 3..9 { tiles[4 * w + x] = TileKind::Stone; }
+    for x in 3..9 {
+        tiles[4 * w + x] = TileKind::Stone;
+    }
 
     // Behind-counter shelving area — stone along back wall
     fill(&mut tiles, 1, 1, 10, 1, TileKind::Stone);
@@ -789,16 +929,17 @@ fn generate_general_store() -> MapDef {
     tiles[10 * w + 6] = TileKind::Path;
 
     // Display shelves along side walls (stone)
-    for y in [3, 5, 7] { tiles[y * w + 1] = TileKind::Stone; tiles[y * w + 10] = TileKind::Stone; }
+    for y in [3, 5, 7] {
+        tiles[y * w + 1] = TileKind::Stone;
+        tiles[y * w + 10] = TileKind::Stone;
+    }
 
-    let transitions = vec![
-        MapTransition {
-            from_map: MapId::GeneralStore,
-            from_rect: (5, 11, 2, 1),
-            to_map: MapId::Town,
-            to_pos: (6, 3),  // just south of store entrance at (5,2)
-        },
-    ];
+    let transitions = vec![MapTransition {
+        from_map: MapId::GeneralStore,
+        from_rect: (5, 11, 2, 1),
+        to_map: MapId::Town,
+        to_pos: (6, 3), // just south of store entrance at (5,2)
+    }];
 
     MapDef {
         id: MapId::GeneralStore,
@@ -819,21 +960,28 @@ fn generate_animal_shop() -> MapDef {
     let h = 12usize;
     let mut tiles = vec![TileKind::WoodFloor; w * h];
 
-    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Void perimeter
-    for x in 0..w { tiles[x] = TileKind::Void; tiles[(h-1)*w+x] = TileKind::Void; }
-    for y in 0..h { tiles[y*w] = TileKind::Void; tiles[y*w+(w-1)] = TileKind::Void; }
+    for x in 0..w {
+        tiles[x] = TileKind::Void;
+        tiles[(h - 1) * w + x] = TileKind::Void;
+    }
+    for y in 0..h {
+        tiles[y * w] = TileKind::Void;
+        tiles[y * w + (w - 1)] = TileKind::Void;
+    }
 
     // Door
     tiles[11 * w + 5] = TileKind::WoodFloor;
@@ -843,7 +991,9 @@ fn generate_animal_shop() -> MapDef {
     fill(&mut tiles, 1, 1, 4, 3, TileKind::Dirt);
 
     // Sales counter — stone at y=4
-    for x in 4..9 { tiles[4 * w + x] = TileKind::Stone; }
+    for x in 4..9 {
+        tiles[4 * w + x] = TileKind::Stone;
+    }
 
     // Back shelves — stone along back wall right side
     fill(&mut tiles, 5, 1, 5, 1, TileKind::Stone);
@@ -852,14 +1002,12 @@ fn generate_animal_shop() -> MapDef {
     tiles[10 * w + 5] = TileKind::Path;
     tiles[10 * w + 6] = TileKind::Path;
 
-    let transitions = vec![
-        MapTransition {
-            from_map: MapId::AnimalShop,
-            from_rect: (5, 11, 2, 1),
-            to_map: MapId::Town,
-            to_pos: (22, 3),
-        },
-    ];
+    let transitions = vec![MapTransition {
+        from_map: MapId::AnimalShop,
+        from_rect: (5, 11, 2, 1),
+        to_map: MapId::Town,
+        to_pos: (22, 3),
+    }];
 
     MapDef {
         id: MapId::AnimalShop,
@@ -880,24 +1028,35 @@ fn generate_blacksmith() -> MapDef {
     let h = 12usize;
     let mut tiles = vec![TileKind::Stone; w * h];
 
-    let fill = |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
-        for dy in 0..rh {
-            for dx in 0..rw {
-                let xx = x0 + dx;
-                let yy = y0 + dy;
-                if xx < w && yy < h {
-                    tiles[yy * w + xx] = kind;
+    let fill =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
                 }
             }
-        }
-    };
+        };
 
     // Void perimeter
-    for x in 0..w { tiles[x] = TileKind::Void; tiles[(h-1)*w+x] = TileKind::Void; }
-    for y in 0..h { tiles[y*w] = TileKind::Void; tiles[y*w+(w-1)] = TileKind::Void; }
+    for x in 0..w {
+        tiles[x] = TileKind::Void;
+        tiles[(h - 1) * w + x] = TileKind::Void;
+    }
+    for y in 0..h {
+        tiles[y * w] = TileKind::Void;
+        tiles[y * w + (w - 1)] = TileKind::Void;
+    }
 
     // Interior stone (already base)
-    for y in 1..(h-1) { for x in 1..(w-1) { tiles[y*w+x] = TileKind::Stone; } }
+    for y in 1..(h - 1) {
+        for x in 1..(w - 1) {
+            tiles[y * w + x] = TileKind::Stone;
+        }
+    }
 
     // Door
     tiles[11 * w + 5] = TileKind::WoodFloor;
@@ -910,7 +1069,9 @@ fn generate_blacksmith() -> MapDef {
     fill(&mut tiles, 4, 5, 3, 3, TileKind::WoodFloor);
 
     // Counter / reception — wood floor at y=4, x=2-6
-    for x in 2..7 { tiles[4 * w + x] = TileKind::WoodFloor; }
+    for x in 2..7 {
+        tiles[4 * w + x] = TileKind::WoodFloor;
+    }
 
     // Entrance area — wood floor near door
     fill(&mut tiles, 4, 9, 4, 2, TileKind::WoodFloor);
@@ -918,14 +1079,12 @@ fn generate_blacksmith() -> MapDef {
     // Storage corner back-left (dirt)
     fill(&mut tiles, 1, 1, 3, 2, TileKind::Dirt);
 
-    let transitions = vec![
-        MapTransition {
-            from_map: MapId::Blacksmith,
-            from_rect: (5, 11, 2, 1),
-            to_map: MapId::Town,
-            to_pos: (22, 14),
-        },
-    ];
+    let transitions = vec![MapTransition {
+        from_map: MapId::Blacksmith,
+        from_rect: (5, 11, 2, 1),
+        to_map: MapId::Town,
+        to_pos: (22, 14),
+    }];
 
     MapDef {
         id: MapId::Blacksmith,

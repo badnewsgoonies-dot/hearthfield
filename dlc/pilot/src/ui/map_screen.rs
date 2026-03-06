@@ -1,7 +1,7 @@
 //! World map screen — shows airports, connections, weather, and missions.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -22,16 +22,16 @@ pub struct ConnectionLine;
 /// Screen-space layout positions for each airport icon.
 fn airport_screen_pos(airport: AirportId) -> (f32, f32) {
     match airport {
-        AirportId::HomeBase    => (400.0, 350.0),
-        AirportId::Windport    => (200.0, 450.0),
-        AirportId::Frostpeak   => (350.0, 150.0),
-        AirportId::Sunhaven    => (600.0, 500.0),
-        AirportId::Ironforge   => (550.0, 250.0),
-        AirportId::Cloudmere   => (150.0, 200.0),
-        AirportId::Duskhollow  => (750.0, 400.0),
-        AirportId::Stormwatch  => (850.0, 200.0),
-        AirportId::Grandcity   => (700.0, 300.0),
-        AirportId::Skyreach    => (950.0, 100.0),
+        AirportId::HomeBase => (400.0, 350.0),
+        AirportId::Windport => (200.0, 450.0),
+        AirportId::Frostpeak => (350.0, 150.0),
+        AirportId::Sunhaven => (600.0, 500.0),
+        AirportId::Ironforge => (550.0, 250.0),
+        AirportId::Cloudmere => (150.0, 200.0),
+        AirportId::Duskhollow => (750.0, 400.0),
+        AirportId::Stormwatch => (850.0, 200.0),
+        AirportId::Grandcity => (700.0, 300.0),
+        AirportId::Skyreach => (950.0, 100.0),
     }
 }
 
@@ -221,7 +221,10 @@ pub fn spawn_map_screen(
     }
 
     // Weather legend
-    let weather_text = format!("Current weather: {:?} | Wind: {:.0} kts", weather.current, weather.wind_speed_knots);
+    let weather_text = format!(
+        "Current weather: {:?} | Wind: {:.0} kts",
+        weather.current, weather.wind_speed_knots
+    );
     let weather_label = commands
         .spawn((
             Text::new(weather_text),
@@ -242,11 +245,14 @@ pub fn spawn_map_screen(
     commands.entity(root).add_child(weather_label);
 }
 
-pub fn despawn_map_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<MapScreenRoot>>,
-) {
+pub fn despawn_map_screen(mut commands: Commands, query: Query<Entity, With<MapScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn handle_map_input(input: Res<PlayerInput>, mut next_state: ResMut<NextState<GameState>>) {
+    if input.cancel || input.menu_cancel {
+        next_state.set(GameState::Playing);
     }
 }

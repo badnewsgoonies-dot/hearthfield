@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// Marker for the screen fade overlay
 #[derive(Component)]

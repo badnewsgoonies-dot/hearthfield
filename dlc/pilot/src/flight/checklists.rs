@@ -3,8 +3,8 @@
 //! Each flight goes through multiple phases, each with a set of items to verify.
 //! The player presses F to check the next item; skipping items increases risk.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Checklist Phase ─────────────────────────────────────────────────────
 
@@ -135,11 +135,20 @@ fn pre_start_items(ac: ChecklistAircraftType) -> Vec<PhaseChecklistItem> {
     ];
     match ac {
         ChecklistAircraftType::Piston => {
-            items.push(PhaseChecklistItem::new("propeller", "Check propeller for nicks"));
+            items.push(PhaseChecklistItem::new(
+                "propeller",
+                "Check propeller for nicks",
+            ));
         }
         ChecklistAircraftType::Jet => {
-            items.push(PhaseChecklistItem::new("intake_check", "Inspect engine intakes clear of FOD"));
-            items.push(PhaseChecklistItem::new("apu_battery", "Verify APU battery charge"));
+            items.push(PhaseChecklistItem::new(
+                "intake_check",
+                "Inspect engine intakes clear of FOD",
+            ));
+            items.push(PhaseChecklistItem::new(
+                "apu_battery",
+                "Verify APU battery charge",
+            ));
         }
     }
     items
@@ -154,15 +163,30 @@ fn engine_start_items(ac: ChecklistAircraftType) -> Vec<PhaseChecklistItem> {
     ];
     match ac {
         ChecklistAircraftType::Piston => {
-            items.push(PhaseChecklistItem::new("primer", "Prime engine 2–4 strokes"));
+            items.push(PhaseChecklistItem::new(
+                "primer",
+                "Prime engine 2–4 strokes",
+            ));
             items.push(PhaseChecklistItem::new("magnetos", "Magnetos set to BOTH"));
-            items.push(PhaseChecklistItem::new("starter_engage", "Engage starter, watch RPM"));
+            items.push(PhaseChecklistItem::new(
+                "starter_engage",
+                "Engage starter, watch RPM",
+            ));
         }
         ChecklistAircraftType::Jet => {
-            items.push(PhaseChecklistItem::new("apu_start", "Start APU, wait for stable"));
+            items.push(PhaseChecklistItem::new(
+                "apu_start",
+                "Start APU, wait for stable",
+            ));
             items.push(PhaseChecklistItem::new("fuel_pumps", "Fuel boost pumps ON"));
-            items.push(PhaseChecklistItem::new("n1_rotation", "Advance throttle, verify N1 rotation"));
-            items.push(PhaseChecklistItem::new("egt_check", "Monitor EGT within limits"));
+            items.push(PhaseChecklistItem::new(
+                "n1_rotation",
+                "Advance throttle, verify N1 rotation",
+            ));
+            items.push(PhaseChecklistItem::new(
+                "egt_check",
+                "Monitor EGT within limits",
+            ));
         }
     }
     items
@@ -191,13 +215,25 @@ fn before_takeoff_items(ac: ChecklistAircraftType) -> Vec<PhaseChecklistItem> {
     ];
     match ac {
         ChecklistAircraftType::Piston => {
-            items.push(PhaseChecklistItem::new("mixture_rich", "Mixture set to RICH"));
-            items.push(PhaseChecklistItem::new("carb_heat_off", "Carburetor heat OFF"));
+            items.push(PhaseChecklistItem::new(
+                "mixture_rich",
+                "Mixture set to RICH",
+            ));
+            items.push(PhaseChecklistItem::new(
+                "carb_heat_off",
+                "Carburetor heat OFF",
+            ));
         }
         ChecklistAircraftType::Jet => {
-            items.push(PhaseChecklistItem::new("takeoff_config", "Takeoff config warning test"));
+            items.push(PhaseChecklistItem::new(
+                "takeoff_config",
+                "Takeoff config warning test",
+            ));
             items.push(PhaseChecklistItem::new("anti_ice", "Anti-ice as required"));
-            items.push(PhaseChecklistItem::new("speed_bugs", "Set V-speed bugs on airspeed indicator"));
+            items.push(PhaseChecklistItem::new(
+                "speed_bugs",
+                "Set V-speed bugs on airspeed indicator",
+            ));
         }
     }
     items
@@ -244,7 +280,10 @@ fn before_landing_items(ac: ChecklistAircraftType) -> Vec<PhaseChecklistItem> {
         PhaseChecklistItem::new("go_around_brief", "Brief go-around procedure"),
     ];
     if ac == ChecklistAircraftType::Piston {
-        items.push(PhaseChecklistItem::new("mixture_rich_land", "Mixture RICH for landing"));
+        items.push(PhaseChecklistItem::new(
+            "mixture_rich_land",
+            "Mixture RICH for landing",
+        ));
     }
     items
 }
@@ -269,14 +308,19 @@ fn shutdown_items(ac: ChecklistAircraftType) -> Vec<PhaseChecklistItem> {
         PhaseChecklistItem::new("logbook_entry", "Complete flight logbook entry"),
     ];
     if ac == ChecklistAircraftType::Jet {
-        items.push(PhaseChecklistItem::new("apu_shutdown", "APU shut down after ground power connected"));
+        items.push(PhaseChecklistItem::new(
+            "apu_shutdown",
+            "APU shut down after ground power connected",
+        ));
     }
     items
 }
 
 // ─── Full checklist builder ──────────────────────────────────────────────
 
-pub fn build_checklist(ac: ChecklistAircraftType) -> Vec<(ChecklistPhase, Vec<PhaseChecklistItem>)> {
+pub fn build_checklist(
+    ac: ChecklistAircraftType,
+) -> Vec<(ChecklistPhase, Vec<PhaseChecklistItem>)> {
     vec![
         (ChecklistPhase::PreStart, pre_start_items(ac)),
         (ChecklistPhase::EngineStart, engine_start_items(ac)),
@@ -403,10 +447,7 @@ pub fn advance_checklist(
         .current_phase()
         .map(|p| p.display_name())
         .unwrap_or("Unknown");
-    let label = checklist
-        .current_item()
-        .map(|i| i.label)
-        .unwrap_or("?");
+    let label = checklist.current_item().map(|i| i.label).unwrap_or("?");
 
     if let Some(item) = checklist.current_item_mut() {
         item.status = ChecklistItemStatus::Checked;
@@ -451,10 +492,7 @@ pub fn skip_checklist_item(
         return;
     }
 
-    let label = checklist
-        .current_item()
-        .map(|i| i.label)
-        .unwrap_or("?");
+    let label = checklist.current_item().map(|i| i.label).unwrap_or("?");
 
     if let Some(item) = checklist.current_item_mut() {
         item.status = ChecklistItemStatus::Failed;

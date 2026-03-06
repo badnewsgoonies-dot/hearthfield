@@ -1,8 +1,8 @@
-use bevy::prelude::*;
-use crate::shared::*;
-use crate::economy::blacksmith::ToolUpgradeRequestEvent;
 use super::hud::ItemAtlasData;
 use super::UiFontHandle;
+use crate::economy::blacksmith::ToolUpgradeRequestEvent;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -159,15 +159,13 @@ pub fn spawn_shop_screen(
                 .with_children(|panel| {
                     // Title row
                     panel
-                        .spawn((
-                            Node {
-                                width: Val::Percent(100.0),
-                                flex_direction: FlexDirection::Row,
-                                justify_content: JustifyContent::SpaceBetween,
-                                align_items: AlignItems::Center,
-                                ..default()
-                            },
-                        ))
+                        .spawn((Node {
+                            width: Val::Percent(100.0),
+                            flex_direction: FlexDirection::Row,
+                            justify_content: JustifyContent::SpaceBetween,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },))
                         .with_children(|title_row| {
                             title_row.spawn((
                                 ShopTitle,
@@ -282,7 +280,9 @@ pub fn spawn_shop_screen(
                     // Hint text
                     panel.spawn((
                         ShopHintText,
-                        Text::new("Up/Down: Select | Enter: Confirm | Tab: Toggle Mode | Esc: Close"),
+                        Text::new(
+                            "Up/Down: Select | Enter: Confirm | Tab: Toggle Mode | Esc: Close",
+                        ),
                         TextFont {
                             font: font_handle.0.clone(),
                             font_size: 11.0,
@@ -301,14 +301,20 @@ fn build_sell_list(
     let mut result = Vec::new();
     for slot in inventory.slots.iter().flatten() {
         // Check if we already have this item in the sell list
-        if result.iter().any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &slot.item_id) {
+        if result
+            .iter()
+            .any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &slot.item_id)
+        {
             continue;
         }
         let name = item_registry
             .get(&slot.item_id)
             .map(|d| d.name.clone())
             .unwrap_or_else(|| slot.item_id.clone());
-        let price = item_registry.get(&slot.item_id).map(|d| d.sell_price).unwrap_or(1);
+        let price = item_registry
+            .get(&slot.item_id)
+            .map(|d| d.sell_price)
+            .unwrap_or(1);
         let total_qty = inventory.count(&slot.item_id) as u8;
         result.push((slot.item_id.clone(), name, price, total_qty));
     }
@@ -353,10 +359,7 @@ fn build_upgrade_entries(
         .collect()
 }
 
-pub fn despawn_shop_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<ShopScreenRoot>>,
-) {
+pub fn despawn_shop_screen(mut commands: Commands, query: Query<Entity, With<ShopScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -373,9 +376,31 @@ pub fn update_shop_display(
     item_registry: Res<ItemRegistry>,
     player: Res<PlayerState>,
     mut gold_query: Query<&mut Text, With<ShopGoldDisplay>>,
-    mut mode_query: Query<&mut Text, (With<ShopModeText>, Without<ShopGoldDisplay>, Without<ShopItemName>, Without<ShopItemPrice>)>,
-    mut name_query: Query<(&ShopItemName, &mut Text), (Without<ShopGoldDisplay>, Without<ShopModeText>, Without<ShopItemPrice>)>,
-    mut price_query: Query<(&ShopItemPrice, &mut Text, &mut TextColor), (Without<ShopGoldDisplay>, Without<ShopModeText>, Without<ShopItemName>)>,
+    mut mode_query: Query<
+        &mut Text,
+        (
+            With<ShopModeText>,
+            Without<ShopGoldDisplay>,
+            Without<ShopItemName>,
+            Without<ShopItemPrice>,
+        ),
+    >,
+    mut name_query: Query<
+        (&ShopItemName, &mut Text),
+        (
+            Without<ShopGoldDisplay>,
+            Without<ShopModeText>,
+            Without<ShopItemPrice>,
+        ),
+    >,
+    mut price_query: Query<
+        (&ShopItemPrice, &mut Text, &mut TextColor),
+        (
+            Without<ShopGoldDisplay>,
+            Without<ShopModeText>,
+            Without<ShopItemName>,
+        ),
+    >,
     mut row_query: Query<(&ShopListItem, &mut BackgroundColor)>,
     mut icon_query: Query<(&ShopItemIcon, &mut ImageNode, &mut Visibility)>,
 ) {
@@ -403,8 +428,15 @@ pub fn update_shop_display(
             let idx = name_comp.index;
             if idx < ui_state.upgrade_entries.len() {
                 let entry = &ui_state.upgrade_entries[idx];
-                let status = if entry.is_upgrading { " [IN PROGRESS]" } else { "" };
-                **text = format!("{:?}: {:?} → {:?}{}", entry.tool, entry.current_tier, entry.target_tier, status);
+                let status = if entry.is_upgrading {
+                    " [IN PROGRESS]"
+                } else {
+                    ""
+                };
+                **text = format!(
+                    "{:?}: {:?} → {:?}{}",
+                    entry.tool, entry.current_tier, entry.target_tier, status
+                );
             } else {
                 **text = String::new();
             }
@@ -413,7 +445,10 @@ pub fn update_shop_display(
             let idx = price_comp.index;
             if idx < ui_state.upgrade_entries.len() {
                 let entry = &ui_state.upgrade_entries[idx];
-                **text = format!("{}G + {}x {}", entry.gold_cost, entry.bar_qty, entry.bar_name);
+                **text = format!(
+                    "{}G + {}x {}",
+                    entry.gold_cost, entry.bar_qty, entry.bar_name
+                );
                 if entry.is_upgrading {
                     *color = TextColor(Color::srgb(0.6, 0.6, 0.6));
                 } else if entry.can_afford && entry.has_bars {
@@ -484,7 +519,10 @@ pub fn update_shop_display(
         } else if ui_state.is_buy_mode {
             ui_state.buy_items.get(idx).map(|l| l.item_id.as_str())
         } else {
-            ui_state.sell_items.get(idx).map(|(id, _, _, _)| id.as_str())
+            ui_state
+                .sell_items
+                .get(idx)
+                .map(|(id, _, _, _)| id.as_str())
         };
         if let Some(id) = item_id {
             if let Some(def) = item_registry.get(id) {
@@ -522,7 +560,9 @@ pub fn shop_navigation(
     mut toast_events: EventWriter<ToastEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
 
     let max_items = if ui_state.upgrade_mode {
         ui_state.upgrade_entries.len()
@@ -553,7 +593,8 @@ pub fn shop_navigation(
             } else if !ui_state.is_buy_mode && !ui_state.upgrade_mode {
                 // sell → upgrade
                 ui_state.upgrade_mode = true;
-                ui_state.upgrade_entries = build_upgrade_entries(&player, &inventory, &upgrade_queue);
+                ui_state.upgrade_entries =
+                    build_upgrade_entries(&player, &inventory, &upgrade_queue);
             } else {
                 // upgrade → buy
                 ui_state.upgrade_mode = false;
@@ -576,7 +617,8 @@ pub fn shop_navigation(
                 let tool = ui_state.upgrade_entries[ui_state.cursor].tool;
                 upgrade_events.send(ToolUpgradeRequestEvent { tool });
                 // Refresh entries after submitting request
-                ui_state.upgrade_entries = build_upgrade_entries(&player, &inventory, &upgrade_queue);
+                ui_state.upgrade_entries =
+                    build_upgrade_entries(&player, &inventory, &upgrade_queue);
             }
         } else if ui_state.is_buy_mode {
             // Buy

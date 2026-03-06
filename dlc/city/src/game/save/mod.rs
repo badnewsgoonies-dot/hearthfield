@@ -11,8 +11,8 @@ use crate::game::events::DayAdvanced;
 use crate::game::resources::{
     CareerProgression, CoworkerProfile, CoworkerRole, DayClock, DayOutcome, DayStats,
     FiredMilestones, InboxState, MilestoneKind, OfficeEconomyRules, OfficeRunConfig, OfficeTask,
-    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind, TaskPriority,
-    UnlockCatalogState, WorkerStats,
+    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind,
+    TaskPriority, UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
 

@@ -4,8 +4,8 @@
 //! atlas-backed menu buttons with Bevy 0.15 pointer observers, and common
 //! title/footer text spawners.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONSTANTS — atlas frame indices for play_button.png (192×64, 2×2 grid)

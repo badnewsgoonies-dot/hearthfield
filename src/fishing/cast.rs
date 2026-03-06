@@ -3,12 +3,12 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::shared::*;
-use super::{Bobber, FishingPhase, FishingState, FishingMinigameState, TackleKind};
 use super::fish_select::select_fish;
+use super::legendaries::is_legendary;
 use super::resolve::end_fishing_escape;
 use super::skill::FishingSkill;
-use super::legendaries::is_legendary;
+use super::{Bobber, FishingMinigameState, FishingPhase, FishingState, TackleKind};
+use crate::shared::*;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -31,11 +31,11 @@ const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
 /// | (unknown)     | 1.00       | No speed bonus                            |
 pub fn bait_bite_multiplier(bait_id: &str) -> f32 {
     match bait_id {
-        "worm_bait"   => 0.75,
+        "worm_bait" => 0.75,
         "magnet_bait" => 1.00, // magnet bait benefits treasure, not speed
-        "wild_bait"   => 0.70,
-        "bait"        => 0.85, // generic bait = moderate 15% faster
-        _             => 1.00, // unknown bait IDs get no speed bonus
+        "wild_bait" => 0.70,
+        "bait" => 0.85, // generic bait = moderate 15% faster
+        _ => 1.00,      // unknown bait IDs get no speed bonus
     }
 }
 
@@ -141,10 +141,8 @@ pub fn handle_tool_use_for_fishing(
         // Update fishing state
         fishing_state.phase = FishingPhase::WaitingForBite;
         fishing_state.bobber_tile = (target_x, target_y);
-        fishing_state.bobber_pos = Vec2::new(
-            target_x as f32 * TILE_SIZE,
-            target_y as f32 * TILE_SIZE,
-        );
+        fishing_state.bobber_pos =
+            Vec2::new(target_x as f32 * TILE_SIZE, target_y as f32 * TILE_SIZE);
         fishing_state.bite_timer = Some(Timer::from_seconds(wait, TimerMode::Once));
         fishing_state.bait_id = bait_id.clone();
         fishing_state.bait_equipped = bait_equipped;
@@ -415,4 +413,3 @@ mod tests {
         assert!(trues < 3000, "Too many double catches: {}", trues);
     }
 }
-

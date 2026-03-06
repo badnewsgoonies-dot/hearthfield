@@ -145,6 +145,7 @@
         let errorCount = 0;
 
         function showError(msg) {
+            if (msg && msg.includes('Using exceptions for control flow')) return;
             errorCount++;
             if (errorCount > 20) return;
             errorOverlay.style.display = 'block';
@@ -157,9 +158,13 @@
         const origError = console.error;
         console.error = function() {
             origError.apply(console, arguments);
-            const msg = Array.from(arguments).map(a =>
-                typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
-            ).join(' ');
+            const msg = Array.from(arguments).map(a => {
+                if (a instanceof Error) return a.message + '\n' + (a.stack || '');
+                if (typeof a === 'object') {
+                    try { return JSON.stringify(a, null, 2); } catch { return String(a); }
+                }
+                return String(a);
+            }).join(' ');
             showError(msg);
         };
 
@@ -210,15 +215,22 @@
             loadingText.textContent = 'Ready!';
             setTimeout(() => loadingScreen.classList.add('hidden'), 300);
         } catch (err) {
-            loadingText.textContent = 'Error: ' + err.message;
-            loadingBar.style.background = '#c44';
-            loadingBar.style.width = '100%';
-            console.error('Hearthfield load failed:', err);
+            // Bevy/winit uses throw for control flow in WASM — not a real error
+            if (err && String(err).includes('Using exceptions for control flow')) {
+                loadingBar.style.width = '100%';
+                loadingText.textContent = 'Ready!';
+                setTimeout(() => loadingScreen.classList.add('hidden'), 300);
+            } else {
+                loadingText.textContent = 'Error: ' + err.message;
+                loadingBar.style.background = '#c44';
+                loadingBar.style.width = '100%';
+                console.error('Hearthfield load failed:', err);
 
-            const hint = document.createElement('p');
-            hint.style.cssText = 'margin-top:1em;font-size:0.8em;opacity:0.6;max-width:80%;text-align:center;';
-            hint.textContent = 'Try refreshing, or open on a desktop browser. Mobile devices may have memory limitations with large WASM games.';
-            loadingScreen.appendChild(hint);
+                const hint = document.createElement('p');
+                hint.style.cssText = 'margin-top:1em;font-size:0.8em;opacity:0.6;max-width:80%;text-align:center;';
+                hint.textContent = 'Try refreshing, or open on a desktop browser. Mobile devices may have memory limitations with large WASM games.';
+                loadingScreen.appendChild(hint);
+            }
         }
 
         // Prevent iOS Safari gestures

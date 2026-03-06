@@ -1,7 +1,7 @@
 //! Achievement tracking system.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub fn check_achievements(
@@ -17,10 +17,7 @@ pub fn check_achievements(
     let checks: Vec<(&str, bool)> = vec![
         ("first_flight", play_stats.total_flights >= 1),
         ("perfect_10", play_stats.perfect_landings >= 10),
-        (
-            "all_airports",
-            play_stats.airports_visited.len() >= 10,
-        ),
+        ("all_airports", play_stats.airports_visited.len() >= 10),
         ("captain_rank", pilot_state.rank >= PilotRank::Captain),
         ("ace_rank", pilot_state.rank >= PilotRank::Ace),
         (
@@ -29,12 +26,12 @@ pub fn check_achievements(
         ),
         ("100_flights", play_stats.total_flights >= 100),
         ("500_flights", play_stats.total_flights >= 500),
-        (
-            "all_licenses",
-            pilot_state.licenses.len() >= 7,
-        ),
+        ("all_licenses", pilot_state.licenses.len() >= 7),
         ("cargo_king", play_stats.missions_completed >= 100),
-        ("no_damage", play_stats.total_flights >= 50 && play_stats.rough_landings == 0),
+        (
+            "no_damage",
+            play_stats.total_flights >= 50 && play_stats.rough_landings == 0,
+        ),
     ];
 
     for (id, condition) in checks {

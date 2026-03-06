@@ -3,9 +3,9 @@
 //! Each chapter has 3–5 missions that must be completed in order. Story progress
 //! is tracked in the `StoryProgress` resource and displayed in the logbook.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ─── Story Chapters ──────────────────────────────────────────────────────
 
@@ -45,16 +45,34 @@ impl StoryChapter {
 
     pub fn description(&self) -> &'static str {
         match self {
-            Self::Chapter1FirstSolo => "Training flights at HomeBase with instructor_chen. Learn the basics of flight.",
-            Self::Chapter2MaidenVoyage => "Your first passenger flight — take travelers to Grandcity.",
-            Self::Chapter3StormWarning => "A storm forces you to divert. Emergency landing at Stormwatch.",
-            Self::Chapter4CargoKing => "Build a cargo route to Ironforge and prove your reliability.",
-            Self::Chapter5IslandHopper => "Seaplane flights to CoralCay (Sunhaven) through island chains.",
-            Self::Chapter6HighAndMighty => "Tackle the challenging approach into Skyreach at high altitude.",
+            Self::Chapter1FirstSolo => {
+                "Training flights at HomeBase with instructor_chen. Learn the basics of flight."
+            }
+            Self::Chapter2MaidenVoyage => {
+                "Your first passenger flight — take travelers to Grandcity."
+            }
+            Self::Chapter3StormWarning => {
+                "A storm forces you to divert. Emergency landing at Stormwatch."
+            }
+            Self::Chapter4CargoKing => {
+                "Build a cargo route to Ironforge and prove your reliability."
+            }
+            Self::Chapter5IslandHopper => {
+                "Seaplane flights to CoralCay (Sunhaven) through island chains."
+            }
+            Self::Chapter6HighAndMighty => {
+                "Tackle the challenging approach into Skyreach at high altitude."
+            }
             Self::Chapter7NightRider => "Night mail runs through fog — instrument skills tested.",
-            Self::Chapter8TheBigEmergency => "Handle a major in-flight emergency and bring everyone home safe.",
-            Self::Chapter9FullCircle => "Visit every airport in a single day — a test of endurance.",
-            Self::Chapter10LegendaryPilot => "The final challenge. Earn the Ace rank and become a legend.",
+            Self::Chapter8TheBigEmergency => {
+                "Handle a major in-flight emergency and bring everyone home safe."
+            }
+            Self::Chapter9FullCircle => {
+                "Visit every airport in a single day — a test of endurance."
+            }
+            Self::Chapter10LegendaryPilot => {
+                "The final challenge. Earn the Ace rank and become a legend."
+            }
         }
     }
 
@@ -579,7 +597,9 @@ impl StoryProgress {
 
     pub fn progress_percent(&self) -> f32 {
         let total = all_story_missions().len() as f32;
-        if total == 0.0 { return 0.0; }
+        if total == 0.0 {
+            return 0.0;
+        }
         self.completed_missions.len() as f32 / total * 100.0
     }
 }

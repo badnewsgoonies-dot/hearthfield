@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use bevy::input::gamepad::{GamepadButton, GamepadAxis};
-use bevy::input::touch::Touches;
 use crate::shared::*;
+use bevy::input::gamepad::{GamepadAxis, GamepadButton};
+use bevy::input::touch::Touches;
+use bevy::prelude::*;
 
 pub struct InputPlugin;
 
@@ -46,12 +46,8 @@ fn apply_dead_zone(value: f32) -> f32 {
 
 /// Read the left stick as a Vec2, applying dead zone per axis.
 fn read_left_stick(gamepad: &Gamepad) -> Vec2 {
-    let x = apply_dead_zone(
-        gamepad.get(GamepadAxis::LeftStickX).unwrap_or(0.0),
-    );
-    let y = apply_dead_zone(
-        gamepad.get(GamepadAxis::LeftStickY).unwrap_or(0.0),
-    );
+    let x = apply_dead_zone(gamepad.get(GamepadAxis::LeftStickX).unwrap_or(0.0));
+    let y = apply_dead_zone(gamepad.get(GamepadAxis::LeftStickY).unwrap_or(0.0));
     Vec2::new(x, y)
 }
 
@@ -94,10 +90,10 @@ pub enum TouchZone {
     DpadDown,
     DpadLeft,
     DpadRight,
-    ActionUse,    // top button — tool use (Space)
-    ActionTalk,   // right button — interact (F)
-    ActionItem,   // bottom button — tool secondary (R)
-    ActionMenu,   // left button — pause (Esc)
+    ActionUse,  // top button — tool use (Space)
+    ActionTalk, // right button — interact (F)
+    ActionItem, // bottom button — tool secondary (R)
+    ActionMenu, // left button — pause (Esc)
 }
 
 /// Tracks which touch zones are currently active and which were just pressed
@@ -157,15 +153,55 @@ struct ZoneDef {
 ///   Action buttons center ~(87.5%, 81.5%) with ~5.2% radius per button
 const TOUCH_ZONES: &[ZoneDef] = &[
     // D-pad directions (centered on bottom-left)
-    ZoneDef { zone: TouchZone::DpadUp,    cx: 0.125, cy: 0.72, radius: 0.055 },
-    ZoneDef { zone: TouchZone::DpadDown,  cx: 0.125, cy: 0.92, radius: 0.055 },
-    ZoneDef { zone: TouchZone::DpadLeft,  cx: 0.060, cy: 0.82, radius: 0.055 },
-    ZoneDef { zone: TouchZone::DpadRight, cx: 0.190, cy: 0.82, radius: 0.055 },
+    ZoneDef {
+        zone: TouchZone::DpadUp,
+        cx: 0.125,
+        cy: 0.72,
+        radius: 0.055,
+    },
+    ZoneDef {
+        zone: TouchZone::DpadDown,
+        cx: 0.125,
+        cy: 0.92,
+        radius: 0.055,
+    },
+    ZoneDef {
+        zone: TouchZone::DpadLeft,
+        cx: 0.060,
+        cy: 0.82,
+        radius: 0.055,
+    },
+    ZoneDef {
+        zone: TouchZone::DpadRight,
+        cx: 0.190,
+        cy: 0.82,
+        radius: 0.055,
+    },
     // Action buttons (centered on bottom-right)
-    ZoneDef { zone: TouchZone::ActionUse,  cx: 0.875, cy: 0.72, radius: 0.050 },
-    ZoneDef { zone: TouchZone::ActionTalk, cx: 0.940, cy: 0.82, radius: 0.050 },
-    ZoneDef { zone: TouchZone::ActionItem, cx: 0.875, cy: 0.92, radius: 0.050 },
-    ZoneDef { zone: TouchZone::ActionMenu, cx: 0.810, cy: 0.82, radius: 0.050 },
+    ZoneDef {
+        zone: TouchZone::ActionUse,
+        cx: 0.875,
+        cy: 0.72,
+        radius: 0.050,
+    },
+    ZoneDef {
+        zone: TouchZone::ActionTalk,
+        cx: 0.940,
+        cy: 0.82,
+        radius: 0.050,
+    },
+    ZoneDef {
+        zone: TouchZone::ActionItem,
+        cx: 0.875,
+        cy: 0.92,
+        radius: 0.050,
+    },
+    ZoneDef {
+        zone: TouchZone::ActionMenu,
+        cx: 0.810,
+        cy: 0.82,
+        radius: 0.050,
+    },
 ];
 
 /// Reads Bevy's `Touches` resource and maps active touch positions to zones,
@@ -259,28 +295,21 @@ fn process_touch_input(
             }
 
             // Action buttons (just_pressed)
-            input.tool_use = input.tool_use
-                || zone_state.is_just_pressed(TouchZone::ActionUse);
+            input.tool_use = input.tool_use || zone_state.is_just_pressed(TouchZone::ActionUse);
             input.attack = input.tool_use;
-            input.interact = input.interact
-                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+            input.interact = input.interact || zone_state.is_just_pressed(TouchZone::ActionTalk);
             // Item button → open inventory (most useful on mobile)
-            input.open_inventory = input.open_inventory
-                || zone_state.is_just_pressed(TouchZone::ActionItem);
-            input.pause = input.pause
-                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+            input.open_inventory =
+                input.open_inventory || zone_state.is_just_pressed(TouchZone::ActionItem);
+            input.pause = input.pause || zone_state.is_just_pressed(TouchZone::ActionMenu);
         }
 
         InputContext::Menu => {
             // D-pad → UI navigation (just_pressed)
-            input.ui_up = input.ui_up
-                || zone_state.is_just_pressed(TouchZone::DpadUp);
-            input.ui_down = input.ui_down
-                || zone_state.is_just_pressed(TouchZone::DpadDown);
-            input.ui_left = input.ui_left
-                || zone_state.is_just_pressed(TouchZone::DpadLeft);
-            input.ui_right = input.ui_right
-                || zone_state.is_just_pressed(TouchZone::DpadRight);
+            input.ui_up = input.ui_up || zone_state.is_just_pressed(TouchZone::DpadUp);
+            input.ui_down = input.ui_down || zone_state.is_just_pressed(TouchZone::DpadDown);
+            input.ui_left = input.ui_left || zone_state.is_just_pressed(TouchZone::DpadLeft);
+            input.ui_right = input.ui_right || zone_state.is_just_pressed(TouchZone::DpadRight);
             // Talk → confirm, Use → confirm (either button works)
             input.ui_confirm = input.ui_confirm
                 || zone_state.is_just_pressed(TouchZone::ActionTalk)
@@ -289,37 +318,29 @@ fn process_touch_input(
             input.ui_cancel = input.ui_cancel
                 || zone_state.is_just_pressed(TouchZone::ActionMenu)
                 || zone_state.is_just_pressed(TouchZone::ActionItem);
-            input.pause = input.pause
-                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+            input.pause = input.pause || zone_state.is_just_pressed(TouchZone::ActionMenu);
             // Item also triggers open_inventory for toggle-close
-            input.open_inventory = input.open_inventory
-                || zone_state.is_just_pressed(TouchZone::ActionItem);
+            input.open_inventory =
+                input.open_inventory || zone_state.is_just_pressed(TouchZone::ActionItem);
         }
 
         InputContext::Dialogue => {
             // Talk → advance dialogue
-            input.interact = input.interact
-                || zone_state.is_just_pressed(TouchZone::ActionTalk);
+            input.interact = input.interact || zone_state.is_just_pressed(TouchZone::ActionTalk);
             // D-pad up/down → choice selection
-            input.ui_up = input.ui_up
-                || zone_state.is_just_pressed(TouchZone::DpadUp);
-            input.ui_down = input.ui_down
-                || zone_state.is_just_pressed(TouchZone::DpadDown);
+            input.ui_up = input.ui_up || zone_state.is_just_pressed(TouchZone::DpadUp);
+            input.ui_down = input.ui_down || zone_state.is_just_pressed(TouchZone::DpadDown);
             // Menu → cancel
-            input.ui_cancel = input.ui_cancel
-                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+            input.ui_cancel = input.ui_cancel || zone_state.is_just_pressed(TouchZone::ActionMenu);
         }
 
         InputContext::Fishing => {
             // Use button held → reel
-            input.fishing_reel = input.fishing_reel
-                || zone_state.is_held(TouchZone::ActionUse);
+            input.fishing_reel = input.fishing_reel || zone_state.is_held(TouchZone::ActionUse);
             // Use button just pressed → cast
-            input.tool_use = input.tool_use
-                || zone_state.is_just_pressed(TouchZone::ActionUse);
+            input.tool_use = input.tool_use || zone_state.is_just_pressed(TouchZone::ActionUse);
             // Menu → cancel fishing
-            input.ui_cancel = input.ui_cancel
-                || zone_state.is_just_pressed(TouchZone::ActionMenu);
+            input.ui_cancel = input.ui_cancel || zone_state.is_just_pressed(TouchZone::ActionMenu);
         }
 
         InputContext::Cutscene => {
@@ -357,8 +378,7 @@ fn reset_and_read_input(
     // reads navigator.getGamepads() and spawns gamepad entities the same way.
     let gp = gamepads.iter().next();
 
-    input.any_key =
-        keys.get_just_pressed().next().is_some()
+    input.any_key = keys.get_just_pressed().next().is_some()
         || mouse.get_just_pressed().next().is_some()
         || gp.is_some_and(|g| {
             g.just_pressed(GamepadButton::South)
@@ -411,8 +431,8 @@ fn reset_and_read_input(
             input.interact = keys.just_pressed(bindings.interact);
             input.tool_use =
                 keys.just_pressed(bindings.tool_use) || mouse.just_pressed(MouseButton::Left);
-            input.tool_secondary =
-                keys.just_pressed(bindings.tool_secondary) || mouse.just_pressed(MouseButton::Right);
+            input.tool_secondary = keys.just_pressed(bindings.tool_secondary)
+                || mouse.just_pressed(MouseButton::Right);
             input.attack = input.tool_use;
 
             input.open_inventory = keys.just_pressed(bindings.open_inventory);
@@ -449,14 +469,14 @@ fn reset_and_read_input(
             input.quickload = keys.just_pressed(KeyCode::F9);
 
             // UI navigation for in-game overlays (chest panel, elevator, etc.)
-            input.ui_up = keys.just_pressed(KeyCode::ArrowUp)
-                || keys.just_pressed(bindings.move_up);
-            input.ui_down = keys.just_pressed(KeyCode::ArrowDown)
-                || keys.just_pressed(bindings.move_down);
-            input.ui_left = keys.just_pressed(KeyCode::ArrowLeft)
-                || keys.just_pressed(bindings.move_left);
-            input.ui_right = keys.just_pressed(KeyCode::ArrowRight)
-                || keys.just_pressed(bindings.move_right);
+            input.ui_up =
+                keys.just_pressed(KeyCode::ArrowUp) || keys.just_pressed(bindings.move_up);
+            input.ui_down =
+                keys.just_pressed(KeyCode::ArrowDown) || keys.just_pressed(bindings.move_down);
+            input.ui_left =
+                keys.just_pressed(KeyCode::ArrowLeft) || keys.just_pressed(bindings.move_left);
+            input.ui_right =
+                keys.just_pressed(KeyCode::ArrowRight) || keys.just_pressed(bindings.move_right);
             input.tab_pressed = keys.just_pressed(KeyCode::Tab);
             input.ui_confirm = keys.just_pressed(bindings.ui_confirm);
             input.ui_cancel = keys.just_pressed(bindings.ui_cancel);
@@ -469,13 +489,15 @@ fn reset_and_read_input(
                 input.tool_use = input.tool_use || gp.just_pressed(GamepadButton::West);
                 input.attack = input.tool_use;
                 // Y (North) → tool_secondary
-                input.tool_secondary = input.tool_secondary || gp.just_pressed(GamepadButton::North);
+                input.tool_secondary =
+                    input.tool_secondary || gp.just_pressed(GamepadButton::North);
                 // B (East) → pause
                 input.pause = input.pause || gp.just_pressed(GamepadButton::East);
                 // Start → pause
                 input.pause = input.pause || gp.just_pressed(GamepadButton::Start);
                 // Select/Back → open_inventory
-                input.open_inventory = input.open_inventory || gp.just_pressed(GamepadButton::Select);
+                input.open_inventory =
+                    input.open_inventory || gp.just_pressed(GamepadButton::Select);
                 // RB (Right bumper) → tool_next
                 input.tool_next = input.tool_next || gp.just_pressed(GamepadButton::RightTrigger);
                 // LB (Left bumper) → tool_prev
@@ -522,11 +544,15 @@ fn reset_and_read_input(
             if let Some(gp) = gp {
                 // A → confirm / activate
                 input.ui_confirm = input.ui_confirm || gp.just_pressed(GamepadButton::South);
-                // B → cancel
+                // B → cancel / close
                 input.ui_cancel = input.ui_cancel || gp.just_pressed(GamepadButton::East);
                 input.pause = input.pause || gp.just_pressed(GamepadButton::Start);
+                // Select → toggle-close inventory (same button that opened it)
+                input.open_inventory =
+                    input.open_inventory || gp.just_pressed(GamepadButton::Select);
                 // RB → tab
-                input.tab_pressed = input.tab_pressed || gp.just_pressed(GamepadButton::RightTrigger);
+                input.tab_pressed =
+                    input.tab_pressed || gp.just_pressed(GamepadButton::RightTrigger);
 
                 // D-pad or left stick for UI navigation
                 let (dup, ddown, dleft, dright) = read_dpad_just_pressed(gp);

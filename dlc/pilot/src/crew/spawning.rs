@@ -1,8 +1,8 @@
 //! Crew spawning — place NPCs in appropriate zones.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
-use crate::shared::*;
 
 #[derive(Resource, Default)]
 pub struct CrewSpawned {
@@ -25,7 +25,7 @@ pub struct CrewPortraitData {
 }
 
 fn crew_sprite_file(_sprite_index: usize) -> String {
-    "sprites/crew_sheet.png".to_string()
+    "dlc/pilot/assets/sprites/crew_sheet.png".to_string()
 }
 
 fn crew_sprite_index(sprite_index: usize) -> usize {
@@ -33,7 +33,7 @@ fn crew_sprite_index(sprite_index: usize) -> usize {
 }
 
 fn crew_portrait_file() -> &'static str {
-    "sprites/crew_portraits.png"
+    "dlc/pilot/assets/sprites/crew_portraits.png"
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -114,9 +114,11 @@ pub fn spawn_crew_for_zone(
             }
 
             let sprite_file = crew_sprite_file(member.sprite_index as usize);
-            let image = crew_sprites.images.entry(sprite_file.clone()).or_insert_with(|| {
-                asset_server.load(&sprite_file)
-            }).clone();
+            let image = crew_sprites
+                .images
+                .entry(sprite_file.clone())
+                .or_insert_with(|| asset_server.load(&sprite_file))
+                .clone();
             let layout_handle = crew_sprites.layout.clone();
 
             commands.spawn((

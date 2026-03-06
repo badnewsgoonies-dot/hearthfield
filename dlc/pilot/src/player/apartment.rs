@@ -1,7 +1,7 @@
 //! Pilot apartment/quarters — rest, interact with furniture, morning routine.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA TYPES
@@ -83,10 +83,30 @@ impl Default for ApartmentState {
     fn default() -> Self {
         Self {
             furniture: vec![
-                FurnitureItem { kind: FurnitureKind::Bed, tier: 0, grid_x: 2, grid_y: 1 },
-                FurnitureItem { kind: FurnitureKind::Desk, tier: 0, grid_x: 5, grid_y: 1 },
-                FurnitureItem { kind: FurnitureKind::Bookshelf, tier: 0, grid_x: 7, grid_y: 1 },
-                FurnitureItem { kind: FurnitureKind::Radio, tier: 0, grid_x: 5, grid_y: 3 },
+                FurnitureItem {
+                    kind: FurnitureKind::Bed,
+                    tier: 0,
+                    grid_x: 2,
+                    grid_y: 1,
+                },
+                FurnitureItem {
+                    kind: FurnitureKind::Desk,
+                    tier: 0,
+                    grid_x: 5,
+                    grid_y: 1,
+                },
+                FurnitureItem {
+                    kind: FurnitureKind::Bookshelf,
+                    tier: 0,
+                    grid_x: 7,
+                    grid_y: 1,
+                },
+                FurnitureItem {
+                    kind: FurnitureKind::Radio,
+                    tier: 0,
+                    grid_x: 5,
+                    grid_y: 3,
+                },
             ],
             decorations: vec![DecorationKind::Lamp],
             comfort_level: 30.0,
@@ -137,8 +157,18 @@ impl ApartmentState {
     pub fn hotel_room(_airport: AirportId) -> Self {
         Self {
             furniture: vec![
-                FurnitureItem { kind: FurnitureKind::Bed, tier: 0, grid_x: 2, grid_y: 1 },
-                FurnitureItem { kind: FurnitureKind::Desk, tier: 0, grid_x: 4, grid_y: 1 },
+                FurnitureItem {
+                    kind: FurnitureKind::Bed,
+                    tier: 0,
+                    grid_x: 2,
+                    grid_y: 1,
+                },
+                FurnitureItem {
+                    kind: FurnitureKind::Desk,
+                    tier: 0,
+                    grid_x: 4,
+                    grid_y: 1,
+                },
             ],
             decorations: Vec::new(),
             comfort_level: 20.0,

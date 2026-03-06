@@ -1,7 +1,7 @@
 //! Player journal/diary — auto-entries, custom notes, milestones.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -55,12 +55,7 @@ pub struct JournalEntry {
 }
 
 impl JournalEntry {
-    pub fn new(
-        calendar: &Calendar,
-        title: &str,
-        body: &str,
-        category: JournalCategory,
-    ) -> Self {
+    pub fn new(calendar: &Calendar, title: &str, body: &str, category: JournalCategory) -> Self {
         Self {
             day: calendar.day,
             season: calendar.season,
@@ -200,7 +195,10 @@ pub fn record_rank_promotion(
         journal.add_entry(entry);
 
         toast_events.send(ToastEvent {
-            message: format!("📓 Journal: Promotion to {} recorded!", ev.new_rank.display_name()),
+            message: format!(
+                "📓 Journal: Promotion to {} recorded!",
+                ev.new_rank.display_name()
+            ),
             duration_secs: 3.0,
         });
     }
@@ -253,9 +251,7 @@ pub fn check_journal_milestones(
         // Halfway through airports
         let total_airports = 10;
         let visited = journal.airports_first_visited.len();
-        if visited >= total_airports / 2
-            && !journal.has_milestone("half_airports")
-        {
+        if visited >= total_airports / 2 && !journal.has_milestone("half_airports") {
             journal
                 .milestones_recorded
                 .push("half_airports".to_string());
@@ -277,9 +273,7 @@ pub fn check_journal_milestones(
 
         // All airports visited
         if visited >= total_airports && !journal.has_milestone("all_airports") {
-            journal
-                .milestones_recorded
-                .push("all_airports".to_string());
+            journal.milestones_recorded.push("all_airports".to_string());
             let entry = JournalEntry::new(
                 &calendar,
                 "Globe Trotter",
@@ -291,9 +285,7 @@ pub fn check_journal_milestones(
 
         // 50 flights milestone
         if play_stats.total_flights >= 50 && !journal.has_milestone("50_flights") {
-            journal
-                .milestones_recorded
-                .push("50_flights".to_string());
+            journal.milestones_recorded.push("50_flights".to_string());
             let entry = JournalEntry::new(
                 &calendar,
                 "50 Flights Completed",

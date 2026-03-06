@@ -1,8 +1,8 @@
 //! Zone rendering — tile spawning, collision map sync, zone decorations, animated tiles.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::maps::generate_zone_map;
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Marker for animated tiles.
 #[derive(Component)]
@@ -32,7 +32,13 @@ pub fn spawn_initial_map(
     let (w, h, tiles) = generate_zone_map(player_location.airport, player_location.zone);
     spawn_zone_tiles(&mut commands, &tiles, w, h);
     spawn_animated_tiles(&mut commands, player_location.zone, w, h);
-    spawn_zone_decorations(&mut commands, player_location.airport, player_location.zone, w, h);
+    spawn_zone_decorations(
+        &mut commands,
+        player_location.airport,
+        player_location.zone,
+        w,
+        h,
+    );
     world_map.width = w;
     world_map.height = h;
     world_map.tiles = tiles;
@@ -47,7 +53,11 @@ pub fn spawn_zone_tiles(commands: &mut Commands, tiles: &[Vec<TileKind>], w: u32
             let pos = grid_to_world_center(gx as i32, gy as i32);
             let color = zone_tile_color(kind);
             commands.spawn((
-                MapTile { kind, grid_x: gx as i32, grid_y: gy as i32 },
+                MapTile {
+                    kind,
+                    grid_x: gx as i32,
+                    grid_y: gy as i32,
+                },
                 Sprite::from_color(color, Vec2::splat(TILE_SIZE)),
                 Transform::from_xyz(pos.x, pos.y, Z_GROUND),
             ));
@@ -100,7 +110,10 @@ fn spawn_animated_tiles(commands: &mut Commands, zone: MapZone, w: u32, h: u32) 
                     timer: 0.0,
                     phase: 0.0,
                 },
-                Sprite::from_color(Color::srgb(0.1, 0.1, 0.3), Vec2::new(TILE_SIZE * 3.0, TILE_SIZE)),
+                Sprite::from_color(
+                    Color::srgb(0.1, 0.1, 0.3),
+                    Vec2::new(TILE_SIZE * 3.0, TILE_SIZE),
+                ),
                 Transform::from_xyz(pos.x, pos.y, Z_GROUND_DECOR),
             ));
             for gx in [5, 8] {
@@ -133,10 +146,7 @@ fn spawn_animated_tiles(commands: &mut Commands, zone: MapZone, w: u32, h: u32) 
     let _ = (w, h);
 }
 
-pub fn animate_tiles(
-    time: Res<Time>,
-    mut query: Query<(&mut AnimatedTile, &mut Sprite)>,
-) {
+pub fn animate_tiles(time: Res<Time>, mut query: Query<(&mut AnimatedTile, &mut Sprite)>) {
     let dt = time.delta_secs();
     for (mut anim, mut sprite) in query.iter_mut() {
         anim.timer += dt;
@@ -164,20 +174,44 @@ pub fn animate_tiles(
     }
 }
 
-fn spawn_zone_decorations(commands: &mut Commands, airport: AirportId, zone: MapZone, w: u32, h: u32) {
+fn spawn_zone_decorations(
+    commands: &mut Commands,
+    airport: AirportId,
+    zone: MapZone,
+    w: u32,
+    h: u32,
+) {
     let decor_color = airport_decor_color(airport);
 
     match zone {
         MapZone::Terminal | MapZone::Lounge => {
             spawn_decor(commands, 1, 1, decor_color, Vec2::new(10.0, 10.0));
-            spawn_decor(commands, w as i32 - 2, 1, decor_color, Vec2::new(10.0, 10.0));
+            spawn_decor(
+                commands,
+                w as i32 - 2,
+                1,
+                decor_color,
+                Vec2::new(10.0, 10.0),
+            );
             if zone == MapZone::Lounge {
-                spawn_decor(commands, (w / 2) as i32, 1, Color::srgb(0.6, 0.4, 0.2), Vec2::new(8.0, 8.0));
+                spawn_decor(
+                    commands,
+                    (w / 2) as i32,
+                    1,
+                    Color::srgb(0.6, 0.4, 0.2),
+                    Vec2::new(8.0, 8.0),
+                );
             }
         }
         MapZone::Hangar => {
             for gx in (3..w as i32 - 3).step_by(4) {
-                spawn_decor(commands, gx, 1, Color::srgb(0.4, 0.4, 0.45), Vec2::new(12.0, 6.0));
+                spawn_decor(
+                    commands,
+                    gx,
+                    1,
+                    Color::srgb(0.4, 0.4, 0.45),
+                    Vec2::new(12.0, 6.0),
+                );
             }
         }
         MapZone::Runway => {
@@ -194,7 +228,10 @@ fn spawn_zone_decorations(commands: &mut Commands, airport: AirportId, zone: Map
                 let pos = grid_to_world_center(gx, 1);
                 commands.spawn((
                     ZoneDecoration,
-                    Sprite::from_color(Color::srgb(0.95, 0.95, 0.95), Vec2::new(TILE_SIZE * 0.6, 3.0)),
+                    Sprite::from_color(
+                        Color::srgb(0.95, 0.95, 0.95),
+                        Vec2::new(TILE_SIZE * 0.6, 3.0),
+                    ),
                     Transform::from_xyz(pos.x, pos.y, Z_GROUND_DECOR),
                 ));
             }
@@ -233,11 +270,10 @@ pub fn despawn_map(commands: &mut Commands, tiles: &Query<Entity, With<MapTile>>
     }
 }
 
-pub fn sync_collision_map(
-    world_map: Res<WorldMap>,
-    mut collision_map: ResMut<CollisionMap>,
-) {
-    if !world_map.is_changed() || world_map.width == 0 { return; }
+pub fn sync_collision_map(world_map: Res<WorldMap>, mut collision_map: ResMut<CollisionMap>) {
+    if !world_map.is_changed() || world_map.width == 0 {
+        return;
+    }
     build_collision_map(&world_map, &mut collision_map);
 }
 

@@ -157,7 +157,9 @@ pub fn handle_bouquet(
         }
 
         // All checks passed — begin dating
-        stages.stages.insert(npc_id.clone(), RelationshipStage::Dating);
+        stages
+            .stages
+            .insert(npc_id.clone(), RelationshipStage::Dating);
 
         toast_writer.send(ToastEvent {
             message: format!("You are now dating {}!", npc_name),
@@ -183,7 +185,6 @@ pub fn handle_proposal(
     mut inventory: ResMut<Inventory>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
-
     for event in proposal_reader.read() {
         let npc_name = &event.npc_name;
 
@@ -234,7 +235,9 @@ pub fn handle_proposal(
         // Check: house tier >= Big
         if house_state.tier < HouseTier::Big {
             toast_writer.send(ToastEvent {
-                message: "Your house is too small. Upgrade to at least a Big house before proposing.".to_string(),
+                message:
+                    "Your house is too small. Upgrade to at least a Big house before proposing."
+                        .to_string(),
                 duration_secs: 4.0,
             });
             continue;
@@ -386,13 +389,7 @@ pub fn spouse_daily_action(
         SpouseAction::FeedAnimals
     } else if roll < 0.80 {
         // 15% GiveBreakfast: give a random breakfast item
-        let breakfasts = [
-            "fried_egg",
-            "pancakes",
-            "toast",
-            "porridge",
-            "fruit_salad",
-        ];
+        let breakfasts = ["fried_egg", "pancakes", "toast", "porridge", "fruit_salad"];
         let idx = rng.gen_range(0..breakfasts.len());
         SpouseAction::GiveBreakfast(breakfasts[idx].to_string())
     } else if roll < 0.90 {
@@ -413,10 +410,7 @@ pub fn spouse_daily_action(
         }
         SpouseAction::GiveBreakfast(item) => {
             let display_name = item.replace('_', " ");
-            format!(
-                "{} made you {} for breakfast!",
-                spouse_name, display_name
-            )
+            format!("{} made you {} for breakfast!", spouse_name, display_name)
         }
         SpouseAction::RepairFence => {
             format!("{} repaired a fence on the farm.", spouse_name)
@@ -581,10 +575,7 @@ pub fn update_spouse_happiness(
 
 /// Look up an NPC definition by display name (case-insensitive match).
 /// Returns (npc_id, &NpcDef) if found.
-fn find_npc_by_name<'a>(
-    npc_registry: &'a NpcRegistry,
-    name: &str,
-) -> Option<(NpcId, &'a NpcDef)> {
+fn find_npc_by_name<'a>(npc_registry: &'a NpcRegistry, name: &str) -> Option<(NpcId, &'a NpcDef)> {
     let name_lower = name.to_lowercase();
     for (id, def) in npc_registry.npcs.iter() {
         if def.name.to_lowercase() == name_lower {

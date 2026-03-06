@@ -1,23 +1,22 @@
 //! Emergency event system — random in-flight emergencies with checklists.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct EmergencyPlugin;
 
 impl Plugin for EmergencyPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<EmergencyState>()
-            .add_systems(
-                Update,
-                (
-                    trigger_random_emergency,
-                    handle_emergency,
-                    resolve_emergency,
-                    update_emergency_timers,
-                )
-                    .run_if(in_state(GameState::Flying)),
-            );
+        app.init_resource::<EmergencyState>().add_systems(
+            Update,
+            (
+                trigger_random_emergency,
+                handle_emergency,
+                resolve_emergency,
+                update_emergency_timers,
+            )
+                .run_if(in_state(GameState::Flying)),
+        );
     }
 }
 

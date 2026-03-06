@@ -1,15 +1,15 @@
 //! Mission domain — mission board, assignments, completion tracking.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub mod board;
-pub mod tracking;
-pub mod contracts;
 pub mod cargo;
+pub mod contracts;
 pub mod passengers;
 pub mod special;
 pub mod story;
+pub mod tracking;
 
 pub struct MissionPlugin;
 
@@ -37,7 +37,8 @@ impl Plugin for MissionPlugin {
                     passengers::board_passengers.run_if(in_state(GameState::Playing)),
                     passengers::update_satisfaction.run_if(in_state(GameState::Playing)),
                     passengers::deplane_passengers.run_if(in_state(GameState::Playing)),
-                    passengers::generate_passengers_for_mission.run_if(in_state(GameState::Playing)),
+                    passengers::generate_passengers_for_mission
+                        .run_if(in_state(GameState::Playing)),
                     special::init_special_mission.run_if(in_state(GameState::Playing)),
                     special::update_special_mission.run_if(in_state(GameState::Flying)),
                     special::complete_special_mission.run_if(in_state(GameState::Playing)),

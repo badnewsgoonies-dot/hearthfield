@@ -362,13 +362,31 @@ mod tests {
         ];
 
         for airport in &all_airports {
-            let city = registry.cities.get(airport)
+            let city = registry
+                .cities
+                .get(airport)
                 .unwrap_or_else(|| panic!("Missing city data for {:?}", airport));
             assert!(!city.name.is_empty(), "Empty name for {:?}", airport);
-            assert!(!city.description.is_empty(), "Empty description for {:?}", airport);
-            assert!(city.attractions.len() >= 3, "Need 3+ attractions for {:?}", airport);
-            assert!(city.local_cuisine.len() >= 2, "Need 2+ cuisines for {:?}", airport);
-            assert!(city.fun_facts.len() >= 2, "Need 2+ fun facts for {:?}", airport);
+            assert!(
+                !city.description.is_empty(),
+                "Empty description for {:?}",
+                airport
+            );
+            assert!(
+                city.attractions.len() >= 3,
+                "Need 3+ attractions for {:?}",
+                airport
+            );
+            assert!(
+                city.local_cuisine.len() >= 2,
+                "Need 2+ cuisines for {:?}",
+                airport
+            );
+            assert!(
+                city.fun_facts.len() >= 2,
+                "Need 2+ fun facts for {:?}",
+                airport
+            );
         }
     }
 }

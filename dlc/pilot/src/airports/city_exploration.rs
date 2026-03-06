@@ -1,24 +1,23 @@
 //! City exploration — visit zones, collect souvenirs, discover events.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub struct CityExplorationPlugin;
 
 impl Plugin for CityExplorationPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CityState>()
-            .add_systems(
-                Update,
-                (
-                    explore_city,
-                    handle_city_events,
-                    collect_souvenir,
-                    update_city_atmosphere,
-                )
-                    .run_if(in_state(GameState::Playing)),
-            );
+        app.init_resource::<CityState>().add_systems(
+            Update,
+            (
+                explore_city,
+                handle_city_events,
+                collect_souvenir,
+                update_city_atmosphere,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -69,7 +68,12 @@ fn city_definitions() -> Vec<CityDef> {
         },
         CityDef {
             airport: AirportId::Windport,
-            zones: vec![CityZone::Harbor, CityZone::Market, CityZone::Restaurant, CityZone::Beach],
+            zones: vec![
+                CityZone::Harbor,
+                CityZone::Market,
+                CityZone::Restaurant,
+                CityZone::Beach,
+            ],
             souvenir_id: "souvenir_windport".to_string(),
             souvenir_name: "Windport Compass".to_string(),
         },
@@ -81,7 +85,12 @@ fn city_definitions() -> Vec<CityDef> {
         },
         CityDef {
             airport: AirportId::Sunhaven,
-            zones: vec![CityZone::Beach, CityZone::Market, CityZone::Restaurant, CityZone::Park],
+            zones: vec![
+                CityZone::Beach,
+                CityZone::Market,
+                CityZone::Restaurant,
+                CityZone::Park,
+            ],
             souvenir_id: "souvenir_sunhaven".to_string(),
             souvenir_name: "Sunhaven Shell Necklace".to_string(),
         },
@@ -111,13 +120,23 @@ fn city_definitions() -> Vec<CityDef> {
         },
         CityDef {
             airport: AirportId::Grandcity,
-            zones: vec![CityZone::Downtown, CityZone::Harbor, CityZone::Market, CityZone::Museum],
+            zones: vec![
+                CityZone::Downtown,
+                CityZone::Harbor,
+                CityZone::Market,
+                CityZone::Museum,
+            ],
             souvenir_id: "souvenir_grandcity".to_string(),
             souvenir_name: "Grand City Model Plane".to_string(),
         },
         CityDef {
             airport: AirportId::Skyreach,
-            zones: vec![CityZone::Mountain, CityZone::Park, CityZone::Museum, CityZone::Restaurant],
+            zones: vec![
+                CityZone::Mountain,
+                CityZone::Park,
+                CityZone::Museum,
+                CityZone::Restaurant,
+            ],
             souvenir_id: "souvenir_skyreach".to_string(),
             souvenir_name: "Skyreach Golden Wing".to_string(),
         },
@@ -125,7 +144,9 @@ fn city_definitions() -> Vec<CityDef> {
 }
 
 fn city_for_airport(airport: AirportId) -> Option<CityDef> {
-    city_definitions().into_iter().find(|c| c.airport == airport)
+    city_definitions()
+        .into_iter()
+        .find(|c| c.airport == airport)
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -155,7 +176,9 @@ impl CityState {
     }
 
     pub fn has_visited(&self, airport: AirportId, zone: CityZone) -> bool {
-        self.zones_visited.iter().any(|&(a, z)| a == airport && z == zone)
+        self.zones_visited
+            .iter()
+            .any(|&(a, z)| a == airport && z == zone)
     }
 
     pub fn total_souvenirs(&self) -> usize {
@@ -185,9 +208,15 @@ pub fn explore_city(
         if let Some(&first) = city.zones.first() {
             city_state.current_zone = Some(first);
             if !city_state.has_visited(player_location.airport, first) {
-                city_state.zones_visited.push((player_location.airport, first));
+                city_state
+                    .zones_visited
+                    .push((player_location.airport, first));
                 toast_events.send(ToastEvent {
-                    message: format!("Exploring {} — {}", city.airport.display_name(), first.display_name()),
+                    message: format!(
+                        "Exploring {} — {}",
+                        city.airport.display_name(),
+                        first.display_name()
+                    ),
                     duration_secs: 3.0,
                 });
             }
@@ -201,7 +230,9 @@ pub fn explore_city(
             let next = city.zones[(idx + 1) % city.zones.len()];
             city_state.current_zone = Some(next);
             if !city_state.has_visited(player_location.airport, next) {
-                city_state.zones_visited.push((player_location.airport, next));
+                city_state
+                    .zones_visited
+                    .push((player_location.airport, next));
             }
             toast_events.send(ToastEvent {
                 message: format!("Now in: {}", next.display_name()),
@@ -212,11 +243,17 @@ pub fn explore_city(
     if input.tab_prev {
         if let Some(current) = city_state.current_zone {
             let idx = city.zones.iter().position(|&z| z == current).unwrap_or(0);
-            let prev = if idx == 0 { city.zones.len() - 1 } else { idx - 1 };
+            let prev = if idx == 0 {
+                city.zones.len() - 1
+            } else {
+                idx - 1
+            };
             let zone = city.zones[prev];
             city_state.current_zone = Some(zone);
             if !city_state.has_visited(player_location.airport, zone) {
-                city_state.zones_visited.push((player_location.airport, zone));
+                city_state
+                    .zones_visited
+                    .push((player_location.airport, zone));
             }
             toast_events.send(ToastEvent {
                 message: format!("Now in: {}", zone.display_name()),
@@ -243,7 +280,9 @@ pub fn handle_city_events(
         return;
     }
 
-    let Some(zone) = city_state.current_zone else { return };
+    let Some(zone) = city_state.current_zone else {
+        return;
+    };
 
     // Seasonal and zone-specific events
     let event = match (zone, calendar.season) {
@@ -325,7 +364,9 @@ pub fn collect_souvenir(
 
     gold.amount -= cost;
     inventory.add_item(&city.souvenir_id, 1);
-    city_state.souvenirs_collected.push(city.souvenir_id.clone());
+    city_state
+        .souvenirs_collected
+        .push(city.souvenir_id.clone());
 
     gold_events.send(GoldChangeEvent {
         amount: -(cost as i32),

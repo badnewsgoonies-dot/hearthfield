@@ -3,10 +3,10 @@
 //! Activated by entering `GameState::BuildingUpgrade`. Uses the same
 //! `MenuAction` resource that all other overlay menus consume.
 
-use bevy::prelude::*;
+use super::UiFontHandle;
 use crate::economy::buildings::BuildingLevels;
 use crate::shared::*;
-use super::UiFontHandle;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // LOCAL TYPES
@@ -108,10 +108,7 @@ fn current_tier(
 }
 
 /// Build the list of upgrade entries.
-fn build_entries(
-    building_levels: &BuildingLevels,
-    house_state: &HouseState,
-) -> Vec<UpgradeEntry> {
+fn build_entries(building_levels: &BuildingLevels, house_state: &HouseState) -> Vec<UpgradeEntry> {
     let buildings = [
         BuildingKind::Coop,
         BuildingKind::Barn,
@@ -261,11 +258,7 @@ pub fn spawn_building_upgrade_menu(
                                 tier_label(to),
                             )
                         } else {
-                            format!(
-                                "{}: {} (MAX)",
-                                entry.label,
-                                tier_label(entry.from_tier),
-                            )
+                            format!("{}: {} (MAX)", entry.label, tier_label(entry.from_tier),)
                         };
 
                         let bg = if i == 0 {
@@ -361,7 +354,9 @@ pub fn building_upgrade_navigation(
     mut upgrade_writer: EventWriter<BuildingUpgradeEvent>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     let max = ui_state.entries.len();
     if max == 0 {
         return;
@@ -414,10 +409,7 @@ pub fn building_upgrade_navigation(
             .map(|&(mat, qty)| format!("{} {}", qty, mat))
             .collect();
         if !missing.is_empty() {
-            ui_state.status_message = format!(
-                "Not enough materials! Need {}.",
-                missing.join(", ")
-            );
+            ui_state.status_message = format!("Not enough materials! Need {}.", missing.join(", "));
             ui_state.status_timer = 2.5;
             return;
         }
@@ -482,7 +474,9 @@ pub fn building_upgrade_status_timer(
     time: Res<Time>,
     mut ui_state: Option<ResMut<BuildingUpgradeMenuState>>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     if ui_state.status_timer > 0.0 {
         ui_state.status_timer -= time.delta_secs();
         if ui_state.status_timer <= 0.0 {

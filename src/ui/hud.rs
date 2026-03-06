@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use crate::shared::*;
-use crate::input::{TouchZoneState, TouchZone};
 use super::UiFontHandle;
+use crate::input::{TouchZone, TouchZoneState};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS — used to query and update HUD elements
@@ -344,93 +344,96 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
         });
 
     // ─── MAP NAME — absolute position, bottom-left ───
-    commands.spawn((
-        HudMapName,
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(70.0),
-            left: Val::Px(12.0),
-            padding: UiRect {
-                left: Val::Px(8.0),
-                right: Val::Px(8.0),
-                top: Val::Px(4.0),
-                bottom: Val::Px(4.0),
-            },
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
-        PickingBehavior::IGNORE,
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            Text::new(""),
-            TextFont {
-                font: font.clone(),
-                font_size: 14.0,
+    commands
+        .spawn((
+            HudMapName,
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(70.0),
+                left: Val::Px(12.0),
+                padding: UiRect {
+                    left: Val::Px(8.0),
+                    right: Val::Px(8.0),
+                    top: Val::Px(4.0),
+                    bottom: Val::Px(4.0),
+                },
                 ..default()
             },
-            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
             PickingBehavior::IGNORE,
-        ));
-    });
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(""),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)),
+                PickingBehavior::IGNORE,
+            ));
+        });
 
     // ─── OBJECTIVE — absolute position, top-left below top bar ───
-    commands.spawn((
-        HudObjective,
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(52.0),
-            left: Val::Px(12.0),
-            padding: UiRect {
-                left: Val::Px(10.0),
-                right: Val::Px(10.0),
-                top: Val::Px(5.0),
-                bottom: Val::Px(5.0),
-            },
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
-        PickingBehavior::IGNORE,
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            Text::new(""),
-            TextFont {
-                font: font.clone(),
-                font_size: 14.0,
+    commands
+        .spawn((
+            HudObjective,
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(52.0),
+                left: Val::Px(12.0),
+                padding: UiRect {
+                    left: Val::Px(10.0),
+                    right: Val::Px(10.0),
+                    top: Val::Px(5.0),
+                    bottom: Val::Px(5.0),
+                },
                 ..default()
             },
-            TextColor(Color::srgb(1.0, 0.95, 0.7)),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
             PickingBehavior::IGNORE,
-        ));
-    });
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(""),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 0.95, 0.7)),
+                PickingBehavior::IGNORE,
+            ));
+        });
 
     // ─── CONTROLS HINT — absolute position, bottom-center, above hotbar ───
-    commands.spawn((
-        HudControlsHint,
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(64.0),
-            left: Val::Px(0.0),
-            right: Val::Px(0.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        PickingBehavior::IGNORE,
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            Text::new("WASD: Move | Space: Use Tool | F: Interact | E: Inventory"),
-            TextFont {
-                font: font.clone(),
-                font_size: 12.0,
+    commands
+        .spawn((
+            HudControlsHint,
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(64.0),
+                left: Val::Px(0.0),
+                right: Val::Px(0.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
-            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.45)),
             PickingBehavior::IGNORE,
-        ));
-    });
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new("WASD: Move | Space: Use Tool | F: Interact | E: Inventory"),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.45)),
+                PickingBehavior::IGNORE,
+            ));
+        });
 
     // Initialise the fade timer resource every time the HUD spawns.
     commands.insert_resource(MapNameFadeTimer {
@@ -672,8 +675,8 @@ pub fn update_weather_icon(
     // Map weather to icon index in the sheet
     // Row 0: sun variants, Row 1: cloud/overcast, Row 2: rain, Row 3: storm, Row 4: snow
     let icon_index = match calendar.weather {
-        Weather::Sunny => 0,  // sun icon
-        Weather::Rainy => 8,  // rain icon
+        Weather::Sunny => 0,   // sun icon
+        Weather::Rainy => 8,   // rain icon
         Weather::Stormy => 12, // storm icon
         Weather::Snowy => 16,  // snow icon
     };
@@ -755,7 +758,11 @@ pub fn update_tool_display(
             ToolKind::FishingRod => "Fishing Rod",
             ToolKind::Scythe => "Scythe",
         };
-        let tier = player.tools.get(&player.equipped_tool).copied().unwrap_or(ToolTier::Basic);
+        let tier = player
+            .tools
+            .get(&player.equipped_tool)
+            .copied()
+            .unwrap_or(ToolTier::Basic);
         let tier_prefix = match tier {
             ToolTier::Basic => "",
             ToolTier::Copper => "Copper ",
@@ -771,7 +778,10 @@ pub fn update_hotbar(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
     mut slot_query: Query<(&HotbarSlot, &mut BackgroundColor, &mut BorderColor)>,
-    mut item_text_query: Query<(&HotbarItemText, &mut Text, &mut TextColor), Without<HotbarQuantityText>>,
+    mut item_text_query: Query<
+        (&HotbarItemText, &mut Text, &mut TextColor),
+        Without<HotbarQuantityText>,
+    >,
     mut qty_text_query: Query<(&HotbarQuantityText, &mut Text), Without<HotbarItemText>>,
     mut icon_query: Query<(&HotbarItemIcon, &mut Visibility), Without<HotbarSlot>>,
 ) {
@@ -790,7 +800,11 @@ pub fn update_hotbar(
     for (icon, mut vis) in &mut icon_query {
         let idx = icon.index;
         let has_item = idx < inventory.slots.len() && inventory.slots[idx].is_some();
-        *vis = if has_item { Visibility::Inherited } else { Visibility::Hidden };
+        *vis = if has_item {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
     }
 
     // Update item text
@@ -1103,7 +1117,10 @@ pub fn update_interaction_prompt(
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((d, format!("[{}] {}", key_display(bindings.interact), inter.label)));
+            best_label = Some((
+                d,
+                format!("[{}] {}", key_display(bindings.interact), inter.label),
+            ));
         }
     }
 
@@ -1124,14 +1141,20 @@ pub fn update_interaction_prompt(
                 .get(&npc.id)
                 .map(|def| def.name.as_str())
                 .unwrap_or(&npc.id);
-            let has_gift = inventory.slots
+            let has_gift = inventory
+                .slots
                 .get(inventory.selected_slot)
                 .and_then(|s| s.as_ref())
                 .and_then(|slot| item_registry.get(&slot.item_id))
                 .map(|def| def.category != ItemCategory::Tool)
                 .unwrap_or(false);
             let label = if has_gift {
-                format!("[{}] Talk to {} | [{}] Give Gift", key_display(bindings.interact), name, key_display(bindings.tool_secondary))
+                format!(
+                    "[{}] Talk to {} | [{}] Give Gift",
+                    key_display(bindings.interact),
+                    name,
+                    key_display(bindings.tool_secondary)
+                )
             } else {
                 format!("[{}] Talk to {}", key_display(bindings.interact), name)
             };
@@ -1286,10 +1309,7 @@ const TOUCH_BTN_PRESSED_ALPHA: f32 = 0.45;
 
 /// Spawns the touch controls overlay (hidden by default, auto-shows on idle).
 /// Each button is tagged with `TouchButton(zone)` for highlight feedback.
-pub fn spawn_touch_overlay(
-    mut commands: Commands,
-    font_handle: Res<UiFontHandle>,
-) {
+pub fn spawn_touch_overlay(mut commands: Commands, font_handle: Res<UiFontHandle>) {
     let font = font_handle.0.clone();
     let btn_style = Node {
         width: Val::Px(60.0),
@@ -1338,7 +1358,11 @@ pub fn spawn_touch_overlay(
                     .with_children(|b| {
                         b.spawn((
                             Text::new("\u{25B2}"), // ▲
-                            TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 20.0,
+                                ..default()
+                            },
                             TextColor(Color::WHITE),
                         ));
                     });
@@ -1358,7 +1382,11 @@ pub fn spawn_touch_overlay(
                         .with_children(|b| {
                             b.spawn((
                                 Text::new("\u{25C0}"), // ◀
-                                TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 20.0,
+                                    ..default()
+                                },
                                 TextColor(Color::WHITE),
                             ));
                         });
@@ -1372,7 +1400,11 @@ pub fn spawn_touch_overlay(
                         .with_children(|b| {
                             b.spawn((
                                 Text::new("\u{25BC}"), // ▼
-                                TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 20.0,
+                                    ..default()
+                                },
                                 TextColor(Color::WHITE),
                             ));
                         });
@@ -1386,7 +1418,11 @@ pub fn spawn_touch_overlay(
                         .with_children(|b| {
                             b.spawn((
                                 Text::new("\u{25B6}"), // ▶
-                                TextFont { font: font.clone(), font_size: 20.0, ..default() },
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 20.0,
+                                    ..default()
+                                },
                                 TextColor(Color::WHITE),
                             ));
                         });
@@ -1402,68 +1438,86 @@ pub fn spawn_touch_overlay(
                 })
                 .with_children(|actions| {
                     // Top: Use / Tool (Space equivalent)
-                    actions.spawn((
-                        TouchButton(TouchZone::ActionUse),
-                        btn_style.clone(),
-                        btn_bg,
-                        btn_radius,
-                    ))
-                    .with_children(|b| {
-                        b.spawn((
-                            Text::new("Use"),
-                            TextFont { font: font.clone(), font_size: 12.0, ..default() },
-                            TextColor(Color::WHITE),
-                        ));
-                    });
+                    actions
+                        .spawn((
+                            TouchButton(TouchZone::ActionUse),
+                            btn_style.clone(),
+                            btn_bg,
+                            btn_radius,
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("Use"),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 12.0,
+                                    ..default()
+                                },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
                     // Middle row: Menu, Item, Talk
-                    actions.spawn(Node {
-                        flex_direction: FlexDirection::Row,
-                        ..default()
-                    })
-                    .with_children(|row| {
-                        // Left: Menu (Esc equivalent)
-                        row.spawn((
-                            TouchButton(TouchZone::ActionMenu),
-                            btn_style.clone(),
-                            btn_bg,
-                            btn_radius,
-                        ))
-                        .with_children(|b| {
-                            b.spawn((
-                                Text::new("Menu"),
-                                TextFont { font: font.clone(), font_size: 11.0, ..default() },
-                                TextColor(Color::WHITE),
-                            ));
+                    actions
+                        .spawn(Node {
+                            flex_direction: FlexDirection::Row,
+                            ..default()
+                        })
+                        .with_children(|row| {
+                            // Left: Menu (Esc equivalent)
+                            row.spawn((
+                                TouchButton(TouchZone::ActionMenu),
+                                btn_style.clone(),
+                                btn_bg,
+                                btn_radius,
+                            ))
+                            .with_children(|b| {
+                                b.spawn((
+                                    Text::new("Menu"),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 11.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::WHITE),
+                                ));
+                            });
+                            // Center: Item / secondary (R equivalent)
+                            row.spawn((
+                                TouchButton(TouchZone::ActionItem),
+                                btn_style.clone(),
+                                btn_bg,
+                                btn_radius,
+                            ))
+                            .with_children(|b| {
+                                b.spawn((
+                                    Text::new("Item"),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 11.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::WHITE),
+                                ));
+                            });
+                            // Right: Talk / Interact (F equivalent)
+                            row.spawn((
+                                TouchButton(TouchZone::ActionTalk),
+                                btn_style.clone(),
+                                btn_bg,
+                                btn_radius,
+                            ))
+                            .with_children(|b| {
+                                b.spawn((
+                                    Text::new("Talk"),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 11.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::WHITE),
+                                ));
+                            });
                         });
-                        // Center: Item / secondary (R equivalent)
-                        row.spawn((
-                            TouchButton(TouchZone::ActionItem),
-                            btn_style.clone(),
-                            btn_bg,
-                            btn_radius,
-                        ))
-                        .with_children(|b| {
-                            b.spawn((
-                                Text::new("Item"),
-                                TextFont { font: font.clone(), font_size: 11.0, ..default() },
-                                TextColor(Color::WHITE),
-                            ));
-                        });
-                        // Right: Talk / Interact (F equivalent)
-                        row.spawn((
-                            TouchButton(TouchZone::ActionTalk),
-                            btn_style.clone(),
-                            btn_bg,
-                            btn_radius,
-                        ))
-                        .with_children(|b| {
-                            b.spawn((
-                                Text::new("Talk"),
-                                TextFont { font: font.clone(), font_size: 11.0, ..default() },
-                                TextColor(Color::WHITE),
-                            ));
-                        });
-                    });
                 });
         });
 
@@ -1487,11 +1541,10 @@ pub fn update_touch_overlay(
     mut overlay_query: Query<&mut Visibility, With<TouchControlsOverlay>>,
     mut btn_query: Query<(&TouchButton, &mut BackgroundColor)>,
 ) {
-    let has_keyboard = keys.get_just_pressed().next().is_some()
-        || keys.get_pressed().next().is_some();
+    let has_keyboard =
+        keys.get_just_pressed().next().is_some() || keys.get_pressed().next().is_some();
     let has_gamepad = gamepads.iter().next().is_some();
-    let has_touch = touches.iter().next().is_some()
-        || touches.iter_just_pressed().next().is_some();
+    let has_touch = touches.iter().next().is_some() || touches.iter_just_pressed().next().is_some();
 
     if has_keyboard || has_gamepad {
         timer.idle_secs = 0.0;

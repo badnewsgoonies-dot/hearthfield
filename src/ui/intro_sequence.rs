@@ -31,10 +31,7 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     ));
 
     // Day card.
-    steps.push_back(CutsceneStep::ShowText(
-        "Spring 1, Year 1".into(),
-        2.5,
-    ));
+    steps.push_back(CutsceneStep::ShowText("Spring 1, Year 1".into(), 2.5));
 
     // Controls reference card — shown early so the player reads controls
     // while the screen is still black, before they need to do anything.

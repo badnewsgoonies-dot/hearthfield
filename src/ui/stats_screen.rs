@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS

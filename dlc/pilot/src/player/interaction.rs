@@ -1,7 +1,7 @@
 //! Player interaction and day-end handling.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// Check for edge-of-map zone transitions and F-key interactions.
 #[allow(clippy::too_many_arguments)]

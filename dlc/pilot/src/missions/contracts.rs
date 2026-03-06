@@ -1,7 +1,7 @@
 //! Long-term contract system — recurring routes, loyalty bonuses, charter contracts.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -133,8 +133,11 @@ pub fn refresh_contract_board(
             AirportId::Grandcity,
         ];
         let airlines = [
-            "SkyWing Air", "Horizon Lines", "CloudHop Express",
-            "Apex Aviation", "Summit Air",
+            "SkyWing Air",
+            "Horizon Lines",
+            "CloudHop Express",
+            "Apex Aviation",
+            "Summit Air",
         ];
 
         for i in 0..num_contracts {
@@ -151,11 +154,7 @@ pub fn refresh_contract_board(
                 ContractFrequency::Weekly
             };
 
-            let duration = if is_charter {
-                1
-            } else {
-                rng.gen_range(7..=28)
-            };
+            let duration = if is_charter { 1 } else { rng.gen_range(7..=28) };
 
             let base_pay = if is_charter {
                 rng.gen_range(800..=2000)
@@ -202,10 +201,7 @@ pub fn evaluate_contracts(
                         reason: format!("Loyalty bonus: {}", active.contract.airline),
                     });
                     toast_events.send(ToastEvent {
-                        message: format!(
-                            "Contract complete! Loyalty bonus: {}g",
-                            bonus
-                        ),
+                        message: format!("Contract complete! Loyalty bonus: {}g", bonus),
                         duration_secs: 4.0,
                     });
                 }
@@ -229,7 +225,8 @@ pub fn track_contract_flights(
 ) {
     for ev in flight_complete_events.read() {
         for active in &mut board.active {
-            if active.contract.origin == ev.origin && active.contract.destination == ev.destination {
+            if active.contract.origin == ev.origin && active.contract.destination == ev.destination
+            {
                 active.flights_completed += 1;
                 active.total_earned += active.contract.base_pay;
 

@@ -1,10 +1,10 @@
 //! Zone transition handling — map swap, player repositioning.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::maps::generate_zone_map;
-use super::render::{despawn_map, spawn_zone_tiles};
 use super::objects::spawn_zone_objects;
+use super::render::{despawn_map, spawn_zone_tiles};
+use crate::shared::*;
+use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub fn handle_zone_transition(

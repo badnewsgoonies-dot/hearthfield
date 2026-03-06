@@ -1,7 +1,7 @@
+use super::{AnimalSpriteData, WanderAi};
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::shared::*;
-use super::{WanderAi, AnimalSpriteData};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animal visual configuration
@@ -73,15 +73,18 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
 /// pets (cat, dog) roam a wider farm area.
 fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
     match kind {
-        AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
-            (Vec2::new(8.0 * TILE_SIZE, 16.0 * TILE_SIZE), Vec2::new(12.0 * TILE_SIZE, 18.0 * TILE_SIZE))
-        }
-        AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
-            (Vec2::new(3.0 * TILE_SIZE, 16.0 * TILE_SIZE), Vec2::new(7.0 * TILE_SIZE, 18.0 * TILE_SIZE))
-        }
-        AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
-            (Vec2::new(10.0 * TILE_SIZE, 8.0 * TILE_SIZE), Vec2::new(20.0 * TILE_SIZE, 16.0 * TILE_SIZE))
-        }
+        AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => (
+            Vec2::new(8.0 * TILE_SIZE, 16.0 * TILE_SIZE),
+            Vec2::new(12.0 * TILE_SIZE, 18.0 * TILE_SIZE),
+        ),
+        AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => (
+            Vec2::new(3.0 * TILE_SIZE, 16.0 * TILE_SIZE),
+            Vec2::new(7.0 * TILE_SIZE, 18.0 * TILE_SIZE),
+        ),
+        AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => (
+            Vec2::new(10.0 * TILE_SIZE, 8.0 * TILE_SIZE),
+            Vec2::new(20.0 * TILE_SIZE, 16.0 * TILE_SIZE),
+        ),
     }
 }
 
@@ -169,7 +172,9 @@ pub fn handle_animal_purchase(
         // Building check: chickens need coop, cows/sheep need barn.
         let has_building = match kind {
             AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => animal_state.has_coop,
-            AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => animal_state.has_barn,
+            AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
+                animal_state.has_barn
+            }
             // Companions don't need a building.
             AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => true,
         };
@@ -186,9 +191,15 @@ pub fn handle_animal_purchase(
         // Cap enforcement per housing type.
         match kind {
             AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
-                let count = animal_query.iter().filter(|a| matches!(a.kind,
-                    AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit
-                )).count();
+                let count = animal_query
+                    .iter()
+                    .filter(|a| {
+                        matches!(
+                            a.kind,
+                            AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit
+                        )
+                    })
+                    .count();
                 let max = (animal_state.coop_level as usize) * 4;
                 if count >= max {
                     toast_writer.send(ToastEvent {
@@ -199,9 +210,18 @@ pub fn handle_animal_purchase(
                 }
             }
             AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
-                let count = animal_query.iter().filter(|a| matches!(a.kind,
-                    AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig
-                )).count();
+                let count = animal_query
+                    .iter()
+                    .filter(|a| {
+                        matches!(
+                            a.kind,
+                            AnimalKind::Cow
+                                | AnimalKind::Sheep
+                                | AnimalKind::Goat
+                                | AnimalKind::Pig
+                        )
+                    })
+                    .count();
                 let max = (animal_state.barn_level as usize) * 4;
                 if count >= max {
                     toast_writer.send(ToastEvent {
@@ -375,7 +395,10 @@ pub fn handle_animal_purchase(
             sfx_id: format!("{}_cry", ev.item_id),
         });
 
-        info!("Spawned {:?} named '{}'  at ({:.0}, {:.0})", kind, name, spawn_x, spawn_y);
+        info!(
+            "Spawned {:?} named '{}'  at ({:.0}, {:.0})",
+            kind, name, spawn_x, spawn_y
+        );
     }
 }
 
@@ -398,7 +421,9 @@ pub fn setup_feed_trough(
     // Ensure furniture atlas is loaded even if WorldPlugin hasn't run yet
     // (AnimalPlugin may be registered before WorldPlugin).
     crate::world::objects::ensure_furniture_atlases_loaded(
-        &asset_server, &mut layouts, &mut furniture,
+        &asset_server,
+        &mut layouts,
+        &mut furniture,
     );
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_atlas_image(

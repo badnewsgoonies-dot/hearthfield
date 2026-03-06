@@ -1,7 +1,7 @@
 //! Screen fade overlay — reads ScreenFadeEvent, animates a full-screen black rect.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct FadeOverlay {

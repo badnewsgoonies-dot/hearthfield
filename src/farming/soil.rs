@@ -1,8 +1,8 @@
 //! Soil tilling and watering systems.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::{FarmEntities, SoilTileEntity};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hoe — till a dirt tile
@@ -27,7 +27,10 @@ pub fn handle_hoe_tool_use(
         // Hoe can only till Untilled dirt. Tilled/Watered tiles are already done.
         let current = farm_state.soil.get(&pos).copied();
         if current.is_some() {
-            toast_events.send(ToastEvent { message: "Already tilled!".into(), duration_secs: 1.5 });
+            toast_events.send(ToastEvent {
+                message: "Already tilled!".into(),
+                duration_secs: 1.5,
+            });
             continue;
         }
 
@@ -42,17 +45,16 @@ pub fn handle_hoe_tool_use(
             ToolTier::Gold => 1.2,
             ToolTier::Iridium => 1.0,
         };
-        stamina_events.send(StaminaDrainEvent { amount: stamina_cost });
+        stamina_events.send(StaminaDrainEvent {
+            amount: stamina_cost,
+        });
 
-        sfx_events.send(PlaySfxEvent { sfx_id: "hoe".to_string() });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "hoe".to_string(),
+        });
 
         // Spawn a soil sprite entity if one doesn't already exist.
-        spawn_or_update_soil_entity(
-            &mut commands,
-            &mut farm_entities,
-            pos,
-            SoilState::Tilled,
-        );
+        spawn_or_update_soil_entity(&mut commands, &mut farm_entities, pos, SoilState::Tilled);
     }
 }
 
@@ -89,16 +91,19 @@ pub fn handle_watering_can_tool_use(
         // Check that at least one of the target tiles is actually Tilled.
         // We still apply the full area, but require a valid tile in the set so the
         // player doesn't waste stamina swinging into empty air.
-        let any_tillable = tiles.iter().any(|pos| {
-            farm_state.soil.get(pos).copied() == Some(SoilState::Tilled)
-        });
+        let any_tillable = tiles
+            .iter()
+            .any(|pos| farm_state.soil.get(pos).copied() == Some(SoilState::Tilled));
         if !any_tillable {
             // Check if the tiles are already watered.
-            let any_watered = tiles.iter().any(|pos| {
-                farm_state.soil.get(pos).copied() == Some(SoilState::Watered)
-            });
+            let any_watered = tiles
+                .iter()
+                .any(|pos| farm_state.soil.get(pos).copied() == Some(SoilState::Watered));
             if any_watered {
-                toast_events.send(ToastEvent { message: "Already watered today.".into(), duration_secs: 1.5 });
+                toast_events.send(ToastEvent {
+                    message: "Already watered today.".into(),
+                    duration_secs: 1.5,
+                });
             }
             continue;
         }
@@ -125,8 +130,12 @@ pub fn handle_watering_can_tool_use(
 
         // Single stamina drain for the whole action (not per tile).
         let stamina_cost = tool_stamina_cost(2.0, event.tier);
-        stamina_events.send(StaminaDrainEvent { amount: stamina_cost });
-        sfx_events.send(PlaySfxEvent { sfx_id: "water".to_string() });
+        stamina_events.send(StaminaDrainEvent {
+            amount: stamina_cost,
+        });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "water".to_string(),
+        });
     }
 }
 
@@ -150,17 +159,30 @@ pub fn spawn_or_update_soil_entity(
     } else {
         // Spawn a new sprite entity.
         // Soil overlays are area fills — use corner-origin to match ground tiles
-        let translation = Vec3::new(pos.0 as f32 * TILE_SIZE, pos.1 as f32 * TILE_SIZE, Z_FARM_OVERLAY);
-        let entity = commands.spawn((
-            Sprite {
-                color,
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
-                ..default()
-            },
-            Transform::from_translation(translation),
-            SoilTileEntity { grid_x: pos.0, grid_y: pos.1 },
-            SoilTile { state, grid_x: pos.0, grid_y: pos.1 },
-        )).id();
+        let translation = Vec3::new(
+            pos.0 as f32 * TILE_SIZE,
+            pos.1 as f32 * TILE_SIZE,
+            Z_FARM_OVERLAY,
+        );
+        let entity = commands
+            .spawn((
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(TILE_SIZE)),
+                    ..default()
+                },
+                Transform::from_translation(translation),
+                SoilTileEntity {
+                    grid_x: pos.0,
+                    grid_y: pos.1,
+                },
+                SoilTile {
+                    state,
+                    grid_x: pos.0,
+                    grid_y: pos.1,
+                },
+            ))
+            .id();
         farm_entities.soil_entities.insert(pos, entity);
     }
 }
@@ -169,7 +191,7 @@ pub fn spawn_or_update_soil_entity(
 pub fn soil_color(state: SoilState) -> Color {
     match state {
         SoilState::Untilled => Color::srgb(0.55, 0.42, 0.28), // light dirt (shouldn't be rendered)
-        SoilState::Tilled   => Color::srgb(0.45, 0.32, 0.20), // medium brown
-        SoilState::Watered  => Color::srgb(0.30, 0.22, 0.15), // dark wet soil
+        SoilState::Tilled => Color::srgb(0.45, 0.32, 0.20),   // medium brown
+        SoilState::Watered => Color::srgb(0.30, 0.22, 0.15),  // dark wet soil
     }
 }

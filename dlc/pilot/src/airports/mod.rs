@@ -1,19 +1,19 @@
 //! Airport domain — zone maps, tile rendering, zone transitions, object spawning.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
+pub mod announcements;
+pub mod city_exploration;
+pub mod facilities;
+pub mod ground_ops;
 #[allow(clippy::needless_range_loop)]
 pub mod maps;
-pub mod render;
-pub mod objects;
-pub mod transitions;
-pub mod facilities;
-pub mod city_exploration;
 pub mod npcs;
-pub mod announcements;
-pub mod ground_ops;
+pub mod objects;
+pub mod render;
 pub mod services;
+pub mod transitions;
 
 pub struct AirportPlugin;
 
@@ -34,10 +34,7 @@ impl Plugin for AirportPlugin {
                     announcements::play_announcements.run_if(in_state(GameState::Playing)),
                 ),
             )
-            .add_systems(
-                OnEnter(GameState::Playing),
-                render::spawn_initial_map,
-            )
+            .add_systems(OnEnter(GameState::Playing), render::spawn_initial_map)
             .add_systems(
                 Update,
                 (

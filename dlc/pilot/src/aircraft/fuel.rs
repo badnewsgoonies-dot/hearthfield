@@ -1,8 +1,8 @@
 //! Fuel management — fuel types, burn rate calculation, reserve warnings, bingo fuel.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 /// Fuel types and their cost per unit.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -29,7 +29,9 @@ impl FuelType {
 
 pub fn fuel_type_for_class(class: AircraftClass) -> FuelType {
     match class {
-        AircraftClass::SingleProp | AircraftClass::TwinProp | AircraftClass::Seaplane => FuelType::AvGas,
+        AircraftClass::SingleProp | AircraftClass::TwinProp | AircraftClass::Seaplane => {
+            FuelType::AvGas
+        }
         _ => FuelType::JetA,
     }
 }
@@ -50,10 +52,17 @@ const CARGO_WEIGHT_REFERENCE_KG: f32 = 5_000.0;
 const CARGO_WEIGHT_PENALTY_FACTOR: f32 = 0.20;
 
 /// Calculate instantaneous fuel burn per second.
-pub fn calculate_fuel_burn(base_rate: f32, throttle: f32, altitude_ft: f32, cargo_weight_kg: f32) -> f32 {
+pub fn calculate_fuel_burn(
+    base_rate: f32,
+    throttle: f32,
+    altitude_ft: f32,
+    cargo_weight_kg: f32,
+) -> f32 {
     let throttle_factor = MIN_THROTTLE_FACTOR + MAX_THROTTLE_FACTOR * throttle;
-    let altitude_factor = 1.0 - (altitude_ft / SERVICE_CEILING_FT).min(1.0) * ALTITUDE_EFFICIENCY_FACTOR;
-    let weight_factor = 1.0 + (cargo_weight_kg / CARGO_WEIGHT_REFERENCE_KG).min(1.0) * CARGO_WEIGHT_PENALTY_FACTOR;
+    let altitude_factor =
+        1.0 - (altitude_ft / SERVICE_CEILING_FT).min(1.0) * ALTITUDE_EFFICIENCY_FACTOR;
+    let weight_factor =
+        1.0 + (cargo_weight_kg / CARGO_WEIGHT_REFERENCE_KG).min(1.0) * CARGO_WEIGHT_PENALTY_FACTOR;
     base_rate * throttle_factor * altitude_factor * weight_factor
 }
 
@@ -71,7 +80,9 @@ pub struct FuelWarnings {
 
 /// Calculate bingo fuel — minimum fuel to divert to nearest airport.
 pub fn bingo_fuel(current_speed_knots: f32, burn_rate: f32, distance_nm: f32) -> f32 {
-    if current_speed_knots < 1.0 { return f32::MAX; }
+    if current_speed_knots < 1.0 {
+        return f32::MAX;
+    }
     let time_hours = distance_nm / current_speed_knots;
     let time_secs = time_hours * 3600.0;
     burn_rate * time_secs / 60.0 * 1.1
@@ -79,17 +90,28 @@ pub fn bingo_fuel(current_speed_knots: f32, burn_rate: f32, distance_nm: f32) ->
 
 pub fn nearest_divert_airport(origin: AirportId, destination: AirportId) -> (AirportId, f32) {
     let all_airports = [
-        AirportId::HomeBase, AirportId::Windport, AirportId::Frostpeak,
-        AirportId::Sunhaven, AirportId::Ironforge, AirportId::Cloudmere,
-        AirportId::Duskhollow, AirportId::Stormwatch, AirportId::Grandcity,
+        AirportId::HomeBase,
+        AirportId::Windport,
+        AirportId::Frostpeak,
+        AirportId::Sunhaven,
+        AirportId::Ironforge,
+        AirportId::Cloudmere,
+        AirportId::Duskhollow,
+        AirportId::Stormwatch,
+        AirportId::Grandcity,
         AirportId::Skyreach,
     ];
     let mut best = destination;
     let mut best_dist = f32::MAX;
     for &ap in &all_airports {
-        if ap == destination { continue; }
+        if ap == destination {
+            continue;
+        }
         let d = airport_distance(origin, ap);
-        if d < best_dist { best = ap; best_dist = d; }
+        if d < best_dist {
+            best = ap;
+            best_dist = d;
+        }
     }
     (best, best_dist)
 }
@@ -117,14 +139,20 @@ pub fn refuel_aircraft(
     registry: &AircraftRegistry,
 ) -> Result<u32, &'static str> {
     let aircraft = fleet.active_mut().ok_or("No active aircraft")?;
-    let def = registry.get(&aircraft.aircraft_id).ok_or("Unknown aircraft")?;
+    let def = registry
+        .get(&aircraft.aircraft_id)
+        .ok_or("Unknown aircraft")?;
     let fuel_needed = def.fuel_capacity - aircraft.fuel;
-    if fuel_needed <= 0.0 { return Err("Tank is full"); }
+    if fuel_needed <= 0.0 {
+        return Err("Tank is full");
+    }
 
     let fuel_type = fuel_type_for_class(def.class);
     let cost_per_unit = fuel_type.cost_per_unit();
     let cost = (fuel_needed * cost_per_unit as f32) as u32;
-    if gold.amount < cost { return Err("Not enough gold"); }
+    if gold.amount < cost {
+        return Err("Not enough gold");
+    }
 
     gold.amount -= cost;
     aircraft.fuel = def.fuel_capacity;
@@ -142,9 +170,12 @@ pub fn monitor_fuel_in_flight(
     if !matches!(
         flight_state.phase,
         FlightPhase::Climb | FlightPhase::Cruise | FlightPhase::Descent | FlightPhase::Approach
-    ) { return; }
+    ) {
+        return;
+    }
 
-    let capacity = fleet.active()
+    let capacity = fleet
+        .active()
         .and_then(|ac| aircraft_registry.get(&ac.aircraft_id))
         .map_or(MAX_FUEL, |def| def.fuel_capacity);
     let ratio = flight_state.fuel_remaining / capacity;
@@ -159,7 +190,10 @@ pub fn monitor_fuel_in_flight(
         fuel_warnings.warned_15 = true;
         let (divert, _dist) = nearest_divert_airport(flight_state.origin, flight_state.destination);
         toast_events.send(ToastEvent {
-            message: format!("⚠ Fuel below 15%! Consider diverting to {}", divert.display_name()),
+            message: format!(
+                "⚠ Fuel below 15%! Consider diverting to {}",
+                divert.display_name()
+            ),
             duration_secs: 5.0,
         });
     } else if ratio <= FUEL_WARN_25 && !fuel_warnings.warned_25 {

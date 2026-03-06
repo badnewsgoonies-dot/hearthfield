@@ -1,7 +1,7 @@
 //! Weather visual and gameplay effects — screen tinting, turbulence shake, crosswind, icing.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTS
@@ -100,10 +100,7 @@ pub fn apply_turbulence_effects(
 }
 
 /// Crosswind affects takeoff and landing difficulty.
-pub fn apply_wind_effects(
-    weather_state: Res<WeatherState>,
-    mut flight_state: ResMut<FlightState>,
-) {
+pub fn apply_wind_effects(weather_state: Res<WeatherState>, mut flight_state: ResMut<FlightState>) {
     if !matches!(
         flight_state.phase,
         FlightPhase::Takeoff | FlightPhase::Landing | FlightPhase::Approach

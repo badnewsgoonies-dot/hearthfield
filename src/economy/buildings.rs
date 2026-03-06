@@ -1,9 +1,9 @@
 //! Building upgrade system — handles construction requests and timed completion
 //! for House, Coop, Barn, and Silo upgrades.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cost definitions
@@ -11,7 +11,10 @@ use crate::shared::*;
 
 /// Returns `(gold_cost, Vec<(material_item_id, quantity)>)` for upgrading a
 /// building *to* the given tier. Returns `(0, vec![])` for invalid combinations.
-pub fn upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'static str, u8)>) {
+pub fn upgrade_cost(
+    building: BuildingKind,
+    to_tier: BuildingTier,
+) -> (u32, Vec<(&'static str, u8)>) {
     match (building, to_tier) {
         // House upgrades (starts at Basic by default, upgrades to Big then Deluxe)
         (BuildingKind::House, BuildingTier::Big) => (10_000, vec![("wood", 200)]),
@@ -176,20 +179,18 @@ pub fn tick_building_upgrade(
         if let Some((building, target_tier)) = finished {
             // Apply the upgrade based on building kind.
             match building {
-                BuildingKind::House => {
-                    match target_tier {
-                        BuildingTier::Big => {
-                            house_state.tier = HouseTier::Big;
-                            house_state.has_kitchen = true;
-                        }
-                        BuildingTier::Deluxe => {
-                            house_state.tier = HouseTier::Deluxe;
-                            house_state.has_kitchen = true;
-                            house_state.has_nursery = true;
-                        }
-                        _ => {}
+                BuildingKind::House => match target_tier {
+                    BuildingTier::Big => {
+                        house_state.tier = HouseTier::Big;
+                        house_state.has_kitchen = true;
                     }
-                }
+                    BuildingTier::Deluxe => {
+                        house_state.tier = HouseTier::Deluxe;
+                        house_state.has_kitchen = true;
+                        house_state.has_nursery = true;
+                    }
+                    _ => {}
+                },
                 BuildingKind::Coop => {
                     animal_state.has_coop = true;
                     animal_state.coop_level = match target_tier {

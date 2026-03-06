@@ -1,22 +1,17 @@
 //! Airport facility interactions — refuel, repair, weather briefing, training.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub struct FacilityPlugin;
 
 impl Plugin for FacilityPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<FacilityState>()
-            .add_systems(
-                Update,
-                (
-                    interact_facility,
-                    process_facility_action,
-                )
-                    .run_if(in_state(GameState::Playing)),
-            );
+        app.init_resource::<FacilityState>().add_systems(
+            Update,
+            (interact_facility, process_facility_action).run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -140,19 +135,45 @@ impl FacilityState {
         };
 
         let mut facilities = vec![
-            AirportFacility { facility_type: FacilityType::FuelStation, quality, available: true },
-            AirportFacility { facility_type: FacilityType::MaintenanceHangar, quality, available: true },
-            AirportFacility { facility_type: FacilityType::ControlTower, quality, available: true },
-            AirportFacility { facility_type: FacilityType::PassengerTerminal, quality, available: true },
-            AirportFacility { facility_type: FacilityType::WeatherStation, quality, available: true },
-            AirportFacility { facility_type: FacilityType::Cafe, quality, available: true },
+            AirportFacility {
+                facility_type: FacilityType::FuelStation,
+                quality,
+                available: true,
+            },
+            AirportFacility {
+                facility_type: FacilityType::MaintenanceHangar,
+                quality,
+                available: true,
+            },
+            AirportFacility {
+                facility_type: FacilityType::ControlTower,
+                quality,
+                available: true,
+            },
+            AirportFacility {
+                facility_type: FacilityType::PassengerTerminal,
+                quality,
+                available: true,
+            },
+            AirportFacility {
+                facility_type: FacilityType::WeatherStation,
+                quality,
+                available: true,
+            },
+            AirportFacility {
+                facility_type: FacilityType::Cafe,
+                quality,
+                available: true,
+            },
         ];
 
         // Bigger airports get extra facilities
         match airport {
             AirportId::Grandcity | AirportId::Skyreach | AirportId::Ironforge => {
                 facilities.push(AirportFacility {
-                    facility_type: FacilityType::CargoWarehouse, quality, available: true,
+                    facility_type: FacilityType::CargoWarehouse,
+                    quality,
+                    available: true,
                 });
             }
             _ => {}
@@ -160,7 +181,9 @@ impl FacilityState {
 
         if matches!(airport, AirportId::HomeBase | AirportId::Grandcity) {
             facilities.push(AirportFacility {
-                facility_type: FacilityType::FlightSchool, quality, available: true,
+                facility_type: FacilityType::FlightSchool,
+                quality,
+                available: true,
             });
         }
 
@@ -209,8 +232,11 @@ pub fn interact_facility(
             toast_events.send(ToastEvent {
                 message: format!(
                     "Weather: {:?} | Wind: {:.0}° at {:.0}kts | Vis: {:.1}nm | Ceiling: {}ft",
-                    weather.current, weather.wind_direction_deg, weather.wind_speed_knots,
-                    weather.visibility_nm, weather.ceiling_ft
+                    weather.current,
+                    weather.wind_direction_deg,
+                    weather.wind_speed_knots,
+                    weather.visibility_nm,
+                    weather.ceiling_ft
                 ),
                 duration_secs: 6.0,
             });
@@ -263,7 +289,10 @@ pub fn process_facility_action(
             if let Some(ac) = fleet.active_mut() {
                 ac.fuel = (ac.fuel + amount).min(100.0);
             }
-            gold_events.send(GoldChangeEvent { amount: -(cost as i32), reason: "Refuel".to_string() });
+            gold_events.send(GoldChangeEvent {
+                amount: -(cost as i32),
+                reason: "Refuel".to_string(),
+            });
             toast_events.send(ToastEvent {
                 message: format!("Refueled +{amount:.0} (-{cost}g)"),
                 duration_secs: 3.0,
@@ -288,7 +317,10 @@ pub fn process_facility_action(
             if let Some(ac) = fleet.active_mut() {
                 ac.condition = 100.0;
             }
-            gold_events.send(GoldChangeEvent { amount: -(cost as i32), reason: "Repair".to_string() });
+            gold_events.send(GoldChangeEvent {
+                amount: -(cost as i32),
+                reason: "Repair".to_string(),
+            });
             toast_events.send(ToastEvent {
                 message: format!("Aircraft repaired to 100% (-{cost}g)"),
                 duration_secs: 3.0,
@@ -304,8 +336,14 @@ pub fn process_facility_action(
             }
             gold.amount -= cost;
             pilot_state.xp += xp;
-            xp_events.send(XpGainEvent { amount: xp, source: "Flight School".to_string() });
-            gold_events.send(GoldChangeEvent { amount: -(cost as i32), reason: "Training".to_string() });
+            xp_events.send(XpGainEvent {
+                amount: xp,
+                source: "Flight School".to_string(),
+            });
+            gold_events.send(GoldChangeEvent {
+                amount: -(cost as i32),
+                reason: "Training".to_string(),
+            });
             toast_events.send(ToastEvent {
                 message: format!("Training complete! +{xp} XP (-{cost}g)"),
                 duration_secs: 3.0,
@@ -321,7 +359,10 @@ pub fn process_facility_action(
             }
             gold.amount -= cost;
             inventory.add_item(&item_id, 1);
-            gold_events.send(GoldChangeEvent { amount: -(cost as i32), reason: "Cafe".to_string() });
+            gold_events.send(GoldChangeEvent {
+                amount: -(cost as i32),
+                reason: "Cafe".to_string(),
+            });
             toast_events.send(ToastEvent {
                 message: format!("Bought {item_id} (-{cost}g)"),
                 duration_secs: 2.0,

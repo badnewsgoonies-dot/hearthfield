@@ -4,8 +4,8 @@
 //! in the `PlayStats` resource. No game logic is changed here; this module is
 //! purely observational.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // System: crops_harvested
@@ -80,10 +80,7 @@ pub fn track_day_end(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Increments `PlayStats::gifts_given` for every `GiftGivenEvent`.
-pub fn track_gifts_given(
-    mut events: EventReader<GiftGivenEvent>,
-    mut stats: ResMut<PlayStats>,
-) {
+pub fn track_gifts_given(mut events: EventReader<GiftGivenEvent>, mut stats: ResMut<PlayStats>) {
     for _ev in events.read() {
         stats.gifts_given = stats.gifts_given.saturating_add(1);
     }
@@ -108,14 +105,10 @@ pub fn track_animal_products_collected(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Increments `PlayStats::total_gold_earned` for every positive `GoldChangeEvent`.
-pub fn track_gold_earned(
-    mut events: EventReader<GoldChangeEvent>,
-    mut stats: ResMut<PlayStats>,
-) {
+pub fn track_gold_earned(mut events: EventReader<GoldChangeEvent>, mut stats: ResMut<PlayStats>) {
     for ev in events.read() {
         if ev.amount > 0 {
-            stats.total_gold_earned =
-                stats.total_gold_earned.saturating_add(ev.amount as u64);
+            stats.total_gold_earned = stats.total_gold_earned.saturating_add(ev.amount as u64);
         }
     }
 }
@@ -125,10 +118,7 @@ pub fn track_gold_earned(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Increments `PlayStats::food_eaten` on `EatFoodEvent`.
-pub fn track_food_eaten(
-    mut events: EventReader<EatFoodEvent>,
-    mut stats: ResMut<PlayStats>,
-) {
+pub fn track_food_eaten(mut events: EventReader<EatFoodEvent>, mut stats: ResMut<PlayStats>) {
     for _ev in events.read() {
         stats.food_eaten = stats.food_eaten.saturating_add(1);
     }

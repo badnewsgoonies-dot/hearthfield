@@ -1,8 +1,8 @@
 //! Pilot skill progression — XP-based leveling for aviation competencies.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 use std::collections::HashMap;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,7 +62,7 @@ impl SkillType {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SkillState {
-    pub level: u32,       // 0–100
+    pub level: u32, // 0–100
     pub xp: u32,
     pub xp_to_next: u32,
     pub last_used_day: u32,

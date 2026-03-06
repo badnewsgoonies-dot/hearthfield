@@ -1,7 +1,7 @@
 //! In-flight passenger management — mood, announcements, service, events.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -104,7 +104,9 @@ pub enum PassengerEvent {
 impl PassengerEvent {
     pub fn display_text(&self) -> &'static str {
         match self {
-            PassengerEvent::MedicalEmergency => "🚑 A passenger is feeling unwell! Cabin crew responding.",
+            PassengerEvent::MedicalEmergency => {
+                "🚑 A passenger is feeling unwell! Cabin crew responding."
+            }
             PassengerEvent::UnrulyPassenger => "⚠ An unruly passenger is causing a disturbance.",
             PassengerEvent::ChildCrying => "👶 A child is crying in the cabin.",
             PassengerEvent::ApplauseOnLanding => "👏 Passengers applaud the smooth landing!",

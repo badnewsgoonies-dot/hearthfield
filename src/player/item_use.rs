@@ -3,9 +3,9 @@
 //! When R is pressed with an item selected, dispatches based on item properties.
 //! All action inputs use just_pressed (edge-triggered) — no debounce needed.
 
-use bevy::prelude::*;
-use bevy::ecs::system::SystemParam;
 use crate::shared::*;
+use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 
 // Domain event imports — use pub re-exports from domain mod.rs.
 use crate::crafting::PlaceMachineEvent;

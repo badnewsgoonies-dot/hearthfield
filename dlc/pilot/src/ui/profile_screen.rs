@@ -1,7 +1,7 @@
 //! Pilot profile / stats screen — rank, skills, hours, achievements, finances.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTS
@@ -34,10 +34,10 @@ pub const SKILL_NAMES: &[&str] = &[
 /// Derive a skill level (0.0–1.0) from pilot stats.
 fn compute_skill(skill_index: usize, pilot: &PilotState, stats: &PlayStats) -> f32 {
     let raw = match skill_index {
-        0 => (stats.total_distance_nm / 5000.0).min(1.0),           // Navigation
-        1 => (stats.total_flight_hours / 200.0).min(1.0),           // Instrument Flying
-        2 => (stats.total_flights as f32 / 100.0).min(1.0),         // Weather Reading
-        3 => (stats.perfect_landings as f32 / 50.0).min(1.0),       // Landing Precision
+        0 => (stats.total_distance_nm / 5000.0).min(1.0), // Navigation
+        1 => (stats.total_flight_hours / 200.0).min(1.0), // Instrument Flying
+        2 => (stats.total_flights as f32 / 100.0).min(1.0), // Weather Reading
+        3 => (stats.perfect_landings as f32 / 50.0).min(1.0), // Landing Precision
         4 => {
             if stats.total_flights > 0 {
                 (1.0 - stats.rough_landings as f32 / stats.total_flights as f32).max(0.0)
@@ -45,9 +45,9 @@ fn compute_skill(skill_index: usize, pilot: &PilotState, stats: &PlayStats) -> f
                 0.0
             }
         } // Fuel Management (proxy: fewer bad landings)
-        5 => (pilot.reputation / 100.0).min(1.0),                   // Passenger Comfort
-        6 => (stats.missions_completed as f32 / 80.0).min(1.0),     // Emergency Handling
-        7 => (stats.aircraft_owned.len() as f32 / 8.0).min(1.0),    // Aircraft Knowledge
+        5 => (pilot.reputation / 100.0).min(1.0),         // Passenger Comfort
+        6 => (stats.missions_completed as f32 / 80.0).min(1.0), // Emergency Handling
+        7 => (stats.aircraft_owned.len() as f32 / 8.0).min(1.0), // Aircraft Knowledge
         _ => 0.0,
     };
     raw.clamp(0.0, 1.0)
@@ -334,5 +334,11 @@ pub fn despawn_profile_screen(
 ) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn handle_profile_input(input: Res<PlayerInput>, mut next_state: ResMut<NextState<GameState>>) {
+    if input.cancel || input.menu_cancel {
+        next_state.set(GameState::Playing);
     }
 }

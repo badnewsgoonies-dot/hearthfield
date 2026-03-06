@@ -4,8 +4,8 @@
 //! Checks fuel, aircraft condition, instruments, weather, cargo/passengers,
 //! and the filed flight plan. Transitions to Taxi on completion.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ── Progress tracking ────────────────────────────────────────────────────
 
@@ -99,11 +99,7 @@ pub fn reset_preflight_on_enter(mut progress: ResMut<PreflightProgress>) {
 
 // ── Individual checks ────────────────────────────────────────────────────
 
-fn check_fuel(
-    fleet: &Fleet,
-    registry: &AircraftRegistry,
-    fs: &FlightState,
-) -> (bool, String) {
+fn check_fuel(fleet: &Fleet, registry: &AircraftRegistry, fs: &FlightState) -> (bool, String) {
     let Some(ac) = fleet.active() else {
         return (false, "✗ Fuel: No aircraft selected!".into());
     };

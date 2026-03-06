@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONTEXTUAL HINT DEFINITIONS
@@ -90,15 +90,11 @@ pub fn check_tutorial_hints(
 
         let triggered = match hint.id {
             "mine_entrance" => {
-                matches!(
-                    player_state.current_map,
-                    MapId::Mine | MapId::MineEntrance
-                )
+                matches!(player_state.current_map, MapId::Mine | MapId::MineEntrance)
             }
             "npc_nearby" => player_state.current_map == MapId::Town,
             "rainy_day" => {
-                calendar.weather == Weather::Rainy
-                    && player_state.current_map == MapId::Farm
+                calendar.weather == Weather::Rainy && player_state.current_map == MapId::Farm
             }
             "season_change" => {
                 calendar.day == 1
@@ -107,13 +103,9 @@ pub fn check_tutorial_hints(
             }
             "low_stamina" => player_state.stamina < 20.0,
             // Fix 4: Shipping bin hint — triggers when any crop is nearing maturity
-            "shipping_bin" => {
-                farm_state.crops.values().any(|c| c.current_stage >= 3)
-            }
+            "shipping_bin" => farm_state.crops.values().any(|c| c.current_stage >= 3),
             // Fix 5: Inventory hint — triggers on Day 1 morning
-            "open_inventory" => {
-                calendar.day == 1 && calendar.year == 1 && calendar.hour >= 7
-            }
+            "open_inventory" => calendar.day == 1 && calendar.year == 1 && calendar.hour >= 7,
             _ => false,
         };
 
@@ -172,9 +164,10 @@ pub const OBJECTIVES: &[(&str, &str)] = &[
 ];
 
 // Fix 3: Day 2 objectives
-const DAY2_OBJECTIVES: &[(&str, &str)] = &[
-    ("check_crops", "Check your crops \u{2014} walk to your farm and see how they're growing"),
-];
+const DAY2_OBJECTIVES: &[(&str, &str)] = &[(
+    "check_crops",
+    "Check your crops \u{2014} walk to your farm and see how they're growing",
+)];
 
 // Fix 3: Day 3+ objectives
 const DAY3_OBJECTIVES: &[(&str, &str)] = &[
@@ -190,14 +183,17 @@ fn is_objective_complete(
 ) -> bool {
     match id {
         // Fix 1: exit_house completion check
-        "exit_house"   => player.current_map != MapId::PlayerHouse,
-        "till_soil"    => farm.soil.values().any(|s| *s == SoilState::Tilled || *s == SoilState::Watered),
-        "plant_seeds"  => !farm.crops.is_empty(),
-        "water_crops"  => farm.soil.values().any(|s| *s == SoilState::Watered),
-        "visit_town"   => player.current_map == MapId::Town,
-        "go_to_bed"    => calendar.day >= 2,
+        "exit_house" => player.current_map != MapId::PlayerHouse,
+        "till_soil" => farm
+            .soil
+            .values()
+            .any(|s| *s == SoilState::Tilled || *s == SoilState::Watered),
+        "plant_seeds" => !farm.crops.is_empty(),
+        "water_crops" => farm.soil.values().any(|s| *s == SoilState::Watered),
+        "visit_town" => player.current_map == MapId::Town,
+        "go_to_bed" => calendar.day >= 2,
         // Fix 3: Day 2 objective
-        "check_crops"  => player.current_map == MapId::Farm && calendar.hour >= 7,
+        "check_crops" => player.current_map == MapId::Farm && calendar.hour >= 7,
         // Fix 3: Day 3+ objective
         "use_shipping_bin" => !shipping_bin.items.is_empty(),
         _ => false,
@@ -229,7 +225,8 @@ pub fn check_objectives(
             } else if calendar.day == 2 {
                 // Fix 3: Day 2 objectives.
                 tutorial.current_objective = Some(DAY2_OBJECTIVES[0].0.to_string());
-            } else if calendar.day >= 3 && !tutorial.hints_shown.iter().any(|h| h == "shipped_once") {
+            } else if calendar.day >= 3 && !tutorial.hints_shown.iter().any(|h| h == "shipped_once")
+            {
                 // Fix 3: Day 3+ shipping objective (only if player has never shipped).
                 tutorial.current_objective = Some(DAY3_OBJECTIVES[0].0.to_string());
             }
@@ -242,16 +239,31 @@ pub fn check_objectives(
         return;
     };
 
-    if !is_objective_complete(current_id, &farm_state, &calendar, &player_state, &shipping_bin) {
+    if !is_objective_complete(
+        current_id,
+        &farm_state,
+        &calendar,
+        &player_state,
+        &shipping_bin,
+    ) {
         return;
     }
 
     // Determine which objective list the current objective belongs to and find its index.
-    let (obj_list, current_idx) = if let Some(idx) = OBJECTIVES.iter().position(|(id, _)| *id == current_id.as_str()) {
+    let (obj_list, current_idx) = if let Some(idx) = OBJECTIVES
+        .iter()
+        .position(|(id, _)| *id == current_id.as_str())
+    {
         (OBJECTIVES, Some(idx))
-    } else if let Some(idx) = DAY2_OBJECTIVES.iter().position(|(id, _)| *id == current_id.as_str()) {
+    } else if let Some(idx) = DAY2_OBJECTIVES
+        .iter()
+        .position(|(id, _)| *id == current_id.as_str())
+    {
         (DAY2_OBJECTIVES, Some(idx))
-    } else if let Some(idx) = DAY3_OBJECTIVES.iter().position(|(id, _)| *id == current_id.as_str()) {
+    } else if let Some(idx) = DAY3_OBJECTIVES
+        .iter()
+        .position(|(id, _)| *id == current_id.as_str())
+    {
         (DAY3_OBJECTIVES, Some(idx))
     } else {
         // Unknown objective — clear it.
@@ -310,7 +322,11 @@ mod tests {
     #[test]
     fn test_all_hint_messages_are_non_empty() {
         for hint in HINTS {
-            assert!(!hint.message.is_empty(), "Hint {} has empty message", hint.id);
+            assert!(
+                !hint.message.is_empty(),
+                "Hint {} has empty message",
+                hint.id
+            );
         }
     }
 

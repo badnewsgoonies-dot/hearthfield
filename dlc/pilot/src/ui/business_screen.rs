@@ -1,8 +1,8 @@
 //! Business HQ screen — airline overview, routes, fleet, employees, revenue.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use crate::economy::business::AirlineBusiness;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -182,10 +182,7 @@ pub fn spawn_business_screen(
         // ── Employees ─────────────────────────────────────────────
         let emp_header = commands
             .spawn((
-                Text::new(format!(
-                    "── Employees ({}) ──",
-                    business.hired_pilots.len()
-                )),
+                Text::new(format!("── Employees ({}) ──", business.hired_pilots.len())),
                 TextFont {
                     font: font.0.clone(),
                     font_size: 16.0,
@@ -201,10 +198,7 @@ pub fn spawn_business_screen(
         commands.entity(root).add_child(emp_header);
 
         for pilot in &business.hired_pilots {
-            let route_str = pilot
-                .assigned_route
-                .as_deref()
-                .unwrap_or("Unassigned");
+            let route_str = pilot.assigned_route.as_deref().unwrap_or("Unassigned");
             let line = format!(
                 "{} | Skill: {:.0}% | Salary: {}g | Morale: {:.0}% | {}",
                 pilot.name,

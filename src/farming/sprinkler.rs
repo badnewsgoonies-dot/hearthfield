@@ -1,9 +1,9 @@
 //! Sprinkler and rain auto-watering systems.
 
-use bevy::prelude::*;
-use crate::shared::*;
-use super::{FarmEntities, MorningSprinklerEvent};
 use super::soil::spawn_or_update_soil_entity;
+use super::{FarmEntities, MorningSprinklerEvent};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sprinkler auto-watering (runs at start of each day, before crop growth)
@@ -43,7 +43,12 @@ pub fn apply_sprinklers(
                         crop.watered_today = true;
                         crop.days_without_water = 0;
                     }
-                    spawn_or_update_soil_entity(&mut commands, &mut farm_entities, pos, SoilState::Watered);
+                    spawn_or_update_soil_entity(
+                        &mut commands,
+                        &mut farm_entities,
+                        pos,
+                        SoilState::Watered,
+                    );
                 }
             }
         }

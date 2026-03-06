@@ -1,7 +1,7 @@
 //! In-flight weather effects — turbulence, icing, crosswind, visibility, windshear.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -254,14 +254,19 @@ pub fn update_crosswind(
     }
 
     let runway_heading = flight_state.heading_deg;
-    let (cross, head) =
-        wind_components(weather.wind_direction_deg, weather.wind_speed_knots, runway_heading);
+    let (cross, head) = wind_components(
+        weather.wind_direction_deg,
+        weather.wind_speed_knots,
+        runway_heading,
+    );
 
     let prev_cross = effects.crosswind.crosswind_component.abs();
     effects.crosswind.crosswind_component = cross;
     effects.crosswind.headwind_component = head;
     effects.crosswind.required_crab_angle = if weather.wind_speed_knots > 0.0 {
-        (cross / flight_state.speed_knots.max(60.0)).atan().to_degrees()
+        (cross / flight_state.speed_knots.max(60.0))
+            .atan()
+            .to_degrees()
     } else {
         0.0
     };
@@ -279,10 +284,7 @@ pub fn update_crosswind(
 }
 
 /// Update effective visibility from weather conditions.
-pub fn update_visibility(
-    weather: Res<WeatherState>,
-    mut effects: ResMut<WeatherEffects>,
-) {
+pub fn update_visibility(weather: Res<WeatherState>, mut effects: ResMut<WeatherEffects>) {
     effects.effective_visibility_nm = weather.visibility_nm * weather.current.visibility_modifier();
 }
 
@@ -347,8 +349,8 @@ pub fn check_mountain_waves(
         return;
     }
 
-    let near_mountains = has_mountain_terrain(flight_state.origin)
-        || has_mountain_terrain(flight_state.destination);
+    let near_mountains =
+        has_mountain_terrain(flight_state.origin) || has_mountain_terrain(flight_state.destination);
 
     let strong_wind = weather.wind_speed_knots > 20.0;
     let was_active = effects.mountain_wave_active;

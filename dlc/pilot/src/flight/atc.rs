@@ -1,7 +1,7 @@
 //! Air Traffic Control simulation — clearances, runway assignment, sequencing.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -17,7 +17,6 @@ pub enum ClearanceStatus {
     HoldPosition,
     Denied,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ApproachType {
@@ -183,7 +182,11 @@ fn assigned_runway_for(airport: AirportId, wind_dir: f32) -> &'static str {
         AirportId::Grandcity => ("28L", "10R"),
         AirportId::Skyreach => ("35L", "17R"),
     };
-    if wind_dir >= 180.0 { primary.0 } else { primary.1 }
+    if wind_dir >= 180.0 {
+        primary.0
+    } else {
+        primary.1
+    }
 }
 
 // ATC phraseology
@@ -284,7 +287,10 @@ pub fn process_takeoff_clearance(
     mut atc: ResMut<AtcState>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
-    if !matches!(flight_state.phase, FlightPhase::Taxi | FlightPhase::Preflight) {
+    if !matches!(
+        flight_state.phase,
+        FlightPhase::Taxi | FlightPhase::Preflight
+    ) {
         return;
     }
 
@@ -428,8 +434,7 @@ pub fn evaluate_go_around(
     // Unstable approach conditions
     let too_fast = flight_state.speed_knots > 200.0;
     let below_vis = weather.visibility_nm < min_vis;
-    let too_high = flight_state.altitude_ft > 4000.0
-        && flight_state.distance_remaining_nm < 5.0;
+    let too_high = flight_state.altitude_ft > 4000.0 && flight_state.distance_remaining_nm < 5.0;
 
     if too_fast || below_vis || too_high {
         atc.go_around_issued = true;

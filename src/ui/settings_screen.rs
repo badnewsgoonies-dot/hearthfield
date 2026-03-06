@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -89,7 +89,10 @@ fn spawn_settings_screen(
         ("Crafting", format!("{:?}", bindings.open_crafting)),
         ("Map", format!("{:?}", bindings.open_map)),
         ("Journal", format!("{:?}", bindings.open_journal)),
-        ("Relationships", format!("{:?}", bindings.open_relationships)),
+        (
+            "Relationships",
+            format!("{:?}", bindings.open_relationships),
+        ),
         ("Pause", format!("{:?}", bindings.pause)),
     ];
 
@@ -304,10 +307,5 @@ pub fn settings_close_on_escape(
 fn build_volume_bar(level: u8) -> String {
     let filled = (level / 10) as usize;
     let empty = 10usize.saturating_sub(filled);
-    format!(
-        "[{}{}] {}%",
-        "|".repeat(filled),
-        "-".repeat(empty),
-        level
-    )
+    format!("[{}{}] {}%", "|".repeat(filled), "-".repeat(empty), level)
 }

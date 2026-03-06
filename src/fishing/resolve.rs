@@ -15,9 +15,12 @@
 
 use bevy::prelude::*;
 
+use super::treasure::{
+    check_and_grant_treasure, BASE_TREASURE_CHANCE, MAGNET_BAIT_EXTRA_CHANCE,
+    WILD_BAIT_EXTRA_CHANCE,
+};
+use super::{FishEncyclopedia, FishingPhase, FishingState};
 use crate::shared::*;
-use super::{FishingPhase, FishingState, FishEncyclopedia};
-use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_EXTRA_CHANCE, MAGNET_BAIT_EXTRA_CHANCE};
 
 // ─── catch_fish ───────────────────────────────────────────────────────────────
 
@@ -116,8 +119,8 @@ pub fn catch_fish(
     //   - any other bait / no bait: base rate only           →  5% total
     let treasure_chance = match bait_id {
         Some("magnet_bait") => BASE_TREASURE_CHANCE + MAGNET_BAIT_EXTRA_CHANCE,
-        Some("wild_bait")   => BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE,
-        _                   => BASE_TREASURE_CHANCE,
+        Some("wild_bait") => BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE,
+        _ => BASE_TREASURE_CHANCE,
     };
 
     check_and_grant_treasure(

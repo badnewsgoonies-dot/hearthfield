@@ -3,8 +3,8 @@
 //! Events like air shows, storms, fuel shortages, and strikes create dynamic
 //! gameplay opportunities. Event chains allow cascading consequences.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ─── World Event Types ───────────────────────────────────────────────────
@@ -74,10 +74,7 @@ impl DynamicEventKind {
     pub fn can_close_airport(&self) -> bool {
         matches!(
             self,
-            Self::MajorStorm
-                | Self::Earthquake
-                | Self::AirportStrike
-                | Self::VolcanicAsh
+            Self::MajorStorm | Self::Earthquake | Self::AirportStrike | Self::VolcanicAsh
         )
     }
 }
@@ -335,7 +332,9 @@ pub fn update_dynamic_events(
             message: event.kind.news_headline().to_string(),
             duration_secs: 5.0,
         });
-        event_queue.news_ticker.push(event.kind.news_headline().to_string());
+        event_queue
+            .news_ticker
+            .push(event.kind.news_headline().to_string());
         event_queue.active.push(event);
     }
 }

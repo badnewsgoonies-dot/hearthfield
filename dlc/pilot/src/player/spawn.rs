@@ -1,8 +1,8 @@
 //! Player spawn system — per-zone positioning, fade-in, starter setup, respawn.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use crate::aircraft::fleet::HangarAssignments;
+use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 pub struct PlayerSpawned(pub bool);
@@ -31,23 +31,36 @@ pub fn spawn_player(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    if !player_q.is_empty() { return; }
+    if !player_q.is_empty() {
+        return;
+    }
 
     let spawn_pos = default_spawn_position(&player_location);
     let world_pos = grid_to_world_center(spawn_pos.0, spawn_pos.1);
 
-    let texture = asset_server.load("sprites/character_spritesheet.png");
+    let texture = asset_server.load("assets/sprites/character_spritesheet.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::new(48, 48), 4, 4, None, None);
     let layout_handle = layouts.add(layout);
 
     commands.spawn((
         Player,
-        Sprite::from_atlas_image(texture, TextureAtlas { layout: layout_handle, index: 0 }),
+        Sprite::from_atlas_image(
+            texture,
+            TextureAtlas {
+                layout: layout_handle,
+                index: 0,
+            },
+        ),
         Transform::from_xyz(world_pos.x, world_pos.y, Z_PLAYER),
-        SpawnFadeIn { timer: 0.0, duration: SPAWN_FADE_DURATION },
+        SpawnFadeIn {
+            timer: 0.0,
+            duration: SPAWN_FADE_DURATION,
+        },
     ));
 
-    sfx_events.send(PlaySfxEvent { sfx_id: "spawn".to_string() });
+    sfx_events.send(PlaySfxEvent {
+        sfx_id: "spawn".to_string(),
+    });
 }
 
 pub fn animate_spawn_fade(
@@ -78,7 +91,12 @@ pub fn default_spawn_position(location: &PlayerLocation) -> (i32, i32) {
     }
 }
 
-pub fn transition_spawn_position(to_zone: MapZone, from_zone: MapZone, map_w: i32, map_h: i32) -> (i32, i32) {
+pub fn transition_spawn_position(
+    to_zone: MapZone,
+    from_zone: MapZone,
+    map_w: i32,
+    map_h: i32,
+) -> (i32, i32) {
     match (to_zone, from_zone) {
         (MapZone::Terminal, MapZone::Runway) => (map_w / 2, 1),
         (MapZone::Terminal, MapZone::CityStreet) => (map_w / 2, map_h - 2),

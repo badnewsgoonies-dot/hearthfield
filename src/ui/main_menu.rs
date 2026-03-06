@@ -1,10 +1,12 @@
+use super::menu_kit::{self, set_button_visual, MenuAssets, MenuButtonText};
 use super::UiFontHandle;
-use super::menu_kit::{self, MenuAssets, MenuButtonText, set_button_visual};
 use crate::save::{
     LoadCompleteEvent, LoadRequestEvent, NewGameEvent, SaveSlotInfoCache, NUM_SAVE_SLOTS,
 };
 use crate::shared::*;
 use bevy::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::{Path, PathBuf};
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -29,12 +31,84 @@ pub enum MainMenuMode {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Quit"];
+const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Skywarden", "City Office", "Quit"];
 
 #[cfg(target_arch = "wasm32")]
 const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game"];
 const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
-const MAIN_MENU_MAX_ITEMS: usize = NUM_SAVE_SLOTS + 1;
+const LOAD_MENU_OPTION_COUNT: usize = NUM_SAVE_SLOTS + 1;
+const ROOT_MENU_OPTION_COUNT: usize = MAIN_MENU_OPTIONS.len();
+const MAIN_MENU_MAX_ITEMS: usize = if ROOT_MENU_OPTION_COUNT > LOAD_MENU_OPTION_COUNT {
+    ROOT_MENU_OPTION_COUNT
+} else {
+    LOAD_MENU_OPTION_COUNT
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+struct DlcLaunchTarget {
+    menu_label: &'static str,
+    binary_stem: &'static str,
+    working_dir: &'static str,
+    build_command: &'static str,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+const SKYWARDEN_TARGET: DlcLaunchTarget = DlcLaunchTarget {
+    menu_label: "Skywarden",
+    binary_stem: "skywarden",
+    working_dir: "dlc/pilot",
+    build_command: "cargo build -p skywarden",
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+const CITY_OFFICE_TARGET: DlcLaunchTarget = DlcLaunchTarget {
+    menu_label: "City Office",
+    binary_stem: "city_office_worker_dlc",
+    working_dir: "dlc/city",
+    build_command: "cargo build -p city_office_worker_dlc",
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+fn sibling_dlc_binary_path(binary_stem: &str) -> Result<PathBuf, String> {
+    let current_exe = std::env::current_exe()
+        .map_err(|err| format!("Could not locate executable directory: {err}"))?;
+    let exe_dir = current_exe.parent().unwrap_or_else(|| Path::new("."));
+    Ok(exe_dir.join(format!("{binary_stem}{}", std::env::consts::EXE_SUFFIX)))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn dlc_working_dir(relative_path: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(relative_path)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn launch_dlc(target: &DlcLaunchTarget) -> Result<(), String> {
+    let binary_path = sibling_dlc_binary_path(target.binary_stem)?;
+    let working_dir = dlc_working_dir(target.working_dir);
+    if !binary_path.is_file() {
+        return Err(format!(
+            "{} not installed. Build with: {}",
+            target.menu_label, target.build_command
+        ));
+    }
+    if !working_dir.is_dir() {
+        return Err(format!(
+            "{} launch directory missing. Build with: {}",
+            target.menu_label, target.build_command
+        ));
+    }
+
+    std::process::Command::new(&binary_path)
+        .current_dir(&working_dir)
+        .spawn()
+        .map(|_| ())
+        .map_err(|err| {
+            format!(
+                "Failed to launch {}. Build with: {} ({err})",
+                target.menu_label, target.build_command
+            )
+        })
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN / DESPAWN
@@ -272,7 +346,27 @@ pub fn main_menu_navigation(
                     state.status_message.clear();
                 }
                 #[cfg(not(target_arch = "wasm32"))]
-                2 => {
+                2 => match launch_dlc(&SKYWARDEN_TARGET) {
+                    Ok(()) => {
+                        state.status_message = "Launching Skywarden...".to_string();
+                        app_exit.send(AppExit::Success);
+                    }
+                    Err(err) => {
+                        state.status_message = err;
+                    }
+                },
+                #[cfg(not(target_arch = "wasm32"))]
+                3 => match launch_dlc(&CITY_OFFICE_TARGET) {
+                    Ok(()) => {
+                        state.status_message = "Launching City Office...".to_string();
+                        app_exit.send(AppExit::Success);
+                    }
+                    Err(err) => {
+                        state.status_message = err;
+                    }
+                },
+                #[cfg(not(target_arch = "wasm32"))]
+                4 => {
                     app_exit.send(AppExit::Success);
                 }
                 _ => {}
@@ -333,5 +427,32 @@ pub fn handle_load_complete_in_main_menu(
                 .clone()
                 .unwrap_or_else(|| "Failed to load save slot.".to_string());
         }
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sibling_dlc_binary_path_uses_platform_suffix() {
+        let path = sibling_dlc_binary_path("skywarden").expect("path should resolve");
+        let expected = format!("skywarden{}", std::env::consts::EXE_SUFFIX);
+        assert_eq!(
+            path.file_name().and_then(|name| name.to_str()),
+            Some(expected.as_str())
+        );
+    }
+
+    #[test]
+    fn menu_button_pool_covers_root_and_load_menus() {
+        assert!(MAIN_MENU_MAX_ITEMS >= MAIN_MENU_OPTIONS.len());
+        assert!(MAIN_MENU_MAX_ITEMS >= LOAD_MENU_OPTION_COUNT);
+    }
+
+    #[test]
+    fn dlc_working_dir_is_repo_relative() {
+        let dir = dlc_working_dir("dlc/pilot");
+        assert!(dir.ends_with(Path::new("dlc").join("pilot")));
     }
 }

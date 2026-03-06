@@ -1,7 +1,7 @@
 //! Autosave system — triggered on day end, periodic timer, and flight completion.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RESOURCES

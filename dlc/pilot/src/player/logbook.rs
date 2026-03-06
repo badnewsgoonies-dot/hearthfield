@@ -1,8 +1,8 @@
 //! Flight logbook — records every completed flight for stat tracking and rank advancement.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -78,9 +78,11 @@ impl Logbook {
     }
 
     pub fn longest_flight(&self) -> Option<&LogbookEntry> {
-        self.entries
-            .iter()
-            .max_by(|a, b| a.duration_minutes.partial_cmp(&b.duration_minutes).unwrap_or(std::cmp::Ordering::Equal))
+        self.entries.iter().max_by(|a, b| {
+            a.duration_minutes
+                .partial_cmp(&b.duration_minutes)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 
     pub fn most_passengers_flight(&self) -> Option<&LogbookEntry> {
@@ -105,7 +107,10 @@ impl Logbook {
     }
 
     pub fn perfect_landing_count(&self) -> usize {
-        self.entries.iter().filter(|e| e.landing_grade == "Perfect").count()
+        self.entries
+            .iter()
+            .filter(|e| e.landing_grade == "Perfect")
+            .count()
     }
 
     pub fn total_flights(&self) -> usize {
@@ -125,20 +130,16 @@ impl Logbook {
             PilotRank::Student => true,
             PilotRank::Private => self.total_hours >= 5.0,
             PilotRank::Commercial => {
-                self.total_hours >= 20.0
-                    && self.hours_in_class(AircraftClass::TwinProp) >= 3.0
+                self.total_hours >= 20.0 && self.hours_in_class(AircraftClass::TwinProp) >= 3.0
             }
             PilotRank::Senior => {
-                self.total_hours >= 50.0
-                    && self.hours_in_class(AircraftClass::Turboprop) >= 5.0
+                self.total_hours >= 50.0 && self.hours_in_class(AircraftClass::Turboprop) >= 5.0
             }
             PilotRank::Captain => {
-                self.total_hours >= 100.0
-                    && self.hours_in_class(AircraftClass::MediumJet) >= 10.0
+                self.total_hours >= 100.0 && self.hours_in_class(AircraftClass::MediumJet) >= 10.0
             }
             PilotRank::Ace => {
-                self.total_hours >= 200.0
-                    && self.hours_in_class(AircraftClass::HeavyJet) >= 20.0
+                self.total_hours >= 200.0 && self.hours_in_class(AircraftClass::HeavyJet) >= 20.0
             }
         }
     }
@@ -194,10 +195,7 @@ pub fn record_flight(
         logbook.record(entry);
 
         toast_events.send(ToastEvent {
-            message: format!(
-                "✈ Flight logged — total hours: {:.1}",
-                logbook.total_hours
-            ),
+            message: format!("✈ Flight logged — total hours: {:.1}", logbook.total_hours),
             duration_secs: 3.0,
         });
     }

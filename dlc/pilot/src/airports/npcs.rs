@@ -2,8 +2,8 @@
 //!
 //! These NPCs add life to airports with simple patrol patterns and one-liner dialogue.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -178,36 +178,42 @@ fn terminal_npcs(density: u32) -> Vec<NpcSpawnDef> {
     let mut npcs = vec![
         NpcSpawnDef {
             role: NpcRole::SecurityGuard,
-            gx: 3, gy: 5,
+            gx: 3,
+            gy: 5,
             patrol_offsets: vec![(3, 5), (3, 10), (10, 10), (10, 5)],
         },
         NpcSpawnDef {
             role: NpcRole::Passenger,
-            gx: 8, gy: 6,
+            gx: 8,
+            gy: 6,
             patrol_offsets: vec![(8, 6), (12, 6), (12, 9), (8, 9)],
         },
         NpcSpawnDef {
             role: NpcRole::Janitor,
-            gx: 15, gy: 8,
+            gx: 15,
+            gy: 8,
             patrol_offsets: vec![(15, 8), (18, 8), (18, 4), (15, 4)],
         },
     ];
     if density >= 2 {
         npcs.push(NpcSpawnDef {
             role: NpcRole::Tourist,
-            gx: 6, gy: 4,
+            gx: 6,
+            gy: 4,
             patrol_offsets: vec![(6, 4), (10, 4), (10, 7), (6, 7)],
         });
         npcs.push(NpcSpawnDef {
             role: NpcRole::BusinessPerson,
-            gx: 14, gy: 3,
+            gx: 14,
+            gy: 3,
             patrol_offsets: vec![(14, 3), (16, 3), (16, 6), (14, 6)],
         });
     }
     if density >= 3 {
         npcs.push(NpcSpawnDef {
             role: NpcRole::Passenger,
-            gx: 5, gy: 8,
+            gx: 5,
+            gy: 8,
             patrol_offsets: vec![(5, 8), (9, 8)],
         });
     }
@@ -218,12 +224,14 @@ fn lounge_npcs() -> Vec<NpcSpawnDef> {
     vec![
         NpcSpawnDef {
             role: NpcRole::BusinessPerson,
-            gx: 5, gy: 4,
+            gx: 5,
+            gy: 4,
             patrol_offsets: vec![(5, 4), (8, 4), (8, 7), (5, 7)],
         },
         NpcSpawnDef {
             role: NpcRole::Passenger,
-            gx: 10, gy: 6,
+            gx: 10,
+            gy: 6,
             patrol_offsets: vec![(10, 6), (14, 6)],
         },
     ]
@@ -233,12 +241,14 @@ fn runway_npcs() -> Vec<NpcSpawnDef> {
     vec![
         NpcSpawnDef {
             role: NpcRole::GroundCrew,
-            gx: 5, gy: 5,
+            gx: 5,
+            gy: 5,
             patrol_offsets: vec![(5, 5), (15, 5), (15, 15), (5, 15)],
         },
         NpcSpawnDef {
             role: NpcRole::GroundCrew,
-            gx: 10, gy: 3,
+            gx: 10,
+            gy: 3,
             patrol_offsets: vec![(10, 3), (10, 12)],
         },
     ]
@@ -247,7 +257,8 @@ fn runway_npcs() -> Vec<NpcSpawnDef> {
 fn control_tower_npcs() -> Vec<NpcSpawnDef> {
     vec![NpcSpawnDef {
         role: NpcRole::AirTrafficController,
-        gx: 6, gy: 4,
+        gx: 6,
+        gy: 4,
         patrol_offsets: vec![(6, 4), (10, 4)],
     }]
 }
@@ -255,7 +266,8 @@ fn control_tower_npcs() -> Vec<NpcSpawnDef> {
 fn shop_npcs() -> Vec<NpcSpawnDef> {
     vec![NpcSpawnDef {
         role: NpcRole::ShopKeeper,
-        gx: 6, gy: 3,
+        gx: 6,
+        gy: 3,
         patrol_offsets: vec![(6, 3), (10, 3)],
     }]
 }
@@ -336,10 +348,7 @@ pub fn spawn_ambient_npcs(
 }
 
 /// Move NPCs along their patrol paths.
-pub fn update_npc_patrol(
-    time: Res<Time>,
-    mut npcs: Query<(&mut NpcPatrol, &mut Transform)>,
-) {
+pub fn update_npc_patrol(time: Res<Time>, mut npcs: Query<(&mut NpcPatrol, &mut Transform)>) {
     let dt = time.delta_secs();
 
     for (mut patrol, mut tf) in &mut npcs {

@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use super::{ActionSpriteData, DistanceAnimator, PlayerSpriteData};
 use crate::shared::*;
-use super::{PlayerSpriteData, ActionSpriteData, DistanceAnimator};
+use bevy::prelude::*;
 
 /// Starting grid position inside the player's house (center of living room).
 const SPAWN_GRID_X: i32 = 8;
@@ -83,7 +83,11 @@ pub fn spawn_player(
     if !action_data.loaded {
         let action_texture = asset_server.load("sprites/character_actions.png");
         let action_layout = layouts.add(TextureAtlasLayout::from_grid(
-            UVec2::new(48, 48), 2, 12, None, None,
+            UVec2::new(48, 48),
+            2,
+            12,
+            None,
+            None,
         ));
         action_data.image = action_texture;
         action_data.layout = action_layout;

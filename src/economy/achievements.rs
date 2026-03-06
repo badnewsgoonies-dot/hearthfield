@@ -4,8 +4,8 @@
 //! and fires `AchievementUnlockedEvent` when a new achievement is earned.
 //! Also tracks manually-counted progress counters via `Achievements.progress`.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // ACHIEVEMENT DEFINITIONS
@@ -194,14 +194,14 @@ fn evaluate_condition(
 ) -> bool {
     match id {
         // ── Farming ──────────────────────────────────────────────────────
-        "first_harvest"   => stats.crops_harvested >= 1,
-        "green_thumb"     => stats.crops_harvested >= 100,
-        "master_farmer"   => stats.crops_harvested >= 1_000,
+        "first_harvest" => stats.crops_harvested >= 1,
+        "green_thumb" => stats.crops_harvested >= 100,
+        "master_farmer" => stats.crops_harvested >= 1_000,
 
         // ── Fishing ──────────────────────────────────────────────────────
-        "gone_fishin"     => stats.fish_caught >= 1,
-        "angler"          => stats.fish_caught >= 50,
-        "fisherman"       => stats.fish_caught >= 100,
+        "gone_fishin" => stats.fish_caught >= 1,
+        "angler" => stats.fish_caught >= 50,
+        "fisherman" => stats.fish_caught >= 100,
 
         // ── Social ───────────────────────────────────────────────────────
         "social_butterfly" => {
@@ -213,10 +213,7 @@ fn evaluate_condition(
             count_five >= 5
         }
         "best_friends" => {
-            relationships
-                .friendship
-                .values()
-                .any(|&pts| pts >= 1_000) // 10 hearts = 1000 pts
+            relationships.friendship.values().any(|&pts| pts >= 1_000) // 10 hearts = 1000 pts
         }
         "community_pillar" => {
             // All 10 main NPCs must have 5+ hearts.
@@ -232,30 +229,34 @@ fn evaluate_condition(
         "newlywed" => marriage.spouse.is_some(),
 
         // ── Economy ──────────────────────────────────────────────────────
-        "deep_pockets"    => stats.total_gold_earned >= 100_000,
-        "steady_income"   => stats.total_gold_earned >= 10_000,
-        "millionaire"     => player.gold >= 1_000_000,
-        "shipping_mogul"  => stats.items_shipped >= 500,
+        "deep_pockets" => stats.total_gold_earned >= 100_000,
+        "steady_income" => stats.total_gold_earned >= 10_000,
+        "millionaire" => player.gold >= 1_000_000,
+        "shipping_mogul" => stats.items_shipped >= 500,
 
         // ── Mining ───────────────────────────────────────────────────────
-        "spelunker"       => mine.deepest_floor_reached >= 10,
-        "mine_crawler"    => mine.deepest_floor_reached >= 20,
+        "spelunker" => mine.deepest_floor_reached >= 10,
+        "mine_crawler" => mine.deepest_floor_reached >= 20,
 
         // ── Crafting/Cooking ─────────────────────────────────────────────
         "chef" => {
-            achievements.progress.get("recipes_cooked").copied().unwrap_or(0) >= 20
+            achievements
+                .progress
+                .get("recipes_cooked")
+                .copied()
+                .unwrap_or(0)
+                >= 20
         }
 
         // ── Time / Seasons ───────────────────────────────────────────────
-        "all_seasons"     => calendar.year >= 2 || stats.days_played >= 112,
-        "second_year"     => calendar.year >= 2,
+        "all_seasons" => calendar.year >= 2 || stats.days_played >= 112,
+        "second_year" => calendar.year >= 2,
 
         // ── Animals ──────────────────────────────────────────────────────
-        "pet_lover" => {
-            animals.animals.iter().any(|a| {
-                matches!(a.kind, AnimalKind::Cat | AnimalKind::Dog) && a.happiness == 255
-            })
-        }
+        "pet_lover" => animals
+            .animals
+            .iter()
+            .any(|a| matches!(a.kind, AnimalKind::Cat | AnimalKind::Dog) && a.happiness == 255),
         "rancher" => animals.animals.len() >= 12,
 
         // ── Time-of-day ──────────────────────────────────────────────────
@@ -263,10 +264,7 @@ fn evaluate_condition(
             // Check: before 8 AM and every tilled soil tile has been watered.
             // We look at FarmState.soil and verify no tile is in Tilled (unwatered) state.
             if calendar.time_float() < 8.0 {
-                let any_unwatered = farm
-                    .soil
-                    .values()
-                    .any(|s| *s == SoilState::Tilled);
+                let any_unwatered = farm.soil.values().any(|s| *s == SoilState::Tilled);
                 // Has at least one crop/soil tile AND none are unwatered
                 !farm.soil.is_empty() && !any_unwatered
             } else {
@@ -279,12 +277,15 @@ fn evaluate_condition(
         }
 
         // ── Progress-counter achievements ────────────────────────────────
-        "artisan" => {
-            achievements.progress.get("crafts").copied().unwrap_or(0) >= 20
-        }
-        "generous"    => stats.gifts_given >= 50,
-        "gold_star"   => {
-            achievements.progress.get("gold_crops").copied().unwrap_or(0) >= 1
+        "artisan" => achievements.progress.get("crafts").copied().unwrap_or(0) >= 20,
+        "generous" => stats.gifts_given >= 50,
+        "gold_star" => {
+            achievements
+                .progress
+                .get("gold_crops")
+                .copied()
+                .unwrap_or(0)
+                >= 1
         }
 
         // ── House ────────────────────────────────────────────────────────
@@ -292,10 +293,20 @@ fn evaluate_condition(
 
         // ── Progress-counter achievements (continued) ────────────────────
         "green_acres" => {
-            achievements.progress.get("crops_planted").copied().unwrap_or(0) >= 50
+            achievements
+                .progress
+                .get("crops_planted")
+                .copied()
+                .unwrap_or(0)
+                >= 50
         }
         "rock_breaker" => {
-            achievements.progress.get("rocks_broken").copied().unwrap_or(0) >= 100
+            achievements
+                .progress
+                .get("rocks_broken")
+                .copied()
+                .unwrap_or(0)
+                >= 100
         }
 
         // ── Meta ─────────────────────────────────────────────────────────
@@ -324,17 +335,17 @@ fn evaluate_condition(
 /// Also pushes the id into `Achievements.unlocked`.
 #[allow(clippy::too_many_arguments)]
 pub fn check_achievements(
-    stats:         Res<PlayStats>,
+    stats: Res<PlayStats>,
     relationships: Res<Relationships>,
-    player:        Res<PlayerState>,
-    calendar:      Res<Calendar>,
-    animals:       Res<AnimalState>,
-    marriage:      Res<MarriageState>,
-    mine:          Res<MineState>,
+    player: Res<PlayerState>,
+    calendar: Res<Calendar>,
+    animals: Res<AnimalState>,
+    marriage: Res<MarriageState>,
+    mine: Res<MineState>,
     mut achievements: ResMut<Achievements>,
-    house:         Res<HouseState>,
-    farm:          Res<FarmState>,
-    mut events:    EventWriter<AchievementUnlockedEvent>,
+    house: Res<HouseState>,
+    farm: Res<FarmState>,
+    mut events: EventWriter<AchievementUnlockedEvent>,
 ) {
     // Collect newly unlocked ids to avoid borrowing `achievements` mutably
     // while also reading it.
@@ -372,10 +383,7 @@ pub fn check_achievements(
             description: description.to_string(),
         });
 
-        info!(
-            "[Achievements] Unlocked: \"{}\" — {}",
-            name, description
-        );
+        info!("[Achievements] Unlocked: \"{}\" — {}", name, description);
     }
 }
 
@@ -393,7 +401,10 @@ pub fn notify_achievement_unlocked(
             message: format!("🏆 Achievement: {}!", event.name),
             duration_secs: 4.0,
         });
-        info!("[Achievements] Unlocked: {} — {}", event.name, event.description);
+        info!(
+            "[Achievements] Unlocked: {} — {}",
+            event.name, event.description
+        );
     }
 }
 
@@ -414,20 +425,26 @@ pub fn notify_achievement_unlocked(
 ///   is a reasonable proxy for planting intent); also
 ///   incremented on CropHarvestedEvent as a post-hoc count
 pub fn track_achievement_progress(
-    mut tool_events:    EventReader<ToolUseEvent>,
+    mut tool_events: EventReader<ToolUseEvent>,
     mut harvest_events: EventReader<CropHarvestedEvent>,
-    mut achievements:   ResMut<Achievements>,
+    mut achievements: ResMut<Achievements>,
 ) {
     // ── Pickaxe swings → rocks_broken ────────────────────────────────
     for ev in tool_events.read() {
         match ev.tool {
             ToolKind::Pickaxe => {
-                let counter = achievements.progress.entry("rocks_broken".to_string()).or_insert(0);
+                let counter = achievements
+                    .progress
+                    .entry("rocks_broken".to_string())
+                    .or_insert(0);
                 *counter = counter.saturating_add(1);
             }
             ToolKind::Hoe => {
                 // Tilling soil is used as a proxy for "crop planted"
-                let counter = achievements.progress.entry("crops_planted".to_string()).or_insert(0);
+                let counter = achievements
+                    .progress
+                    .entry("crops_planted".to_string())
+                    .or_insert(0);
                 *counter = counter.saturating_add(1);
             }
             _ => {}
@@ -439,7 +456,10 @@ pub fn track_achievement_progress(
         if let Some(quality) = ev.quality {
             // Gold or Iridium quality counts as "gold star"
             if matches!(quality, ItemQuality::Gold | ItemQuality::Iridium) {
-                let counter = achievements.progress.entry("gold_crops".to_string()).or_insert(0);
+                let counter = achievements
+                    .progress
+                    .entry("gold_crops".to_string())
+                    .or_insert(0);
                 *counter = counter.saturating_add(1);
             }
         }

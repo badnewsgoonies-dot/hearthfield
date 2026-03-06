@@ -3,8 +3,8 @@
 //! Runs in `PreUpdate`, converts raw keyboard/mouse into `PlayerInput` resource.
 //! All other systems read `PlayerInput` instead of `ButtonInput<KeyCode>` directly.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct InputPlugin;
 
@@ -39,10 +39,24 @@ pub fn reset_and_read_input(
     match input_state.context {
         InputContext::Gameplay => {
             input.movement = Vec2::new(
-                if keyboard.pressed(bindings.move_right) { 1.0 } else { 0.0 }
-                    - if keyboard.pressed(bindings.move_left) { 1.0 } else { 0.0 },
-                if keyboard.pressed(bindings.move_up) { 1.0 } else { 0.0 }
-                    - if keyboard.pressed(bindings.move_down) { 1.0 } else { 0.0 },
+                if keyboard.pressed(bindings.move_right) {
+                    1.0
+                } else {
+                    0.0
+                } - if keyboard.pressed(bindings.move_left) {
+                    1.0
+                } else {
+                    0.0
+                },
+                if keyboard.pressed(bindings.move_up) {
+                    1.0
+                } else {
+                    0.0
+                } - if keyboard.pressed(bindings.move_down) {
+                    1.0
+                } else {
+                    0.0
+                },
             );
             input.interact = keyboard.just_pressed(bindings.interact);
             input.cancel = keyboard.just_pressed(bindings.cancel);
@@ -69,10 +83,10 @@ pub fn reset_and_read_input(
             input.menu_down = keyboard.just_pressed(bindings.move_down);
             input.menu_left = keyboard.just_pressed(bindings.move_left);
             input.menu_right = keyboard.just_pressed(bindings.move_right);
-            input.menu_confirm = keyboard.just_pressed(bindings.interact)
-                || keyboard.just_pressed(KeyCode::Enter);
-            input.menu_cancel = keyboard.just_pressed(bindings.cancel)
-                || keyboard.just_pressed(bindings.pause);
+            input.menu_confirm =
+                keyboard.just_pressed(bindings.interact) || keyboard.just_pressed(KeyCode::Enter);
+            input.menu_cancel =
+                keyboard.just_pressed(bindings.cancel) || keyboard.just_pressed(bindings.pause);
         }
         InputContext::Dialogue => {
             input.confirm = keyboard.just_pressed(bindings.interact)
@@ -83,8 +97,8 @@ pub fn reset_and_read_input(
             input.menu_down = keyboard.just_pressed(bindings.move_down);
         }
         InputContext::Cutscene => {
-            input.confirm = keyboard.just_pressed(KeyCode::Space)
-                || keyboard.just_pressed(KeyCode::Enter);
+            input.confirm =
+                keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::Enter);
             input.cancel = keyboard.just_pressed(bindings.cancel);
         }
         InputContext::Disabled => {}

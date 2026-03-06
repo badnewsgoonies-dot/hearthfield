@@ -1,8 +1,8 @@
 //! Airline reputation system — per-airport and global reputation tracking.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -45,9 +45,7 @@ impl ReputationLevel {
     pub fn mission_unlock_threshold(&self) -> bool {
         matches!(
             self,
-            ReputationLevel::National
-                | ReputationLevel::International
-                | ReputationLevel::Legendary
+            ReputationLevel::National | ReputationLevel::International | ReputationLevel::Legendary
         )
     }
 }
@@ -137,7 +135,11 @@ pub fn update_reputation_on_flight(
 
         let level = reputation.global_level();
         toast_events.send(ToastEvent {
-            message: format!("Reputation: {} ({:.0})", level.display_name(), reputation.global_score),
+            message: format!(
+                "Reputation: {} ({:.0})",
+                level.display_name(),
+                reputation.global_score
+            ),
             duration_secs: 2.5,
         });
     }
@@ -150,7 +152,9 @@ pub fn reputation_decay(
     calendar: Res<Calendar>,
 ) {
     for _ev in day_end_events.read() {
-        let days_since = calendar.total_days().saturating_sub(reputation.last_flight_day);
+        let days_since = calendar
+            .total_days()
+            .saturating_sub(reputation.last_flight_day);
         if days_since > 7 {
             let decay = (days_since as f32 - 7.0) * 0.3;
             let airports: Vec<AirportId> = reputation.airport_scores.keys().copied().collect();

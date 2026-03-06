@@ -1,7 +1,7 @@
 //! Fleet management — buying, selling, hangar assignment, depreciation, starter aircraft.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 fn hangar_capacity(airport: AirportId) -> usize {
     match airport {
@@ -25,7 +25,8 @@ pub struct HangarAssignments {
 
 impl HangarAssignments {
     pub fn aircraft_at(&self, airport: AirportId) -> Vec<String> {
-        self.assignments.iter()
+        self.assignments
+            .iter()
             .filter(|(_, &ap)| ap == airport)
             .map(|(nick, _)| nick.clone())
             .collect()
@@ -36,14 +37,18 @@ impl HangarAssignments {
     }
 
     pub fn assign(&mut self, nickname: &str, airport: AirportId) -> bool {
-        if !self.space_available(airport) { return false; }
+        if !self.space_available(airport) {
+            return false;
+        }
         self.assignments.insert(nickname.to_string(), airport);
         true
     }
 }
 
 pub fn aircraft_value(ac: &OwnedAircraft, registry: &AircraftRegistry) -> u32 {
-    let base = registry.get(&ac.aircraft_id).map_or(0, |d| d.purchase_price);
+    let base = registry
+        .get(&ac.aircraft_id)
+        .map_or(0, |d| d.purchase_price);
     let depreciation = (base as f32 * 0.02 * ac.total_flights as f32) as u32;
     base.saturating_sub(depreciation).max(base / 5)
 }
@@ -58,8 +63,12 @@ pub fn purchase_aircraft(
     airport: AirportId,
 ) -> Result<u32, &'static str> {
     let def = registry.get(aircraft_id).ok_or("Unknown aircraft type")?;
-    if gold.amount < def.purchase_price { return Err("Not enough gold"); }
-    if !hangars.space_available(airport) { return Err("No hangar space at this airport"); }
+    if gold.amount < def.purchase_price {
+        return Err("Not enough gold");
+    }
+    if !hangars.space_available(airport) {
+        return Err("No hangar space at this airport");
+    }
 
     gold.amount -= def.purchase_price;
     let owned = OwnedAircraft {
@@ -82,8 +91,12 @@ pub fn sell_aircraft(
     hangars: &mut HangarAssignments,
     index: usize,
 ) -> Result<u32, &'static str> {
-    if index >= fleet.aircraft.len() { return Err("Invalid aircraft index"); }
-    if fleet.aircraft.len() <= 1 { return Err("Cannot sell your last aircraft"); }
+    if index >= fleet.aircraft.len() {
+        return Err("Invalid aircraft index");
+    }
+    if fleet.aircraft.len() <= 1 {
+        return Err("Cannot sell your last aircraft");
+    }
     let ac = &fleet.aircraft[index];
     let value = aircraft_value(ac, registry);
     let nick = ac.nickname.clone();
@@ -106,8 +119,16 @@ pub struct FleetStats {
     pub avg_condition: f32,
 }
 
-pub fn compute_fleet_stats(fleet: &Fleet, registry: &AircraftRegistry, pilot: &PilotState) -> FleetStats {
-    let total_value: u32 = fleet.aircraft.iter().map(|ac| aircraft_value(ac, registry)).sum();
+pub fn compute_fleet_stats(
+    fleet: &Fleet,
+    registry: &AircraftRegistry,
+    pilot: &PilotState,
+) -> FleetStats {
+    let total_value: u32 = fleet
+        .aircraft
+        .iter()
+        .map(|ac| aircraft_value(ac, registry))
+        .sum();
     let total_flights: u32 = fleet.aircraft.iter().map(|ac| ac.total_flights).sum();
     let avg_condition = if fleet.aircraft.is_empty() {
         0.0
@@ -132,7 +153,10 @@ pub fn create_starter_fleet() -> (Fleet, HangarAssignments) {
         total_flights: 47,
         customizations: Vec::new(),
     };
-    let fleet = Fleet { aircraft: vec![starter], active_index: 0 };
+    let fleet = Fleet {
+        aircraft: vec![starter],
+        active_index: 0,
+    };
     let mut hangars = HangarAssignments::default();
     hangars.assign("Old Faithful", AirportId::HomeBase);
     (fleet, hangars)
@@ -150,7 +174,8 @@ pub fn handle_flight_complete_aircraft(
             aircraft.fuel -= ev.fuel_used.min(aircraft.fuel);
 
             // Delegate condition tracking to maintenance system (single authority)
-            let cond = maintenance_tracker.conditions
+            let cond = maintenance_tracker
+                .conditions
                 .entry(aircraft.nickname.clone())
                 .or_default();
             cond.apply_flight_wear(&ev.landing_grade, 0.7); // avg throttle estimate
@@ -161,7 +186,10 @@ pub fn handle_flight_complete_aircraft(
 
             if overall < 20.0 {
                 toast_events.send(ToastEvent {
-                    message: format!("⚠ {} needs maintenance! Condition: {:.0}%", aircraft.nickname, overall),
+                    message: format!(
+                        "⚠ {} needs maintenance! Condition: {:.0}%",
+                        aircraft.nickname, overall
+                    ),
                     duration_secs: 4.0,
                 });
             }

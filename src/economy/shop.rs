@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Resources
@@ -20,9 +20,9 @@ pub struct ActiveListing {
     pub item_id: ItemId,
     pub display_name: String,
     pub price: u32,
-    pub sell_price: u32,   // what the player would receive if they sell it back
+    pub sell_price: u32, // what the player would receive if they sell it back
     pub sprite_index: u32,
-    pub can_afford: bool,  // cached against current gold — UI re-reads per frame
+    pub can_afford: bool, // cached against current gold — UI re-reads per frame
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,9 +153,7 @@ fn build_listings(
         .iter()
         .filter(|listing| {
             // Keep items that are always available OR available this season.
-            listing
-                .season_available
-                .is_none_or(|s| s == current_season)
+            listing.season_available.is_none_or(|s| s == current_season)
         })
         .filter_map(|listing| {
             let def = item_registry.get(&listing.item_id)?;

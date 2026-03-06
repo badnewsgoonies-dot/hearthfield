@@ -1,7 +1,7 @@
 //! Financial tracking — contract payments, bonuses, fuel costs, maintenance, income statements.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA TYPES

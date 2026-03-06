@@ -228,8 +228,8 @@ pub fn update_weather_particles(
         flake.elapsed += dt;
         transform.translation.y -= flake.speed * dt;
         // Lateral sine-wave drift
-        transform.translation.x =
-            flake.origin_x + (flake.elapsed * flake.drift_freq + flake.drift_phase).sin() * flake.drift_amp;
+        transform.translation.x = flake.origin_x
+            + (flake.elapsed * flake.drift_freq + flake.drift_phase).sin() * flake.drift_amp;
         if transform.translation.y < despawn_y {
             commands.entity(entity).despawn();
         }

@@ -2,11 +2,11 @@
 //! HUD that shows the current map tiles, player position (blinking dot), NPC
 //! positions, and map transition zones.
 
-use bevy::prelude::*;
-use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use bevy::render::render_asset::RenderAssetUsages;
 use crate::shared::*;
 use crate::world::maps::generate_map;
+use bevy::prelude::*;
+use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -44,17 +44,17 @@ pub struct MinimapNode;
 
 fn tile_color(kind: TileKind) -> [u8; 4] {
     match kind {
-        TileKind::Grass       => [72, 130, 60, 255],
-        TileKind::Dirt        => [160, 130, 90, 255],
-        TileKind::TilledSoil  => [110, 80, 55, 255],
+        TileKind::Grass => [72, 130, 60, 255],
+        TileKind::Dirt => [160, 130, 90, 255],
+        TileKind::TilledSoil => [110, 80, 55, 255],
         TileKind::WateredSoil => [75, 60, 45, 255],
-        TileKind::Water       => [55, 100, 180, 255],
-        TileKind::Sand        => [210, 195, 150, 255],
-        TileKind::Stone       => [140, 140, 145, 255],
-        TileKind::WoodFloor   => [150, 120, 75, 255],
-        TileKind::Path        => [180, 165, 130, 255],
-        TileKind::Bridge      => [130, 105, 65, 255],
-        TileKind::Void        => [20, 30, 20, 255],
+        TileKind::Water => [55, 100, 180, 255],
+        TileKind::Sand => [210, 195, 150, 255],
+        TileKind::Stone => [140, 140, 145, 255],
+        TileKind::WoodFloor => [150, 120, 75, 255],
+        TileKind::Path => [180, 165, 130, 255],
+        TileKind::Bridge => [130, 105, 65, 255],
+        TileKind::Void => [20, 30, 20, 255],
     }
 }
 
@@ -63,10 +63,7 @@ fn tile_color(kind: TileKind) -> [u8; 4] {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Spawn the minimap resource and UI node. Runs on OnEnter(Playing).
-pub fn spawn_minimap(
-    mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
-) {
+pub fn spawn_minimap(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     // Create a MAX_MAP × MAX_MAP RGBA8 image (will be cropped to actual map size visually).
     let size = Extent3d {
         width: MAX_MAP as u32,
@@ -115,10 +112,7 @@ pub fn spawn_minimap(
 }
 
 /// Despawn minimap when leaving Playing state.
-pub fn despawn_minimap(
-    mut commands: Commands,
-    query: Query<Entity, With<MinimapNode>>,
-) {
+pub fn despawn_minimap(mut commands: Commands, query: Query<Entity, With<MinimapNode>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -205,7 +199,7 @@ pub fn update_minimap(
         for x in 0..MAX_MAP {
             let offset = (y * MAX_MAP + x) * 4;
             let pixel = minimap.base_pixels[y * MAX_MAP + x];
-            data[offset]     = pixel[0];
+            data[offset] = pixel[0];
             data[offset + 1] = pixel[1];
             data[offset + 2] = pixel[2];
             data[offset + 3] = pixel[3];
@@ -222,7 +216,7 @@ pub fn update_minimap(
         if gx < w && gy < h {
             let img_gy = h - 1 - gy;
             let offset = (img_gy * MAX_MAP + gx) * 4;
-            data[offset]     = 100;
+            data[offset] = 100;
             data[offset + 1] = 200;
             data[offset + 2] = 255;
             data[offset + 3] = 255;
@@ -250,7 +244,7 @@ pub fn update_minimap(
                     if nx < w && game_ny < h {
                         let img_ny = h - 1 - game_ny;
                         let offset = (img_ny * MAX_MAP + nx) * 4;
-                        data[offset]     = color[0];
+                        data[offset] = color[0];
                         data[offset + 1] = color[1];
                         data[offset + 2] = color[2];
                         data[offset + 3] = color[3];

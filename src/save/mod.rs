@@ -9,7 +9,6 @@ use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::shared::*;
 use crate::calendar::festivals::FestivalState;
 use crate::crafting::machines::{ProcessingMachine, ProcessingMachineRegistry, SavedMachine};
 use crate::economy::blacksmith::ToolUpgradeQueue;
@@ -17,8 +16,9 @@ use crate::economy::buildings::BuildingLevels;
 use crate::economy::shipping::ShippingBinQuality;
 use crate::npcs::schedules::FarmVisitTracker;
 use crate::shared::ShippingLog;
-use crate::world::CurrentMapId;
+use crate::shared::*;
 use crate::world::chests::ChestMarker;
+use crate::world::CurrentMapId;
 
 // ═══════════════════════════════════════════════════════════════════════
 // PUBLIC TYPES
@@ -286,18 +286,48 @@ impl Plugin for SavePlugin {
             .add_systems(Startup, scan_save_slots)
             // Playing systems — registered individually to stay within Bevy's
             // system-tuple trait bounds (each system has many Res/ResMut params).
-            .add_systems(Update, tick_session_timer.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, track_gold_earned.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, track_items_shipped.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, handle_save_request.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, handle_load_request.run_if(in_state(GameState::Playing)))
-            .add_systems(Update, autosave_on_day_end.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                Update,
+                tick_session_timer.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                track_gold_earned.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                track_items_shipped.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                handle_save_request.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                handle_load_request.run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                autosave_on_day_end.run_if(in_state(GameState::Playing)),
+            )
             // Also allow saving/loading from the Paused state (pause menu)
-            .add_systems(Update, handle_save_request.run_if(in_state(GameState::Paused)))
-            .add_systems(Update, handle_load_request.run_if(in_state(GameState::Paused)))
+            .add_systems(
+                Update,
+                handle_save_request.run_if(in_state(GameState::Paused)),
+            )
+            .add_systems(
+                Update,
+                handle_load_request.run_if(in_state(GameState::Paused)),
+            )
             // Allow Main Menu to initialize new game and request save-slot load.
-            .add_systems(Update, handle_load_request.run_if(in_state(GameState::MainMenu)))
-            .add_systems(Update, handle_new_game.run_if(in_state(GameState::MainMenu)))
+            .add_systems(
+                Update,
+                handle_load_request.run_if(in_state(GameState::MainMenu)),
+            )
+            .add_systems(
+                Update,
+                handle_new_game.run_if(in_state(GameState::MainMenu)),
+            )
             // Refresh slot metadata whenever menu is entered.
             .add_systems(OnEnter(GameState::MainMenu), scan_save_slots)
             // Quick-save keybind: F5 in Playing or Paused
@@ -913,7 +943,7 @@ fn handle_load_request(
                 }
                 machines.machine_registry.machines.clear();
                 for saved in file.placed_machines {
-                    use crate::crafting::machines::{machine_atlas_index, item_to_machine_type};
+                    use crate::crafting::machines::{item_to_machine_type, machine_atlas_index};
                     let world_x = saved.grid_x as f32 * TILE_SIZE;
                     let world_y = saved.grid_y as f32 * TILE_SIZE;
                     let machine_sprite = if machines.furniture.loaded {
@@ -942,10 +972,14 @@ fn handle_load_request(
                             crate::crafting::machines::MachineType::Loom => "loom",
                             crate::crafting::machines::MachineType::Keg => "keg",
                             crate::crafting::machines::MachineType::OilMaker => "oil_maker",
-                            crate::crafting::machines::MachineType::MayonnaiseMachine => "mayonnaise_machine",
+                            crate::crafting::machines::MachineType::MayonnaiseMachine => {
+                                "mayonnaise_machine"
+                            }
                             crate::crafting::machines::MachineType::Tapper => "tapper",
                             crate::crafting::machines::MachineType::BeeHouse => "bee_house",
-                            crate::crafting::machines::MachineType::RecyclingMachine => "recycling_machine",
+                            crate::crafting::machines::MachineType::RecyclingMachine => {
+                                "recycling_machine"
+                            }
                             crate::crafting::machines::MachineType::CrabPot => "crab_pot",
                         }
                     };
@@ -954,19 +988,24 @@ fn handle_load_request(
                     restored.output_item = saved.output_item;
                     restored.processing_time_remaining = saved.processing_time_remaining;
                     restored.is_ready = saved.is_ready;
-                    let entity = commands.spawn((
-                        restored,
-                        GridPosition::new(saved.grid_x, saved.grid_y),
-                        machine_sprite,
-                        Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
-                        LogicalPosition(Vec2::new(world_x, world_y)),
-                        YSorted,
-                        Interactable {
-                            kind: InteractionKind::Machine,
-                            label: display_label,
-                        },
-                    )).id();
-                    machines.machine_registry.machines.insert((saved.grid_x, saved.grid_y), entity);
+                    let entity = commands
+                        .spawn((
+                            restored,
+                            GridPosition::new(saved.grid_x, saved.grid_y),
+                            machine_sprite,
+                            Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+                            LogicalPosition(Vec2::new(world_x, world_y)),
+                            YSorted,
+                            Interactable {
+                                kind: InteractionKind::Machine,
+                                label: display_label,
+                            },
+                        ))
+                        .id();
+                    machines
+                        .machine_registry
+                        .machines
+                        .insert((saved.grid_x, saved.grid_y), entity);
                     let _ = item_id; // item_id available for future use
                     let _ = item_to_machine_type; // suppress unused import warning
                 }

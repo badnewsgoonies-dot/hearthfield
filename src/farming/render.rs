@@ -5,13 +5,12 @@
 //! If the atlases are not yet available (e.g. first frame before OnEnter fires),
 //! coloured placeholder sprites are used as a fallback.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::{
-    FarmEntities, FarmingAtlases, SoilTileEntity, CropTileEntity, FarmObjectEntity,
-    crop_stage_color,
-    soil::soil_color,
+    crop_stage_color, soil::soil_color, CropTileEntity, FarmEntities, FarmObjectEntity,
+    FarmingAtlases, SoilTileEntity,
 };
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Atlas index helpers
@@ -23,9 +22,9 @@ use super::{
 /// Index 16 — darker / wetter dirt tile (row 1, col 5)
 fn soil_atlas_index(state: SoilState) -> usize {
     match state {
-        SoilState::Untilled => 0,  // shouldn't normally be rendered
-        SoilState::Tilled   => 5,
-        SoilState::Watered  => 16,
+        SoilState::Untilled => 0, // shouldn't normally be rendered
+        SoilState::Tilled => 5,
+        SoilState::Watered => 16,
     }
 }
 
@@ -69,7 +68,7 @@ pub fn sync_soil_sprites(
                 // tilled soil stays white (no tint).
                 sprite.color = match state {
                     SoilState::Watered => Color::srgb(0.6, 0.5, 0.4),
-                    SoilState::Tilled  => Color::WHITE,
+                    SoilState::Tilled => Color::WHITE,
                     SoilState::Untilled => Color::WHITE,
                 };
             } else if atlases.loaded {
@@ -83,7 +82,7 @@ pub fn sync_soil_sprites(
                 );
                 sprite.color = match state {
                     SoilState::Watered => Color::srgb(0.6, 0.5, 0.4),
-                    SoilState::Tilled  => Color::WHITE,
+                    SoilState::Tilled => Color::WHITE,
                     SoilState::Untilled => Color::WHITE,
                 };
             } else {
@@ -103,34 +102,56 @@ pub fn sync_soil_sprites(
 
     for (pos, state) in missing {
         // Soil overlays are area fills — use corner-origin to match ground tiles
-        let translation = Vec3::new(pos.0 as f32 * TILE_SIZE, pos.1 as f32 * TILE_SIZE, Z_FARM_OVERLAY);
+        let translation = Vec3::new(
+            pos.0 as f32 * TILE_SIZE,
+            pos.1 as f32 * TILE_SIZE,
+            Z_FARM_OVERLAY,
+        );
 
         let entity = if atlases.loaded {
             // Preferred path: use a texture atlas sprite.
-            commands.spawn((
-                Sprite::from_atlas_image(
-                    atlases.dirt_image.clone(),
-                    TextureAtlas {
-                        layout: atlases.dirt_layout.clone(),
-                        index: soil_atlas_index(state),
+            commands
+                .spawn((
+                    Sprite::from_atlas_image(
+                        atlases.dirt_image.clone(),
+                        TextureAtlas {
+                            layout: atlases.dirt_layout.clone(),
+                            index: soil_atlas_index(state),
+                        },
+                    ),
+                    Transform::from_translation(translation),
+                    SoilTileEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
                     },
-                ),
-                Transform::from_translation(translation),
-                SoilTileEntity { grid_x: pos.0, grid_y: pos.1 },
-                SoilTile { state, grid_x: pos.0, grid_y: pos.1 },
-            )).id()
+                    SoilTile {
+                        state,
+                        grid_x: pos.0,
+                        grid_y: pos.1,
+                    },
+                ))
+                .id()
         } else {
             // Fallback path: coloured rectangle until atlases are ready.
-            commands.spawn((
-                Sprite {
-                    color: soil_color(state),
-                    custom_size: Some(Vec2::splat(TILE_SIZE)),
-                    ..default()
-                },
-                Transform::from_translation(translation),
-                SoilTileEntity { grid_x: pos.0, grid_y: pos.1 },
-                SoilTile { state, grid_x: pos.0, grid_y: pos.1 },
-            )).id()
+            commands
+                .spawn((
+                    Sprite {
+                        color: soil_color(state),
+                        custom_size: Some(Vec2::splat(TILE_SIZE)),
+                        ..default()
+                    },
+                    Transform::from_translation(translation),
+                    SoilTileEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
+                    },
+                    SoilTile {
+                        state,
+                        grid_x: pos.0,
+                        grid_y: pos.1,
+                    },
+                ))
+                .id()
         };
 
         farm_entities.soil_entities.insert(pos, entity);
@@ -264,18 +285,23 @@ pub fn sync_crop_sprites(
         let entity = if atlases.loaded && !crop.dead {
             // Preferred path: texture atlas sprite.
             let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
-            commands.spawn((
-                Sprite::from_atlas_image(
-                    atlases.plants_image.clone(),
-                    TextureAtlas {
-                        layout: atlases.plants_layout.clone(),
-                        index: atlas_index,
+            commands
+                .spawn((
+                    Sprite::from_atlas_image(
+                        atlases.plants_image.clone(),
+                        TextureAtlas {
+                            layout: atlases.plants_layout.clone(),
+                            index: atlas_index,
+                        },
+                    ),
+                    Transform::from_translation(translation),
+                    CropTileEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
                     },
-                ),
-                Transform::from_translation(translation),
-                CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-                crop,
-            )).id()
+                    crop,
+                ))
+                .id()
         } else {
             // Fallback: coloured rectangle (also used for dead crops).
             let color = if crop.dead {
@@ -287,16 +313,21 @@ pub fn sync_crop_sprites(
             } else {
                 crop_stage_color(crop.current_stage, total_stages, crop.dead)
             };
-            commands.spawn((
-                Sprite {
-                    color,
-                    custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-                    ..default()
-                },
-                Transform::from_translation(translation),
-                CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-                crop,
-            )).id()
+            commands
+                .spawn((
+                    Sprite {
+                        color,
+                        custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
+                        ..default()
+                    },
+                    Transform::from_translation(translation),
+                    CropTileEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
+                    },
+                    crop,
+                ))
+                .id()
         };
 
         farm_entities.crop_entities.insert(pos, entity);
@@ -344,10 +375,18 @@ fn farm_object_color(obj: &FarmObject) -> Color {
 /// Compute autotile index (0-15) for a fence at (x, y) based on cardinal neighbors.
 fn fence_autotile_index(farm_state: &FarmState, x: i32, y: i32) -> usize {
     let mut mask: u8 = 0;
-    if matches!(farm_state.objects.get(&(x, y - 1)), Some(FarmObject::Fence)) { mask |= 1; } // north
-    if matches!(farm_state.objects.get(&(x + 1, y)), Some(FarmObject::Fence)) { mask |= 2; } // east
-    if matches!(farm_state.objects.get(&(x, y + 1)), Some(FarmObject::Fence)) { mask |= 4; } // south
-    if matches!(farm_state.objects.get(&(x - 1, y)), Some(FarmObject::Fence)) { mask |= 8; } // west
+    if matches!(farm_state.objects.get(&(x, y - 1)), Some(FarmObject::Fence)) {
+        mask |= 1;
+    } // north
+    if matches!(farm_state.objects.get(&(x + 1, y)), Some(FarmObject::Fence)) {
+        mask |= 2;
+    } // east
+    if matches!(farm_state.objects.get(&(x, y + 1)), Some(FarmObject::Fence)) {
+        mask |= 4;
+    } // south
+    if matches!(farm_state.objects.get(&(x - 1, y)), Some(FarmObject::Fence)) {
+        mask |= 8;
+    } // west
     mask as usize
 }
 
@@ -368,8 +407,10 @@ pub fn sync_farm_objects_sprites(
         .objects
         .iter()
         .filter(|(&pos, obj)| {
-            matches!(obj, FarmObject::Sprinkler | FarmObject::Scarecrow | FarmObject::Fence)
-                && !farm_entities.object_entities.contains_key(&pos)
+            matches!(
+                obj,
+                FarmObject::Sprinkler | FarmObject::Scarecrow | FarmObject::Fence
+            ) && !farm_entities.object_entities.contains_key(&pos)
         })
         .map(|(&pos, obj)| (pos, obj.clone()))
         .collect();
@@ -478,7 +519,12 @@ pub fn sync_farm_objects_sprites(
             !farm_state
                 .objects
                 .get(pos)
-                .map(|o| matches!(o, FarmObject::Sprinkler | FarmObject::Scarecrow | FarmObject::Fence))
+                .map(|o| {
+                    matches!(
+                        o,
+                        FarmObject::Sprinkler | FarmObject::Scarecrow | FarmObject::Fence
+                    )
+                })
                 .unwrap_or(false)
         })
         .cloned()

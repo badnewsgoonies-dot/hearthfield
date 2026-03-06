@@ -1,7 +1,7 @@
 //! Navigation system — waypoint tracking, course deviation, ETA, heading hints.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// A point along the flight route.
 #[derive(Clone, Debug)]
@@ -85,24 +85,34 @@ fn airport_index(id: AirportId) -> i32 {
 
 fn normalize_heading(h: f32) -> f32 {
     let mut r = h % 360.0;
-    if r < 0.0 { r += 360.0; }
+    if r < 0.0 {
+        r += 360.0;
+    }
     r
 }
 
 fn heading_delta(current: f32, target: f32) -> f32 {
     let mut d = target - current;
-    while d > 180.0 { d -= 360.0; }
-    while d < -180.0 { d += 360.0; }
+    while d > 180.0 {
+        d -= 360.0;
+    }
+    while d < -180.0 {
+        d += 360.0;
+    }
     d
 }
 
 fn calculate_eta(distance_nm: f32, speed_knots: f32) -> f32 {
-    if speed_knots < 1.0 { return f32::MAX; }
+    if speed_knots < 1.0 {
+        return f32::MAX;
+    }
     (distance_nm / speed_knots) * 3600.0
 }
 
 pub fn format_eta(eta_secs: f32) -> String {
-    if eta_secs >= f32::MAX * 0.5 { return "N/A".to_string(); }
+    if eta_secs >= f32::MAX * 0.5 {
+        return "N/A".to_string();
+    }
     let mins = (eta_secs / 60.0) as u32;
     if mins >= 60 {
         format!("{}h {:02}m", mins / 60, mins % 60)
@@ -124,7 +134,9 @@ pub fn update_navigation(
         return;
     }
 
-    if nav.route.is_empty() { return; }
+    if nav.route.is_empty() {
+        return;
+    }
 
     let distance_flown = nav.total_route_distance - flight_state.distance_remaining_nm;
 
@@ -157,8 +169,10 @@ pub fn update_navigation(
         if delta.abs() > 10.0 {
             let direction = if delta > 0.0 { "right" } else { "left" };
             let correction = delta.abs().round() as i32;
-            nav.course_correction_hint =
-                Some(format!("Turn {} {}° toward {}", direction, correction, wp_name));
+            nav.course_correction_hint = Some(format!(
+                "Turn {} {}° toward {}",
+                direction, correction, wp_name
+            ));
         } else {
             nav.course_correction_hint = None;
         }

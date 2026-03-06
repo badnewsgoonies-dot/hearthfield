@@ -1,17 +1,17 @@
 //! Economy domain — gold management, XP/rank progression, shop, achievements.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-pub mod gold;
-pub mod progression;
-pub mod shop;
 pub mod achievements;
+pub mod business;
 pub mod finances;
-pub mod market;
+pub mod gold;
 pub mod insurance;
 pub mod loans;
-pub mod business;
+pub mod market;
+pub mod progression;
+pub mod shop;
 
 pub struct EconomyPlugin;
 

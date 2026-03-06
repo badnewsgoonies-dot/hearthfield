@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::bench::{CraftItemEvent, CraftingUiState};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // KITCHEN STATE
@@ -9,10 +9,26 @@ use super::bench::{CraftItemEvent, CraftingUiState};
 /// Item ids that count as "any fish" for cooking purposes.
 /// The cooking system resolves the wildcard by scanning the player inventory.
 const FISH_IDS: &[&str] = &[
-    "sardine", "catfish", "tuna", "pike", "tilapia",
-    "woodskip", "pufferfish", "sunfish", "super_cucumber", "ghostfish",
-    "eel", "octopus", "red_snapper", "squid", "sea_cucumber",
-    "tiger_trout", "largemouth_bass", "smallmouth_bass", "carp", "bullhead",
+    "sardine",
+    "catfish",
+    "tuna",
+    "pike",
+    "tilapia",
+    "woodskip",
+    "pufferfish",
+    "sunfish",
+    "super_cucumber",
+    "ghostfish",
+    "eel",
+    "octopus",
+    "red_snapper",
+    "squid",
+    "sea_cucumber",
+    "tiger_trout",
+    "largemouth_bass",
+    "smallmouth_bass",
+    "carp",
+    "bullhead",
 ];
 
 /// Runs in Crafting mode when cooking_mode == true.
@@ -89,10 +105,7 @@ pub fn handle_cook_item(
         }
 
         // Validate wildcard ingredient
-        let has_any_fish_ingredient = recipe
-            .ingredients
-            .iter()
-            .any(|(id, _)| id == "any_fish");
+        let has_any_fish_ingredient = recipe.ingredients.iter().any(|(id, _)| id == "any_fish");
 
         if has_any_fish_ingredient && fish_item.is_none() {
             warn!("Cannot cook '{}' — no fish in inventory", recipe.name);
@@ -126,7 +139,10 @@ pub fn handle_cook_item(
 
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
         if leftover > 0 {
-            warn!("Inventory full after cooking '{}' — refunding materials", recipe.name);
+            warn!(
+                "Inventory full after cooking '{}' — refunding materials",
+                recipe.name
+            );
             // Refund normal ingredients
             refund_non_wildcard_ingredients(&mut inventory, recipe, &item_registry);
             // Refund fish
@@ -148,8 +164,14 @@ pub fn handle_cook_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
-        *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
-        *achievements.progress.entry("recipes_cooked".to_string()).or_insert(0) += 1;
+        *achievements
+            .progress
+            .entry("crafts".to_string())
+            .or_insert(0) += 1;
+        *achievements
+            .progress
+            .entry("recipes_cooked".to_string())
+            .or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Cooked {} x{}", recipe.name, recipe.result_quantity)
@@ -248,4 +270,3 @@ fn refund_non_wildcard_ingredients(
         inventory.try_add(item_id, *qty, max_stack);
     }
 }
-

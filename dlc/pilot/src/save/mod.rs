@@ -2,23 +2,23 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::shared::*;
 use crate::aircraft::fuel::FuelWarnings;
 use crate::aircraft::maintenance::MaintenanceTracker;
-use crate::economy::gold::{GoldMilestones, TransactionLog};
-use crate::economy::loans::LoanPortfolio;
-use crate::economy::insurance::InsuranceState;
-use crate::economy::business::AirlineBusiness;
-use crate::player::skills::PilotSkills;
-use crate::missions::story::StoryProgress;
+use crate::airports::city_exploration::CityState;
+use crate::airports::facilities::FacilityState;
+use crate::airports::services::AirportServiceState;
 use crate::crew::relationships::RelationshipDetails;
-use crate::player::logbook::Logbook;
-use crate::player::reputation::Reputation;
+use crate::economy::business::AirlineBusiness;
+use crate::economy::gold::{GoldMilestones, TransactionLog};
+use crate::economy::insurance::InsuranceState;
+use crate::economy::loans::LoanPortfolio;
 use crate::economy::market::MarketState;
 use crate::missions::special::SpecialMissionState;
-use crate::airports::city_exploration::CityState;
-use crate::airports::services::AirportServiceState;
-use crate::airports::facilities::FacilityState;
+use crate::missions::story::StoryProgress;
+use crate::player::logbook::Logbook;
+use crate::player::reputation::Reputation;
+use crate::player::skills::PilotSkills;
+use crate::shared::*;
 use crate::world::AirportStatusMap;
 
 pub mod autosave;
@@ -320,10 +320,7 @@ fn save_write(
 // ─── Load (two-phase) ───────────────────────────────────────────────────────
 
 /// Phase 1: read events, deserialize from disk into `PendingLoad`.
-fn load_read(
-    mut events: EventReader<LoadRequestEvent>,
-    mut pending: ResMut<PendingLoad>,
-) {
+fn load_read(mut events: EventReader<LoadRequestEvent>, mut pending: ResMut<PendingLoad>) {
     for ev in events.read() {
         let path = save_path(ev.slot);
         let Ok(json) = std::fs::read_to_string(&path) else {

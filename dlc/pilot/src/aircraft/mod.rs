@@ -1,13 +1,13 @@
 //! Aircraft domain — fleet management, maintenance, fuel, upgrades.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub mod fleet;
-pub mod maintenance;
 pub mod fuel;
-pub mod upgrades;
 pub mod inspections;
+pub mod maintenance;
+pub mod upgrades;
 
 pub struct AircraftPlugin;
 

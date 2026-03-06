@@ -45,9 +45,7 @@ impl TutorialStep {
             TutorialStep::AcceptMission => {
                 "Mission accepted! Head to the Hangar to begin your preflight checks."
             }
-            TutorialStep::Preflight => {
-                "Press F at each station to verify your aircraft systems."
-            }
+            TutorialStep::Preflight => "Press F at each station to verify your aircraft systems.",
             TutorialStep::Takeoff => {
                 "Hold W to increase throttle. Watch your speed \u{2014} rotate at V1!"
             }
@@ -57,18 +55,14 @@ impl TutorialStep {
             TutorialStep::Landing => {
                 "Reduce throttle and align with the runway. Smooth landings earn bonus XP!"
             }
-            TutorialStep::PostFlight => {
-                "Flight complete! Check your logbook to see your stats."
-            }
+            TutorialStep::PostFlight => "Flight complete! Check your logbook to see your stats.",
             TutorialStep::Exploration => {
                 "Explore the city! Visit shops, talk to crew, find collectibles."
             }
             TutorialStep::CrewInteraction => {
                 "Talk to crew members to build friendships. Give gifts they like!"
             }
-            TutorialStep::ShopVisit => {
-                "Buy supplies, gifts, and aircraft parts at the shop."
-            }
+            TutorialStep::ShopVisit => "Buy supplies, gifts, and aircraft parts at the shop.",
             TutorialStep::Complete => "Tutorial complete! The sky is yours, pilot.",
         }
     }
@@ -171,20 +165,17 @@ pub fn advance_tutorial(
     let should_advance = match tracker.current_step {
         TutorialStep::Welcome => player_movement.is_moving,
         TutorialStep::Movement => {
-            player_movement.is_moving
-                && !tracker.completed_steps.contains(&TutorialStep::Movement)
+            player_movement.is_moving && !tracker.completed_steps.contains(&TutorialStep::Movement)
         }
         TutorialStep::Interaction => location.zone == MapZone::Terminal,
         TutorialStep::MissionBoard => !mission_board.available.is_empty(),
         TutorialStep::AcceptMission => mission_board.active.is_some(),
         TutorialStep::Preflight => {
-            location.zone == MapZone::Hangar
-                && flight_state.phase == FlightPhase::Preflight
+            location.zone == MapZone::Hangar && flight_state.phase == FlightPhase::Preflight
         }
         TutorialStep::Takeoff => flight_state.phase == FlightPhase::Takeoff,
         TutorialStep::InFlight => {
-            flight_state.phase == FlightPhase::Cruise
-                || flight_state.phase == FlightPhase::Climb
+            flight_state.phase == FlightPhase::Cruise || flight_state.phase == FlightPhase::Climb
         }
         TutorialStep::Landing => flight_state.phase == FlightPhase::Arrived,
         TutorialStep::PostFlight => pilot_state.total_flights >= 1,

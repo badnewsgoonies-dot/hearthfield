@@ -3,8 +3,8 @@
 //! Players can place storage chests on the farm map and interact with them
 //! to open a split-view inventory/chest UI.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES
@@ -105,7 +105,8 @@ pub fn place_chest(
 
     // Check if selected hotbar slot contains a "chest" item.
     let selected = inventory.selected_slot;
-    let has_chest_item = if let Some(slot) = inventory.slots.get(selected).and_then(|s| s.as_ref()) {
+    let has_chest_item = if let Some(slot) = inventory.slots.get(selected).and_then(|s| s.as_ref())
+    {
         slot.item_id == "chest"
     } else {
         false
@@ -129,20 +130,29 @@ pub fn place_chest(
 
     // Check target tile is not occupied by a crop.
     if farm_state.crops.contains_key(&(target_x, target_y)) {
-        info!("[Chest] Cannot place chest — tile ({}, {}) has a crop", target_x, target_y);
+        info!(
+            "[Chest] Cannot place chest — tile ({}, {}) has a crop",
+            target_x, target_y
+        );
         return;
     }
 
     // Check target tile is not occupied by a farm object.
     if farm_state.objects.contains_key(&(target_x, target_y)) {
-        info!("[Chest] Cannot place chest — tile ({}, {}) has an object", target_x, target_y);
+        info!(
+            "[Chest] Cannot place chest — tile ({}, {}) has an object",
+            target_x, target_y
+        );
         return;
     }
 
     // Check no existing chest at that position.
     for chest in chest_query.iter() {
         if chest.grid_pos == (target_x, target_y) {
-            info!("[Chest] Cannot place chest — tile ({}, {}) already has a chest", target_x, target_y);
+            info!(
+                "[Chest] Cannot place chest — tile ({}, {}) already has a chest",
+                target_x, target_y
+            );
             return;
         }
     }

@@ -6,10 +6,10 @@
 //! - Harvest Festival (Fall 16): Submit a crop for judging in Town.
 //! - Winter Star (Winter 25): Gift exchange with a randomly assigned NPC.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // TYPES
@@ -103,7 +103,10 @@ pub fn check_festival_day(
                 message: format!("Today is the {}! Press F to participate.", name),
                 duration_secs: 5.0,
             });
-            info!("[Festivals] Announced {} on Day {} {:?}", name, calendar.day, calendar.season);
+            info!(
+                "[Festivals] Announced {} on Day {} {:?}",
+                name, calendar.day, calendar.season
+            );
         }
     } else {
         // Not a festival day — reset state if it was active.
@@ -262,10 +265,7 @@ pub fn collect_eggs(
         festival.started = false;
         festival.timer = None;
 
-        info!(
-            "[Festivals] Egg Hunt ended — {} eggs collected.",
-            collected
-        );
+        info!("[Festivals] Egg Hunt ended — {} eggs collected.", collected);
     }
 }
 
@@ -302,9 +302,11 @@ pub fn start_luau(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
-        (slot.item_id.clone(), slot.quantity)
-    });
+    let item_info = inventory
+        .slots
+        .get(slot_index)
+        .and_then(|s| s.as_ref())
+        .map(|slot| (slot.item_id.clone(), slot.quantity));
 
     let (item_id, _qty) = match item_info {
         Some(info) => info,
@@ -338,10 +340,7 @@ pub fn start_luau(
             FRIENDSHIP_PER_HEART as i32, // +1 heart
         )
     } else {
-        (
-            "Not bad. The soup was decent.",
-            0i32,
-        )
+        ("Not bad. The soup was decent.", 0i32)
     };
 
     // Apply friendship to all registered NPCs.
@@ -400,9 +399,11 @@ pub fn start_harvest_festival(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
-        (slot.item_id.clone(), slot.quantity)
-    });
+    let item_info = inventory
+        .slots
+        .get(slot_index)
+        .and_then(|s| s.as_ref())
+        .map(|slot| (slot.item_id.clone(), slot.quantity));
 
     let (item_id, _qty) = match item_info {
         Some(info) => info,
@@ -583,9 +584,11 @@ pub fn winter_star_give_gift(
 
     // Check that the player is holding an item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots.get(slot_index).and_then(|s| s.as_ref()).map(|slot| {
-        slot.item_id.clone()
-    });
+    let item_info = inventory
+        .slots
+        .get(slot_index)
+        .and_then(|s| s.as_ref())
+        .map(|slot| slot.item_id.clone());
 
     let item_id = match item_info {
         Some(id) => id,

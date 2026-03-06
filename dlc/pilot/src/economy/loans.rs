@@ -1,8 +1,8 @@
 //! Loan system — borrow to purchase aircraft, monthly payments, interest.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -13,7 +13,7 @@ pub struct Loan {
     pub id: String,
     pub aircraft_id: String,
     pub principal: u32,
-    pub interest_rate: f32,     // annual rate (e.g. 0.08 = 8%)
+    pub interest_rate: f32, // annual rate (e.g. 0.08 = 8%)
     pub monthly_payment: u32,
     pub remaining_balance: u32,
     pub term_months: u32,
@@ -23,12 +23,7 @@ pub struct Loan {
 }
 
 impl Loan {
-    pub fn new(
-        aircraft_id: &str,
-        principal: u32,
-        interest_rate: f32,
-        term_months: u32,
-    ) -> Self {
+    pub fn new(aircraft_id: &str, principal: u32, interest_rate: f32, term_months: u32) -> Self {
         let monthly = Self::calculate_monthly_payment(principal, interest_rate, term_months);
         Self {
             id: format!("loan_{}_{}", aircraft_id, principal),
@@ -254,7 +249,10 @@ pub fn make_payment(
             });
 
             toast_events.send(ToastEvent {
-                message: format!("Loan payment: -{}g. Remaining debt: {}g", total_payment, remaining_debt),
+                message: format!(
+                    "Loan payment: -{}g. Remaining debt: {}g",
+                    total_payment, remaining_debt
+                ),
                 duration_secs: 3.0,
             });
         } else {
@@ -265,13 +263,15 @@ pub fn make_payment(
                 }
             }
 
-            let missed = portfolio.loans.iter().find(|l| l.active).map(|l| l.missed_payments).unwrap_or(0);
+            let missed = portfolio
+                .loans
+                .iter()
+                .find(|l| l.active)
+                .map(|l| l.missed_payments)
+                .unwrap_or(0);
 
             toast_events.send(ToastEvent {
-                message: format!(
-                    "⚠ Missed loan payment! ({}/3 before repossession)",
-                    missed
-                ),
+                message: format!("⚠ Missed loan payment! ({}/3 before repossession)", missed),
                 duration_secs: 4.0,
             });
         }

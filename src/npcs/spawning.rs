@@ -1,11 +1,11 @@
 //! NPC spawning: instantiate Npc entities for the current map.
 //! Respects the schedule system to place NPCs at correct starting positions.
 
-use bevy::prelude::*;
-use crate::shared::*;
-use super::definitions::{ALL_NPC_IDS, npc_color, npc_sprite_file};
-use super::schedule::current_schedule_entry;
 use super::animation::NpcAnimationTimer;
+use super::definitions::{npc_color, npc_sprite_file, ALL_NPC_IDS};
+use super::schedule::current_schedule_entry;
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Component tracking where an NPC should be moving toward.
 #[derive(Component, Debug, Clone)]
@@ -162,7 +162,8 @@ pub fn spawn_npcs_for_map(
         let name_color = npc_color(npc_id);
 
         // Use the NPC's unique spritesheet — no tinting needed.
-        let npc_image = npc_sprites.images
+        let npc_image = npc_sprites
+            .images
             .get(npc_id)
             .cloned()
             .unwrap_or_else(|| asset_server.load(npc_sprite_file(npc_id)));
@@ -177,29 +178,31 @@ pub fn spawn_npcs_for_map(
         );
         sprite.custom_size = Some(Vec2::new(48.0, 48.0));
 
-        let entity = commands.spawn((
-            Npc {
-                id: npc_id.to_string(),
-                name: npc_def.name.clone(),
-            },
-            NpcMovement {
-                target_x: world_x,
-                target_y: world_y,
-                speed: 40.0,
-                is_moving: false,
-            },
-            NpcAnimationTimer {
-                timer: Timer::from_seconds(0.15, TimerMode::Repeating),
-                frame_count: 4,
-                current_frame: 0,
-            },
-            NpcMapTag(map),
-            sprite,
-            LogicalPosition(Vec2::new(world_x, world_y)),
-            Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
-            YSorted,
-            Visibility::default(),
-        )).id();
+        let entity = commands
+            .spawn((
+                Npc {
+                    id: npc_id.to_string(),
+                    name: npc_def.name.clone(),
+                },
+                NpcMovement {
+                    target_x: world_x,
+                    target_y: world_y,
+                    speed: 40.0,
+                    is_moving: false,
+                },
+                NpcAnimationTimer {
+                    timer: Timer::from_seconds(0.15, TimerMode::Repeating),
+                    frame_count: 4,
+                    current_frame: 0,
+                },
+                NpcMapTag(map),
+                sprite,
+                LogicalPosition(Vec2::new(world_x, world_y)),
+                Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+                YSorted,
+                Visibility::default(),
+            ))
+            .id();
 
         // Floating name tag above the NPC sprite.
         commands.entity(entity).with_children(|parent| {

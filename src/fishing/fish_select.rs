@@ -5,8 +5,8 @@
 
 use rand::Rng;
 
-use crate::shared::*;
 use super::legendaries::try_roll_legendary;
+use crate::shared::*;
 
 // ─── Rarity weights ──────────────────────────────────────────────────────────
 

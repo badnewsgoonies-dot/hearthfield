@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -280,10 +280,7 @@ fn spawn_calendar_screen(
 fn is_festival_day(season: Season, day: u8) -> bool {
     matches!(
         (season, day),
-        (Season::Spring, 13)
-            | (Season::Summer, 11)
-            | (Season::Fall, 16)
-            | (Season::Winter, 25)
+        (Season::Spring, 13) | (Season::Summer, 11) | (Season::Fall, 16) | (Season::Winter, 25)
     )
 }
 

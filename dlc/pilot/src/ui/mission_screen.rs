@@ -1,7 +1,7 @@
 //! Full-screen mission board — lists available missions with accept button.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct MissionScreenRoot;

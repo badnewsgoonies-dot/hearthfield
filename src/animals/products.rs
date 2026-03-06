@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use crate::shared::*;
-use super::{ProductReadyIndicator, spawn_floating_text};
 use super::day_end::PendingProductQuality;
+use super::{spawn_floating_text, ProductReadyIndicator};
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Product collection
@@ -28,7 +28,12 @@ pub fn handle_product_collection(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&LogicalPosition, With<Player>>,
-    mut animal_query: Query<(Entity, &mut Animal, &LogicalPosition, Option<&PendingProductQuality>)>,
+    mut animal_query: Query<(
+        Entity,
+        &mut Animal,
+        &LogicalPosition,
+        Option<&PendingProductQuality>,
+    )>,
     mut product_writer: EventWriter<AnimalProductEvent>,
     mut pickup_writer: EventWriter<ItemPickupEvent>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
@@ -203,13 +208,13 @@ pub fn update_product_indicators(
         // but here we show what *kind* of product is available (not quality,
         // since quality is only revealed on collection).
         let color = match animal.kind {
-            AnimalKind::Chicken => Color::srgb(1.0, 1.0, 0.5),   // yellow — egg
-            AnimalKind::Cow => Color::srgb(1.0, 1.0, 1.0),       // white — milk
-            AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),     // pale blue — wool
-            AnimalKind::Goat => Color::srgb(0.95, 0.9, 0.8),     // cream — goat milk
-            AnimalKind::Duck => Color::srgb(0.7, 0.9, 0.7),      // soft green — duck egg
-            AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),    // lavender — foot
-            AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),      // brown — truffle
+            AnimalKind::Chicken => Color::srgb(1.0, 1.0, 0.5), // yellow — egg
+            AnimalKind::Cow => Color::srgb(1.0, 1.0, 1.0),     // white — milk
+            AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),   // pale blue — wool
+            AnimalKind::Goat => Color::srgb(0.95, 0.9, 0.8),   // cream — goat milk
+            AnimalKind::Duck => Color::srgb(0.7, 0.9, 0.7),    // soft green — duck egg
+            AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),  // lavender — foot
+            AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),    // brown — truffle
             _ => Color::srgb(1.0, 1.0, 1.0),
         };
 
@@ -220,9 +225,7 @@ pub fn update_product_indicators(
                 custom_size: Some(Vec2::new(6.0, 6.0)),
                 ..default()
             },
-            Transform::from_translation(
-                animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 12.0, 0.0),
-            ),
+            Transform::from_translation(animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 12.0, 0.0)),
             Visibility::default(),
         ));
     }

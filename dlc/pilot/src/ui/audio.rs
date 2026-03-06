@@ -1,8 +1,9 @@
 //! SFX and music handlers — reads PlaySfxEvent / PlayMusicEvent.
 
-use bevy::prelude::*;
 use crate::shared::*;
 use crate::ui::settings::VolumeSettings;
+use bevy::audio::Volume;
+use bevy::prelude::*;
 
 fn sfx_path(id: &str) -> Option<&'static str> {
     match id {
@@ -48,7 +49,7 @@ pub fn handle_play_sfx(
         if let Some(path) = sfx_path(&evt.sfx_id) {
             commands.spawn((
                 AudioPlayer::new(asset_server.load(path)),
-                PlaybackSettings::DESPAWN.with_volume(Volume::Linear(volume_settings.sfx_volume)),
+                PlaybackSettings::DESPAWN.with_volume(Volume::new(volume_settings.sfx_volume)),
             ));
         }
     }
@@ -71,7 +72,7 @@ pub fn handle_play_music(
             let entity = commands
                 .spawn((
                     AudioPlayer::new(asset_server.load(path)),
-                    PlaybackSettings::LOOP.with_volume(Volume::Linear(volume_settings.music_volume)),
+                    PlaybackSettings::LOOP.with_volume(Volume::new(volume_settings.music_volume)),
                 ))
                 .id();
             music_state.current_track = evt.track_id.clone();

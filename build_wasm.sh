@@ -43,6 +43,8 @@ RAYON_NUM_THREADS=1 wasm-bindgen \
 
 # Rename outputs from stripped name to hearthfield
 if [ -f "web/hearthfield-stripped.js" ]; then
+    # Fix the internal WASM reference before renaming
+    sed -i 's/hearthfield-stripped_bg\.wasm/hearthfield_bg.wasm/g' web/hearthfield-stripped.js
     mv web/hearthfield-stripped.js web/hearthfield.js
     mv web/hearthfield-stripped_bg.wasm web/hearthfield_bg.wasm
 fi

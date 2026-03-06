@@ -1,7 +1,7 @@
 //! Debug overlay — F3 toggle, shows FPS, position, airport/zone, weather, flight state.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct DebugOverlayRoot;
@@ -26,13 +26,7 @@ pub fn toggle_debug_overlay(
         // Update text when overlay is visible
         if overlay.visible {
             update_debug_text(
-                &existing,
-                &commands,
-                &grid_pos,
-                &location,
-                &weather,
-                &flight,
-                &time,
+                &existing, &commands, &grid_pos, &location, &weather, &flight, &time,
             );
         }
         return;
@@ -112,8 +106,12 @@ pub fn update_debug_overlay_text(
     if !overlay.visible {
         return;
     }
-    let Ok(root) = root_q.get_single() else { return };
-    let Ok(children) = children_q.get(root) else { return };
+    let Ok(root) = root_q.get_single() else {
+        return;
+    };
+    let Ok(children) = children_q.get(root) else {
+        return;
+    };
 
     let fps = (1.0 / time.delta_secs()).round() as u32;
 
@@ -122,9 +120,16 @@ pub fn update_debug_overlay_text(
         format!("Grid: ({}, {})", grid_pos.x, grid_pos.y),
         format!("Airport: {}", location.airport.display_name()),
         format!("Zone: {:?}", location.zone),
-        format!("Weather: {:?} | Wind: {:.0}kts", weather.current, weather.wind_speed_knots),
+        format!(
+            "Weather: {:?} | Wind: {:.0}kts",
+            weather.current, weather.wind_speed_knots
+        ),
         if flight.phase != FlightPhase::Idle {
-            format!("Flight: {} ALT:{:.0}", flight.phase.display_name(), flight.altitude_ft)
+            format!(
+                "Flight: {} ALT:{:.0}",
+                flight.phase.display_name(),
+                flight.altitude_ft
+            )
         } else {
             "Flight: On Ground".to_string()
         },

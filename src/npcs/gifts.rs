@@ -1,9 +1,9 @@
 //! Gift system: handle GiftGivenEvent, apply friendship points, send response dialogue.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::dialogue::build_gift_response_lines;
-use super::emotes::{NpcEmoteEvent, EmoteKind};
+use super::emotes::{EmoteKind, NpcEmoteEvent};
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// System: process gift-given events, apply friendship changes, send response dialogue.
 #[allow(clippy::too_many_arguments)]
@@ -23,9 +23,16 @@ pub fn handle_gifts(
         let item_id = &gift_event.item_id;
 
         // Check if NPC has already received a gift today
-        if relationships.gifted_today.get(npc_id).copied().unwrap_or(false) {
+        if relationships
+            .gifted_today
+            .get(npc_id)
+            .copied()
+            .unwrap_or(false)
+        {
             // Send polite decline dialogue
-            let _npc_name = npc_registry.npcs.get(npc_id)
+            let _npc_name = npc_registry
+                .npcs
+                .get(npc_id)
                 .map(|d| d.name.as_str())
                 .unwrap_or("them");
             let decline_lines = vec![
@@ -50,8 +57,8 @@ pub fn handle_gifts(
         let preference = gift_event.preference;
 
         // Check if today is the NPC's birthday
-        let is_birthday = calendar.season == npc_def.birthday_season
-            && calendar.day == npc_def.birthday_day;
+        let is_birthday =
+            calendar.season == npc_def.birthday_season && calendar.day == npc_def.birthday_day;
 
         // Calculate friendship points
         let base_points = preference_to_points(preference);
@@ -78,18 +85,14 @@ pub fn handle_gifts(
         relationships.gifted_today.insert(npc_id.clone(), true);
 
         // Look up item name for dialogue
-        let item_name = item_registry.get(item_id)
+        let item_name = item_registry
+            .get(item_id)
             .map(|d| d.name.as_str())
             .unwrap_or(item_id.as_str());
 
         // Build gift response dialogue
-        let response_lines = build_gift_response_lines(
-            npc_id,
-            &npc_def.name,
-            preference,
-            item_name,
-            is_birthday,
-        );
+        let response_lines =
+            build_gift_response_lines(npc_id, &npc_def.name, preference, item_name, is_birthday);
 
         let portrait_index = Some(npc_def.portrait_index);
         dialogue_writer.send(DialogueStartEvent {
@@ -105,22 +108,30 @@ pub fn handle_gifts(
 /// Convert a GiftPreference to friendship point delta (positive or negative).
 fn preference_to_points(preference: GiftPreference) -> i32 {
     match preference {
-        GiftPreference::Loved    =>  80,
-        GiftPreference::Liked    =>  45,
-        GiftPreference::Neutral  =>  20,
+        GiftPreference::Loved => 80,
+        GiftPreference::Liked => 45,
+        GiftPreference::Neutral => 20,
         GiftPreference::Disliked => -20,
-        GiftPreference::Hated    => -40,
+        GiftPreference::Hated => -40,
     }
 }
 
 /// Build the toast message shown to the player after giving a gift.
 fn preference_toast_message(npc_name: &str, preference: GiftPreference, points: i32) -> String {
     match preference {
-        GiftPreference::Loved    => format!("{} loved your gift! \u{2665}\u{2665}\u{2665} (+{})", npc_name, points),
-        GiftPreference::Liked    => format!("{} liked your gift! \u{2665}\u{2665} (+{})", npc_name, points),
-        GiftPreference::Neutral  => format!("{} accepted your gift. (+{})", npc_name, points),
-        GiftPreference::Disliked => format!("{} didn't seem to like that... ({})", npc_name, points),
-        GiftPreference::Hated    => format!("{} hated that gift! ({})", npc_name, points),
+        GiftPreference::Loved => format!(
+            "{} loved your gift! \u{2665}\u{2665}\u{2665} (+{})",
+            npc_name, points
+        ),
+        GiftPreference::Liked => format!(
+            "{} liked your gift! \u{2665}\u{2665} (+{})",
+            npc_name, points
+        ),
+        GiftPreference::Neutral => format!("{} accepted your gift. (+{})", npc_name, points),
+        GiftPreference::Disliked => {
+            format!("{} didn't seem to like that... ({})", npc_name, points)
+        }
+        GiftPreference::Hated => format!("{} hated that gift! ({})", npc_name, points),
     }
 }
 
@@ -186,7 +197,12 @@ pub fn handle_gift_input(
     };
 
     // Already gifted today?
-    if relationships.gifted_today.get(&npc_id).copied().unwrap_or(false) {
+    if relationships
+        .gifted_today
+        .get(&npc_id)
+        .copied()
+        .unwrap_or(false)
+    {
         return;
     }
 
@@ -215,7 +231,10 @@ pub fn handle_gift_input(
     let removed = inventory.try_remove(&item_id, 1);
     if removed == 0 {
         toast_writer.send(ToastEvent {
-            message: format!("Couldn't gift {} right now. It seems to be missing.", item_id),
+            message: format!(
+                "Couldn't gift {} right now. It seems to be missing.",
+                item_id
+            ),
             duration_secs: 2.0,
         });
         return;
@@ -226,7 +245,9 @@ pub fn handle_gift_input(
     });
 
     // Emit gift event with the resolved preference
-    let preference = npc_registry.npcs.get(&npc_id)
+    let preference = npc_registry
+        .npcs
+        .get(&npc_id)
         .and_then(|d| d.gift_preferences.get(&item_id).copied())
         .unwrap_or(GiftPreference::Neutral);
     gift_writer.send(GiftGivenEvent {

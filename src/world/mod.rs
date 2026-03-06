@@ -13,38 +13,33 @@ use std::collections::HashSet;
 
 use crate::shared::*;
 
+pub mod chests;
+pub mod lighting;
 pub mod maps;
 pub mod objects;
-pub mod chests;
 pub mod seasonal;
-pub mod lighting;
 pub mod weather_fx;
 pub mod ysort;
 
+use lighting::{
+    despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
+    update_lightning_flash, LightningFlash,
+};
 use maps::{generate_map, MapDef};
 use objects::{
-    handle_forageable_pickup, handle_tool_use_on_objects, spawn_forageables, spawn_world_objects,
-    handle_weed_scythe, spawn_daily_weeds, regrow_trees_on_season_change,
-    update_tree_sprites_on_season_change,
-    spawn_shipping_bin, spawn_crafting_bench, spawn_carpenter_board, spawn_building_signs,
-    spawn_building_sprites, spawn_interior_decorations,
-    update_forage_sparkles,
-    WorldObject,
+    handle_forageable_pickup, handle_tool_use_on_objects, handle_weed_scythe,
+    regrow_trees_on_season_change, spawn_building_signs, spawn_building_sprites,
+    spawn_carpenter_board, spawn_crafting_bench, spawn_daily_weeds, spawn_forageables,
+    spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects, update_forage_sparkles,
+    update_tree_sprites_on_season_change, WorldObject,
 };
 use seasonal::{
-    SeasonalTintApplied, LeafSpawnAccumulator,
-    apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves,
-};
-use lighting::{
-    spawn_day_night_overlay, despawn_day_night_overlay,
-    update_day_night_tint, update_lightning_flash,
-    LightningFlash,
+    apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
+    SeasonalTintApplied,
 };
 use weather_fx::{
-    spawn_weather_particles, update_weather_particles,
-    cleanup_weather_on_change, cleanup_all_weather_particles,
-    weather_change_notification,
-    PreviousWeather,
+    cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
+    update_weather_particles, weather_change_notification, PreviousWeather,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -71,7 +66,11 @@ impl Plugin for WorldPlugin {
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
-                (spawn_initial_map, spawn_day_night_overlay, chests::load_chest_sprites),
+                (
+                    spawn_initial_map,
+                    spawn_day_night_overlay,
+                    chests::load_chest_sprites,
+                ),
             )
             // Despawn overlay + weather particles when leaving Playing state
             .add_systems(
@@ -130,7 +129,14 @@ impl Plugin for WorldPlugin {
             // Listen for season changes for visual updates + tree regrowth.
             // This handles season-switch atlas swaps (index-based).
             // apply_seasonal_tint handles multiplicative colour tinting.
-            .add_systems(Update, (handle_season_change, regrow_trees_on_season_change, update_tree_sprites_on_season_change))
+            .add_systems(
+                Update,
+                (
+                    handle_season_change,
+                    regrow_trees_on_season_change,
+                    update_tree_sprites_on_season_change,
+                ),
+            )
             // Y-sort + pixel-snap: runs after all movement, writes Transform
             .add_systems(PostUpdate, ysort::sync_position_and_ysort);
     }
@@ -238,13 +244,24 @@ fn ensure_atlases_loaded(
 
 /// Maps a TileKind (and optionally season) to (image_handle, layout_handle, atlas_index).
 /// Returns None for Void tiles, which use a plain colored sprite instead.
-fn is_path_neighbor(tiles: &[TileKind], x: usize, y: usize, width: usize, height: usize, dx: i32, dy: i32) -> bool {
+fn is_path_neighbor(
+    tiles: &[TileKind],
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+    dx: i32,
+    dy: i32,
+) -> bool {
     let nx = x as i32 + dx;
     let ny = y as i32 + dy;
     if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
         return false;
     }
-    matches!(tiles[ny as usize * width + nx as usize], TileKind::Path | TileKind::Bridge)
+    matches!(
+        tiles[ny as usize * width + nx as usize],
+        TileKind::Path | TileKind::Bridge
+    )
 }
 
 fn path_autotile_index(bitmask: u8) -> usize {
@@ -301,32 +318,18 @@ fn tile_atlas_info(
         }
 
         // Dirt: use tilled_dirt.png atlas. Index 5 = plain dirt tile.
-        TileKind::Dirt => Some((
-            atlases.dirt_image.clone(),
-            atlases.dirt_layout.clone(),
-            5,
-        )),
+        TileKind::Dirt => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 5)),
 
         // Tilled soil: tilled_dirt.png with a hoed-looking tile (index 12, row 1 col 1).
-        TileKind::TilledSoil => Some((
-            atlases.dirt_image.clone(),
-            atlases.dirt_layout.clone(),
-            12,
-        )),
+        TileKind::TilledSoil => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 12)),
 
         // Watered soil: tilled_dirt.png with a darker index (index 16, row 1 col 5).
-        TileKind::WateredSoil => Some((
-            atlases.dirt_image.clone(),
-            atlases.dirt_layout.clone(),
-            16,
-        )),
+        TileKind::WateredSoil => {
+            Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 16))
+        }
 
         // Water: water.png atlas, index 0.
-        TileKind::Water => Some((
-            atlases.water_image.clone(),
-            atlases.water_layout.clone(),
-            0,
-        )),
+        TileKind::Water => Some((atlases.water_image.clone(), atlases.water_layout.clone(), 0)),
 
         // Sand: use grass.png atlas with a sandy tile (row 4, col 2 = index 46).
         TileKind::Sand => Some((
@@ -336,25 +339,25 @@ fn tile_atlas_info(
         )),
 
         // Stone: use tilled_dirt.png with a stone-looking tile (index 22, row 2 col 0).
-        TileKind::Stone => Some((
-            atlases.dirt_image.clone(),
-            atlases.dirt_layout.clone(),
-            22,
-        )),
+        TileKind::Stone => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 22)),
 
         // Wood floor: tilled_dirt.png with a wood-colored tile (index 33, row 3 col 0).
-        TileKind::WoodFloor => Some((
-            atlases.dirt_image.clone(),
-            atlases.dirt_layout.clone(),
-            33,
-        )),
+        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 33)),
 
         TileKind::Path => {
             let mut mask: u8 = 0;
-            if is_path_neighbor(tiles, x, y, width, height, 0, -1) { mask |= 1; } // north
-            if is_path_neighbor(tiles, x, y, width, height, 1, 0)  { mask |= 2; } // east
-            if is_path_neighbor(tiles, x, y, width, height, 0, 1)  { mask |= 4; } // south
-            if is_path_neighbor(tiles, x, y, width, height, -1, 0) { mask |= 8; } // west
+            if is_path_neighbor(tiles, x, y, width, height, 0, -1) {
+                mask |= 1;
+            } // north
+            if is_path_neighbor(tiles, x, y, width, height, 1, 0) {
+                mask |= 2;
+            } // east
+            if is_path_neighbor(tiles, x, y, width, height, 0, 1) {
+                mask |= 4;
+            } // south
+            if is_path_neighbor(tiles, x, y, width, height, -1, 0) {
+                mask |= 8;
+            } // west
             Some((
                 atlases.paths_image.clone(),
                 atlases.paths_layout.clone(),
@@ -442,7 +445,6 @@ impl WorldMap {
             self.solid_tiles.remove(&(x, y));
         }
     }
-
 }
 
 /// Simple resource to track the currently loaded map ID.
@@ -583,11 +585,24 @@ fn load_map(
 
     // Spawn world objects with atlas sprites
     let object_placements = map_def.objects.clone();
-    spawn_world_objects(commands, &object_placements, world_map, object_atlases, season);
+    spawn_world_objects(
+        commands,
+        &object_placements,
+        world_map,
+        object_atlases,
+        season,
+    );
 
     // Spawn forageables for today
     let forage_points = map_def.forage_points.clone();
-    spawn_forageables(commands, &forage_points, season, day, world_map, object_atlases);
+    spawn_forageables(
+        commands,
+        &forage_points,
+        season,
+        day,
+        world_map,
+        object_atlases,
+    );
 
     // Store the map definition
     world_map.map_def = Some(map_def);
@@ -604,18 +619,23 @@ fn spawn_tile_sprites(
         for x in 0..map_def.width {
             let tile = map_def.tiles[y * map_def.width + x];
 
-            match tile_atlas_info(tile, season, atlases, map_def.id, x, y, &map_def.tiles, map_def.width, map_def.height) {
+            match tile_atlas_info(
+                tile,
+                season,
+                atlases,
+                map_def.id,
+                x,
+                y,
+                &map_def.tiles,
+                map_def.width,
+                map_def.height,
+            ) {
                 Some((image, layout, index)) => {
                     // Use texture atlas sprite
                     commands.spawn((
                         {
-                            let mut sprite = Sprite::from_atlas_image(
-                                image,
-                                TextureAtlas {
-                                    layout,
-                                    index,
-                                },
-                            );
+                            let mut sprite =
+                                Sprite::from_atlas_image(image, TextureAtlas { layout, index });
                             sprite.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
                             sprite
                         },
@@ -691,7 +711,11 @@ fn spawn_initial_map(
     // Ensure object atlases are loaded
     objects::ensure_object_atlases_loaded(&asset_server, &mut atlas_layouts, &mut object_atlases);
     // Ensure furniture atlases are loaded
-    objects::ensure_furniture_atlases_loaded(&asset_server, &mut atlas_layouts, &mut furniture_atlases);
+    objects::ensure_furniture_atlases_loaded(
+        &asset_server,
+        &mut atlas_layouts,
+        &mut furniture_atlases,
+    );
 
     load_map(
         &mut commands,
@@ -797,7 +821,12 @@ pub fn sync_collision_map(
     }
     collision_map.solid_tiles.clone_from(&world_map.solid_tiles);
     if world_map.width > 0 && world_map.height > 0 {
-        collision_map.bounds = (0, world_map.width as i32 - 1, 0, world_map.height as i32 - 1);
+        collision_map.bounds = (
+            0,
+            world_map.width as i32 - 1,
+            0,
+            world_map.height as i32 - 1,
+        );
         collision_map.initialised = true;
     }
 }
@@ -828,14 +857,21 @@ fn handle_season_change(
 
                 let tile = map_def.get_tile(gx, gy);
 
-                match tile_atlas_info(tile, new_season, &terrain_atlases, map_def.id, gx as usize, gy as usize, &map_def.tiles, map_def.width, map_def.height) {
+                match tile_atlas_info(
+                    tile,
+                    new_season,
+                    &terrain_atlases,
+                    map_def.id,
+                    gx as usize,
+                    gy as usize,
+                    &map_def.tiles,
+                    map_def.width,
+                    map_def.height,
+                ) {
                     Some((image, layout, index)) => {
                         // Update the sprite to use the new seasonal atlas image and index.
                         // Reset color to white so apply_seasonal_tint can tint cleanly.
-                        *sprite = Sprite::from_atlas_image(
-                            image,
-                            TextureAtlas { layout, index },
-                        );
+                        *sprite = Sprite::from_atlas_image(image, TextureAtlas { layout, index });
                     }
                     None => {
                         // Void tile: update color fallback

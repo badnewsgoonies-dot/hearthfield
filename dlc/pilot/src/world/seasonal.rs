@@ -1,7 +1,7 @@
 //! Seasonal decoration system — airport decorations, seasonal events, and mission bonuses.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES
@@ -122,37 +122,101 @@ struct DecorPlacement {
 
 fn spring_decorations() -> Vec<DecorPlacement> {
     vec![
-        DecorPlacement { kind: DecorKind::FlowerPot, gx: 2, gy: 1 },
-        DecorPlacement { kind: DecorKind::FlowerPot, gx: 18, gy: 1 },
-        DecorPlacement { kind: DecorKind::CherryBlossom, gx: 10, gy: 0 },
-        DecorPlacement { kind: DecorKind::SpringBanner, gx: 10, gy: 1 },
+        DecorPlacement {
+            kind: DecorKind::FlowerPot,
+            gx: 2,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::FlowerPot,
+            gx: 18,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::CherryBlossom,
+            gx: 10,
+            gy: 0,
+        },
+        DecorPlacement {
+            kind: DecorKind::SpringBanner,
+            gx: 10,
+            gy: 1,
+        },
     ]
 }
 
 fn summer_decorations() -> Vec<DecorPlacement> {
     vec![
-        DecorPlacement { kind: DecorKind::SummerBanner, gx: 10, gy: 1 },
-        DecorPlacement { kind: DecorKind::PalmDecor, gx: 2, gy: 1 },
-        DecorPlacement { kind: DecorKind::PalmDecor, gx: 18, gy: 1 },
-        DecorPlacement { kind: DecorKind::BeachPoster, gx: 14, gy: 2 },
+        DecorPlacement {
+            kind: DecorKind::SummerBanner,
+            gx: 10,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::PalmDecor,
+            gx: 2,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::PalmDecor,
+            gx: 18,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::BeachPoster,
+            gx: 14,
+            gy: 2,
+        },
     ]
 }
 
 fn fall_decorations() -> Vec<DecorPlacement> {
     vec![
-        DecorPlacement { kind: DecorKind::FallenLeaves, gx: 4, gy: 9 },
-        DecorPlacement { kind: DecorKind::FallenLeaves, gx: 15, gy: 9 },
-        DecorPlacement { kind: DecorKind::PumpkinDisplay, gx: 2, gy: 1 },
-        DecorPlacement { kind: DecorKind::HarvestWreath, gx: 10, gy: 1 },
+        DecorPlacement {
+            kind: DecorKind::FallenLeaves,
+            gx: 4,
+            gy: 9,
+        },
+        DecorPlacement {
+            kind: DecorKind::FallenLeaves,
+            gx: 15,
+            gy: 9,
+        },
+        DecorPlacement {
+            kind: DecorKind::PumpkinDisplay,
+            gx: 2,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::HarvestWreath,
+            gx: 10,
+            gy: 1,
+        },
     ]
 }
 
 fn winter_decorations() -> Vec<DecorPlacement> {
     vec![
-        DecorPlacement { kind: DecorKind::HolidayLights, gx: 10, gy: 0 },
-        DecorPlacement { kind: DecorKind::SnowmanDecor, gx: 3, gy: 1 },
-        DecorPlacement { kind: DecorKind::SnowmanDecor, gx: 17, gy: 1 },
-        DecorPlacement { kind: DecorKind::WinterGarland, gx: 10, gy: 1 },
+        DecorPlacement {
+            kind: DecorKind::HolidayLights,
+            gx: 10,
+            gy: 0,
+        },
+        DecorPlacement {
+            kind: DecorKind::SnowmanDecor,
+            gx: 3,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::SnowmanDecor,
+            gx: 17,
+            gy: 1,
+        },
+        DecorPlacement {
+            kind: DecorKind::WinterGarland,
+            gx: 10,
+            gy: 1,
+        },
     ]
 }
 
@@ -262,7 +326,10 @@ pub fn apply_seasonal_tile_tints(
     };
 
     for (tile, mut sprite) in &mut tiles {
-        if matches!(tile.kind, TileKind::Grass | TileKind::Sand | TileKind::Tarmac) {
+        if matches!(
+            tile.kind,
+            TileKind::Grass | TileKind::Sand | TileKind::Tarmac
+        ) {
             sprite.color = tint;
         }
     }

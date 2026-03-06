@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // CRAFTING UI STATE
@@ -179,7 +179,10 @@ pub fn handle_craft_item(
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
         if leftover > 0 {
             // Inventory full — refund ingredients
-            warn!("Inventory full after crafting '{}' — refunding materials", recipe.name);
+            warn!(
+                "Inventory full after crafting '{}' — refunding materials",
+                recipe.name
+            );
             refund_ingredients(&mut inventory, recipe, &item_registry);
             ui_state.set_feedback("Inventory is full!".to_string());
             continue;
@@ -190,7 +193,10 @@ pub fn handle_craft_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
-        *achievements.progress.entry("crafts".to_string()).or_insert(0) += 1;
+        *achievements
+            .progress
+            .entry("crafts".to_string())
+            .or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Crafted {} x{}", recipe.name, recipe.result_quantity)

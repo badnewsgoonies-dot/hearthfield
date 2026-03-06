@@ -4,8 +4,8 @@
 //! short delay, and `handle_takeoff` manages the runway roll, speed callouts,
 //! rotation, liftoff, gear-up prompt, abort logic, and crosswind drift.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ── Constants ────────────────────────────────────────────────────────────
 

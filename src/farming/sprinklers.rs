@@ -12,9 +12,9 @@
 //! All shared types are imported via `crate::shared::*`.  No imports from any other
 //! domain are permitted.
 
-use bevy::prelude::*;
+use super::{soil::spawn_or_update_soil_entity, FarmEntities};
 use crate::shared::*;
-use super::{FarmEntities, soil::spawn_or_update_soil_entity};
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public helper — compute affected tiles for any sprinkler kind
@@ -53,7 +53,7 @@ const ITEM_IRIDIUM_SPRINKLER: &str = "iridium_sprinkler";
 
 fn sprinkler_item_id(kind: SprinklerKind) -> &'static str {
     match kind {
-        SprinklerKind::Basic   => ITEM_BASIC_SPRINKLER,
+        SprinklerKind::Basic => ITEM_BASIC_SPRINKLER,
         SprinklerKind::Quality => ITEM_QUALITY_SPRINKLER,
         SprinklerKind::Iridium => ITEM_IRIDIUM_SPRINKLER,
     }
@@ -61,7 +61,7 @@ fn sprinkler_item_id(kind: SprinklerKind) -> &'static str {
 
 fn sprinkler_display_name(kind: SprinklerKind) -> &'static str {
     match kind {
-        SprinklerKind::Basic   => "Sprinkler",
+        SprinklerKind::Basic => "Sprinkler",
         SprinklerKind::Quality => "Quality Sprinkler",
         SprinklerKind::Iridium => "Iridium Sprinkler",
     }
@@ -229,10 +229,8 @@ pub fn remove_sprinkler(
         let pos = (ev.target_x, ev.target_y);
 
         // Check whether there is a farm object that is a Sprinkler here.
-        let has_object_sprinkler = matches!(
-            farm_state.objects.get(&pos),
-            Some(FarmObject::Sprinkler)
-        );
+        let has_object_sprinkler =
+            matches!(farm_state.objects.get(&pos), Some(FarmObject::Sprinkler));
         if !has_object_sprinkler {
             continue;
         }
@@ -287,9 +285,9 @@ mod tests {
     fn basic_sprinkler_four_cardinal_tiles() {
         let tiles = sprinkler_affected_tiles(SprinklerKind::Basic, 0, 0);
         assert_eq!(tiles.len(), 4, "Basic sprinkler waters exactly 4 tiles");
-        assert!(tiles.contains(&(0, 1)),  "North");
+        assert!(tiles.contains(&(0, 1)), "North");
         assert!(tiles.contains(&(0, -1)), "South");
-        assert!(tiles.contains(&(1, 0)),  "East");
+        assert!(tiles.contains(&(1, 0)), "East");
         assert!(tiles.contains(&(-1, 0)), "West");
         // No diagonals.
         assert!(!tiles.contains(&(1, 1)));
@@ -299,14 +297,25 @@ mod tests {
     #[test]
     fn quality_sprinkler_eight_tiles() {
         let tiles = sprinkler_affected_tiles(SprinklerKind::Quality, 5, 5);
-        assert_eq!(tiles.len(), 8, "Quality sprinkler waters exactly 8 tiles (3×3 minus centre)");
+        assert_eq!(
+            tiles.len(),
+            8,
+            "Quality sprinkler waters exactly 8 tiles (3×3 minus centre)"
+        );
         // Centre must not be included.
         assert!(!tiles.contains(&(5, 5)));
         // All 8 surrounding tiles.
         for dx in -1i32..=1 {
             for dy in -1i32..=1 {
-                if dx == 0 && dy == 0 { continue; }
-                assert!(tiles.contains(&(5 + dx, 5 + dy)), "Missing ({}, {})", 5+dx, 5+dy);
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+                assert!(
+                    tiles.contains(&(5 + dx, 5 + dy)),
+                    "Missing ({}, {})",
+                    5 + dx,
+                    5 + dy
+                );
             }
         }
     }
@@ -314,13 +323,19 @@ mod tests {
     #[test]
     fn iridium_sprinkler_twenty_four_tiles() {
         let tiles = sprinkler_affected_tiles(SprinklerKind::Iridium, 0, 0);
-        assert_eq!(tiles.len(), 24, "Iridium sprinkler waters exactly 24 tiles (5×5 minus centre)");
+        assert_eq!(
+            tiles.len(),
+            24,
+            "Iridium sprinkler waters exactly 24 tiles (5×5 minus centre)"
+        );
         // Centre must not be included.
         assert!(!tiles.contains(&(0, 0)));
         // All tiles in the 5×5 box (range 2).
         for dx in -2i32..=2 {
             for dy in -2i32..=2 {
-                if dx == 0 && dy == 0 { continue; }
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
                 assert!(tiles.contains(&(dx, dy)), "Missing ({}, {})", dx, dy);
             }
         }
@@ -328,8 +343,14 @@ mod tests {
 
     #[test]
     fn sprinkler_item_ids_are_correct() {
-        assert_eq!(sprinkler_item_id(SprinklerKind::Basic),   "sprinkler");
-        assert_eq!(sprinkler_item_id(SprinklerKind::Quality), "quality_sprinkler");
-        assert_eq!(sprinkler_item_id(SprinklerKind::Iridium), "iridium_sprinkler");
+        assert_eq!(sprinkler_item_id(SprinklerKind::Basic), "sprinkler");
+        assert_eq!(
+            sprinkler_item_id(SprinklerKind::Quality),
+            "quality_sprinkler"
+        );
+        assert_eq!(
+            sprinkler_item_id(SprinklerKind::Iridium),
+            "iridium_sprinkler"
+        );
     }
 }

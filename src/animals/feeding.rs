@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use super::{spawn_floating_text, FeedTrough};
 use crate::shared::*;
-use super::{FeedTrough, spawn_floating_text};
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Feed-trough interaction
@@ -57,8 +57,13 @@ pub fn handle_feed_trough_interact(
         for (_entity, mut animal, animal_lp) in animal_query.iter_mut() {
             if !matches!(
                 animal.kind,
-                AnimalKind::Chicken | AnimalKind::Cow | AnimalKind::Sheep
-                    | AnimalKind::Goat | AnimalKind::Duck | AnimalKind::Rabbit | AnimalKind::Pig
+                AnimalKind::Chicken
+                    | AnimalKind::Cow
+                    | AnimalKind::Sheep
+                    | AnimalKind::Goat
+                    | AnimalKind::Duck
+                    | AnimalKind::Rabbit
+                    | AnimalKind::Pig
             ) {
                 // Companions (Cat, Dog, Horse) don't need hay.
                 continue;

@@ -4,7 +4,13 @@ use crate::shared::*;
 
 /// Build a single schedule entry.
 fn entry(hour: u32, airport: AirportId, zone: MapZone, gx: i32, gy: i32) -> ScheduleEntry {
-    ScheduleEntry { hour, airport, zone, grid_x: gx, grid_y: gy }
+    ScheduleEntry {
+        hour,
+        airport,
+        zone,
+        grid_x: gx,
+        grid_y: gy,
+    }
 }
 
 /// Standard weekday schedule for a crew member who stays at their home airport.
@@ -173,7 +179,11 @@ pub fn get_schedule(crew_id: &str) -> NpcSchedule {
 }
 
 /// Look up which zone a crew member should be in at a given hour/day.
-pub fn get_crew_current_zone(crew_id: &str, hour: u32, day: &DayOfWeek) -> (AirportId, MapZone, i32, i32) {
+pub fn get_crew_current_zone(
+    crew_id: &str,
+    hour: u32,
+    day: &DayOfWeek,
+) -> (AirportId, MapZone, i32, i32) {
     let schedule = get_schedule(crew_id);
     let entries = if matches!(day, DayOfWeek::Saturday | DayOfWeek::Sunday) {
         &schedule.weekend
@@ -193,7 +203,13 @@ pub fn get_crew_current_zone(crew_id: &str, hour: u32, day: &DayOfWeek) -> (Airp
 }
 
 /// Check whether a given crew member should be visible at the player's location.
-pub fn is_crew_present(crew_id: &str, hour: u32, day: &DayOfWeek, airport: AirportId, zone: MapZone) -> bool {
+pub fn is_crew_present(
+    crew_id: &str,
+    hour: u32,
+    day: &DayOfWeek,
+    airport: AirportId,
+    zone: MapZone,
+) -> bool {
     let (a, z, _, _) = get_crew_current_zone(crew_id, hour, day);
     a == airport && z == zone
 }

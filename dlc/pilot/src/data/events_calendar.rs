@@ -53,15 +53,16 @@ impl EventEffect {
             EventEffect::MissionBonus { multiplier } => {
                 format!("Mission rewards ×{:.1}", multiplier)
             }
-            EventEffect::PriceModifier { category, multiplier } => {
+            EventEffect::PriceModifier {
+                category,
+                multiplier,
+            } => {
                 format!("{} prices ×{:.1}", category, multiplier)
             }
             EventEffect::CrewMoodBoost { amount } => {
                 format!("Crew mood +{}", amount)
             }
-            EventEffect::SpecialMissionsAvailable => {
-                "Special event missions available".to_string()
-            }
+            EventEffect::SpecialMissionsAvailable => "Special event missions available".to_string(),
             EventEffect::WeatherGuarantee { weather } => {
                 format!("Guaranteed {:?} weather", weather)
             }

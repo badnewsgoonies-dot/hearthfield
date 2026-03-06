@@ -1,8 +1,8 @@
 //! Airport service interactions — hotel, car rental, lounge, cargo, customs, briefing, map.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // ─── Service Types ───────────────────────────────────────────────────────
 
@@ -74,10 +74,7 @@ impl AirportService {
 
 /// Which services are available at a given airport.
 pub fn services_at(airport: AirportId) -> Vec<AirportService> {
-    let mut out = vec![
-        AirportService::WeatherBriefing,
-        AirportService::AirportMap,
-    ];
+    let mut out = vec![AirportService::WeatherBriefing, AirportService::AirportMap];
 
     match airport {
         AirportId::HomeBase => {
@@ -361,7 +358,11 @@ pub fn request_weather_briefing(
         weather.wind_direction_deg,
         weather.visibility_nm,
         weather.ceiling_ft,
-        if forecast_text.is_empty() { "N/A".to_string() } else { forecast_text },
+        if forecast_text.is_empty() {
+            "N/A".to_string()
+        } else {
+            forecast_text
+        },
     );
 
     toast.send(ToastEvent {

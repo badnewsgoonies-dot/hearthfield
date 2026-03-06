@@ -1,7 +1,7 @@
 //! Crew relationship viewer — shows all crew members, friendship, and details.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -63,17 +63,15 @@ pub fn spawn_crew_screen(
 
     // Grid container for crew cards
     let grid = commands
-        .spawn((
-            Node {
-                width: Val::Percent(90.0),
-                flex_direction: FlexDirection::Row,
-                flex_wrap: FlexWrap::Wrap,
-                justify_content: JustifyContent::Center,
-                column_gap: Val::Px(12.0),
-                row_gap: Val::Px(12.0),
-                ..default()
-            },
-        ))
+        .spawn((Node {
+            width: Val::Percent(90.0),
+            flex_direction: FlexDirection::Row,
+            flex_wrap: FlexWrap::Wrap,
+            justify_content: JustifyContent::Center,
+            column_gap: Val::Px(12.0),
+            row_gap: Val::Px(12.0),
+            ..default()
+        },))
         .id();
     commands.entity(root).add_child(grid);
 
@@ -238,10 +236,7 @@ pub fn spawn_crew_screen(
     }
 }
 
-pub fn despawn_crew_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<CrewScreenRoot>>,
-) {
+pub fn despawn_crew_screen(mut commands: Commands, query: Query<Entity, With<CrewScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }

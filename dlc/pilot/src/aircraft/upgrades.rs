@@ -1,7 +1,7 @@
 //! Aircraft upgrade system — engine, avionics, interior, and more.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct UpgradePlugin;
 
@@ -11,11 +11,7 @@ impl Plugin for UpgradePlugin {
             .add_event::<UpgradeEvent>()
             .add_systems(
                 Update,
-                (
-                    apply_upgrade,
-                    check_upgrade_unlocks,
-                )
-                    .run_if(in_state(GameState::Playing)),
+                (apply_upgrade, check_upgrade_unlocks).run_if(in_state(GameState::Playing)),
             );
     }
 }
@@ -227,7 +223,12 @@ pub fn apply_upgrade(
 
         if gold.amount < cost {
             toast_events.send(ToastEvent {
-                message: format!("Not enough gold! Need {} for {} {}", cost, ev.tier.display_name(), ev.slot.display_name()),
+                message: format!(
+                    "Not enough gold! Need {} for {} {}",
+                    cost,
+                    ev.tier.display_name(),
+                    ev.slot.display_name()
+                ),
                 duration_secs: 3.0,
             });
             continue;

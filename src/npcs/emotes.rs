@@ -3,8 +3,8 @@
 //! When an NPC reacts (gift, dialogue, etc.), a small emote sprite
 //! appears above their head, floats upward, and fades out.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // EMOTE ATLAS
@@ -110,9 +110,7 @@ pub fn spawn_emote_bubbles(
 
     for event in events.read() {
         // Find the NPC's current position
-        let Some((_npc, transform)) = npc_query
-            .iter()
-            .find(|(npc, _)| npc.id == event.npc_id)
+        let Some((_npc, transform)) = npc_query.iter().find(|(npc, _)| npc.id == event.npc_id)
         else {
             continue;
         };

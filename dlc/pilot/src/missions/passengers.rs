@@ -1,7 +1,7 @@
 //! Passenger satisfaction — boarding, in-flight comfort, deplaning ratings.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA TYPES
@@ -100,9 +100,17 @@ impl PassengerManifest {
         if self.groups.is_empty() {
             return 100.0;
         }
-        let total: f32 = self.groups.iter().map(|g| g.satisfaction * g.count as f32).sum();
+        let total: f32 = self
+            .groups
+            .iter()
+            .map(|g| g.satisfaction * g.count as f32)
+            .sum();
         let count: f32 = self.groups.iter().map(|g| g.count as f32).sum();
-        if count > 0.0 { total / count } else { 100.0 }
+        if count > 0.0 {
+            total / count
+        } else {
+            100.0
+        }
     }
 
     pub fn total_tips(&self) -> u32 {

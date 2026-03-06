@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -46,7 +46,10 @@ pub fn spawn_journal_screen(
     let font = font_handle.0.clone();
 
     let quest_ids: Vec<String> = quest_log.active.iter().map(|q| q.id.clone()).collect();
-    commands.insert_resource(JournalUiState { cursor: 0, quest_ids });
+    commands.insert_resource(JournalUiState {
+        cursor: 0,
+        quest_ids,
+    });
 
     commands
         .spawn((
@@ -101,16 +104,14 @@ pub fn spawn_journal_screen(
 
                     // Quest list area
                     panel
-                        .spawn((
-                            Node {
-                                width: Val::Percent(100.0),
-                                flex_direction: FlexDirection::Column,
-                                flex_grow: 1.0,
-                                row_gap: Val::Px(4.0),
-                                overflow: Overflow::clip_y(),
-                                ..default()
-                            },
-                        ))
+                        .spawn((Node {
+                            width: Val::Percent(100.0),
+                            flex_direction: FlexDirection::Column,
+                            flex_grow: 1.0,
+                            row_gap: Val::Px(4.0),
+                            overflow: Overflow::clip_y(),
+                            ..default()
+                        },))
                         .with_children(|list| {
                             if quest_log.active.is_empty() {
                                 list.spawn((
@@ -340,7 +341,9 @@ pub fn journal_navigation(
     font_handle: Res<UiFontHandle>,
     detail_query: Query<Entity, With<QuestDetailPanel>>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     let count = quest_log.active.len();
     if count == 0 {
         return;
@@ -396,7 +399,11 @@ pub fn journal_navigation(
 
 fn format_objective(objective: &QuestObjective) -> String {
     match objective {
-        QuestObjective::Deliver { item_id, quantity, delivered } => {
+        QuestObjective::Deliver {
+            item_id,
+            quantity,
+            delivered,
+        } => {
             format!("Deliver: {}/{} {}", delivered, quantity, item_id)
         }
         QuestObjective::Catch { fish_id, delivered } => {
@@ -406,10 +413,18 @@ fn format_objective(objective: &QuestObjective) -> String {
                 format!("Catch: {}", fish_id)
             }
         }
-        QuestObjective::Harvest { crop_id, quantity, harvested } => {
+        QuestObjective::Harvest {
+            crop_id,
+            quantity,
+            harvested,
+        } => {
             format!("Harvest: {}/{} {}", harvested, quantity, crop_id)
         }
-        QuestObjective::Mine { item_id, quantity, collected } => {
+        QuestObjective::Mine {
+            item_id,
+            quantity,
+            collected,
+        } => {
             format!("Mine: {}/{} {}", collected, quantity, item_id)
         }
         QuestObjective::Talk { npc_name, talked } => {
@@ -419,7 +434,11 @@ fn format_objective(objective: &QuestObjective) -> String {
                 format!("Talk to {}", npc_name)
             }
         }
-        QuestObjective::Slay { monster_kind, quantity, slain } => {
+        QuestObjective::Slay {
+            monster_kind,
+            quantity,
+            slain,
+        } => {
             format!("Slay: {}/{} {}", slain, quantity, monster_kind)
         }
     }

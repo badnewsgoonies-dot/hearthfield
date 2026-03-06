@@ -1,8 +1,8 @@
 //! Day/night cycle and time management — advances calendar time each frame,
 //! handles late-night warnings, forces sleep, and applies lighting tints.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Time Period ─────────────────────────────────────────────────────────
 
@@ -67,11 +67,7 @@ pub struct DayLightOverlay;
 
 /// Advance the calendar clock each frame by converting real delta-time into
 /// game minutes and rolling over hours/days as needed.
-pub fn advance_time(
-    time: Res<Time>,
-    mut calendar: ResMut<Calendar>,
-    config: Res<DayCycleConfig>,
-) {
+pub fn advance_time(time: Res<Time>, mut calendar: ResMut<Calendar>, config: Res<DayCycleConfig>) {
     if calendar.time_paused {
         return;
     }
@@ -179,7 +175,12 @@ pub fn update_lighting_tint(
 ) {
     let period = TimePeriod::from_hour(calendar.hour);
     let tint = period.lighting_tint();
-    let overlay = Color::srgba(tint.to_srgba().red, tint.to_srgba().green, tint.to_srgba().blue, 0.15);
+    let overlay = Color::srgba(
+        tint.to_srgba().red,
+        tint.to_srgba().green,
+        tint.to_srgba().blue,
+        0.15,
+    );
     for mut bg in &mut query {
         *bg = BackgroundColor(overlay);
     }

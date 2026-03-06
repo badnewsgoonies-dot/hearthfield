@@ -1,24 +1,24 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-modules
 // ─────────────────────────────────────────────────────────────────────────────
-mod spawning;
-mod movement;
-mod feeding;
-mod products;
 mod day_end;
+mod feeding;
 mod interaction;
+mod movement;
+mod products;
 mod rendering;
+mod spawning;
 
-pub use spawning::*;
-pub use movement::*;
-pub use feeding::*;
-pub use products::*;
 pub use day_end::*;
+pub use feeding::*;
 pub use interaction::*;
+pub use movement::*;
+pub use products::*;
 pub use rendering::*;
+pub use spawning::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Private ECS components (internal to the animals domain)
@@ -139,11 +139,12 @@ pub struct AnimalPlugin;
 
 impl Plugin for AnimalPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<AnimalSpriteData>()
+        app.init_resource::<AnimalSpriteData>()
             // ── startup / loading ────────────────────────────────────────────
-            .add_systems(OnEnter(GameState::Playing), (load_animal_sprites, setup_feed_trough))
-
+            .add_systems(
+                OnEnter(GameState::Playing),
+                (load_animal_sprites, setup_feed_trough),
+            )
             // ── purchase detection ───────────────────────────────────────────
             .add_systems(
                 Update,
@@ -159,7 +160,6 @@ impl Plugin for AnimalPlugin {
                 )
                     .run_if(in_state(GameState::Playing)),
             )
-
             // ── day-end processing ───────────────────────────────────────────
             .add_systems(
                 Update,

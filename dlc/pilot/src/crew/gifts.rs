@@ -1,7 +1,7 @@
 //! Gift-giving system for crew relationships.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub fn handle_gift_given(
     mut events: EventReader<GiftGivenEvent>,

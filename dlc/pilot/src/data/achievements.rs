@@ -330,7 +330,11 @@ mod tests {
 
     #[test]
     fn at_least_30_achievements() {
-        assert!(ALL_ACHIEVEMENTS.len() >= 30, "Need 30+ achievements, got {}", ALL_ACHIEVEMENTS.len());
+        assert!(
+            ALL_ACHIEVEMENTS.len() >= 30,
+            "Need 30+ achievements, got {}",
+            ALL_ACHIEVEMENTS.len()
+        );
     }
 
     #[test]

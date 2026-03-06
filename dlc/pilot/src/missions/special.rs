@@ -1,8 +1,8 @@
 //! Special mission types — SAR, medevac, celebrity, air race, photography, etc.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -141,17 +141,17 @@ impl MissionWaypoint {
 #[serde(default)]
 pub struct SpecialMissionState {
     pub active_type: Option<SpecialMissionType>,
-    pub search_progress: f32,       // 0.0-1.0 for SAR
+    pub search_progress: f32, // 0.0-1.0 for SAR
     pub survivors_found: u32,
     pub search_pattern: Option<SearchPattern>,
     pub race_waypoints: Vec<MissionWaypoint>,
     pub photo_waypoints: Vec<MissionWaypoint>,
-    pub time_bonus_secs: f32,       // Medevac speed bonus timer
+    pub time_bonus_secs: f32, // Medevac speed bonus timer
     pub celebrity_demands_met: u32,
     pub celebrity_demands_total: u32,
-    pub storm_data_collected: f32,  // 0.0-1.0
+    pub storm_data_collected: f32, // 0.0-1.0
     pub wildlife_counted: u32,
-    pub cargo_fragility: f32,       // Historical delivery
+    pub cargo_fragility: f32, // Historical delivery
     pub aid_packages_remaining: u32,
     pub mail_stops_completed: u32,
     pub mail_stops_total: u32,
@@ -362,13 +362,17 @@ pub fn init_special_mission(
         let mission_type = match ev.mission_id.as_str() {
             id if id.starts_with("special_sar") => Some(SpecialMissionType::SearchAndRescue),
             id if id.starts_with("special_medevac") => Some(SpecialMissionType::MedicalEvacuation),
-            id if id.starts_with("special_celebrity") => Some(SpecialMissionType::CelebrityTransport),
+            id if id.starts_with("special_celebrity") => {
+                Some(SpecialMissionType::CelebrityTransport)
+            }
             id if id.starts_with("special_air_race") => Some(SpecialMissionType::AirRace),
             id if id.starts_with("special_photo") => Some(SpecialMissionType::AerialPhotography),
             id if id.starts_with("special_storm") => Some(SpecialMissionType::StormChasing),
             id if id.starts_with("special_wildlife") => Some(SpecialMissionType::WildlifeSurvey),
             id if id.starts_with("special_vintage") => Some(SpecialMissionType::HistoricalDelivery),
-            id if id.starts_with("special_humanitarian") => Some(SpecialMissionType::HumanitarianAid),
+            id if id.starts_with("special_humanitarian") => {
+                Some(SpecialMissionType::HumanitarianAid)
+            }
             id if id.starts_with("special_night_mail") => Some(SpecialMissionType::NightMailRun),
             _ => None,
         };
@@ -421,7 +425,9 @@ pub fn update_special_mission(
     mut state: ResMut<SpecialMissionState>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
-    let Some(stype) = state.active_type else { return };
+    let Some(stype) = state.active_type else {
+        return;
+    };
 
     if flight_state.phase == FlightPhase::Idle {
         return;
@@ -434,7 +440,10 @@ pub fn update_special_mission(
         SpecialMissionType::SearchAndRescue => {
             // Progress based on low altitude flying in search area
             if flight_state.altitude_ft < 2000.0
-                && matches!(flight_state.phase, FlightPhase::Cruise | FlightPhase::Descent)
+                && matches!(
+                    flight_state.phase,
+                    FlightPhase::Cruise | FlightPhase::Descent
+                )
             {
                 let pattern_bonus = state
                     .search_pattern
@@ -457,8 +466,7 @@ pub fn update_special_mission(
             state.time_bonus_secs += dt;
         }
         SpecialMissionType::StormChasing => {
-            let near_storm = weather.current == Weather::Storm
-                || weather.current == Weather::Rain;
+            let near_storm = weather.current == Weather::Storm || weather.current == Weather::Rain;
             if near_storm
                 && matches!(
                     flight_state.phase,

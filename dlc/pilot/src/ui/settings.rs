@@ -1,7 +1,9 @@
 //! Settings menu UI — audio, display, controls, gameplay options.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::audio::Volume;
+use bevy::prelude::*;
+use bevy::window::{MonitorSelection, WindowMode};
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -137,14 +139,57 @@ pub fn spawn_settings_menu(
 
     // ── Audio section ────────────────────────────────────────────
     spawn_section_label(&mut commands, root, &font, "AUDIO");
-    spawn_slider_row(&mut commands, root, &font, "Master Volume", SettingsKey::MasterVolume, settings.master_volume, 0.0, 1.0);
-    spawn_slider_row(&mut commands, root, &font, "Music Volume", SettingsKey::MusicVolume, settings.music_volume, 0.0, 1.0);
-    spawn_slider_row(&mut commands, root, &font, "SFX Volume", SettingsKey::SfxVolume, settings.sfx_volume, 0.0, 1.0);
+    spawn_slider_row(
+        &mut commands,
+        root,
+        &font,
+        "Master Volume",
+        SettingsKey::MasterVolume,
+        settings.master_volume,
+        0.0,
+        1.0,
+    );
+    spawn_slider_row(
+        &mut commands,
+        root,
+        &font,
+        "Music Volume",
+        SettingsKey::MusicVolume,
+        settings.music_volume,
+        0.0,
+        1.0,
+    );
+    spawn_slider_row(
+        &mut commands,
+        root,
+        &font,
+        "SFX Volume",
+        SettingsKey::SfxVolume,
+        settings.sfx_volume,
+        0.0,
+        1.0,
+    );
 
     // ── Display section ──────────────────────────────────────────
     spawn_section_label(&mut commands, root, &font, "DISPLAY");
-    spawn_slider_row(&mut commands, root, &font, "Pixel Scale", SettingsKey::PixelScale, settings.pixel_scale, 1.0, 5.0);
-    spawn_toggle_row(&mut commands, root, &font, "Fullscreen", SettingsKey::Fullscreen, settings.fullscreen);
+    spawn_slider_row(
+        &mut commands,
+        root,
+        &font,
+        "Pixel Scale",
+        SettingsKey::PixelScale,
+        settings.pixel_scale,
+        1.0,
+        5.0,
+    );
+    spawn_toggle_row(
+        &mut commands,
+        root,
+        &font,
+        "Fullscreen",
+        SettingsKey::Fullscreen,
+        settings.fullscreen,
+    );
 
     // ── Controls section ─────────────────────────────────────────
     spawn_section_label(&mut commands, root, &font, "CONTROLS");
@@ -167,7 +212,14 @@ pub fn spawn_settings_menu(
 
     // ── Gameplay section ─────────────────────────────────────────
     spawn_section_label(&mut commands, root, &font, "GAMEPLAY");
-    spawn_toggle_row(&mut commands, root, &font, "Tutorial Tips", SettingsKey::TutorialTips, settings.tutorial_tips);
+    spawn_toggle_row(
+        &mut commands,
+        root,
+        &font,
+        "Tutorial Tips",
+        SettingsKey::TutorialTips,
+        settings.tutorial_tips,
+    );
 
     let difficulty_label = format!("Difficulty: {}", settings.difficulty.display_name());
     let diff_text = commands
@@ -188,10 +240,7 @@ pub fn spawn_settings_menu(
     commands.entity(root).add_child(diff_text);
 }
 
-pub fn despawn_settings_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<SettingsMenuRoot>>,
-) {
+pub fn despawn_settings_menu(mut commands: Commands, query: Query<Entity, With<SettingsMenuRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -210,7 +259,7 @@ pub fn apply_settings(
     volume_settings.music_volume = settings.music_volume * settings.master_volume;
     volume_settings.sfx_volume = settings.sfx_volume * settings.master_volume;
     if let Some(mut global_volume) = global_volume {
-        global_volume.volume = Volume::Linear(settings.master_volume);
+        global_volume.volume = Volume::new(settings.master_volume);
     }
     if let Ok(mut window) = windows.get_single_mut() {
         window.mode = if settings.fullscreen {
@@ -268,7 +317,12 @@ fn spawn_slider_row(
     let display = format!("{}: {}%", label, pct);
     let id = commands
         .spawn((
-            SettingsSlider { key, value, min, max },
+            SettingsSlider {
+                key,
+                value,
+                min,
+                max,
+            },
             Text::new(display),
             TextFont {
                 font: font.0.clone(),

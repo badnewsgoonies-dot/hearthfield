@@ -6,8 +6,8 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
+use crate::shared::*;
 
 /// System: listen for MapTransitionEvent targeting the Mine.
 /// When the player enters the mine, set InMine, configure floor, and either

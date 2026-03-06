@@ -1,27 +1,26 @@
 #![allow(dead_code, unused_imports)]
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
+mod bench;
 mod buffs;
+mod cooking;
 pub mod machines;
 mod recipes;
-mod bench;
-mod cooking;
 mod unlock;
 
+pub use bench::{CraftItemEvent, CraftingUiState, OpenCraftingEvent};
+pub use buffs::food_buff_for_item;
 pub use machines::{
-    MachineType, ProcessingMachine, ProcessingMachineRegistry, SavedMachine,
-    InsertMachineInputEvent, CollectMachineOutputEvent, PlaceMachineEvent,
-    item_to_machine_type, machine_atlas_index,
+    item_to_machine_type, machine_atlas_index, CollectMachineOutputEvent, InsertMachineInputEvent,
+    MachineType, PlaceMachineEvent, ProcessingMachine, ProcessingMachineRegistry, SavedMachine,
 };
 pub use recipes::{
-    make_crafting_recipe, make_cooking_recipe, populate_recipe_registry,
-    ALL_CRAFTING_RECIPE_IDS, ALL_COOKING_RECIPE_IDS,
+    make_cooking_recipe, make_crafting_recipe, populate_recipe_registry, ALL_COOKING_RECIPE_IDS,
+    ALL_CRAFTING_RECIPE_IDS,
 };
-pub use bench::{CraftingUiState, OpenCraftingEvent, CraftItemEvent};
 pub use unlock::UnlockRecipeEvent;
-pub use buffs::food_buff_for_item;
 
 pub struct CraftingPlugin;
 
@@ -39,7 +38,10 @@ impl Plugin for CraftingPlugin {
             .add_event::<PlaceMachineEvent>()
             .add_event::<UnlockRecipeEvent>()
             // Startup: register default recipe unlocks once we enter Playing
-            .add_systems(OnEnter(GameState::Playing), unlock::initialize_unlocked_recipes)
+            .add_systems(
+                OnEnter(GameState::Playing),
+                unlock::initialize_unlocked_recipes,
+            )
             // Playing state systems
             .add_systems(
                 Update,

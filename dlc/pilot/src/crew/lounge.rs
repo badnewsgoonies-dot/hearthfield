@@ -1,21 +1,20 @@
 //! Crew lounge activities — card games, darts, storytelling, meals.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct LoungePlugin;
 
 impl Plugin for LoungePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<LoungeState>()
-            .add_systems(
-                Update,
-                (
-                    lounge_interaction.run_if(in_state(GameState::CrewLounge)),
-                    lounge_conversations.run_if(in_state(GameState::CrewLounge)),
-                    start_lounge_session.run_if(in_state(GameState::Playing)),
-                ),
-            );
+        app.init_resource::<LoungeState>().add_systems(
+            Update,
+            (
+                lounge_interaction.run_if(in_state(GameState::CrewLounge)),
+                lounge_conversations.run_if(in_state(GameState::CrewLounge)),
+                start_lounge_session.run_if(in_state(GameState::Playing)),
+            ),
+        );
     }
 }
 
@@ -182,11 +181,7 @@ pub fn lounge_interaction(
                     .unwrap_or_else(|| "copilot_marco".to_string());
 
                 toast_events.send(ToastEvent {
-                    message: format!(
-                        "Starting {} with {}...",
-                        activity.display_name(),
-                        partner
-                    ),
+                    message: format!("Starting {} with {}...", activity.display_name(), partner),
                     duration_secs: 3.0,
                 });
 
@@ -283,7 +278,8 @@ fn generate_mini_event(activity: LoungeActivity) -> LoungeEvent {
             hint: None,
         },
         LoungeActivity::WatchingTV => LoungeEvent {
-            description: "An aviation documentary comes on. Everyone's glued to the screen.".to_string(),
+            description: "An aviation documentary comes on. Everyone's glued to the screen."
+                .to_string(),
             friendship_bonus: 1,
             hint: Some("Night flights earn XP bonuses.".to_string()),
         },

@@ -1,17 +1,17 @@
-pub mod aircraft;
-pub mod crew;
-pub mod items;
-pub mod missions;
-pub mod shops;
-pub mod cities;
 pub mod achievements;
-pub mod dialogue_lines;
-pub mod weather_patterns;
-pub mod tips;
-pub mod routes;
-pub mod events_calendar;
+pub mod aircraft;
 pub mod aircraft_specs;
 pub mod airport_layouts;
+pub mod cities;
+pub mod crew;
+pub mod dialogue_lines;
+pub mod events_calendar;
+pub mod items;
+pub mod missions;
+pub mod routes;
+pub mod shops;
+pub mod tips;
+pub mod weather_patterns;
 
 use bevy::prelude::*;
 

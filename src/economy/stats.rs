@@ -54,10 +54,7 @@ pub fn track_crop_harvests(
             .map(|def| def.sell_price)
             .unwrap_or(0);
 
-        let quality_multiplier = ev
-            .quality
-            .unwrap_or(ItemQuality::Normal)
-            .sell_multiplier();
+        let quality_multiplier = ev.quality.unwrap_or(ItemQuality::Normal).sell_multiplier();
 
         let revenue = (base_price as f32 * quality_multiplier * ev.quantity as f32) as u32;
         entry.1 = entry.1.saturating_add(revenue);

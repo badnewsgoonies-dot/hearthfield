@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -214,17 +214,11 @@ pub fn handle_eat_food(
 
             active_buffs.buffs.push(new_buff);
 
-            info!(
-                "Buff '{}' applied for {} game-minutes",
-                buff_label, minutes
-            );
+            info!("Buff '{}' applied for {} game-minutes", buff_label, minutes);
 
             let item_name = item_display_name(&item_registry, item_id);
             toast_events.send(ToastEvent {
-                message: format!(
-                    "Ate {}! {} for {}m",
-                    item_name, buff_label, minutes
-                ),
+                message: format!("Ate {}! {} for {}m", item_name, buff_label, minutes),
                 duration_secs: 3.0,
             });
         } else {
@@ -287,9 +281,7 @@ pub fn tick_buff_durations(
     }
 
     // Remove expired buffs.
-    active_buffs
-        .buffs
-        .retain(|b| b.minutes_remaining > 0);
+    active_buffs.buffs.retain(|b| b.minutes_remaining > 0);
 
     // Notify the player for each expired buff.
     for label in expired_labels {
@@ -376,7 +368,7 @@ fn calendar_absolute_minute(cal: &Calendar) -> u32 {
     let season_idx = match cal.season {
         Season::Spring => 0u32,
         Season::Summer => 1,
-        Season::Fall   => 2,
+        Season::Fall => 2,
         Season::Winter => 3,
     };
     let days_in_year = season_idx * 28 + (cal.day as u32).saturating_sub(1);
@@ -387,13 +379,13 @@ fn calendar_absolute_minute(cal: &Calendar) -> u32 {
 /// Returns a human-readable label for a BuffType.
 fn buff_type_label(buff_type: BuffType) -> &'static str {
     match buff_type {
-        BuffType::Speed      => "Speed",
-        BuffType::Mining     => "Mining",
-        BuffType::Fishing    => "Fishing",
-        BuffType::Farming    => "Farming",
-        BuffType::Defense    => "Defense",
-        BuffType::Attack     => "Attack",
-        BuffType::Luck       => "Luck",
+        BuffType::Speed => "Speed",
+        BuffType::Mining => "Mining",
+        BuffType::Fishing => "Fishing",
+        BuffType::Farming => "Farming",
+        BuffType::Defense => "Defense",
+        BuffType::Attack => "Attack",
+        BuffType::Luck => "Luck",
         BuffType::MaxStamina => "Max Stamina",
     }
 }
@@ -412,9 +404,7 @@ fn item_display_name<'a>(registry: &'a ItemRegistry, item_id: &'a str) -> String
                     let mut chars = word.chars();
                     match chars.next() {
                         None => String::new(),
-                        Some(first) => {
-                            first.to_uppercase().collect::<String>() + chars.as_str()
-                        }
+                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
                     }
                 })
                 .collect::<Vec<_>>()

@@ -38,7 +38,7 @@ fn generate_terminal(_airport: AirportId) -> (u32, u32, Vec<Vec<TileKind>>) {
     tiles[h - 1][w / 2] = TileKind::Door; // To city
     tiles[h / 2][0] = TileKind::Door; // To lounge
     tiles[h / 2][w - 1] = TileKind::Door; // To hangar
-    // Check-in counter
+                                          // Check-in counter
     for x in 5..9 {
         tiles[3][x] = TileKind::Metal;
     }

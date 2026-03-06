@@ -1,7 +1,7 @@
 //! Notification / inbox system — mission results, rank ups, financial alerts, etc.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA TYPES
@@ -68,7 +68,11 @@ impl NotificationCenter {
             id: self.next_id,
             title: title.into(),
             body: body.into(),
-            timestamp: format!("{} {}", calendar.formatted_date(), calendar.formatted_time()),
+            timestamp: format!(
+                "{} {}",
+                calendar.formatted_date(),
+                calendar.formatted_time()
+            ),
             read: false,
             category,
         });
@@ -125,7 +129,10 @@ pub fn notify_rank_up(
     for evt in events.read() {
         center.add(
             "Rank Up!",
-            format!("Congratulations! You've been promoted to {}.", evt.new_rank.display_name()),
+            format!(
+                "Congratulations! You've been promoted to {}.",
+                evt.new_rank.display_name()
+            ),
             NotificationCategory::System,
             &calendar,
         );
@@ -332,5 +339,20 @@ pub fn despawn_notification_screen(
 ) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn handle_notification_input(
+    input: Res<PlayerInput>,
+    mut center: ResMut<NotificationCenter>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if input.confirm || input.menu_confirm {
+        center.mark_all_read();
+    }
+
+    if input.cancel || input.menu_cancel {
+        center.mark_all_read();
+        next_state.set(GameState::Playing);
     }
 }

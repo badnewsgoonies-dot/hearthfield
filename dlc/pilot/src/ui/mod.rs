@@ -1,35 +1,35 @@
 //! UI domain — HUD, menus, dialogue box, flight instruments, toast notifications.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-pub mod hud;
-pub mod main_menu;
-pub mod pause_menu;
-pub mod dialogue_box;
-pub mod mission_screen;
-pub mod inventory_screen;
-pub mod shop_screen;
-pub mod flight_hud;
-pub mod toast;
-pub mod transitions;
-pub mod audio;
-pub mod debug_overlay;
-pub mod settings;
-pub mod logbook_screen;
-pub mod map_screen;
-pub mod crew_screen;
 pub mod achievement_screen;
+pub mod audio;
+pub mod business_screen;
+pub mod crew_screen;
 pub mod cutscene_runner;
+pub mod debug_overlay;
+pub mod dialogue_box;
+pub mod flight_hud;
+pub mod hud;
+pub mod insurance_screen;
 pub mod intro_sequence;
-pub mod notification_center;
-pub mod profile_screen;
-pub mod radio_screen;
-pub mod tutorial;
+pub mod inventory_screen;
 pub mod load_screen;
 pub mod loan_screen;
-pub mod insurance_screen;
-pub mod business_screen;
+pub mod logbook_screen;
+pub mod main_menu;
+pub mod map_screen;
+pub mod mission_screen;
+pub mod notification_center;
+pub mod pause_menu;
+pub mod profile_screen;
+pub mod radio_screen;
+pub mod settings;
+pub mod shop_screen;
+pub mod toast;
+pub mod transitions;
+pub mod tutorial;
 
 pub struct UiPlugin;
 
@@ -91,12 +91,30 @@ impl Plugin for UiPlugin {
             )
             .add_systems(OnEnter(GameState::Shop), shop_screen::spawn_shop_screen)
             .add_systems(OnExit(GameState::Shop), shop_screen::despawn_shop_screen)
-            .add_systems(OnEnter(GameState::RadioComm), radio_screen::spawn_radio_screen)
-            .add_systems(OnExit(GameState::RadioComm), radio_screen::despawn_radio_screen)
-            .add_systems(OnEnter(GameState::CrewLounge), crew_screen::spawn_crew_screen)
-            .add_systems(OnExit(GameState::CrewLounge), crew_screen::despawn_crew_screen)
-            .add_systems(OnEnter(GameState::Cutscene), cutscene_runner::spawn_cutscene_overlay)
-            .add_systems(OnExit(GameState::Cutscene), cutscene_runner::despawn_cutscene_overlay)
+            .add_systems(
+                OnEnter(GameState::RadioComm),
+                radio_screen::spawn_radio_screen,
+            )
+            .add_systems(
+                OnExit(GameState::RadioComm),
+                radio_screen::despawn_radio_screen,
+            )
+            .add_systems(
+                OnEnter(GameState::CrewLounge),
+                crew_screen::spawn_crew_screen,
+            )
+            .add_systems(
+                OnExit(GameState::CrewLounge),
+                crew_screen::despawn_crew_screen,
+            )
+            .add_systems(
+                OnEnter(GameState::Cutscene),
+                cutscene_runner::spawn_cutscene_overlay,
+            )
+            .add_systems(
+                OnExit(GameState::Cutscene),
+                cutscene_runner::despawn_cutscene_overlay,
+            )
             .add_systems(OnEnter(GameState::Playing), hud::spawn_hud)
             .add_systems(OnExit(GameState::Playing), hud::despawn_hud)
             .add_systems(OnEnter(GameState::Flying), flight_hud::spawn_flight_hud)
@@ -147,12 +165,31 @@ impl Plugin for UiPlugin {
                 OnExit(GameState::Achievements),
                 achievement_screen::despawn_achievement_screen,
             )
+            .add_systems(
+                Update,
+                achievement_screen::handle_achievement_input
+                    .run_if(in_state(GameState::Achievements)),
+            )
             // ── Logbook ───────────────────────────────────────────────
-            .add_systems(OnEnter(GameState::Logbook), logbook_screen::spawn_logbook_screen)
-            .add_systems(OnExit(GameState::Logbook), logbook_screen::despawn_logbook_screen)
+            .add_systems(
+                OnEnter(GameState::Logbook),
+                logbook_screen::spawn_logbook_screen,
+            )
+            .add_systems(
+                OnExit(GameState::Logbook),
+                logbook_screen::despawn_logbook_screen,
+            )
+            .add_systems(
+                Update,
+                logbook_screen::handle_logbook_input.run_if(in_state(GameState::Logbook)),
+            )
             // ── Map ───────────────────────────────────────────────────
             .add_systems(OnEnter(GameState::MapView), map_screen::spawn_map_screen)
             .add_systems(OnExit(GameState::MapView), map_screen::despawn_map_screen)
+            .add_systems(
+                Update,
+                map_screen::handle_map_input.run_if(in_state(GameState::MapView)),
+            )
             // ── Notifications ─────────────────────────────────────────
             .add_systems(
                 OnEnter(GameState::Notifications),
@@ -162,12 +199,33 @@ impl Plugin for UiPlugin {
                 OnExit(GameState::Notifications),
                 notification_center::despawn_notification_screen,
             )
+            .add_systems(
+                Update,
+                notification_center::handle_notification_input
+                    .run_if(in_state(GameState::Notifications)),
+            )
             // ── Profile ───────────────────────────────────────────────
-            .add_systems(OnEnter(GameState::Profile), profile_screen::spawn_profile_screen)
-            .add_systems(OnExit(GameState::Profile), profile_screen::despawn_profile_screen)
+            .add_systems(
+                OnEnter(GameState::Profile),
+                profile_screen::spawn_profile_screen,
+            )
+            .add_systems(
+                OnExit(GameState::Profile),
+                profile_screen::despawn_profile_screen,
+            )
+            .add_systems(
+                Update,
+                profile_screen::handle_profile_input.run_if(in_state(GameState::Profile)),
+            )
             // ── Tutorial ──────────────────────────────────────────────
-            .add_systems(OnEnter(GameState::Tutorial), tutorial::spawn_tutorial_hint_box)
-            .add_systems(OnExit(GameState::Tutorial), tutorial::despawn_tutorial_hint_box)
+            .add_systems(
+                OnEnter(GameState::Tutorial),
+                tutorial::spawn_tutorial_hint_box,
+            )
+            .add_systems(
+                OnExit(GameState::Tutorial),
+                tutorial::despawn_tutorial_hint_box,
+            )
             .add_systems(
                 Update,
                 (
@@ -194,14 +252,23 @@ impl Plugin for UiPlugin {
             )
             // ── Load Game ─────────────────────────────────────────────
             .add_systems(OnEnter(GameState::LoadGame), load_screen::spawn_load_screen)
-            .add_systems(OnExit(GameState::LoadGame), load_screen::despawn_load_screen)
+            .add_systems(
+                OnExit(GameState::LoadGame),
+                load_screen::despawn_load_screen,
+            )
             .add_systems(
                 Update,
                 load_screen::handle_load_input.run_if(in_state(GameState::LoadGame)),
             )
             // ── Loan Office ───────────────────────────────────────────
-            .add_systems(OnEnter(GameState::LoanOffice), loan_screen::spawn_loan_screen)
-            .add_systems(OnExit(GameState::LoanOffice), loan_screen::despawn_loan_screen)
+            .add_systems(
+                OnEnter(GameState::LoanOffice),
+                loan_screen::spawn_loan_screen,
+            )
+            .add_systems(
+                OnExit(GameState::LoanOffice),
+                loan_screen::despawn_loan_screen,
+            )
             .add_systems(
                 Update,
                 loan_screen::handle_loan_input.run_if(in_state(GameState::LoanOffice)),
@@ -231,12 +298,11 @@ impl Plugin for UiPlugin {
             )
             .add_systems(
                 Update,
-                business_screen::handle_business_input
-                    .run_if(in_state(GameState::BusinessHQ)),
+                business_screen::handle_business_input.run_if(in_state(GameState::BusinessHQ)),
             );
     }
 }
 
 fn load_font(mut ui_font: ResMut<UiFontHandle>, asset_server: Res<AssetServer>) {
-    ui_font.0 = asset_server.load("fonts/pixel_font.ttf");
+    ui_font.0 = asset_server.load("assets/fonts/sprout_lands.ttf");
 }

@@ -12,7 +12,6 @@ use crate::shared::*;
 pub fn populate_fish(registry: &mut FishRegistry) {
     let fish: Vec<FishDef> = vec![
         // ── Common Ocean Fish ─────────────────────────────────────────────────────
-
         FishDef {
             id: "sardine".into(),
             name: "Sardine".into(),
@@ -25,7 +24,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 40,
             sprite_index: 23,
         },
-
         FishDef {
             id: "herring".into(),
             name: "Herring".into(),
@@ -38,9 +36,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 30,
             sprite_index: 17,
         },
-
         // ── River Fish ────────────────────────────────────────────────────────────
-
         FishDef {
             id: "bass".into(),
             name: "Bass".into(),
@@ -53,7 +49,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 100,
             sprite_index: 21,
         },
-
         FishDef {
             id: "trout".into(),
             name: "Trout".into(),
@@ -66,7 +61,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 65,
             sprite_index: 19,
         },
-
         FishDef {
             id: "salmon".into(),
             name: "Salmon".into(),
@@ -79,7 +73,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 150,
             sprite_index: 22,
         },
-
         FishDef {
             id: "catfish".into(),
             name: "Catfish".into(),
@@ -92,9 +85,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 200,
             sprite_index: 20,
         },
-
         // ── Pond Fish ─────────────────────────────────────────────────────────────
-
         FishDef {
             id: "carp".into(),
             name: "Carp".into(),
@@ -108,7 +99,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 30,
             sprite_index: 16,
         },
-
         FishDef {
             id: "pike".into(),
             name: "Pike".into(),
@@ -121,7 +111,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 100,
             sprite_index: 24,
         },
-
         FishDef {
             id: "perch".into(),
             name: "Perch".into(),
@@ -134,7 +123,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 55,
             sprite_index: 18,
         },
-
         FishDef {
             id: "eel".into(),
             name: "Eel".into(),
@@ -147,9 +135,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 85,
             sprite_index: 27,
         },
-
         // ── Ocean Fish ────────────────────────────────────────────────────────────
-
         FishDef {
             id: "tuna".into(),
             name: "Tuna".into(),
@@ -162,7 +148,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 275,
             sprite_index: 25,
         },
-
         FishDef {
             id: "swordfish".into(),
             name: "Swordfish".into(),
@@ -175,7 +160,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 350,
             sprite_index: 26,
         },
-
         FishDef {
             id: "sturgeon".into(),
             name: "Sturgeon".into(),
@@ -188,7 +172,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 200,
             sprite_index: 30,
         },
-
         FishDef {
             id: "pufferfish".into(),
             name: "Pufferfish".into(),
@@ -201,7 +184,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 200,
             sprite_index: 29,
         },
-
         FishDef {
             id: "octopus".into(),
             name: "Octopus".into(),
@@ -214,7 +196,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 150,
             sprite_index: 45,
         },
-
         FishDef {
             id: "squid".into(),
             name: "Squid".into(),
@@ -227,9 +208,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 80,
             sprite_index: 46,
         },
-
         // ── Legendary & Rare Fish ──────────────────────────────────────────────────
-
         FishDef {
             id: "anglerfish".into(),
             name: "Anglerfish".into(),
@@ -242,7 +221,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 900,
             sprite_index: 28,
         },
-
         FishDef {
             id: "legend_fish".into(),
             name: "Legend".into(),
@@ -255,7 +233,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 5000,
             sprite_index: 31,
         },
-
         FishDef {
             id: "glacier_fish".into(),
             name: "Glacier Fish".into(),
@@ -268,7 +245,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 1000,
             sprite_index: 47,
         },
-
         FishDef {
             id: "crimson_fish".into(),
             name: "Crimsonfish".into(),
@@ -281,7 +257,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 1500,
             sprite_index: 44,
         },
-
         // ── Pond Fish ────────────────────────────────────────────────────────
         FishDef {
             id: "goldfish".into(),
@@ -331,7 +306,6 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             sell_price: 150,
             sprite_index: 48,
         },
-
         // ── Mine Pool Fish ───────────────────────────────────────────────────
         FishDef {
             id: "ghostfish".into(),

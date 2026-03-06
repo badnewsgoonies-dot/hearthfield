@@ -24,33 +24,33 @@ pub const ALL_NPC_IDS: &[&str] = &[
 /// Placeholder sprite tint per NPC (used for name tags).
 pub fn npc_color(npc_id: &str) -> Color {
     match npc_id {
-        "margaret"  => Color::srgb(0.9, 0.6, 0.3), // warm orange (baker)
-        "marco"     => Color::srgb(0.8, 0.3, 0.2), // warm red (chef)
-        "lily"      => Color::srgb(1.0, 0.8, 0.2), // sunny yellow (florist)
-        "old_tom"   => Color::srgb(0.5, 0.5, 0.3), // weathered tan (fisherman)
-        "elena"     => Color::srgb(0.5, 0.4, 0.3), // forge-brown (blacksmith)
-        "mira"      => Color::srgb(0.6, 0.4, 0.8), // exotic violet (merchant)
-        "doc"       => Color::srgb(0.3, 0.7, 0.7), // teal (doctor)
+        "margaret" => Color::srgb(0.9, 0.6, 0.3), // warm orange (baker)
+        "marco" => Color::srgb(0.8, 0.3, 0.2),    // warm red (chef)
+        "lily" => Color::srgb(1.0, 0.8, 0.2),     // sunny yellow (florist)
+        "old_tom" => Color::srgb(0.5, 0.5, 0.3),  // weathered tan (fisherman)
+        "elena" => Color::srgb(0.5, 0.4, 0.3),    // forge-brown (blacksmith)
+        "mira" => Color::srgb(0.6, 0.4, 0.8),     // exotic violet (merchant)
+        "doc" => Color::srgb(0.3, 0.7, 0.7),      // teal (doctor)
         "mayor_rex" => Color::srgb(0.4, 0.3, 0.7), // regal purple (mayor)
-        "sam"       => Color::srgb(0.4, 0.4, 0.4), // stone grey (musician)
-        "nora"      => Color::srgb(0.4, 0.6, 0.3), // earthy green (farmer)
-        _           => Color::srgb(0.8, 0.8, 0.8), // fallback grey
+        "sam" => Color::srgb(0.4, 0.4, 0.4),      // stone grey (musician)
+        "nora" => Color::srgb(0.4, 0.6, 0.3),     // earthy green (farmer)
+        _ => Color::srgb(0.8, 0.8, 0.8),          // fallback grey
     }
 }
 
 /// Map NPC id → unique spritesheet filename in assets/sprites/npcs/.
 pub fn npc_sprite_file(npc_id: &str) -> &'static str {
     match npc_id {
-        "margaret"  => "sprites/npcs/npc_miner.png",       // baker — hardworking
-        "marco"     => "sprites/npcs/npc_traveler.png",    // chef — worldly
-        "lily"      => "sprites/npcs/npc_child.png",       // florist — youthful
-        "old_tom"   => "sprites/npcs/npc_pirate.png",      // fisherman — seafaring
-        "elena"     => "sprites/npcs/npc_blacksmith.png",  // blacksmith
-        "mira"      => "sprites/npcs/npc_merchant.png",    // traveling merchant
-        "doc"       => "sprites/npcs/npc_healer.png",      // doctor
-        "mayor_rex" => "sprites/npcs/npc_noble.png",       // mayor — regal
-        "sam"       => "sprites/npcs/npc_scholar.png",     // musician — scholarly
-        "nora"      => "sprites/npcs/npc_farmer.png",      // farmer
-        _           => "sprites/npcs/npc_guard.png",       // fallback
+        "margaret" => "sprites/npcs/npc_miner.png", // baker — hardworking
+        "marco" => "sprites/npcs/npc_traveler.png", // chef — worldly
+        "lily" => "sprites/npcs/npc_child.png",     // florist — youthful
+        "old_tom" => "sprites/npcs/npc_pirate.png", // fisherman — seafaring
+        "elena" => "sprites/npcs/npc_blacksmith.png", // blacksmith
+        "mira" => "sprites/npcs/npc_merchant.png",  // traveling merchant
+        "doc" => "sprites/npcs/npc_healer.png",     // doctor
+        "mayor_rex" => "sprites/npcs/npc_noble.png", // mayor — regal
+        "sam" => "sprites/npcs/npc_scholar.png",    // musician — scholarly
+        "nora" => "sprites/npcs/npc_farmer.png",    // farmer
+        _ => "sprites/npcs/npc_guard.png",          // fallback
     }
 }

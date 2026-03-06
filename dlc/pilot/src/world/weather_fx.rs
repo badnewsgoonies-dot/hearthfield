@@ -1,7 +1,7 @@
 //! Weather visual effects — rain, snow, fog, wind streaks, lightning flashes.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -78,10 +78,7 @@ impl Default for StormLightningTimer {
 pub fn spawn_fog_overlay(mut commands: Commands) {
     commands.spawn((
         FogOverlay,
-        Sprite::from_color(
-            Color::srgba(0.8, 0.8, 0.82, 0.0),
-            Vec2::new(2000.0, 2000.0),
-        ),
+        Sprite::from_color(Color::srgba(0.8, 0.8, 0.82, 0.0), Vec2::new(2000.0, 2000.0)),
         Transform::from_xyz(0.0, 0.0, Z_WEATHER),
         Visibility::Hidden,
     ));
@@ -257,10 +254,7 @@ pub fn update_storm_lightning(
                 timer: 0.0,
                 flash_duration: 0.15,
             },
-            Sprite::from_color(
-                Color::srgba(1.0, 1.0, 0.95, 0.7),
-                Vec2::new(2000.0, 2000.0),
-            ),
+            Sprite::from_color(Color::srgba(1.0, 1.0, 0.95, 0.7), Vec2::new(2000.0, 2000.0)),
             Transform::from_xyz(0.0, 0.0, Z_WEATHER + 2.0),
         ));
     }
@@ -273,8 +267,8 @@ pub fn cleanup_weather_particles(
     location: Res<PlayerLocation>,
     particles: Query<Entity, With<WeatherFxParticle>>,
 ) {
-    let should_clear = location.zone.is_indoor()
-        || matches!(weather.current, Weather::Clear | Weather::Cloudy);
+    let should_clear =
+        location.zone.is_indoor() || matches!(weather.current, Weather::Clear | Weather::Cloudy);
 
     if should_clear {
         for entity in &particles {

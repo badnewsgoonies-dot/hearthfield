@@ -6,8 +6,8 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
+use crate::shared::*;
 
 /// Marker for mine HUD entities so we can despawn them.
 #[derive(Component, Debug)]

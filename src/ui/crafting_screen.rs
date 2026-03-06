@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::hud::ItemAtlasData;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -156,8 +156,12 @@ pub fn spawn_crafting_screen(
                                 ));
                                 if atlas_data.loaded {
                                     if let Some(recipe_id) = visible.get(i) {
-                                        if let Some(recipe) = recipe_registry.recipes.get(recipe_id.as_str()) {
-                                            if let Some(item_def) = item_registry.get(&recipe.result) {
+                                        if let Some(recipe) =
+                                            recipe_registry.recipes.get(recipe_id.as_str())
+                                        {
+                                            if let Some(item_def) =
+                                                item_registry.get(&recipe.result)
+                                            {
                                                 icon_cmd.insert(ImageNode {
                                                     image: atlas_data.image.clone(),
                                                     texture_atlas: Some(TextureAtlas {
@@ -228,10 +232,23 @@ pub fn update_crafting_display(
     recipe_registry: Res<RecipeRegistry>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
-    mut name_query: Query<(&CraftingRecipeName, &mut Text, &mut TextColor), Without<CraftingRecipeMaterials>>,
-    mut mat_query: Query<(&CraftingRecipeMaterials, &mut Text, &mut TextColor), Without<CraftingRecipeName>>,
+    mut name_query: Query<
+        (&CraftingRecipeName, &mut Text, &mut TextColor),
+        Without<CraftingRecipeMaterials>,
+    >,
+    mut mat_query: Query<
+        (&CraftingRecipeMaterials, &mut Text, &mut TextColor),
+        Without<CraftingRecipeName>,
+    >,
     mut row_query: Query<(&CraftingRecipeRow, &mut BackgroundColor)>,
-    mut status_query: Query<&mut Text, (With<CraftingStatusText>, Without<CraftingRecipeName>, Without<CraftingRecipeMaterials>)>,
+    mut status_query: Query<
+        &mut Text,
+        (
+            With<CraftingStatusText>,
+            Without<CraftingRecipeName>,
+            Without<CraftingRecipeMaterials>,
+        ),
+    >,
 ) {
     let Some(ui_state) = ui_state else { return };
 
@@ -309,7 +326,9 @@ pub fn crafting_navigation(
     inventory: Res<Inventory>,
     mut craft_events: EventWriter<crate::crafting::CraftItemEvent>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
 
     let max = ui_state.visible_recipes.len();
 
@@ -324,7 +343,9 @@ pub fn crafting_navigation(
         let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
         if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {
             if can_craft_recipe(recipe, &inventory) {
-                craft_events.send(crate::crafting::CraftItemEvent { recipe_id: recipe_id.clone() });
+                craft_events.send(crate::crafting::CraftItemEvent {
+                    recipe_id: recipe_id.clone(),
+                });
                 ui_state.status_message = "Crafting...".to_string();
                 ui_state.status_timer = 2.0;
             } else {
@@ -335,11 +356,10 @@ pub fn crafting_navigation(
     }
 }
 
-pub fn crafting_status_timer(
-    time: Res<Time>,
-    mut ui_state: Option<ResMut<CraftingUiState>>,
-) {
-    let Some(ref mut ui_state) = ui_state else { return };
+pub fn crafting_status_timer(time: Res<Time>, mut ui_state: Option<ResMut<CraftingUiState>>) {
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     if ui_state.status_timer > 0.0 {
         ui_state.status_timer -= time.delta_secs();
         if ui_state.status_timer <= 0.0 {

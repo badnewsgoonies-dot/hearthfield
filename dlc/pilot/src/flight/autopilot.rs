@@ -1,22 +1,17 @@
 //! Autopilot system — automatic heading, altitude, and speed control.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct AutopilotPlugin;
 
 impl Plugin for AutopilotPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<AutopilotState>()
-            .add_systems(
-                Update,
-                (
-                    toggle_autopilot,
-                    run_autopilot,
-                    autopilot_warnings,
-                )
-                    .run_if(in_state(GameState::Flying)),
-            );
+        app.init_resource::<AutopilotState>().add_systems(
+            Update,
+            (toggle_autopilot, run_autopilot, autopilot_warnings)
+                .run_if(in_state(GameState::Flying)),
+        );
     }
 }
 
@@ -78,10 +73,7 @@ pub fn toggle_autopilot(
     }
 
     // Only toggle in cruise phases
-    if !matches!(
-        flight_state.phase,
-        FlightPhase::Climb | FlightPhase::Cruise
-    ) {
+    if !matches!(flight_state.phase, FlightPhase::Climb | FlightPhase::Cruise) {
         return;
     }
 

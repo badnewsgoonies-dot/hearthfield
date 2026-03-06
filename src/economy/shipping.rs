@@ -1,7 +1,7 @@
+use crate::economy::gold::EconomyStats;
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
-use crate::economy::gold::EconomyStats;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Events (internal)
@@ -151,8 +151,7 @@ pub fn process_shipping_bin_on_day_end(
                 .unwrap_or(1); // fallback: 1g for unknown items
 
             // Apply quality multiplier: Normal 1.0, Silver 1.25, Gold 1.5, Iridium 2.0
-            let quality_adjusted_price =
-                (sell_price as f32 * quality.sell_multiplier()) as u32;
+            let quality_adjusted_price = (sell_price as f32 * quality.sell_multiplier()) as u32;
             let slot_value = quality_adjusted_price.saturating_mul(qty as u32);
             total_value = total_value.saturating_add(slot_value);
             items_shipped += qty as u64;
@@ -209,7 +208,10 @@ pub fn process_shipping_bin_on_day_end(
 
         // Notify the player of their earnings
         toast_writer.send(ToastEvent {
-            message: format!("Shipping: earned {}g from {} items", total_value, items_shipped),
+            message: format!(
+                "Shipping: earned {}g from {} items",
+                total_value, items_shipped
+            ),
             duration_secs: 4.0,
         });
 
@@ -274,13 +276,8 @@ pub fn update_shipping_bin_preview(
     mut preview: ResMut<ShippingBinPreview>,
 ) {
     if shipping_bin.is_changed() || bin_quality.is_changed() || item_registry.is_changed() {
-        preview.pending_value =
-            calculate_bin_value(&bin_quality, &shipping_bin, &item_registry);
-        preview.item_count = shipping_bin
-            .items
-            .iter()
-            .map(|s| s.quantity as u32)
-            .sum();
+        preview.pending_value = calculate_bin_value(&bin_quality, &shipping_bin, &item_registry);
+        preview.item_count = shipping_bin.items.iter().map(|s| s.quantity as u32).sum();
     }
 }
 
@@ -291,18 +288,21 @@ mod tests {
     fn make_registry_with(items: Vec<(&str, u32)>) -> ItemRegistry {
         let mut registry = ItemRegistry::default();
         for (id, price) in items {
-            registry.items.insert(id.to_string(), ItemDef {
-                id: id.to_string(),
-                name: id.to_string(),
-                description: String::new(),
-                category: ItemCategory::Crop,
-                sell_price: price,
-                buy_price: None,
-                stack_size: 99,
-                edible: false,
-                energy_restore: 0.0,
-                sprite_index: 0,
-            });
+            registry.items.insert(
+                id.to_string(),
+                ItemDef {
+                    id: id.to_string(),
+                    name: id.to_string(),
+                    description: String::new(),
+                    category: ItemCategory::Crop,
+                    sell_price: price,
+                    buy_price: None,
+                    stack_size: 99,
+                    edible: false,
+                    energy_restore: 0.0,
+                    sprite_index: 0,
+                },
+            );
         }
         registry
     }
@@ -335,8 +335,14 @@ mod tests {
         let registry = make_registry_with(vec![("turnip", 60), ("potato", 80)]);
         let bin = ShippingBin {
             items: vec![
-                InventorySlot { item_id: "turnip".to_string(), quantity: 3 },
-                InventorySlot { item_id: "potato".to_string(), quantity: 2 },
+                InventorySlot {
+                    item_id: "turnip".to_string(),
+                    quantity: 3,
+                },
+                InventorySlot {
+                    item_id: "potato".to_string(),
+                    quantity: 2,
+                },
             ],
         };
         let quality = ShippingBinQuality {

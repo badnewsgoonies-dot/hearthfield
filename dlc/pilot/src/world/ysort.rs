@@ -4,8 +4,8 @@
 //! Within each Z-layer, the Transform.z is adjusted by a small offset derived
 //! from the entity's Y position to produce correct overlap ordering.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Z-layer constants ──────────────────────────────────────────────────
 
@@ -33,7 +33,9 @@ pub struct YSorted {
 
 impl Default for YSorted {
     fn default() -> Self {
-        Self { layer: Z_OBJECTS_LAYER }
+        Self {
+            layer: Z_OBJECTS_LAYER,
+        }
     }
 }
 

@@ -9,17 +9,17 @@
 //! - Added `track_day_weather` system that runs BEFORE `on_day_end` each frame to
 //!   keep the snapshot current.  This avoids a cross-domain import.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-mod soil;
 pub mod crops;
+pub mod events_handler;
 mod harvest;
 mod render;
-pub mod events_handler;
+mod soil;
 mod sprinkler;
 pub mod sprinklers;
-use sprinklers::{handle_place_sprinkler, auto_water_sprinklers, remove_sprinkler};
+use sprinklers::{auto_water_sprinklers, handle_place_sprinkler, remove_sprinkler};
 
 /// Event to place a farm object (fence, scarecrow, etc.) at a grid position.
 #[derive(Event, Debug, Clone)]
@@ -142,17 +142,13 @@ impl Plugin for FarmingPlugin {
             // ------------------------------------------------------------------
             // Atlas loading — runs once on first Playing frame
             // ------------------------------------------------------------------
-            .add_systems(
-                OnEnter(GameState::Playing),
-                load_farming_atlases,
-            )
+            .add_systems(OnEnter(GameState::Playing), load_farming_atlases)
             // ------------------------------------------------------------------
             // Weather tracking — must run BEFORE day-end processing
             // ------------------------------------------------------------------
             .add_systems(
                 First,
-                events_handler::track_day_weather
-                    .run_if(in_state(GameState::Playing)),
+                events_handler::track_day_weather.run_if(in_state(GameState::Playing)),
             )
             // ------------------------------------------------------------------
             // Systems that run during Playing

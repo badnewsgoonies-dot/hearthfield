@@ -43,10 +43,11 @@ fn build_day_outcome(
     } else {
         0
     };
-    let salary = (completed_tasks as i32 * economy.base_salary_per_task + level_bonus + streak_bonus
-        - failed_tasks as i32 * economy.failure_penalty_per_task
-        - burnout_penalty)
-        .max(0);
+    let salary =
+        (completed_tasks as i32 * economy.base_salary_per_task + level_bonus + streak_bonus
+            - failed_tasks as i32 * economy.failure_penalty_per_task
+            - burnout_penalty)
+            .max(0);
 
     let social_bonus = social.average_affinity() / 25;
     let reputation_delta = stats.manager_checkins as i32 * 2

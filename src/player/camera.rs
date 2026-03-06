@@ -1,7 +1,7 @@
-use bevy::prelude::*;
+use super::CameraSnap;
 use crate::shared::*;
 use crate::world::WorldMap;
-use super::CameraSnap;
+use bevy::prelude::*;
 
 /// Smoothly follow the player with the camera using a lerp, clamped to map bounds.
 /// On map transitions, snaps instantly for 3 frames (ensures WorldMap bounds are
@@ -10,7 +10,10 @@ use super::CameraSnap;
 pub fn camera_follow_player(
     time: Res<Time>,
     player_query: Query<&LogicalPosition, (With<Player>, Without<Camera2d>)>,
-    mut camera_query: Query<(&mut Transform, &OrthographicProjection), (With<Camera2d>, Without<Player>)>,
+    mut camera_query: Query<
+        (&mut Transform, &OrthographicProjection),
+        (With<Camera2d>, Without<Player>),
+    >,
     world_map: Res<WorldMap>,
     mut snap: ResMut<CameraSnap>,
 ) {

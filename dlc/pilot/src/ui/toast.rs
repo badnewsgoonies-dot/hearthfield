@@ -1,7 +1,7 @@
 //! Toast notification system — auto-despawning text popups.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct ToastDisplay {

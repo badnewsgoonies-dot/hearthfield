@@ -1,7 +1,7 @@
 //! Crew random events — birthdays, conflicts, requests, achievements, departures.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -95,11 +95,31 @@ const CREW_ACHIEVEMENTS: &[(&str, &str, &str)] = &[
 
 // Holiday/celebration events
 const HOLIDAYS: &[(u32, &str, &str)] = &[
-    (1, "New Year's Party", "The crew gathers in the lounge for a New Year's celebration."),
-    (7, "Spring Festival", "Spring Festival! The crew decorates the lounge with flowers."),
-    (14, "Midsummer BBQ", "Hank fires up the grill on the tarmac. The whole crew is invited."),
-    (21, "Harvest Feast", "The crew shares a harvest feast in the crew quarters."),
-    (25, "Winter Holiday", "Holiday decorations fill the lounge. Everyone exchanges small gifts."),
+    (
+        1,
+        "New Year's Party",
+        "The crew gathers in the lounge for a New Year's celebration.",
+    ),
+    (
+        7,
+        "Spring Festival",
+        "Spring Festival! The crew decorates the lounge with flowers.",
+    ),
+    (
+        14,
+        "Midsummer BBQ",
+        "Hank fires up the grill on the tarmac. The whole crew is invited.",
+    ),
+    (
+        21,
+        "Harvest Feast",
+        "The crew shares a harvest feast in the crew quarters.",
+    ),
+    (
+        25,
+        "Winter Holiday",
+        "Holiday decorations fill the lounge. Everyone exchanges small gifts.",
+    ),
 ];
 
 // ── State ────────────────────────────────────────────────────────────────
@@ -184,10 +204,7 @@ pub fn birthday_gift_bonus(
 
         if is_birthday {
             relationships.add_friendship(&ev.npc_id, 15);
-            let season_key = format!(
-                "{}_{}_{}",
-                ev.npc_id, calendar.season as u32, calendar.year
-            );
+            let season_key = format!("{}_{}_{}", ev.npc_id, calendar.season as u32, calendar.year);
             event_state.birthdays_celebrated.push(season_key);
 
             // Resolve pending birthday event
@@ -268,7 +285,10 @@ pub fn check_crew_achievements(
 ) {
     for _ev in day_end_events.read() {
         for &(npc_id, title, desc) in CREW_ACHIEVEMENTS {
-            if event_state.achievements_triggered.contains(&npc_id.to_string()) {
+            if event_state
+                .achievements_triggered
+                .contains(&npc_id.to_string())
+            {
                 continue;
             }
 
@@ -277,9 +297,7 @@ pub fn check_crew_achievements(
             let days_played = calendar.total_days();
 
             if friendship >= 60 && days_played >= 50 {
-                event_state
-                    .achievements_triggered
-                    .push(npc_id.to_string());
+                event_state.achievements_triggered.push(npc_id.to_string());
 
                 toast_events.send(ToastEvent {
                     message: format!("🌟 {}", title),
@@ -318,7 +336,10 @@ pub fn check_crew_departure(
                 event_state.departed_crew.push(npc_id.to_string());
 
                 toast_events.send(ToastEvent {
-                    message: format!("📤 {} has transferred away. Relationship was too strained.", npc_id),
+                    message: format!(
+                        "📤 {} has transferred away. Relationship was too strained.",
+                        npc_id
+                    ),
                     duration_secs: 5.0,
                 });
 
@@ -326,7 +347,10 @@ pub fn check_crew_departure(
                     kind: CrewEventKind::Departure,
                     npc_id: npc_id.to_string(),
                     title: format!("{} Leaves", npc_id),
-                    description: format!("{} has had enough and transferred to another airport.", npc_id),
+                    description: format!(
+                        "{} has had enough and transferred to another airport.",
+                        npc_id
+                    ),
                     friendship_change: 0,
                     gold_cost: None,
                     resolved: true,

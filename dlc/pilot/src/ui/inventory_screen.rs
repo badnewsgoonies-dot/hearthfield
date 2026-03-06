@@ -1,7 +1,7 @@
 //! Grid inventory screen — displays item slots with selection, use/equip, and detail panel.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct InventoryScreenRoot;
@@ -271,9 +271,21 @@ pub fn update_selection_visuals(
                 let label = if is_equip { "Equip" } else { "Use" };
                 (n, d, format!("Qty: {}", slot.quantity), label, true)
             }
-            None => ("Empty slot".to_string(), String::new(), String::new(), "Use", false),
+            None => (
+                "Empty slot".to_string(),
+                String::new(),
+                String::new(),
+                "Use",
+                false,
+            ),
         },
-        None => ("Select an item".to_string(), String::new(), String::new(), "Use", false),
+        None => (
+            "Select an item".to_string(),
+            String::new(),
+            String::new(),
+            "Use",
+            false,
+        ),
     };
 
     for (field, mut text) in &mut detail_q {
@@ -286,7 +298,11 @@ pub fn update_selection_visuals(
     }
 
     for mut node in &mut btn_node_q {
-        node.display = if show_btn { Display::Flex } else { Display::None };
+        node.display = if show_btn {
+            Display::Flex
+        } else {
+            Display::None
+        };
     }
 }
 

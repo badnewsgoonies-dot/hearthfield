@@ -1,25 +1,24 @@
 //! Deep relationship system — phases, gifts, decay, rival mechanics.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 pub struct RelationshipPlugin;
 
 impl Plugin for RelationshipPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<RelationshipDetails>()
-            .add_systems(
-                Update,
-                (
-                    process_gift,
-                    friendship_decay,
-                    evaluate_relationship_phase,
-                    check_rival_mechanic,
-                    unlock_friendship_bonuses,
-                )
-                    .run_if(in_state(GameState::Playing)),
-            );
+        app.init_resource::<RelationshipDetails>().add_systems(
+            Update,
+            (
+                process_gift,
+                friendship_decay,
+                evaluate_relationship_phase,
+                check_rival_mechanic,
+                unlock_friendship_bonuses,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -204,7 +203,12 @@ pub fn process_gift(
         });
 
         toast_events.send(ToastEvent {
-            message: format!("{} {} the gift! ({:+})", member.name, reaction.display_text(), change),
+            message: format!(
+                "{} {} the gift! ({:+})",
+                member.name,
+                reaction.display_text(),
+                change
+            ),
             duration_secs: 3.0,
         });
     }
@@ -223,7 +227,12 @@ pub fn friendship_decay(
             let level = relationships.friendship_level(npc_id);
             if level > 0 {
                 // Slow decay: -1 per day for non-interacted NPCs
-                if !relationships.gifts_given_today.get(npc_id).copied().unwrap_or(false) {
+                if !relationships
+                    .gifts_given_today
+                    .get(npc_id)
+                    .copied()
+                    .unwrap_or(false)
+                {
                     relationships.add_friendship(npc_id, -1);
                 }
             }
@@ -251,7 +260,9 @@ pub fn evaluate_relationship_phase(
             // Notify on significant phase changes
             if matches!(
                 new_phase,
-                RelationshipPhase::Friend | RelationshipPhase::CloseFriend | RelationshipPhase::BestFriend
+                RelationshipPhase::Friend
+                    | RelationshipPhase::CloseFriend
+                    | RelationshipPhase::BestFriend
             ) {
                 toast_events.send(ToastEvent {
                     message: format!(
@@ -319,7 +330,10 @@ pub fn unlock_friendship_bonuses(
 
         let phase = details.phase_for(&ability.npc_id);
         if phase as u8 >= ability.required_phase as u8
-            && !matches!(phase, RelationshipPhase::Rival | RelationshipPhase::Stranger)
+            && !matches!(
+                phase,
+                RelationshipPhase::Rival | RelationshipPhase::Stranger
+            )
         {
             details.abilities_unlocked.push(ability.npc_id.clone());
             toast_events.send(ToastEvent {

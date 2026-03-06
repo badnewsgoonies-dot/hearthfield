@@ -1,14 +1,14 @@
-mod movement;
-mod tools;
 mod camera;
+pub mod interact_dispatch;
 mod interaction;
+pub mod item_use;
+mod movement;
 mod spawn;
 pub mod tool_anim;
-pub mod interact_dispatch;
-pub mod item_use;
+mod tools;
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct PlayerPlugin;
 
@@ -58,8 +58,7 @@ impl Plugin for PlayerPlugin {
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
                 interaction::check_stamina_consequences,
-                camera::camera_follow_player
-                    .after(interaction::handle_map_transition),
+                camera::camera_follow_player.after(interaction::handle_map_transition),
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -68,8 +67,7 @@ impl Plugin for PlayerPlugin {
         // handlers (also gated on Playing) process the MapTransitionEvent --
         app.add_systems(
             Update,
-            interaction::handle_day_end
-                .run_if(in_state(GameState::Playing)),
+            interaction::handle_day_end.run_if(in_state(GameState::Playing)),
         );
     }
 }

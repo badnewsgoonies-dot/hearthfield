@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES
@@ -50,10 +50,7 @@ pub fn spawn_toast_container(mut commands: Commands) {
     ));
 }
 
-pub fn despawn_toast_container(
-    mut commands: Commands,
-    query: Query<Entity, With<ToastContainer>>,
-) {
+pub fn despawn_toast_container(mut commands: Commands, query: Query<Entity, With<ToastContainer>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -65,7 +62,11 @@ pub fn despawn_toast_container(
 
 fn toast_accent_color(message: &str) -> Color {
     let lower = message.to_lowercase();
-    if lower.contains("gold") || lower.contains("earned") || lower.contains("+") || lower.ends_with("g") {
+    if lower.contains("gold")
+        || lower.contains("earned")
+        || lower.contains("+")
+        || lower.ends_with("g")
+    {
         // Gold/yellow accent for gold-related messages.
         Color::srgb(1.0, 0.84, 0.0)
     } else if lower.contains("achievement") {

@@ -1,7 +1,7 @@
 //! Gameplay HUD — pilot name, rank, gold, stamina, airport/zone, time, weather.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct HudRoot;
@@ -54,7 +54,9 @@ pub fn update_hud(
     mut text_q: Query<&mut Text, With<HudText>>,
 ) {
     let Ok(root) = query.get_single() else { return };
-    let Ok(children) = children_q.get(root) else { return };
+    let Ok(children) = children_q.get(root) else {
+        return;
+    };
 
     let lines = [
         format!("{} — {}", pilot.name, pilot.rank.display_name()),

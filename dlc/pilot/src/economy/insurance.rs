@@ -1,8 +1,8 @@
 //! Insurance system — policies, premiums, claims for aircraft operations.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES

@@ -1,7 +1,7 @@
 //! Mission tracking — active mission progress, completion handling.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub fn track_active_mission(
     flight_state: Res<FlightState>,
@@ -22,8 +22,8 @@ pub fn track_active_mission(
                         active.bonuses_met[i] = flight_state.passengers_happy > 70.0;
                     }
                     BonusCondition::LowFuelUsage => {
-                        active.bonuses_met[i] = flight_state.fuel_remaining
-                            > flight_state.distance_total_nm * 0.1;
+                        active.bonuses_met[i] =
+                            flight_state.fuel_remaining > flight_state.distance_total_nm * 0.1;
                     }
                     _ => {}
                 }

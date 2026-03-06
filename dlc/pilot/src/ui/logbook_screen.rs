@@ -1,7 +1,7 @@
 //! Logbook screen — flight history viewer with stats and filters.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -200,6 +200,12 @@ pub fn despawn_logbook_screen(
 ) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn handle_logbook_input(input: Res<PlayerInput>, mut next_state: ResMut<NextState<GameState>>) {
+    if input.cancel || input.menu_cancel {
+        next_state.set(GameState::Playing);
     }
 }
 

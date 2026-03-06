@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::{CollisionMap, DistanceAnimator};
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
 /// updates facing direction, snaps grid position, and checks collisions.
@@ -31,9 +31,17 @@ pub fn player_movement(
         movement.is_moving = true;
 
         if dir.y.abs() >= dir.x.abs() {
-            movement.facing = if dir.y > 0.0 { Facing::Up } else { Facing::Down };
+            movement.facing = if dir.y > 0.0 {
+                Facing::Up
+            } else {
+                Facing::Down
+            };
         } else {
-            movement.facing = if dir.x > 0.0 { Facing::Right } else { Facing::Left };
+            movement.facing = if dir.x > 0.0 {
+                Facing::Right
+            } else {
+                Facing::Left
+            };
         }
 
         let normalized = dir.normalize();
@@ -42,8 +50,20 @@ pub fn player_movement(
         let candidate_x = logical_pos.0.x + delta.x;
         let candidate_y = logical_pos.0.y + delta.y;
 
-        let can_move_x = !is_blocked(candidate_x, logical_pos.0.y, &collision_map, &farm_state, &player_state);
-        let can_move_y = !is_blocked(logical_pos.0.x, candidate_y, &collision_map, &farm_state, &player_state);
+        let can_move_x = !is_blocked(
+            candidate_x,
+            logical_pos.0.y,
+            &collision_map,
+            &farm_state,
+            &player_state,
+        );
+        let can_move_y = !is_blocked(
+            logical_pos.0.x,
+            candidate_y,
+            &collision_map,
+            &farm_state,
+            &player_state,
+        );
 
         if can_move_x {
             logical_pos.0.x = candidate_x;
@@ -69,18 +89,21 @@ pub fn player_movement(
 
 /// Drive the walk-cycle animation using distance-based frame advance.
 pub fn animate_player_sprite(
-    mut query: Query<(
-        &LogicalPosition,
-        &PlayerMovement,
-        &mut Sprite,
-        &mut DistanceAnimator,
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &LogicalPosition,
+            &PlayerMovement,
+            &mut Sprite,
+            &mut DistanceAnimator,
+        ),
+        With<Player>,
+    >,
 ) {
     for (pos, movement, mut sprite, mut anim) in query.iter_mut() {
         let base: usize = match movement.facing {
-            Facing::Down  =>  0,
-            Facing::Up    =>  4,
-            Facing::Left  =>  8,
+            Facing::Down => 0,
+            Facing::Up => 4,
+            Facing::Left => 8,
             Facing::Right => 12,
         };
 

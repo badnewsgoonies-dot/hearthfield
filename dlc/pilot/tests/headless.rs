@@ -13,45 +13,38 @@ use bevy::state::app::StatesPlugin;
 use skywarden::*; // shared types via `pub use shared::*`
 
 // Domain systems
-use skywarden::player::day_cycle::{advance_time, day_end_check, trigger_day_end, DayCycleConfig};
 use skywarden::economy::gold::{
-    add_gold, spend_gold, apply_gold_changes, TransactionLog, GoldMilestones,
+    add_gold, apply_gold_changes, spend_gold, GoldMilestones, TransactionLog,
 };
 use skywarden::economy::progression::{
-    apply_xp, check_rank_up, rank_requirements, meets_rank_requirements,
-    ActivityTracker,
+    apply_xp, check_rank_up, meets_rank_requirements, rank_requirements, ActivityTracker,
 };
 use skywarden::flight::cruise::update_flight;
-use skywarden::flight::navigation::{
-    calculate_route, update_navigation, NavigationState,
-};
+use skywarden::flight::navigation::{calculate_route, update_navigation, NavigationState};
+use skywarden::player::day_cycle::{advance_time, day_end_check, trigger_day_end, DayCycleConfig};
 
 // Priority 1–3 additions
-use skywarden::save::SaveFile;
 use skywarden::airports::maps::generate_zone_map;
+use skywarden::airports::npcs::{spawn_ambient_npcs, AirportNpc};
 use skywarden::airports::services::{services_at, AirportService};
-use skywarden::airports::npcs::{AirportNpc, spawn_ambient_npcs};
+use skywarden::crew::schedules::get_schedule;
 use skywarden::data::items::populate_items;
 use skywarden::data::missions::get_mission_templates;
 use skywarden::data::shops::get_shop_inventory;
-use skywarden::crew::schedules::get_schedule;
+use skywarden::save::SaveFile;
 
-use skywarden::missions::board::{refresh_mission_board, handle_mission_accepted};
+use skywarden::aircraft::fleet::{create_starter_fleet, purchase_aircraft, HangarAssignments};
+use skywarden::aircraft::fuel::{calculate_fuel_burn, fuel_type_for_class, FuelType, FuelWarnings};
+use skywarden::aircraft::maintenance::{ComponentCondition, MaintenanceTracker};
+use skywarden::crew::gifts::handle_gift_given;
+use skywarden::crew::relationships::{friendship_decay, RelationshipDetails};
+use skywarden::crew::schedules::{get_crew_current_zone, is_crew_present};
+use skywarden::missions::board::{handle_mission_accepted, refresh_mission_board};
 use skywarden::missions::story::StoryProgress;
 use skywarden::missions::tracking::handle_mission_complete;
-use skywarden::crew::gifts::handle_gift_given;
-use skywarden::crew::relationships::{
-    friendship_decay, RelationshipDetails,
-};
-use skywarden::crew::schedules::{get_crew_current_zone, is_crew_present};
-use skywarden::aircraft::fleet::{
-    purchase_aircraft, create_starter_fleet, HangarAssignments,
-};
-use skywarden::aircraft::maintenance::{ComponentCondition, MaintenanceTracker};
-use skywarden::aircraft::fuel::{fuel_type_for_class, FuelType, FuelWarnings, calculate_fuel_burn};
-use skywarden::weather::forecasting::WeatherForecasts;
-use skywarden::weather::effects::IcingState;
 use skywarden::player::movement::{player_movement, PlayerAnimState};
+use skywarden::weather::effects::IcingState;
+use skywarden::weather::forecasting::WeatherForecasts;
 
 // ═════════════════════════════════════════════════════════════════════════
 // TEST APP BUILDER
@@ -237,7 +230,10 @@ fn test_day_end_triggers() {
 
     let calendar = app2.world().resource::<Calendar>();
     // After day end, calendar should reset to WAKE_HOUR
-    assert_eq!(calendar.hour, WAKE_HOUR, "Hour should reset to WAKE_HOUR after day end");
+    assert_eq!(
+        calendar.hour, WAKE_HOUR,
+        "Hour should reset to WAKE_HOUR after day end"
+    );
     assert_eq!(calendar.day, 2, "Day should advance to 2");
 }
 
@@ -256,7 +252,11 @@ fn test_season_change() {
     app.update();
 
     let calendar = app.world().resource::<Calendar>();
-    assert_eq!(calendar.season, Season::Summer, "Season should advance from Spring to Summer");
+    assert_eq!(
+        calendar.season,
+        Season::Summer,
+        "Season should advance from Spring to Summer"
+    );
     assert_eq!(calendar.day, 1, "Day should reset to 1 after season change");
 }
 
@@ -276,7 +276,11 @@ fn test_year_rollover() {
     app.update();
 
     let calendar = app.world().resource::<Calendar>();
-    assert_eq!(calendar.season, Season::Spring, "Season should roll to Spring");
+    assert_eq!(
+        calendar.season,
+        Season::Spring,
+        "Season should roll to Spring"
+    );
     assert_eq!(calendar.year, 2, "Year should increment");
 }
 
@@ -379,7 +383,11 @@ fn test_fuel_purchase() {
     assert!(result.is_ok(), "Refueling should succeed");
     let cost = result.unwrap();
     assert!(cost > 0, "Refueling should cost gold");
-    assert_eq!(fleet.active().unwrap().fuel, 50.0, "Fuel should be at capacity");
+    assert_eq!(
+        fleet.active().unwrap().fuel,
+        50.0,
+        "Fuel should be at capacity"
+    );
     assert!(gold.amount < 1000, "Gold should decrease after refueling");
 }
 
@@ -575,9 +583,18 @@ fn test_landing_grade_calculation() {
 fn test_navigation_waypoints() {
     // Test calculate_route directly
     let route = calculate_route(AirportId::HomeBase, AirportId::Windport);
-    assert!(route.len() >= 2, "Route should have at least departure and arrival waypoints");
-    assert!(route.first().unwrap().name.contains("DEP"), "First waypoint should be departure");
-    assert!(route.last().unwrap().name.contains("ARR"), "Last waypoint should be arrival");
+    assert!(
+        route.len() >= 2,
+        "Route should have at least departure and arrival waypoints"
+    );
+    assert!(
+        route.first().unwrap().name.contains("DEP"),
+        "First waypoint should be departure"
+    );
+    assert!(
+        route.last().unwrap().name.contains("ARR"),
+        "Last waypoint should be arrival"
+    );
 
     // Distance should increase along the route
     for i in 1..route.len() {
@@ -664,10 +681,10 @@ fn test_collision_blocks_movement() {
 
     let start_x = 6.0 * TILE_SIZE + TILE_SIZE / 2.0;
     let start_y = -(5.0 * TILE_SIZE + TILE_SIZE / 2.0);
-    let player_entity = app.world_mut().spawn((
-        Player,
-        Transform::from_xyz(start_x, start_y, 0.0),
-    )).id();
+    let player_entity = app
+        .world_mut()
+        .spawn((Player, Transform::from_xyz(start_x, start_y, 0.0)))
+        .id();
 
     {
         let mut input = app.world_mut().resource_mut::<PlayerInput>();
@@ -676,7 +693,11 @@ fn test_collision_blocks_movement() {
 
     app.update();
 
-    let transform = app.world().entity(player_entity).get::<Transform>().unwrap();
+    let transform = app
+        .world()
+        .entity(player_entity)
+        .get::<Transform>()
+        .unwrap();
     // Player should be blocked (x should not have moved far past start)
     let grid_x = (transform.translation.x / TILE_SIZE).floor() as i32;
     assert!(
@@ -709,10 +730,10 @@ fn test_sprint_speed_boost() {
     let mut app_normal = build_test_app();
     app_normal.add_systems(Update, player_movement);
 
-    let e1 = app_normal.world_mut().spawn((
-        Player,
-        Transform::from_xyz(100.0, -100.0, 0.0),
-    )).id();
+    let e1 = app_normal
+        .world_mut()
+        .spawn((Player, Transform::from_xyz(100.0, -100.0, 0.0)))
+        .id();
 
     {
         let mut input = app_normal.world_mut().resource_mut::<PlayerInput>();
@@ -721,15 +742,21 @@ fn test_sprint_speed_boost() {
     }
 
     app_normal.update();
-    let normal_x = app_normal.world().entity(e1).get::<Transform>().unwrap().translation.x;
+    let normal_x = app_normal
+        .world()
+        .entity(e1)
+        .get::<Transform>()
+        .unwrap()
+        .translation
+        .x;
 
     let mut app_sprint = build_test_app();
     app_sprint.add_systems(Update, player_movement);
 
-    let e2 = app_sprint.world_mut().spawn((
-        Player,
-        Transform::from_xyz(100.0, -100.0, 0.0),
-    )).id();
+    let e2 = app_sprint
+        .world_mut()
+        .spawn((Player, Transform::from_xyz(100.0, -100.0, 0.0)))
+        .id();
 
     {
         let mut input = app_sprint.world_mut().resource_mut::<PlayerInput>();
@@ -741,7 +768,13 @@ fn test_sprint_speed_boost() {
     }
 
     app_sprint.update();
-    let sprint_x = app_sprint.world().entity(e2).get::<Transform>().unwrap().translation.x;
+    let sprint_x = app_sprint
+        .world()
+        .entity(e2)
+        .get::<Transform>()
+        .unwrap()
+        .translation
+        .x;
 
     assert!(
         sprint_x >= normal_x,
@@ -789,7 +822,10 @@ fn test_mission_accept() {
     app.update();
 
     let board = app.world().resource::<MissionBoard>();
-    assert!(board.active.is_some(), "Mission should be active after accepting");
+    assert!(
+        board.active.is_some(),
+        "Mission should be active after accepting"
+    );
     assert!(
         board.available.is_empty(),
         "Mission should be removed from available"
@@ -840,7 +876,10 @@ fn test_mission_complete() {
     app.update();
 
     let board = app.world().resource::<MissionBoard>();
-    assert!(board.active.is_none(), "Active mission should be cleared after completion");
+    assert!(
+        board.active.is_none(),
+        "Active mission should be cleared after completion"
+    );
     assert!(
         board.completed_ids.contains(&"test_mission_2".to_string()),
         "Mission should be in completed list"
@@ -933,7 +972,9 @@ fn test_friendship_decay() {
     // Set up a positive friendship that should decay
     {
         let mut relationships = app.world_mut().resource_mut::<Relationships>();
-        relationships.friendship.insert("mechanic_hank".to_string(), 50);
+        relationships
+            .friendship
+            .insert("mechanic_hank".to_string(), 50);
     }
 
     // Send DayEndEvent to trigger decay
@@ -955,7 +996,11 @@ fn test_crew_schedule() {
     // Test the pure function directly
     let (airport, zone, _x, _y) = get_crew_current_zone("mechanic_hank", 10, &DayOfWeek::Monday);
     assert_eq!(airport, AirportId::HomeBase, "Hank should be at HomeBase");
-    assert_eq!(zone, MapZone::Hangar, "Hank should be in the Hangar during morning");
+    assert_eq!(
+        zone,
+        MapZone::Hangar,
+        "Hank should be in the Hangar during morning"
+    );
 
     // Verify crew presence check
     let present = is_crew_present(
@@ -965,7 +1010,10 @@ fn test_crew_schedule() {
         AirportId::HomeBase,
         MapZone::Hangar,
     );
-    assert!(present, "Hank should be present at HomeBase Hangar at 10am Monday");
+    assert!(
+        present,
+        "Hank should be present at HomeBase Hangar at 10am Monday"
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -1037,7 +1085,10 @@ fn test_aircraft_purchase() {
     );
 
     assert!(result.is_ok(), "Purchase should succeed");
-    assert_eq!(gold.amount, 5000, "Gold should be deducted by purchase price");
+    assert_eq!(
+        gold.amount, 5000,
+        "Gold should be deducted by purchase price"
+    );
     assert_eq!(fleet.aircraft.len(), 1, "Fleet should have one aircraft");
     assert_eq!(fleet.aircraft[0].nickname, "My Cessna");
 }
@@ -1059,7 +1110,10 @@ fn test_aircraft_purchase_insufficient_gold() {
         AirportId::HomeBase,
     );
 
-    assert!(result.is_err(), "Purchase should fail with insufficient gold");
+    assert!(
+        result.is_err(),
+        "Purchase should fail with insufficient gold"
+    );
     assert_eq!(result.unwrap_err(), "Not enough gold");
 }
 
@@ -1105,13 +1159,28 @@ fn test_maintenance_hard_landing() {
 
 #[test]
 fn test_fuel_type_matching() {
-    assert_eq!(fuel_type_for_class(AircraftClass::SingleProp), FuelType::AvGas);
-    assert_eq!(fuel_type_for_class(AircraftClass::TwinProp), FuelType::AvGas);
-    assert_eq!(fuel_type_for_class(AircraftClass::Seaplane), FuelType::AvGas);
+    assert_eq!(
+        fuel_type_for_class(AircraftClass::SingleProp),
+        FuelType::AvGas
+    );
+    assert_eq!(
+        fuel_type_for_class(AircraftClass::TwinProp),
+        FuelType::AvGas
+    );
+    assert_eq!(
+        fuel_type_for_class(AircraftClass::Seaplane),
+        FuelType::AvGas
+    );
     assert_eq!(fuel_type_for_class(AircraftClass::LightJet), FuelType::JetA);
-    assert_eq!(fuel_type_for_class(AircraftClass::MediumJet), FuelType::JetA);
+    assert_eq!(
+        fuel_type_for_class(AircraftClass::MediumJet),
+        FuelType::JetA
+    );
     assert_eq!(fuel_type_for_class(AircraftClass::HeavyJet), FuelType::JetA);
-    assert_eq!(fuel_type_for_class(AircraftClass::Turboprop), FuelType::JetA);
+    assert_eq!(
+        fuel_type_for_class(AircraftClass::Turboprop),
+        FuelType::JetA
+    );
     assert_eq!(fuel_type_for_class(AircraftClass::Cargo), FuelType::JetA);
 }
 
@@ -1139,7 +1208,11 @@ fn test_fuel_burn_calculation() {
 #[test]
 fn test_starter_fleet() {
     let (fleet, hangars) = create_starter_fleet();
-    assert_eq!(fleet.aircraft.len(), 1, "Starter fleet should have one aircraft");
+    assert_eq!(
+        fleet.aircraft.len(),
+        1,
+        "Starter fleet should have one aircraft"
+    );
     assert_eq!(fleet.aircraft[0].aircraft_id, "cessna_172");
     assert_eq!(fleet.aircraft[0].nickname, "Old Faithful");
     assert!(
@@ -1178,10 +1251,7 @@ fn test_turbulence_in_storms() {
     );
 
     // Verify that storm weather is not flyable (safety check)
-    assert!(
-        !weather.is_flyable(),
-        "Storm weather should not be flyable"
-    );
+    assert!(!weather.is_flyable(), "Storm weather should not be flyable");
 }
 
 #[test]
@@ -1213,7 +1283,11 @@ fn test_add_item_stacks() {
 
     inventory.add_item("fuel_canister", 3);
     inventory.add_item("fuel_canister", 2);
-    assert_eq!(inventory.count_item("fuel_canister"), 5, "Stacking should combine quantities");
+    assert_eq!(
+        inventory.count_item("fuel_canister"),
+        5,
+        "Stacking should combine quantities"
+    );
     assert_eq!(inventory.slots.len(), 1, "Should be a single slot");
 }
 
@@ -1229,7 +1303,10 @@ fn test_remove_item() {
     let removed = inventory.remove_item("wrench", 1);
     assert!(removed);
     assert_eq!(inventory.count_item("wrench"), 0);
-    assert!(inventory.slots.is_empty(), "Empty slot should be cleaned up");
+    assert!(
+        inventory.slots.is_empty(),
+        "Empty slot should be cleaned up"
+    );
 }
 
 #[test]
@@ -1239,7 +1316,11 @@ fn test_remove_item_insufficient() {
 
     let removed = inventory.remove_item("wrench", 5);
     assert!(!removed, "Should fail when removing more than available");
-    assert_eq!(inventory.count_item("wrench"), 1, "Count should be unchanged");
+    assert_eq!(
+        inventory.count_item("wrench"),
+        1,
+        "Count should be unchanged"
+    );
 }
 
 #[test]
@@ -1311,7 +1392,11 @@ fn test_rank_requirements_check() {
     assert_eq!(req.min_flights, 5);
     assert_eq!(req.min_xp, 100);
 
-    let mut pilot = PilotState { rank: PilotRank::Student, xp: 50, ..Default::default() }; // Not enough
+    let mut pilot = PilotState {
+        rank: PilotRank::Student,
+        xp: 50,
+        ..Default::default()
+    }; // Not enough
     assert!(
         !meets_rank_requirements(&pilot),
         "Should not meet requirements with insufficient XP"
@@ -1524,7 +1609,10 @@ fn test_checklist_default() {
 
 #[test]
 fn test_night_detection() {
-    let mut cal = Calendar { hour: 14, ..Default::default() };
+    let mut cal = Calendar {
+        hour: 14,
+        ..Default::default()
+    };
     assert!(!cal.is_night(), "2 PM should not be night");
 
     cal.hour = 22;
@@ -1542,7 +1630,12 @@ fn test_night_detection() {
 fn test_save_roundtrip() {
     let mut save = SaveFile::default();
     save.gold = Gold { amount: 1234 };
-    save.calendar = Calendar { day: 7, season: Season::Fall, year: 3, ..Default::default() };
+    save.calendar = Calendar {
+        day: 7,
+        season: Season::Fall,
+        year: 3,
+        ..Default::default()
+    };
 
     let json = serde_json::to_string(&save).expect("serialization failed");
     let loaded: SaveFile = serde_json::from_str(&json).expect("deserialization failed");
@@ -1558,7 +1651,10 @@ fn test_save_default_loads_cleanly() {
     let save = SaveFile::default();
     let json = serde_json::to_string(&save).expect("serialization of default SaveFile failed");
     let result: Result<SaveFile, _> = serde_json::from_str(&json);
-    assert!(result.is_ok(), "Default SaveFile should deserialize without errors");
+    assert!(
+        result.is_ok(),
+        "Default SaveFile should deserialize without errors"
+    );
 }
 
 #[test]
@@ -1569,7 +1665,10 @@ fn test_save_preserves_gold() {
     let json = serde_json::to_string(&save).unwrap();
     let loaded: SaveFile = serde_json::from_str(&json).unwrap();
 
-    assert_eq!(loaded.gold.amount, 500, "Gold should be preserved through save/load");
+    assert_eq!(
+        loaded.gold.amount, 500,
+        "Gold should be preserved through save/load"
+    );
 }
 
 #[test]
@@ -1587,7 +1686,11 @@ fn test_save_preserves_fleet() {
     let json = serde_json::to_string(&save).unwrap();
     let loaded: SaveFile = serde_json::from_str(&json).unwrap();
 
-    assert_eq!(loaded.fleet.aircraft.len(), 1, "Fleet aircraft count should be preserved");
+    assert_eq!(
+        loaded.fleet.aircraft.len(),
+        1,
+        "Fleet aircraft count should be preserved"
+    );
     assert_eq!(loaded.fleet.aircraft[0].aircraft_id, "cessna_172");
     assert_eq!(loaded.fleet.aircraft[0].nickname, "Blue Bird");
 }
@@ -1612,8 +1715,18 @@ fn test_airport_zone_definitions() {
         let (w, h, tiles) = generate_zone_map(AirportId::HomeBase, zone);
         assert!(w > 0, "Zone {:?} should have positive width", zone);
         assert!(h > 0, "Zone {:?} should have positive height", zone);
-        assert_eq!(tiles.len(), h as usize, "Tile row count should match height for {:?}", zone);
-        assert_eq!(tiles[0].len(), w as usize, "Tile column count should match width for {:?}", zone);
+        assert_eq!(
+            tiles.len(),
+            h as usize,
+            "Tile row count should match height for {:?}",
+            zone
+        );
+        assert_eq!(
+            tiles[0].len(),
+            w as usize,
+            "Tile column count should match width for {:?}",
+            zone
+        );
     }
 }
 
@@ -1631,20 +1744,34 @@ fn test_airport_npc_count() {
     });
     app.update();
 
-    let npc_count = app.world().iter_entities()
+    let npc_count = app
+        .world()
+        .iter_entities()
         .filter(|e| e.contains::<AirportNpc>())
         .count();
-    assert!(npc_count >= 1, "Terminal should have at least 1 ambient NPC after zone transition");
+    assert!(
+        npc_count >= 1,
+        "Terminal should have at least 1 ambient NPC after zone transition"
+    );
 }
 
 #[test]
 fn test_home_base_exists() {
     let name = AirportId::HomeBase.display_name();
     let icao = AirportId::HomeBase.icao_code();
-    assert!(!name.is_empty(), "HomeBase should have a non-empty display name");
-    assert!(!icao.is_empty(), "HomeBase should have a non-empty ICAO code");
-    assert_eq!(AirportId::HomeBase.unlock_rank(), PilotRank::Student,
-        "HomeBase must be available from Student rank");
+    assert!(
+        !name.is_empty(),
+        "HomeBase should have a non-empty display name"
+    );
+    assert!(
+        !icao.is_empty(),
+        "HomeBase should have a non-empty ICAO code"
+    );
+    assert_eq!(
+        AirportId::HomeBase.unlock_rank(),
+        PilotRank::Student,
+        "HomeBase must be available from Student rank"
+    );
 }
 
 #[test]
@@ -1665,11 +1792,13 @@ fn test_airport_services_available() {
         let services = services_at(airport);
         assert!(
             services.contains(&AirportService::WeatherBriefing),
-            "{:?} should offer WeatherBriefing", airport
+            "{:?} should offer WeatherBriefing",
+            airport
         );
         assert!(
             services.contains(&AirportService::AirportMap),
-            "{:?} should offer AirportMap", airport
+            "{:?} should offer AirportMap",
+            airport
         );
     }
 }
@@ -1681,14 +1810,25 @@ fn test_airport_services_available() {
 #[test]
 fn test_all_missions_have_valid_routes() {
     let missions = get_mission_templates();
-    assert!(!missions.is_empty(), "Mission template list should not be empty");
+    assert!(
+        !missions.is_empty(),
+        "Mission template list should not be empty"
+    );
     for m in &missions {
         assert!(!m.id.is_empty(), "Mission should have non-empty id");
-        assert!(!m.title.is_empty(), "Mission '{}' should have non-empty title", m.id);
+        assert!(
+            !m.title.is_empty(),
+            "Mission '{}' should have non-empty title",
+            m.id
+        );
         // Verify origin and destination are valid by calling their display names
         let _ = m.origin.display_name();
         let _ = m.destination.display_name();
-        assert!(m.reward_gold > 0, "Mission '{}' should have a gold reward", m.id);
+        assert!(
+            m.reward_gold > 0,
+            "Mission '{}' should have a gold reward",
+            m.id
+        );
     }
 }
 
@@ -1696,11 +1836,26 @@ fn test_all_missions_have_valid_routes() {
 fn test_all_items_have_valid_data() {
     let mut registry = ItemRegistry::default();
     populate_items(&mut registry);
-    assert!(!registry.items.is_empty(), "ItemRegistry should not be empty after population");
+    assert!(
+        !registry.items.is_empty(),
+        "ItemRegistry should not be empty after population"
+    );
     for (id, item) in &registry.items {
-        assert!(!item.name.is_empty(), "Item '{}' should have non-empty name", id);
-        assert!(!item.description.is_empty(), "Item '{}' should have non-empty description", id);
-        assert_eq!(item.id, *id, "Item id field should match registry key for '{}'", id);
+        assert!(
+            !item.name.is_empty(),
+            "Item '{}' should have non-empty name",
+            id
+        );
+        assert!(
+            !item.description.is_empty(),
+            "Item '{}' should have non-empty description",
+            id
+        );
+        assert_eq!(
+            item.id, *id,
+            "Item id field should match registry key for '{}'",
+            id
+        );
     }
 }
 
@@ -1710,11 +1865,13 @@ fn test_crew_members_have_schedules() {
         let schedule = get_schedule(crew_id);
         assert!(
             !schedule.weekday.is_empty(),
-            "Crew member '{}' should have a non-empty weekday schedule", crew_id
+            "Crew member '{}' should have a non-empty weekday schedule",
+            crew_id
         );
         assert!(
             !schedule.weekend.is_empty(),
-            "Crew member '{}' should have a non-empty weekend schedule", crew_id
+            "Crew member '{}' should have a non-empty weekend schedule",
+            crew_id
         );
     }
 }
@@ -1742,7 +1899,8 @@ fn test_shop_items_exist_in_registry() {
             assert!(
                 registry.get(&listing.item_id).is_some(),
                 "Shop item '{}' at {:?} must exist in ItemRegistry",
-                listing.item_id, airport
+                listing.item_id,
+                airport
             );
         }
     }

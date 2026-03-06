@@ -51,7 +51,14 @@ impl Plugin for UiPlugin {
         app.init_resource::<audio::MusicState>();
         app.init_resource::<hud::ItemAtlasData>();
         app.init_resource::<hud::WeatherIconAtlas>();
-        app.add_systems(Update, (audio::handle_play_sfx, audio::handle_play_music, audio::toast_sfx));
+        app.add_systems(
+            Update,
+            (
+                audio::handle_play_sfx,
+                audio::handle_play_music,
+                audio::toast_sfx,
+            ),
+        );
         app.add_systems(OnEnter(GameState::Playing), audio::start_game_music);
         app.add_systems(OnEnter(GameState::MainMenu), audio::start_menu_music);
         app.add_systems(
@@ -87,8 +94,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             Update,
-            cutscene_runner::run_cutscene_queue
-                .run_if(in_state(GameState::Cutscene)),
+            cutscene_runner::run_cutscene_queue.run_if(in_state(GameState::Cutscene)),
         );
         // When entering Playing, check if a cutscene queue was pre-populated
         // (e.g. intro sequence from main menu) and redirect to Cutscene state.
@@ -101,8 +107,7 @@ impl Plugin for UiPlugin {
         // trigger_sleep or tick_time queued a cutscene and activate it.
         app.add_systems(
             PostUpdate,
-            cutscene_runner::activate_pending_cutscene
-                .run_if(in_state(GameState::Playing)),
+            cutscene_runner::activate_pending_cutscene.run_if(in_state(GameState::Playing)),
         );
 
         // ─── DIALOGUE LISTENER — runs in Playing AND Cutscene to catch events ───
@@ -112,10 +117,7 @@ impl Plugin for UiPlugin {
                 dialogue_box::listen_for_dialogue_start,
                 dialogue_box::handle_dialogue_end,
             )
-                .run_if(
-                    in_state(GameState::Playing)
-                        .or(in_state(GameState::Cutscene)),
-                ),
+                .run_if(in_state(GameState::Playing).or(in_state(GameState::Cutscene))),
         );
 
         // ─── MAIN MENU ───
@@ -142,9 +144,21 @@ impl Plugin for UiPlugin {
         });
         app.add_systems(
             OnEnter(GameState::Playing),
-            (hud::preload_item_atlas, hud::preload_weather_icon_atlas, hud::spawn_hud, hud::spawn_touch_overlay),
+            (
+                hud::preload_item_atlas,
+                hud::preload_weather_icon_atlas,
+                hud::spawn_hud,
+                hud::spawn_touch_overlay,
+            ),
         );
-        app.add_systems(OnExit(GameState::Playing), (hud::despawn_hud, hud::despawn_floating_gold_text, hud::despawn_touch_overlay));
+        app.add_systems(
+            OnExit(GameState::Playing),
+            (
+                hud::despawn_hud,
+                hud::despawn_floating_gold_text,
+                hud::despawn_touch_overlay,
+            ),
+        );
         app.add_systems(
             Update,
             (
@@ -206,10 +220,8 @@ impl Plugin for UiPlugin {
             Update,
             (
                 menu_input::merge_keyboard_to_menu_action,
-                menu_input::gameplay_state_transitions
-                    .run_if(in_state(GameState::Playing)),
-                menu_input::hotbar_input_handler
-                    .run_if(in_state(GameState::Playing)),
+                menu_input::gameplay_state_transitions.run_if(in_state(GameState::Playing)),
+                menu_input::hotbar_input_handler.run_if(in_state(GameState::Playing)),
                 menu_input::menu_cancel_transitions.run_if(
                     in_state(GameState::Inventory)
                         .or(in_state(GameState::Shop))
@@ -279,14 +291,8 @@ impl Plugin for UiPlugin {
         );
 
         // ─── MAP SCREEN ───
-        app.add_systems(
-            OnEnter(GameState::MapView),
-            map_screen::spawn_map_screen,
-        );
-        app.add_systems(
-            OnExit(GameState::MapView),
-            map_screen::despawn_map_screen,
-        );
+        app.add_systems(OnEnter(GameState::MapView), map_screen::spawn_map_screen);
+        app.add_systems(OnExit(GameState::MapView), map_screen::despawn_map_screen);
 
         // ─── DIALOGUE BOX ───
         app.add_systems(
@@ -367,11 +373,17 @@ impl Plugin for UiPlugin {
 
         // ─── DEBUG OVERLAY (always available, toggled by F3) ───
         app.init_resource::<DebugOverlayState>();
-        app.add_systems(Startup, debug_overlay::spawn_debug_overlay.after(load_ui_font));
-        app.add_systems(Update, (
-            debug_overlay::toggle_debug_overlay,
-            debug_overlay::update_debug_overlay,
-        ));
+        app.add_systems(
+            Startup,
+            debug_overlay::spawn_debug_overlay.after(load_ui_font),
+        );
+        app.add_systems(
+            Update,
+            (
+                debug_overlay::toggle_debug_overlay,
+                debug_overlay::update_debug_overlay,
+            ),
+        );
 
         // ─── CHEST SCREEN (reactive overlay during Playing state) ───
         app.add_systems(

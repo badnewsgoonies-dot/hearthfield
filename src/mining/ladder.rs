@@ -6,8 +6,8 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
+use crate::shared::*;
 
 /// System: detect when the player stands on the revealed ladder and descend.
 #[allow(clippy::too_many_arguments)]

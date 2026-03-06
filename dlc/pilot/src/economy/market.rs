@@ -1,9 +1,9 @@
 //! Dynamic market system — fuel prices, cargo rates, seasonal effects.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -16,7 +16,7 @@ const BASE_FUEL_PRICE: f32 = 10.0; // gold per unit
 #[serde(default)]
 pub struct AirportMarket {
     pub fuel_price: f32,
-    pub fuel_supply: f32,   // 0.0–100.0
+    pub fuel_supply: f32,         // 0.0–100.0
     pub cargo_rate_modifier: f32, // multiplier on base cargo rates
 }
 
@@ -118,8 +118,8 @@ pub fn update_market_prices(
             let trend_factor = 1.0 + global_trend * 0.1;
             let random_factor = rng.gen_range(0.95..1.05);
 
-            am.fuel_price = (BASE_FUEL_PRICE * supply_factor * trend_factor * random_factor)
-                .clamp(5.0, 25.0);
+            am.fuel_price =
+                (BASE_FUEL_PRICE * supply_factor * trend_factor * random_factor).clamp(5.0, 25.0);
 
             // Cargo rate fluctuation
             am.cargo_rate_modifier = rng.gen_range(0.8..1.3);

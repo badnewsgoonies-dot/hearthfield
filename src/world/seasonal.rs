@@ -15,9 +15,9 @@ use rand::Rng;
 
 use crate::shared::*;
 
-use super::MapTile;
-use super::objects::{WorldObject, WorldObjectData};
 use super::maps::WorldObjectKind;
+use super::objects::{WorldObject, WorldObjectData};
+use super::MapTile;
 
 // ═══════════════════════════════════════════════════════════════════════
 // RESOURCES
@@ -67,7 +67,7 @@ fn terrain_tint(season: Season) -> Color {
     match season {
         Season::Spring => Color::WHITE, // lush — no modification needed
         Season::Summer => Color::srgb(1.0, 0.95, 0.85), // warm golden haze
-        Season::Fall   => Color::srgb(1.0, 0.80, 0.55), // orange warmth
+        Season::Fall => Color::srgb(1.0, 0.80, 0.55), // orange warmth
         Season::Winter => Color::srgb(0.85, 0.90, 1.00), // cool blue-white
     }
 }
@@ -103,7 +103,7 @@ fn object_tint(season: Season) -> Color {
     match season {
         Season::Spring => Color::WHITE,
         Season::Summer => Color::srgb(1.0, 0.97, 0.90),
-        Season::Fall   => Color::srgb(0.95, 0.90, 0.80),
+        Season::Fall => Color::srgb(0.95, 0.90, 0.80),
         Season::Winter => Color::srgb(0.90, 0.93, 1.00),
     }
 }

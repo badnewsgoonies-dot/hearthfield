@@ -1,7 +1,7 @@
 //! Weather forecasting — multi-day forecasts with accuracy that improves closer to the day.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -3,9 +3,9 @@
 //! At Captain rank the player can establish an airline, hire pilots,
 //! plan routes for passive income, and grow toward business milestones.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 use std::collections::HashMap;
 
 // ─── Airline Business Resource ───────────────────────────────────────────
@@ -114,11 +114,7 @@ impl BusinessRoute {
 }
 
 /// Generate a route between two airports with pricing.
-pub fn create_route(
-    origin: AirportId,
-    destination: AirportId,
-    reputation: f32,
-) -> BusinessRoute {
+pub fn create_route(origin: AirportId, destination: AirportId, reputation: f32) -> BusinessRoute {
     let distance = airport_distance(origin, destination);
     let base_price = (distance * 0.5) as u32 + 20;
     let rep_multiplier = 1.0 + (reputation - 50.0) * 0.005;
@@ -231,7 +227,10 @@ pub fn generate_monthly_report(business: &AirlineBusiness) -> MonthlyReport {
 
     let salary_total: u32 = business.hired_pilots.iter().map(|p| p.salary).sum();
     expense_breakdown.insert("Pilot salaries".into(), salary_total);
-    expense_breakdown.insert("Fuel & maintenance".into(), business.monthly_expenses.saturating_sub(salary_total));
+    expense_breakdown.insert(
+        "Fuel & maintenance".into(),
+        business.monthly_expenses.saturating_sub(salary_total),
+    );
 
     let total_revenue: u32 = revenue_breakdown.values().sum();
     let total_expenses: u32 = expense_breakdown.values().sum();
@@ -334,10 +333,22 @@ pub fn check_business_milestones(
     }
 
     let checks: Vec<(BusinessMilestone, bool)> = vec![
-        (BusinessMilestone::FirstRoute, !business.active_routes.is_empty()),
-        (BusinessMilestone::FirstHire, !business.hired_pilots.is_empty()),
-        (BusinessMilestone::FiveRoutes, business.active_routes.len() >= 5),
-        (BusinessMilestone::TenEmployees, business.hired_pilots.len() >= 10),
+        (
+            BusinessMilestone::FirstRoute,
+            !business.active_routes.is_empty(),
+        ),
+        (
+            BusinessMilestone::FirstHire,
+            !business.hired_pilots.is_empty(),
+        ),
+        (
+            BusinessMilestone::FiveRoutes,
+            business.active_routes.len() >= 5,
+        ),
+        (
+            BusinessMilestone::TenEmployees,
+            business.hired_pilots.len() >= 10,
+        ),
         (BusinessMilestone::ProfitableMonth, business.is_profitable()),
         (BusinessMilestone::FleetOfTen, business.fleet_size >= 10),
     ];
@@ -362,9 +373,7 @@ pub fn check_business_milestones(
 }
 
 /// Update hired pilot morale based on workload.
-pub fn update_pilot_morale(
-    mut business: ResMut<AirlineBusiness>,
-) {
+pub fn update_pilot_morale(mut business: ResMut<AirlineBusiness>) {
     if !business.established {
         return;
     }
@@ -410,7 +419,11 @@ pub fn take_business_loan(
     });
 
     toast.send(ToastEvent {
-        message: format!("Loan approved: {}G at {:.0}% interest.", loan, business.loan_interest_rate * 100.0),
+        message: format!(
+            "Loan approved: {}G at {:.0}% interest.",
+            loan,
+            business.loan_interest_rate * 100.0
+        ),
         duration_secs: 4.0,
     });
 }

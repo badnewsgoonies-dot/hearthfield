@@ -5,10 +5,10 @@
 //! The world domain owns `ChestInteraction` which tracks the currently open
 //! chest entity. We import it so the UI knows which chest to display.
 
-use bevy::prelude::*;
+use super::UiFontHandle;
 use crate::shared::*;
 use crate::world::chests::ChestInteraction;
-use super::UiFontHandle;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -93,9 +93,7 @@ fn spawn_chest_ui(commands: &mut Commands, font: Handle<Font>) {
 
             // Hint text
             root.spawn((
-                Text::new(
-                    "Tab: Switch panel | Up/Down: Select | Enter: Transfer | Esc: Close",
-                ),
+                Text::new("Tab: Switch panel | Up/Down: Select | Enter: Transfer | Esc: Close"),
                 TextFont {
                     font,
                     font_size: 11.0,

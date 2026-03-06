@@ -1,7 +1,7 @@
 //! Camera follow system — smooth lerp, bounds clamping, zoom, shake.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 const CAMERA_LERP_SPEED: f32 = 6.0;
 const CAMERA_TRANSITION_SPEED: f32 = 4.0;
@@ -41,8 +41,12 @@ pub fn follow_camera(
     input: Res<PlayerInput>,
     game_state: Res<State<GameState>>,
 ) {
-    let Ok(player_tf) = player_q.get_single() else { return; };
-    let Ok(mut camera_tf) = camera_q.get_single_mut() else { return; };
+    let Ok(player_tf) = player_q.get_single() else {
+        return;
+    };
+    let Ok(mut camera_tf) = camera_q.get_single_mut() else {
+        return;
+    };
     let dt = time.delta_secs();
 
     // Zoom handling
@@ -62,7 +66,9 @@ pub fn follow_camera(
     let target = if cam_state.transitioning {
         cam_state.transition_timer += dt;
         let t = (cam_state.transition_timer * CAMERA_TRANSITION_SPEED).min(1.0);
-        if t >= 1.0 { cam_state.transitioning = false; }
+        if t >= 1.0 {
+            cam_state.transitioning = false;
+        }
         Vec2::new(
             lerp(camera_tf.translation.x, cam_state.transition_target.x, t),
             lerp(camera_tf.translation.y, cam_state.transition_target.y, t),
@@ -85,8 +91,12 @@ pub fn follow_camera(
         let max_x = map_w - half_view_w;
         let min_y = -(map_h - half_view_h);
         let max_y = -half_view_h;
-        if max_x > min_x { new_x = new_x.clamp(min_x, max_x); }
-        if max_y > min_y { new_y = new_y.clamp(min_y, max_y); }
+        if max_x > min_x {
+            new_x = new_x.clamp(min_x, max_x);
+        }
+        if max_y > min_y {
+            new_y = new_y.clamp(min_y, max_y);
+        }
     }
 
     // Screen shake

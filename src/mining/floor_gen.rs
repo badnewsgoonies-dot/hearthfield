@@ -188,16 +188,28 @@ fn rock_drop(floor: u8, rng: &mut StdRng) -> (String, u8, u8) {
     if floor <= 5 {
         // Floors 1-5: Stone, Copper Ore (20%)
         if roll < 0.20 {
-            ("copper_ore".to_string(), rng.gen_range(1..=2), rng.gen_range(2..=3))
+            (
+                "copper_ore".to_string(),
+                rng.gen_range(1..=2),
+                rng.gen_range(2..=3),
+            )
         } else {
             ("stone".to_string(), rng.gen_range(1..=3), 2)
         }
     } else if floor <= 10 {
         // Floors 6-10: Stone, Copper (30%), Iron (15%)
         if roll < 0.15 {
-            ("iron_ore".to_string(), rng.gen_range(1..=2), rng.gen_range(3..=4))
+            (
+                "iron_ore".to_string(),
+                rng.gen_range(1..=2),
+                rng.gen_range(3..=4),
+            )
         } else if roll < 0.45 {
-            ("copper_ore".to_string(), rng.gen_range(1..=2), rng.gen_range(2..=3))
+            (
+                "copper_ore".to_string(),
+                rng.gen_range(1..=2),
+                rng.gen_range(2..=3),
+            )
         } else {
             ("stone".to_string(), rng.gen_range(1..=3), 2)
         }

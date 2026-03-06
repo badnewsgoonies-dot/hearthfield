@@ -10,14 +10,14 @@
 //!   keep `TrackedDayWeather` in sync with `Calendar.weather` BEFORE day-end
 //!   processing can overwrite it.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::{
-    FarmEntities, MorningSprinklerEvent, TrackedDayWeather,
     crops::{advance_crop_growth, reset_soil_watered_state},
     soil::spawn_or_update_soil_entity,
     sprinkler::apply_rain_watering,
+    FarmEntities, MorningSprinklerEvent, TrackedDayWeather,
 };
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Weather tracking
@@ -33,14 +33,14 @@ use super::{
 /// (before tick_time's minute loop hit hour 26) or in the previous frame.
 /// Either way, the tracked weather will be the ended day's weather because
 /// weather is only rolled at day end — it doesn't change during the day.
-pub fn track_day_weather(
-    calendar: Res<Calendar>,
-    mut tracked: ResMut<TrackedDayWeather>,
-) {
+pub fn track_day_weather(calendar: Res<Calendar>, mut tracked: ResMut<TrackedDayWeather>) {
     // Only update if the calendar day matches (i.e., we haven't rolled to a
     // new day yet in this frame).  If the day already advanced, keep the old
     // snapshot — that's exactly what we want for on_day_end to read.
-    if tracked.day != calendar.day || tracked.season != calendar.season || tracked.year != calendar.year {
+    if tracked.day != calendar.day
+        || tracked.season != calendar.season
+        || tracked.year != calendar.year
+    {
         // Calendar has advanced to a new day — this is the FIRST frame of the
         // new day. Update our tracking to the new day's weather so we're ready
         // for the next day-end cycle.
@@ -119,12 +119,8 @@ pub fn on_day_end(
         }
 
         // Advance crop growth (mutates FarmState).
-        let updated_positions = advance_crop_growth(
-            &mut farm_state,
-            &crop_registry,
-            event.season,
-            is_rainy,
-        );
+        let updated_positions =
+            advance_crop_growth(&mut farm_state, &crop_registry, event.season, is_rainy);
 
         // Process crow events — kill a random unprotected crop.
         // Crows only appear in non-winter seasons.
@@ -138,9 +134,7 @@ pub fn on_day_end(
         // Despawn dead crop entities.
         let dead_positions: Vec<(i32, i32)> = updated_positions
             .iter()
-            .filter(|&&pos| {
-                farm_state.crops.get(&pos).map(|c| c.dead).unwrap_or(false)
-            })
+            .filter(|&&pos| farm_state.crops.get(&pos).map(|c| c.dead).unwrap_or(false))
             .cloned()
             .collect();
 
@@ -198,18 +192,17 @@ pub fn on_season_change(
         }
 
         if had_deaths {
-            toast_events.send(ToastEvent { message: "Some crops have withered...".into(), duration_secs: 3.0 });
+            toast_events.send(ToastEvent {
+                message: "Some crops have withered...".into(),
+                duration_secs: 3.0,
+            });
         }
 
         // Winter also resets all soil back to untilled (frost kills tilled ground).
         if new_season == Season::Winter {
             // Clear soil state — all tilled/watered tiles reset to untilled.
             // This models winter frost destroying the tilled rows.
-            let tilled_positions: Vec<(i32, i32)> = farm_state
-                .soil
-                .keys()
-                .cloned()
-                .collect();
+            let tilled_positions: Vec<(i32, i32)> = farm_state.soil.keys().cloned().collect();
             for pos in tilled_positions {
                 farm_state.soil.remove(&pos);
                 // Despawn soil entities.

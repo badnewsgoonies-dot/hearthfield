@@ -1,8 +1,8 @@
 //! Loan Office screen — view active loans, take new loan, early payoff.
 
-use bevy::prelude::*;
+use crate::economy::loans::{interest_rate_for_rank, LoanPortfolio};
 use crate::shared::*;
-use crate::economy::loans::{LoanPortfolio, interest_rate_for_rank};
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -194,10 +194,7 @@ pub fn spawn_loan_screen(
     commands.entity(root).add_child(hint);
 }
 
-pub fn despawn_loan_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<LoanScreenRoot>>,
-) {
+pub fn despawn_loan_screen(mut commands: Commands, query: Query<Entity, With<LoanScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }

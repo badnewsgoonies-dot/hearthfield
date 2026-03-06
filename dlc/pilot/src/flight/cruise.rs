@@ -1,7 +1,7 @@
 //! Cruise flight simulation.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// Reference cargo weight for performance penalty normalisation (kg).
 const CARGO_WEIGHT_REF_KG: f32 = 5_000.0;
@@ -110,8 +110,7 @@ pub fn update_flight(
 
     // Passenger happiness affected by turbulence
     if flight_state.turbulence_shake > 2.0 {
-        flight_state.passengers_happy =
-            (flight_state.passengers_happy - 5.0 * dt).max(0.0);
+        flight_state.passengers_happy = (flight_state.passengers_happy - 5.0 * dt).max(0.0);
     }
 
     // Phase transitions
@@ -135,8 +134,7 @@ pub fn update_flight(
         });
     }
 
-    if flight_state.distance_remaining_nm <= 10.0 && flight_state.phase == FlightPhase::Descent
-    {
+    if flight_state.distance_remaining_nm <= 10.0 && flight_state.phase == FlightPhase::Descent {
         flight_state.phase = FlightPhase::Approach;
         phase_events.send(FlightPhaseChangeEvent {
             new_phase: FlightPhase::Approach,

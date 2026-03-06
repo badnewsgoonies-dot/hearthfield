@@ -1,11 +1,11 @@
 //! Weather domain — aviation weather generation, turbulence, visibility.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
-pub mod forecasting;
 pub mod effects;
+pub mod forecasting;
 
 pub struct WeatherPlugin;
 
@@ -40,7 +40,8 @@ fn update_weather(
 ) {
     // Wind varies slightly over time
     let wind_variation = (calendar.time_of_day_secs * 0.01).sin() * 5.0;
-    weather_state.wind_speed_knots = (weather_state.wind_speed_knots + wind_variation * time.delta_secs()).max(0.0);
+    weather_state.wind_speed_knots =
+        (weather_state.wind_speed_knots + wind_variation * time.delta_secs()).max(0.0);
 
     // Update turbulence based on weather
     weather_state.turbulence_level = match weather_state.current {

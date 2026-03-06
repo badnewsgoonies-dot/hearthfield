@@ -2,17 +2,15 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
-use super::{
-    Bobber, MinigameRoot, MinigameBgBar, MinigameFishZone,
-    MinigameCatchBar, MinigameProgressFill, MinigameProgressBg,
-    FishingMinigameState, FishingState,
-};
 use super::minigame::{
-    zone_to_screen_y,
-    MINIGAME_BAR_HEIGHT, MINIGAME_BAR_WIDTH,
-    PROGRESS_BAR_Y, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT,
+    zone_to_screen_y, MINIGAME_BAR_HEIGHT, MINIGAME_BAR_WIDTH, PROGRESS_BAR_HEIGHT,
+    PROGRESS_BAR_WIDTH, PROGRESS_BAR_Y,
 };
+use super::{
+    Bobber, FishingMinigameState, FishingState, MinigameBgBar, MinigameCatchBar, MinigameFishZone,
+    MinigameProgressBg, MinigameProgressFill, MinigameRoot,
+};
+use crate::shared::*;
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -55,10 +53,7 @@ const Z_UI_BG: f32 = 50.0;
 /// the camera projection already handles this — sprites placed at world coords
 /// appear at their world position divided by the camera scale factor on screen.
 /// In practice, we position UI relative to screen center (world origin).
-pub fn spawn_minigame_ui(
-    mut commands: Commands,
-    minigame_state: Res<FishingMinigameState>,
-) {
+pub fn spawn_minigame_ui(mut commands: Commands, minigame_state: Res<FishingMinigameState>) {
     // The camera scale is 1/PIXEL_SCALE. With a 960x540 screen:
     // The camera shows a region of 960*PIXEL_SCALE × 540*PIXEL_SCALE world units.
     // Screen right edge ≈ SCREEN_WIDTH/2 * PIXEL_SCALE world units from center.
@@ -163,10 +158,7 @@ pub fn spawn_minigame_ui(
 }
 
 /// Clean up all minigame UI entities when leaving GameState::Fishing.
-pub fn despawn_minigame_ui(
-    mut commands: Commands,
-    root_query: Query<Entity, With<MinigameRoot>>,
-) {
+pub fn despawn_minigame_ui(mut commands: Commands, root_query: Query<Entity, With<MinigameRoot>>) {
     for entity in root_query.iter() {
         commands.entity(entity).despawn_recursive();
     }

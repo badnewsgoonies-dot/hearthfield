@@ -1,7 +1,7 @@
 //! Shop screen — listing with buy buttons, reads ActiveShop resource.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct ShopScreenRoot;
@@ -105,10 +105,7 @@ pub fn spawn_shop_screen(
         });
 }
 
-pub fn despawn_shop_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<ShopScreenRoot>>,
-) {
+pub fn despawn_shop_screen(mut commands: Commands, query: Query<Entity, With<ShopScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }

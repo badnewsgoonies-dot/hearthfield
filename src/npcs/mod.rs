@@ -3,8 +3,8 @@
 //! Manages all 10 townspeople: their schedules, movement, dialogue, and gift system.
 //! Communicates exclusively through shared resources and events.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 mod animation;
 pub mod definitions;
@@ -12,58 +12,38 @@ pub mod dialogue;
 pub mod emotes;
 mod gifts;
 pub mod map_events;
-pub mod romance;
 pub mod quests;
+pub mod romance;
 mod schedule;
 pub mod schedules;
 pub mod spawning;
 
+use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
-use gifts::{handle_gifts, handle_gift_input};
-use map_events::{handle_map_transition, handle_day_end, GiftDecayTracker};
+use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteAtlas, NpcEmoteEvent};
+use gifts::{handle_gift_input, handle_gifts};
+use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
+use quests::{
+    check_story_quests, expire_quests, handle_quest_accepted, handle_quest_completed,
+    log_quest_posted, post_daily_quests, track_monster_slain, track_quest_progress,
+};
 use romance::{
-    WeddingTimer,
-    update_relationship_stages,
-    handle_bouquet,
-    handle_proposal,
-    tick_wedding_timer,
-    handle_wedding,
-    spouse_daily_action,
-    handle_spouse_action,
-    update_spouse_happiness,
+    handle_bouquet, handle_proposal, handle_spouse_action, handle_wedding, spouse_daily_action,
+    tick_wedding_timer, update_relationship_stages, update_spouse_happiness, WeddingTimer,
 };
-use schedule::{
-    update_npc_schedules,
-    move_npcs_toward_targets,
-    ScheduleUpdateTimer,
-};
+use schedule::{move_npcs_toward_targets, update_npc_schedules, ScheduleUpdateTimer};
 use schedules::{
-    apply_enhanced_schedules,
-    refresh_schedules_on_season_change,
-    check_farm_visits,
+    apply_enhanced_schedules, check_farm_visits, refresh_schedules_on_season_change,
     FarmVisitTracker,
 };
-use animation::animate_npc_sprites;
-use emotes::{EmoteAtlas, NpcEmoteEvent, spawn_emote_bubbles, animate_emote_bubbles};
-use spawning::{preload_npc_sprites, spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
-use quests::{
-    log_quest_posted,
-    post_daily_quests,
-    handle_quest_accepted,
-    track_quest_progress,
-    track_monster_slain,
-    handle_quest_completed,
-    expire_quests,
-    check_story_quests,
-};
+use spawning::{preload_npc_sprites, spawn_initial_npcs, NpcSpriteData, SpawnedNpcs};
 
 pub struct NpcPlugin;
 
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         // Initialize NPC-domain resources
-        app
-            .init_resource::<SpawnedNpcs>()
+        app.init_resource::<SpawnedNpcs>()
             .init_resource::<NpcSpriteData>()
             .init_resource::<ActiveNpcInteraction>()
             .init_resource::<DailyTalkTracker>()
@@ -81,7 +61,12 @@ impl Plugin for NpcPlugin {
         // correct seasonal positions.
         app.add_systems(
             OnEnter(GameState::Playing),
-            (preload_npc_sprites, apply_enhanced_schedules, spawn_initial_npcs).chain(),
+            (
+                preload_npc_sprites,
+                apply_enhanced_schedules,
+                spawn_initial_npcs,
+            )
+                .chain(),
         );
 
         // NPC interaction runs before the world interaction dispatcher so NPCs

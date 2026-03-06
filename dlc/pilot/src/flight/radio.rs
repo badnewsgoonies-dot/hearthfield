@@ -1,7 +1,7 @@
 //! ATC radio communication — request clearances and receive advisories.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct RadioPlugin;
 
@@ -162,9 +162,7 @@ pub fn radio_communication(
     // Transmit
     if input.menu_confirm {
         if let Some(msg) = radio.available_messages.get(radio.selected_option).cloned() {
-            transmit_events.send(RadioTransmitEvent {
-                message: msg,
-            });
+            transmit_events.send(RadioTransmitEvent { message: msg });
         }
     }
 

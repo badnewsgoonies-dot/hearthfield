@@ -58,19 +58,12 @@ impl Plugin for CalendarPlugin {
             // Core time tick — only runs while Playing and NOT paused
             .add_systems(
                 Update,
-                (
-                    tick_time,
-                    detect_festival_day,
-                )
+                (tick_time, detect_festival_day)
                     .run_if(in_state(GameState::Playing))
                     .run_if(time_not_paused),
             )
             // Manual sleep trigger — player presses B on Farm or in PlayerHouse
-            .add_systems(
-                Update,
-                trigger_sleep
-                    .run_if(in_state(GameState::Playing)),
-            )
+            .add_systems(Update, trigger_sleep.run_if(in_state(GameState::Playing)))
             // Day-end processing runs inside Playing state (but
             // the event can also be sent by the sleep system or the 2 AM auto-trigger)
             .add_systems(
@@ -115,8 +108,10 @@ fn time_not_paused(calendar: Res<Calendar>) -> bool {
 
 fn resume_time(mut calendar: ResMut<Calendar>) {
     calendar.time_paused = false;
-    info!("[Calendar] Time resumed — {}:{:02} Day {} {:?} Year {}",
-        calendar.hour, calendar.minute, calendar.day, calendar.season, calendar.year);
+    info!(
+        "[Calendar] Time resumed — {}:{:02} Day {} {:?} Year {}",
+        calendar.hour, calendar.minute, calendar.day, calendar.season, calendar.year
+    );
 }
 
 fn pause_time(mut calendar: ResMut<Calendar>) {
@@ -178,13 +173,18 @@ pub fn trigger_sleep(
     );
 
     // Compute next day label BEFORE sending DayEndEvent (calendar not yet advanced).
-    let next_day = if calendar.day >= DAYS_PER_SEASON { 1 } else { calendar.day + 1 };
+    let next_day = if calendar.day >= DAYS_PER_SEASON {
+        1
+    } else {
+        calendar.day + 1
+    };
     let next_season = if calendar.day >= DAYS_PER_SEASON {
         calendar.season.next()
     } else {
         calendar.season
     };
-    let next_year = if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter) {
+    let next_year = if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter)
+    {
         calendar.year + 1
     } else {
         calendar.year
@@ -264,7 +264,10 @@ fn tick_time(
     // cutscene transition so the player sees a day card instead of the
     // calendar silently advancing.
     if calendar.day != day_before && !cutscene_queue.active {
-        let day_label = format!("Day {} - {:?}, Year {}", calendar.day, calendar.season, calendar.year);
+        let day_label = format!(
+            "Day {} - {:?}, Year {}",
+            calendar.day, calendar.season, calendar.year
+        );
         let mut steps = std::collections::VecDeque::new();
         steps.push_back(CutsceneStep::FadeOut(1.0));
         steps.push_back(CutsceneStep::Wait(0.5));
@@ -531,7 +534,10 @@ fn detect_festival_day(
 
     // Play festival music
     sfx_writer.send(PlayMusicEvent {
-        track_id: format!("festival_{}", festival_name.to_lowercase().replace(' ', "_")),
+        track_id: format!(
+            "festival_{}",
+            festival_name.to_lowercase().replace(' ', "_")
+        ),
         fade_in: true,
     });
 }
@@ -685,7 +691,11 @@ mod tests {
 
     #[test]
     fn test_is_festival_day() {
-        let mut cal = Calendar { season: Season::Spring, day: 13, ..Default::default() };
+        let mut cal = Calendar {
+            season: Season::Spring,
+            day: 13,
+            ..Default::default()
+        };
         assert!(cal.is_festival_day());
 
         cal.season = Season::Summer;
@@ -715,13 +725,20 @@ mod tests {
 
     #[test]
     fn test_time_float() {
-        let cal = Calendar { hour: 14, minute: 30, ..Default::default() };
+        let cal = Calendar {
+            hour: 14,
+            minute: 30,
+            ..Default::default()
+        };
         assert!((cal.time_float() - 14.5).abs() < 0.001);
     }
 
     #[test]
     fn test_day_advancement_within_season() {
-        let mut cal = Calendar { day: 5, ..Default::default() };
+        let mut cal = Calendar {
+            day: 5,
+            ..Default::default()
+        };
         // Simulate day end: advance day within season
         cal.day += 1;
         assert_eq!(cal.day, 6);
@@ -730,7 +747,11 @@ mod tests {
 
     #[test]
     fn test_season_change_at_day_28() {
-        let mut cal = Calendar { day: 28, season: Season::Spring, ..Default::default() };
+        let mut cal = Calendar {
+            day: 28,
+            season: Season::Spring,
+            ..Default::default()
+        };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -743,7 +764,12 @@ mod tests {
 
     #[test]
     fn test_year_increment_after_winter() {
-        let mut cal = Calendar { day: 28, season: Season::Winter, year: 1, ..Default::default() };
+        let mut cal = Calendar {
+            day: 28,
+            season: Season::Winter,
+            year: 1,
+            ..Default::default()
+        };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -760,14 +786,20 @@ mod tests {
 
     #[test]
     fn test_day_of_week_day_7() {
-        let cal = Calendar { day: 7, ..Default::default() };
+        let cal = Calendar {
+            day: 7,
+            ..Default::default()
+        };
         // Day 7 => total_days_elapsed = 6, 6 % 7 = 6 => Sunday
         assert_eq!(cal.day_of_week(), DayOfWeek::Sunday);
     }
 
     #[test]
     fn test_day_of_week_day_8_wraps() {
-        let cal = Calendar { day: 8, ..Default::default() };
+        let cal = Calendar {
+            day: 8,
+            ..Default::default()
+        };
         // Day 8 => total_days_elapsed = 7, 7 % 7 = 0 => Monday
         assert_eq!(cal.day_of_week(), DayOfWeek::Monday);
     }

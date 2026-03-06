@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UnfedDays;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Day-end processing
@@ -86,10 +86,7 @@ pub fn handle_day_end_for_animals(
             //
             // Snapshot the previous count before any resets so we can
             // correctly determine whether the production block should fire.
-            let prev_unfed_count: u8 = unfed_days_opt
-                .as_ref()
-                .map(|ud| ud.count)
-                .unwrap_or(0);
+            let prev_unfed_count: u8 = unfed_days_opt.as_ref().map(|ud| ud.count).unwrap_or(0);
 
             let new_unfed_count: u8 = if animal.fed_today {
                 // Animal was fed — reset the starvation streak.
@@ -103,9 +100,9 @@ pub fn handle_day_end_for_animals(
             if let Some(mut ud) = unfed_days_opt {
                 ud.count = new_unfed_count;
             } else {
-                commands
-                    .entity(entity)
-                    .insert(UnfedDays { count: new_unfed_count });
+                commands.entity(entity).insert(UnfedDays {
+                    count: new_unfed_count,
+                });
             }
 
             // ── 2. Happiness adjustments ─────────────────────────────────────
@@ -208,9 +205,7 @@ pub fn handle_day_end_for_animals(
                     }
                     AnimalKind::Sheep => {
                         // Sheep produce wool every 3 days.
-                        let days = wool_cd
-                            .map(|c| c.days_since_last_wool)
-                            .unwrap_or(3); // default 3 → produce immediately first time
+                        let days = wool_cd.map(|c| c.days_since_last_wool).unwrap_or(3); // default 3 → produce immediately first time
                         if days >= 3 {
                             animal.product_ready = true;
                             commands
@@ -229,9 +224,7 @@ pub fn handle_day_end_for_animals(
                     }
                     AnimalKind::Goat => {
                         // Goats produce milk every 2 days.
-                        let days = wool_cd
-                            .map(|c| c.days_since_last_wool)
-                            .unwrap_or(2);
+                        let days = wool_cd.map(|c| c.days_since_last_wool).unwrap_or(2);
                         if days >= 2 {
                             animal.product_ready = true;
                             commands
@@ -248,9 +241,7 @@ pub fn handle_day_end_for_animals(
                     }
                     AnimalKind::Duck => {
                         // Ducks produce eggs every 2 days.
-                        let days = wool_cd
-                            .map(|c| c.days_since_last_wool)
-                            .unwrap_or(2);
+                        let days = wool_cd.map(|c| c.days_since_last_wool).unwrap_or(2);
                         if days >= 2 {
                             animal.product_ready = true;
                             commands
@@ -267,9 +258,7 @@ pub fn handle_day_end_for_animals(
                     }
                     AnimalKind::Rabbit => {
                         // Rabbits produce rabbit's foot every 4 days.
-                        let days = wool_cd
-                            .map(|c| c.days_since_last_wool)
-                            .unwrap_or(4);
+                        let days = wool_cd.map(|c| c.days_since_last_wool).unwrap_or(4);
                         if days >= 4 {
                             animal.product_ready = true;
                             commands

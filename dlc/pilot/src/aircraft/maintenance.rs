@@ -1,8 +1,8 @@
 //! Aircraft maintenance — per-component tracking, wear, repair actions, scheduling.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::shared::*;
 
 /// Individual component condition within an aircraft.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -17,18 +17,30 @@ pub struct ComponentCondition {
 
 impl Default for ComponentCondition {
     fn default() -> Self {
-        Self { engine: 100.0, airframe: 100.0, avionics: 100.0, landing_gear: 100.0, tires: 100.0, brakes: 100.0 }
+        Self {
+            engine: 100.0,
+            airframe: 100.0,
+            avionics: 100.0,
+            landing_gear: 100.0,
+            tires: 100.0,
+            brakes: 100.0,
+        }
     }
 }
 
 impl ComponentCondition {
     pub fn overall(&self) -> f32 {
-        (self.engine + self.airframe + self.avionics + self.landing_gear + self.tires + self.brakes) / 6.0
+        (self.engine + self.airframe + self.avionics + self.landing_gear + self.tires + self.brakes)
+            / 6.0
     }
 
     pub fn weakest(&self) -> f32 {
-        self.engine.min(self.airframe).min(self.avionics)
-            .min(self.landing_gear).min(self.tires).min(self.brakes)
+        self.engine
+            .min(self.airframe)
+            .min(self.avionics)
+            .min(self.landing_gear)
+            .min(self.tires)
+            .min(self.brakes)
     }
 
     pub fn apply_flight_wear(&mut self, landing_grade: &str, avg_throttle: f32) {
@@ -114,9 +126,14 @@ pub fn perform_repair(
     day: u32,
 ) -> Result<u32, &'static str> {
     let cost = action.base_cost();
-    if gold.amount < cost { return Err("Not enough gold"); }
+    if gold.amount < cost {
+        return Err("Not enough gold");
+    }
 
-    let cond = tracker.conditions.entry(aircraft_nick.to_string()).or_default();
+    let cond = tracker
+        .conditions
+        .entry(aircraft_nick.to_string())
+        .or_default();
     match action {
         MaintenanceAction::Inspection => {
             tracker.last_annual.insert(aircraft_nick.to_string(), day);
@@ -135,19 +152,28 @@ pub fn perform_repair(
 
     gold.amount -= cost;
     tracker.log.push(MaintenanceLogEntry {
-        aircraft: aircraft_nick.to_string(), day, action, cost,
+        aircraft: aircraft_nick.to_string(),
+        day,
+        action,
+        cost,
     });
     Ok(cost)
 }
 
-pub fn needs_annual_inspection(tracker: &MaintenanceTracker, aircraft_nick: &str, current_day: u32) -> bool {
+pub fn needs_annual_inspection(
+    tracker: &MaintenanceTracker,
+    aircraft_nick: &str,
+    current_day: u32,
+) -> bool {
     let last = tracker.last_annual.get(aircraft_nick).copied().unwrap_or(0);
     current_day.saturating_sub(last) >= 28
 }
 
 pub fn is_grounded(tracker: &MaintenanceTracker, aircraft_nick: &str, current_day: u32) -> bool {
     if let Some(cond) = tracker.conditions.get(aircraft_nick) {
-        if cond.weakest() < 30.0 { return true; }
+        if cond.weakest() < 30.0 {
+            return true;
+        }
     }
     needs_annual_inspection(tracker, aircraft_nick, current_day)
 }
@@ -164,7 +190,10 @@ pub fn check_maintenance(
         let day = calendar.total_days();
         if is_grounded(&tracker, &ac.nickname, day) {
             toast_events.send(ToastEvent {
-                message: format!("🚫 {} is grounded! Visit hangar for maintenance.", ac.nickname),
+                message: format!(
+                    "🚫 {} is grounded! Visit hangar for maintenance.",
+                    ac.nickname
+                ),
                 duration_secs: 5.0,
             });
             continue;
@@ -199,10 +228,14 @@ pub fn repair_aircraft(
     registry: &AircraftRegistry,
 ) -> Result<u32, &'static str> {
     let aircraft = fleet.active_mut().ok_or("No active aircraft")?;
-    let def = registry.get(&aircraft.aircraft_id).ok_or("Unknown aircraft")?;
+    let def = registry
+        .get(&aircraft.aircraft_id)
+        .ok_or("Unknown aircraft")?;
     let repair_amount = 100.0 - aircraft.condition;
     let cost = (repair_amount * def.maintenance_cost_per_flight as f32 / 10.0) as u32;
-    if gold.amount < cost { return Err("Not enough gold"); }
+    if gold.amount < cost {
+        return Err("Not enough gold");
+    }
     gold.amount -= cost;
     aircraft.condition = 100.0;
     Ok(cost)

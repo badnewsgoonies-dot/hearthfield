@@ -179,10 +179,7 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
             id: "lightning_rod".into(),
             name: "Lightning Rod".into(),
             // Protects the farm from lightning strikes during storms.
-            ingredients: vec![
-                ("iron_bar".into(), 5),
-                ("bat_wing".into(), 5),
-            ],
+            ingredients: vec![("iron_bar".into(), 5), ("bat_wing".into(), 5)],
             result: "lightning_rod".into(),
             result_quantity: 1,
             is_cooking: false,
@@ -295,11 +292,7 @@ pub fn make_cooking_recipe(id: &str) -> Option<Recipe> {
         "cheese_omelette" => Recipe {
             id: "cheese_omelette".into(),
             name: "Cheese Omelette".into(),
-            ingredients: vec![
-                ("egg".into(), 1),
-                ("milk".into(), 1),
-                ("cheese".into(), 1),
-            ],
+            ingredients: vec![("egg".into(), 1), ("milk".into(), 1), ("cheese".into(), 1)],
             result: "cheese_omelette".into(),
             result_quantity: 1,
             is_cooking: true,

@@ -1,6 +1,6 @@
 //! Regression test: no unintended duplicate keybindings.
-use hearthfield::shared::KeyBindings;
 use bevy::prelude::KeyCode;
+use hearthfield::shared::KeyBindings;
 use std::collections::HashMap;
 
 #[test]
@@ -38,10 +38,7 @@ fn default_keybindings_have_no_unintended_duplicates() {
 
     for (k, fields) in &map {
         if fields.len() > 1 && !allow.contains(k) {
-            panic!(
-                "Duplicate keybinding: {:?} is used by {:?}",
-                k, fields
-            );
+            panic!("Duplicate keybinding: {:?} is used by {:?}", k, fields);
         }
     }
 }

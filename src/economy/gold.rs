@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// Tracks economy statistics for save data and achievements.
 #[derive(Resource, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -43,8 +43,9 @@ pub fn apply_gold_changes(
                     "[Economy] Tried to spend {}g but only have {}g (reason: {}). Clamping to 0.",
                     cost, player_state.gold, ev.reason
                 );
-                stats.total_gold_spent =
-                    stats.total_gold_spent.saturating_add(player_state.gold as u64);
+                stats.total_gold_spent = stats
+                    .total_gold_spent
+                    .saturating_add(player_state.gold as u64);
                 player_state.gold = 0;
             }
         }

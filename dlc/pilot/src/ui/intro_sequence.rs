@@ -1,8 +1,8 @@
 //! Game intro / new-game sequence — studio logo, title, character creation,
 //! backstory narration, then transition to Playing.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Intro Phase ─────────────────────────────────────────────────────────
 

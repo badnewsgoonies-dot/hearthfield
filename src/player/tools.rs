@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use super::{facing_offset, stamina_cost, ToolCooldown, TOOL_ORDER};
 use crate::shared::*;
-use super::{ToolCooldown, stamina_cost, facing_offset, TOOL_ORDER};
+use bevy::prelude::*;
 
 /// Cycle the equipped tool forward (E) or backward (Q).
 pub fn tool_cycle(

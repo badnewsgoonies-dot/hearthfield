@@ -3,11 +3,11 @@
 //! These are interactive entities that exist on maps. They respond to tool
 //! use events and can be destroyed to drop items.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::shared::*;
 
-use super::maps::{WorldObjectKind, ObjectPlacement};
+use super::maps::{ObjectPlacement, WorldObjectKind};
 use super::WorldMap;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ fn spawn_forage_sparkles(commands: &mut Commands, world_pos: Vec2) {
     let count = rng.gen_range(2..=3);
     let colors = [
         Color::srgb(1.0, 1.0, 1.0),   // white
-        Color::srgb(1.0, 0.95, 0.55),  // bright yellow
+        Color::srgb(1.0, 0.95, 0.55), // bright yellow
     ];
 
     for _ in 0..count {
@@ -349,7 +349,9 @@ impl WorldObjectKind {
     /// - Bush: 2 fiber + seasonal berry
     pub fn drops(self) -> Vec<(&'static str, u8)> {
         match self {
-            WorldObjectKind::Tree => vec![("wood", 4), ("sap", 2), ("hardwood", 1), ("tree_seed", 1)],
+            WorldObjectKind::Tree => {
+                vec![("wood", 4), ("sap", 2), ("hardwood", 1), ("tree_seed", 1)]
+            }
             WorldObjectKind::Pine => vec![("wood", 5), ("sap", 3), ("hardwood", 1)],
             WorldObjectKind::Stump => vec![("hardwood", 2), ("sap", 1)],
             WorldObjectKind::Log => vec![("hardwood", 4), ("sap", 1)],
@@ -402,13 +404,13 @@ impl WorldObjectKind {
     ///   Row 4: logs, large rocks
     pub fn atlas_index(self) -> usize {
         match self {
-            WorldObjectKind::Tree => 10,    // row 1, col 1 — tree/bush top
-            WorldObjectKind::Pine => 10,    // fallback; pine uses tree_sprites atlas
-            WorldObjectKind::Bush => 1,     // row 0, col 1 — small bush/grass
-            WorldObjectKind::Stump => 27,   // row 3, col 0 — stump/rock-like
-            WorldObjectKind::Rock => 29,    // row 3, col 2 — rock
+            WorldObjectKind::Tree => 10,      // row 1, col 1 — tree/bush top
+            WorldObjectKind::Pine => 10,      // fallback; pine uses tree_sprites atlas
+            WorldObjectKind::Bush => 1,       // row 0, col 1 — small bush/grass
+            WorldObjectKind::Stump => 27,     // row 3, col 0 — stump/rock-like
+            WorldObjectKind::Rock => 29,      // row 3, col 2 — rock
             WorldObjectKind::LargeRock => 38, // row 4, col 2 — large rock
-            WorldObjectKind::Log => 36,     // row 4, col 0 — log
+            WorldObjectKind::Log => 36,       // row 4, col 0 — log
         }
     }
 }
@@ -455,7 +457,11 @@ pub fn spawn_world_objects(
                     Season::Fall => 2,
                     Season::Winter => 3,
                 };
-                let row_offset = if matches!(kind, WorldObjectKind::Pine) { 4 } else { 0 };
+                let row_offset = if matches!(kind, WorldObjectKind::Pine) {
+                    4
+                } else {
+                    0
+                };
                 (
                     object_atlases.tree_sprites_image.clone(),
                     object_atlases.tree_sprites_layout.clone(),
@@ -470,23 +476,13 @@ pub fn spawn_world_objects(
                 )
             };
 
-            let mut sprite = Sprite::from_atlas_image(
-                image,
-                TextureAtlas {
-                    layout,
-                    index,
-                },
-            );
+            let mut sprite = Sprite::from_atlas_image(image, TextureAtlas { layout, index });
             sprite.custom_size = Some(size);
 
             let wc = grid_to_world_center(placement.x, placement.y);
             commands.spawn((
                 sprite,
-                Transform::from_translation(Vec3::new(
-                    wc.x,
-                    wc.y + y_offset,
-                    Z_ENTITY_BASE,
-                )),
+                Transform::from_translation(Vec3::new(wc.x, wc.y + y_offset, Z_ENTITY_BASE)),
                 WorldObject,
                 YSorted,
                 data,
@@ -500,11 +496,7 @@ pub fn spawn_world_objects(
                     custom_size: Some(size),
                     ..default()
                 },
-                Transform::from_translation(Vec3::new(
-                    wc.x,
-                    wc.y + y_offset,
-                    Z_ENTITY_BASE,
-                )),
+                Transform::from_translation(Vec3::new(wc.x, wc.y + y_offset, Z_ENTITY_BASE)),
                 WorldObject,
                 YSorted,
                 data,
@@ -564,10 +556,7 @@ pub fn handle_tool_use_on_objects(
                     let required = obj_data.kind.required_tier();
                     if tier_level(event.tier) < tier_level(required) {
                         toast_writer.send(ToastEvent {
-                            message: format!(
-                                "Need a better {}!",
-                                tool_display_name(event.tool)
-                            ),
+                            message: format!("Need a better {}!", tool_display_name(event.tool)),
                             duration_secs: 2.0,
                         });
                         break;
@@ -624,7 +613,8 @@ pub fn handle_tool_use_on_objects(
                                 stump_sprite.custom_size =
                                     Some(WorldObjectKind::Stump.sprite_size());
 
-                                let stump_wc = grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
+                                let stump_wc =
+                                    grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
                                 commands.spawn((
                                     stump_sprite,
                                     Transform::from_translation(Vec3::new(
@@ -638,7 +628,8 @@ pub fn handle_tool_use_on_objects(
                                 ));
                             } else {
                                 // Fallback: colored rectangle
-                                let stump_wc = grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
+                                let stump_wc =
+                                    grid_to_world_center(obj_data.grid_x, obj_data.grid_y);
                                 commands.spawn((
                                     Sprite {
                                         color: WorldObjectKind::Stump.color(),
@@ -756,7 +747,10 @@ pub fn spawn_forageables(
     // Spawn on roughly 40-60% of available points, varying by day
     for (i, &(gx, gy)) in forage_points.iter().enumerate() {
         // Simple hash to determine if this point spawns today
-        let hash = ((day as usize).wrapping_mul(31).wrapping_add(i.wrapping_mul(17))) % 10;
+        let hash = ((day as usize)
+            .wrapping_mul(31)
+            .wrapping_add(i.wrapping_mul(17)))
+            % 10;
         if hash > 5 {
             continue; // ~40% spawn rate
         }
@@ -767,7 +761,10 @@ pub fn spawn_forageables(
         }
 
         // Pick which forageable
-        let idx = ((day as usize).wrapping_mul(7).wrapping_add(i.wrapping_mul(13))) % forageables.len();
+        let idx = ((day as usize)
+            .wrapping_mul(7)
+            .wrapping_add(i.wrapping_mul(13)))
+            % forageables.len();
         let (item_id, color) = &forageables[idx];
 
         let fwc = grid_to_world_center(gx, gy);
@@ -799,11 +796,7 @@ pub fn spawn_forageables(
 
         commands.spawn((
             sprite,
-            Transform::from_translation(Vec3::new(
-                fwc.x,
-                fwc.y,
-                Z_ENTITY_BASE,
-            )),
+            Transform::from_translation(Vec3::new(fwc.x, fwc.y, Z_ENTITY_BASE)),
             WorldObject,
             YSorted,
             Forageable {
@@ -883,7 +876,11 @@ pub fn spawn_daily_weeds(
         }
 
         // Determine how many weeds to spawn (2-4), using day as pseudo-random seed
-        let weed_count = 2 + ((event.day as usize).wrapping_mul(13).wrapping_add(event.season.index())) % 3;
+        let weed_count = 2
+            + ((event.day as usize)
+                .wrapping_mul(13)
+                .wrapping_add(event.season.index()))
+                % 3;
 
         let farm_w = 20i32;
         let farm_h = 20i32;
@@ -902,7 +899,10 @@ pub fn spawn_daily_weeds(
                 .wrapping_add(attempt.wrapping_mul(53))
                 .wrapping_add(event.year as usize * 7);
             let x = (hash % farm_w as usize) as i32;
-            let y = (((hash / farm_w as usize).wrapping_mul(17).wrapping_add(attempt * 3)) % farm_h as usize) as i32;
+            let y = (((hash / farm_w as usize)
+                .wrapping_mul(17)
+                .wrapping_add(attempt * 3))
+                % farm_h as usize) as i32;
 
             // Skip if tile is solid (water, objects, etc.)
             if world_map.is_solid(x, y) {
@@ -1042,7 +1042,10 @@ pub fn regrow_trees_on_season_change(
                 .wrapping_add(event.new_season.index().wrapping_mul(67))
                 .wrapping_add(attempt.wrapping_mul(29));
             let x = (hash % farm_w as usize) as i32;
-            let y = (((hash / farm_w as usize).wrapping_mul(23).wrapping_add(attempt * 7)) % farm_h as usize) as i32;
+            let y = (((hash / farm_w as usize)
+                .wrapping_mul(23)
+                .wrapping_add(attempt * 7))
+                % farm_h as usize) as i32;
 
             // Skip solid, cropped, tilled, or occupied tiles
             if world_map.is_solid(x, y) {
@@ -1094,11 +1097,7 @@ pub fn regrow_trees_on_season_change(
                 let rwc = grid_to_world_center(x, y);
                 commands.spawn((
                     sprite,
-                    Transform::from_translation(Vec3::new(
-                        rwc.x,
-                        rwc.y + y_offset,
-                        Z_ENTITY_BASE,
-                    )),
+                    Transform::from_translation(Vec3::new(rwc.x, rwc.y + y_offset, Z_ENTITY_BASE)),
                     WorldObject,
                     YSorted,
                     data,
@@ -1111,11 +1110,7 @@ pub fn regrow_trees_on_season_change(
                         custom_size: Some(size),
                         ..default()
                     },
-                    Transform::from_translation(Vec3::new(
-                        rwc.x,
-                        rwc.y + y_offset,
-                        Z_ENTITY_BASE,
-                    )),
+                    Transform::from_translation(Vec3::new(rwc.x, rwc.y + y_offset, Z_ENTITY_BASE)),
                     WorldObject,
                     YSorted,
                     data,
@@ -1149,7 +1144,11 @@ pub fn update_tree_sprites_on_season_change(
         };
         for (obj_data, mut sprite) in tree_query.iter_mut() {
             if matches!(obj_data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine) {
-                let row_offset = if matches!(obj_data.kind, WorldObjectKind::Pine) { 4 } else { 0 };
+                let row_offset = if matches!(obj_data.kind, WorldObjectKind::Pine) {
+                    4
+                } else {
+                    0
+                };
                 *sprite = Sprite::from_atlas_image(
                     object_atlases.tree_sprites_image.clone(),
                     TextureAtlas {
@@ -1306,7 +1305,7 @@ pub struct BuildingSign;
 
 /// Building entrance definitions: (grid_x, grid_y, label).
 const BUILDING_SIGNS: &[(i32, i32, &str)] = &[
-    (9,  5, "General Store"),
+    (9, 5, "General Store"),
     (39, 5, "Animal Shop"),
     (42, 31, "Blacksmith"),
 ];
@@ -1365,32 +1364,52 @@ fn town_buildings() -> Vec<BuildingDef> {
     vec![
         // General Store (north-west)
         BuildingDef {
-            x: 2, y: 2, w: 8, h: 5,
-            door_x: 5, door_y: 2,
+            x: 2,
+            y: 2,
+            w: 8,
+            h: 5,
+            door_x: 5,
+            door_y: 2,
             roof_tint: Color::srgb(0.85, 0.55, 0.4),
         },
         // Animal Shop (north-east)
         BuildingDef {
-            x: 18, y: 2, w: 8, h: 5,
-            door_x: 22, door_y: 2,
+            x: 18,
+            y: 2,
+            w: 8,
+            h: 5,
+            door_x: 22,
+            door_y: 2,
             roof_tint: Color::srgb(0.5, 0.7, 0.85),
         },
         // Blacksmith (east, below plaza)
         BuildingDef {
-            x: 20, y: 13, w: 6, h: 4,
-            door_x: 22, door_y: 13,
+            x: 20,
+            y: 13,
+            w: 6,
+            h: 4,
+            door_x: 22,
+            door_y: 13,
             roof_tint: Color::srgb(0.6, 0.55, 0.55),
         },
         // NPC House 1 (west, below plaza — doc/librarian area)
         BuildingDef {
-            x: 2, y: 13, w: 5, h: 3,
-            door_x: 3, door_y: 13,
+            x: 2,
+            y: 13,
+            w: 5,
+            h: 3,
+            door_x: 3,
+            door_y: 13,
             roof_tint: Color::srgb(0.75, 0.85, 0.6),
         },
         // NPC House 2 (center-west, below plaza — fisher/kid)
         BuildingDef {
-            x: 8, y: 13, w: 5, h: 3,
-            door_x: 9, door_y: 13,
+            x: 8,
+            y: 13,
+            w: 5,
+            h: 3,
+            door_x: 9,
+            door_y: 13,
             roof_tint: Color::srgb(0.85, 0.75, 0.55),
         },
     ]
@@ -1400,20 +1419,32 @@ fn farm_buildings() -> Vec<BuildingDef> {
     vec![
         // Player house (top center of farm)
         BuildingDef {
-            x: 13, y: 0, w: 6, h: 3,
-            door_x: 15, door_y: 0,
+            x: 13,
+            y: 0,
+            w: 6,
+            h: 3,
+            door_x: 15,
+            door_y: 0,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
         },
         // Chicken coop (bottom-left area)
         BuildingDef {
-            x: 9, y: 17, w: 3, h: 2,
-            door_x: 10, door_y: 17,
+            x: 9,
+            y: 17,
+            w: 3,
+            h: 2,
+            door_x: 10,
+            door_y: 17,
             roof_tint: Color::srgb(0.9, 0.8, 0.5),
         },
         // Barn (bottom-left area)
         BuildingDef {
-            x: 3, y: 16, w: 5, h: 3,
-            door_x: 5, door_y: 16,
+            x: 3,
+            y: 16,
+            w: 5,
+            h: 3,
+            door_x: 5,
+            door_y: 16,
             roof_tint: Color::srgb(0.7, 0.3, 0.3),
         },
     ]
@@ -1452,18 +1483,18 @@ pub fn spawn_building_sprites(
                 let is_left = dx == 0;
                 let is_right = dx == bld.w - 1;
                 let is_top = dy == bld.h - 1; // highest Y = back wall
-                let is_bottom = dy == 0;       // lowest Y = front wall
+                let is_bottom = dy == 0; // lowest Y = front wall
 
                 let wall_index = match (is_top, is_bottom, is_left, is_right) {
-                    (true, _, true, _) => 1,     // top-left: wall face
-                    (true, _, _, true) => 4,     // top-right: wall face
-                    (true, _, _, _) => 3,        // top center: wall face
-                    (_, true, true, _) => 11,    // bottom-left: base
-                    (_, true, _, true) => 9,     // bottom-right: wall
-                    (_, true, _, _) => 6,        // bottom center: light wall
-                    (_, _, true, _) => 1,        // left edge: wall face
-                    (_, _, _, true) => 9,        // right edge: wall
-                    _ => 8,                      // interior fill: wall
+                    (true, _, true, _) => 1,  // top-left: wall face
+                    (true, _, _, true) => 4,  // top-right: wall face
+                    (true, _, _, _) => 3,     // top center: wall face
+                    (_, true, true, _) => 11, // bottom-left: base
+                    (_, true, _, true) => 9,  // bottom-right: wall
+                    (_, true, _, _) => 6,     // bottom center: light wall
+                    (_, _, true, _) => 1,     // left edge: wall face
+                    (_, _, _, true) => 9,     // right edge: wall
+                    _ => 8,                   // interior fill: wall
                 };
 
                 let wc = grid_to_world_center(gx, gy);
@@ -1503,10 +1534,22 @@ pub fn spawn_building_sprites(
 
                 let roof_index = if ry == 0 {
                     // Bottom roof row (eave, closest to building)
-                    if is_left { 31 } else if is_right { 34 } else { 32 }
+                    if is_left {
+                        31
+                    } else if is_right {
+                        34
+                    } else {
+                        32
+                    }
                 } else {
                     // Top roof row (body/peak, furthest from building)
-                    if is_left { 22 } else if is_right { 27 } else { 25 }
+                    if is_left {
+                        22
+                    } else if is_right {
+                        27
+                    } else {
+                        25
+                    }
                 };
 
                 let wc = grid_to_world_center(gx, gy);
@@ -1573,54 +1616,175 @@ fn player_house_furniture() -> Vec<FurniturePlacement> {
     vec![
         // ── Bedroom (upper-right area) ──
         // Bed (2-tile wide)
-        FurniturePlacement { x: 12, y: 2, index: 2, wide: false },
-        FurniturePlacement { x: 13, y: 2, index: 3, wide: false },
+        FurniturePlacement {
+            x: 12,
+            y: 2,
+            index: 2,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 13,
+            y: 2,
+            index: 3,
+            wide: false,
+        },
         // Nightstand beside bed
-        FurniturePlacement { x: 11, y: 2, index: 31, wide: false },
+        FurniturePlacement {
+            x: 11,
+            y: 2,
+            index: 31,
+            wide: false,
+        },
         // Dresser
-        FurniturePlacement { x: 14, y: 4, index: 21, wide: false },
+        FurniturePlacement {
+            x: 14,
+            y: 4,
+            index: 21,
+            wide: false,
+        },
         // Bedroom rug under bed
-        FurniturePlacement { x: 12, y: 3, index: 48, wide: false },
-        FurniturePlacement { x: 13, y: 3, index: 49, wide: false },
-
+        FurniturePlacement {
+            x: 12,
+            y: 3,
+            index: 48,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 13,
+            y: 3,
+            index: 49,
+            wide: false,
+        },
         // ── Kitchen (upper-left area) ──
         // Counter along back wall
-        FurniturePlacement { x: 2, y: 1, index: 32, wide: false },
-        FurniturePlacement { x: 3, y: 1, index: 33, wide: false },
-        FurniturePlacement { x: 4, y: 1, index: 32, wide: false },
+        FurniturePlacement {
+            x: 2,
+            y: 1,
+            index: 32,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 1,
+            index: 33,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 1,
+            index: 32,
+            wide: false,
+        },
         // Pantry barrel
-        FurniturePlacement { x: 1, y: 3, index: 27, wide: false },
+        FurniturePlacement {
+            x: 1,
+            y: 3,
+            index: 27,
+            wide: false,
+        },
         // Kitchen table
-        FurniturePlacement { x: 3, y: 4, index: 0, wide: false },
-        FurniturePlacement { x: 4, y: 4, index: 1, wide: false },
+        FurniturePlacement {
+            x: 3,
+            y: 4,
+            index: 0,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 4,
+            index: 1,
+            wide: false,
+        },
         // Stools at table
-        FurniturePlacement { x: 3, y: 5, index: 5, wide: false },
-        FurniturePlacement { x: 4, y: 5, index: 5, wide: false },
-
+        FurniturePlacement {
+            x: 3,
+            y: 5,
+            index: 5,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 5,
+            index: 5,
+            wide: false,
+        },
         // ── Living Room (center) ──
         // Bookshelf on left wall (2-tile tall)
-        FurniturePlacement { x: 1, y: 6, index: 9, wide: false },
-        FurniturePlacement { x: 1, y: 7, index: 18, wide: false },
+        FurniturePlacement {
+            x: 1,
+            y: 6,
+            index: 9,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 1,
+            y: 7,
+            index: 18,
+            wide: false,
+        },
         // Chairs flanking rug
-        FurniturePlacement { x: 5, y: 7, index: 4, wide: false },
-        FurniturePlacement { x: 10, y: 7, index: 4, wide: false },
+        FurniturePlacement {
+            x: 5,
+            y: 7,
+            index: 4,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 10,
+            y: 7,
+            index: 4,
+            wide: false,
+        },
         // Lamp next to bookshelf
-        FurniturePlacement { x: 1, y: 8, index: 24, wide: false },
+        FurniturePlacement {
+            x: 1,
+            y: 8,
+            index: 24,
+            wide: false,
+        },
         // Plant in corner
-        FurniturePlacement { x: 14, y: 8, index: 22, wide: false },
-
+        FurniturePlacement {
+            x: 14,
+            y: 8,
+            index: 22,
+            wide: false,
+        },
         // ── Fireplace area ──
         // (Stone tiles handle the fireplace, but add decorative items)
-        FurniturePlacement { x: 5, y: 1, index: 24, wide: false }, // lamp on mantel
-
+        FurniturePlacement {
+            x: 5,
+            y: 1,
+            index: 24,
+            wide: false,
+        }, // lamp on mantel
         // ── Entry Area ──
         // Coat/supply barrel near door
-        FurniturePlacement { x: 2, y: 13, index: 27, wide: false },
+        FurniturePlacement {
+            x: 2,
+            y: 13,
+            index: 27,
+            wide: false,
+        },
         // Crate near door
-        FurniturePlacement { x: 13, y: 13, index: 36, wide: false },
+        FurniturePlacement {
+            x: 13,
+            y: 13,
+            index: 36,
+            wide: false,
+        },
         // Welcome mat (furniture over path tiles)
-        FurniturePlacement { x: 7, y: 14, index: 48, wide: false },
-        FurniturePlacement { x: 8, y: 14, index: 49, wide: false },
+        FurniturePlacement {
+            x: 7,
+            y: 14,
+            index: 48,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 14,
+            index: 49,
+            wide: false,
+        },
     ]
 }
 
@@ -1628,97 +1792,341 @@ fn general_store_furniture() -> Vec<FurniturePlacement> {
     vec![
         // ── Behind counter (shopkeeper area, y=1-3) ──
         // Shelves along back wall
-        FurniturePlacement { x: 2, y: 1, index: 9, wide: false },
-        FurniturePlacement { x: 3, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 4, y: 1, index: 11, wide: false },
-        FurniturePlacement { x: 6, y: 1, index: 9, wide: false },
-        FurniturePlacement { x: 7, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 8, y: 1, index: 11, wide: false },
+        FurniturePlacement {
+            x: 2,
+            y: 1,
+            index: 9,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 1,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 1,
+            index: 11,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 6,
+            y: 1,
+            index: 9,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 1,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 1,
+            index: 11,
+            wide: false,
+        },
         // Back crates
-        FurniturePlacement { x: 9, y: 2, index: 36, wide: false },
-
+        FurniturePlacement {
+            x: 9,
+            y: 2,
+            index: 36,
+            wide: false,
+        },
         // ── Counter surface (y=4, stone tiles underneath) ──
-        FurniturePlacement { x: 4, y: 4, index: 32, wide: false },
-        FurniturePlacement { x: 5, y: 4, index: 33, wide: false },
-        FurniturePlacement { x: 7, y: 4, index: 32, wide: false },
-
+        FurniturePlacement {
+            x: 4,
+            y: 4,
+            index: 32,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 4,
+            index: 33,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 4,
+            index: 32,
+            wide: false,
+        },
         // ── Customer area displays ──
         // Left wall shelves
-        FurniturePlacement { x: 1, y: 5, index: 9, wide: false },
-        FurniturePlacement { x: 1, y: 6, index: 18, wide: false },
-        FurniturePlacement { x: 1, y: 8, index: 9, wide: false },
+        FurniturePlacement {
+            x: 1,
+            y: 5,
+            index: 9,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 1,
+            y: 6,
+            index: 18,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 1,
+            y: 8,
+            index: 9,
+            wide: false,
+        },
         // Right wall shelves
-        FurniturePlacement { x: 10, y: 5, index: 10, wide: false },
-        FurniturePlacement { x: 10, y: 6, index: 18, wide: false },
-        FurniturePlacement { x: 10, y: 8, index: 10, wide: false },
-
+        FurniturePlacement {
+            x: 10,
+            y: 5,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 10,
+            y: 6,
+            index: 18,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 10,
+            y: 8,
+            index: 10,
+            wide: false,
+        },
         // ── Entrance area ──
         // Barrel near door
-        FurniturePlacement { x: 2, y: 9, index: 27, wide: false },
+        FurniturePlacement {
+            x: 2,
+            y: 9,
+            index: 27,
+            wide: false,
+        },
         // Crate near door
-        FurniturePlacement { x: 9, y: 9, index: 36, wide: false },
+        FurniturePlacement {
+            x: 9,
+            y: 9,
+            index: 36,
+            wide: false,
+        },
         // Potted plant
-        FurniturePlacement { x: 1, y: 4, index: 22, wide: false },
-        FurniturePlacement { x: 10, y: 3, index: 22, wide: false },
+        FurniturePlacement {
+            x: 1,
+            y: 4,
+            index: 22,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 10,
+            y: 3,
+            index: 22,
+            wide: false,
+        },
     ]
 }
 
 fn blacksmith_furniture() -> Vec<FurniturePlacement> {
     vec![
         // ── Forge area (back-right, on dirt) ──
-        FurniturePlacement { x: 7, y: 1, index: 18, wide: false },
-        FurniturePlacement { x: 8, y: 1, index: 18, wide: false },
-        FurniturePlacement { x: 9, y: 2, index: 27, wide: false }, // water barrel
-
+        FurniturePlacement {
+            x: 7,
+            y: 1,
+            index: 18,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 1,
+            index: 18,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 2,
+            index: 27,
+            wide: false,
+        }, // water barrel
         // ── Anvil workspace (center, on wood floor island) ──
-        FurniturePlacement { x: 5, y: 6, index: 19, wide: false },
-
+        FurniturePlacement {
+            x: 5,
+            y: 6,
+            index: 19,
+            wide: false,
+        },
         // ── Counter / reception (y=4) ──
-        FurniturePlacement { x: 3, y: 4, index: 32, wide: false },
-        FurniturePlacement { x: 4, y: 4, index: 33, wide: false },
-        FurniturePlacement { x: 5, y: 4, index: 32, wide: false },
-
+        FurniturePlacement {
+            x: 3,
+            y: 4,
+            index: 32,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 4,
+            index: 33,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 4,
+            index: 32,
+            wide: false,
+        },
         // ── Storage corner (back-left, on dirt) ──
-        FurniturePlacement { x: 1, y: 1, index: 36, wide: false },
-        FurniturePlacement { x: 2, y: 1, index: 37, wide: false },
-        FurniturePlacement { x: 1, y: 2, index: 38, wide: false },
-        FurniturePlacement { x: 3, y: 1, index: 36, wide: false },
-
+        FurniturePlacement {
+            x: 1,
+            y: 1,
+            index: 36,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 2,
+            y: 1,
+            index: 37,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 1,
+            y: 2,
+            index: 38,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 1,
+            index: 36,
+            wide: false,
+        },
         // ── Decorations ──
-        FurniturePlacement { x: 1, y: 5, index: 24, wide: false }, // lamp
-        FurniturePlacement { x: 10, y: 5, index: 27, wide: false }, // barrel
-        FurniturePlacement { x: 10, y: 8, index: 36, wide: false }, // crate near door
-
+        FurniturePlacement {
+            x: 1,
+            y: 5,
+            index: 24,
+            wide: false,
+        }, // lamp
+        FurniturePlacement {
+            x: 10,
+            y: 5,
+            index: 27,
+            wide: false,
+        }, // barrel
+        FurniturePlacement {
+            x: 10,
+            y: 8,
+            index: 36,
+            wide: false,
+        }, // crate near door
         // ── Tool display on right wall ──
-        FurniturePlacement { x: 10, y: 3, index: 9, wide: false },
+        FurniturePlacement {
+            x: 10,
+            y: 3,
+            index: 9,
+            wide: false,
+        },
     ]
 }
 
 fn animal_shop_furniture() -> Vec<FurniturePlacement> {
     vec![
         // ── Hay/feed storage (back-left, on dirt) ──
-        FurniturePlacement { x: 1, y: 1, index: 45, wide: false },
-        FurniturePlacement { x: 2, y: 1, index: 46, wide: false },
-        FurniturePlacement { x: 3, y: 1, index: 47, wide: false },
-        FurniturePlacement { x: 1, y: 2, index: 45, wide: false },
-        FurniturePlacement { x: 2, y: 2, index: 27, wide: false }, // feed barrel
-
+        FurniturePlacement {
+            x: 1,
+            y: 1,
+            index: 45,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 2,
+            y: 1,
+            index: 46,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 1,
+            index: 47,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 1,
+            y: 2,
+            index: 45,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 2,
+            y: 2,
+            index: 27,
+            wide: false,
+        }, // feed barrel
         // ── Counter (y=4, stone underneath) ──
-        FurniturePlacement { x: 5, y: 4, index: 32, wide: false },
-        FurniturePlacement { x: 6, y: 4, index: 33, wide: false },
-        FurniturePlacement { x: 7, y: 4, index: 32, wide: false },
-
+        FurniturePlacement {
+            x: 5,
+            y: 4,
+            index: 32,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 6,
+            y: 4,
+            index: 33,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 4,
+            index: 32,
+            wide: false,
+        },
         // ── Back wall shelves (right side) ──
-        FurniturePlacement { x: 6, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 7, y: 1, index: 11, wide: false },
-        FurniturePlacement { x: 8, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 9, y: 1, index: 9, wide: false },
-
+        FurniturePlacement {
+            x: 6,
+            y: 1,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 1,
+            index: 11,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 1,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 1,
+            index: 9,
+            wide: false,
+        },
         // ── Customer area ──
-        FurniturePlacement { x: 1, y: 6, index: 28, wide: false }, // barrel
-        FurniturePlacement { x: 10, y: 6, index: 22, wide: false }, // plant
-        FurniturePlacement { x: 10, y: 9, index: 36, wide: false }, // crate
-        FurniturePlacement { x: 1, y: 9, index: 27, wide: false }, // barrel near door
+        FurniturePlacement {
+            x: 1,
+            y: 6,
+            index: 28,
+            wide: false,
+        }, // barrel
+        FurniturePlacement {
+            x: 10,
+            y: 6,
+            index: 22,
+            wide: false,
+        }, // plant
+        FurniturePlacement {
+            x: 10,
+            y: 9,
+            index: 36,
+            wide: false,
+        }, // crate
+        FurniturePlacement {
+            x: 1,
+            y: 9,
+            index: 27,
+            wide: false,
+        }, // barrel near door
     ]
 }
 

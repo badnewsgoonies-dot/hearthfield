@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 
+use super::transitions::ScreenFade;
+use super::UiFontHandle;
 use crate::shared::*;
 use crate::world::maps::default_spawn_position;
-use super::UiFontHandle;
-use super::transitions::ScreenFade;
 
 // ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES
@@ -111,7 +111,11 @@ pub fn run_cutscene_queue(
 
     match step {
         CutsceneStep::FadeOut(duration) => {
-            let speed = if duration > 0.0 { 1.0 / duration } else { 100.0 };
+            let speed = if duration > 0.0 {
+                1.0 / duration
+            } else {
+                100.0
+            };
             fade.target_alpha = 1.0;
             fade.speed = speed;
             fade.active = true;
@@ -124,7 +128,11 @@ pub fn run_cutscene_queue(
         }
 
         CutsceneStep::FadeIn(duration) => {
-            let speed = if duration > 0.0 { 1.0 / duration } else { 100.0 };
+            let speed = if duration > 0.0 {
+                1.0 / duration
+            } else {
+                100.0
+            };
             fade.target_alpha = 0.0;
             fade.speed = speed;
             fade.active = true;
@@ -149,35 +157,36 @@ pub fn run_cutscene_queue(
             if overlay_query.is_empty() {
                 let font = font_handle.0.clone();
                 let display_text = text.clone();
-                commands.spawn((
-                    CutsceneTextOverlay,
-                    Node {
-                        width: Val::Percent(100.0),
-                        height: Val::Percent(100.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        position_type: PositionType::Absolute,
-                        ..default()
-                    },
-                    GlobalZIndex(101),
-                    PickingBehavior::IGNORE,
-                ))
-                .with_children(|parent| {
-                    parent.spawn((
-                        Text::new(display_text),
-                        TextFont {
-                            font,
-                            font_size: 24.0,
-                            ..default()
-                        },
-                        TextColor(Color::WHITE),
+                commands
+                    .spawn((
+                        CutsceneTextOverlay,
                         Node {
-                            max_width: Val::Px(600.0),
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(100.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            position_type: PositionType::Absolute,
                             ..default()
                         },
+                        GlobalZIndex(101),
                         PickingBehavior::IGNORE,
-                    ));
-                });
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            Text::new(display_text),
+                            TextFont {
+                                font,
+                                font_size: 24.0,
+                                ..default()
+                            },
+                            TextColor(Color::WHITE),
+                            Node {
+                                max_width: Val::Px(600.0),
+                                ..default()
+                            },
+                            PickingBehavior::IGNORE,
+                        ));
+                    });
             }
 
             queue.step_timer += dt;
@@ -242,7 +251,11 @@ pub fn run_cutscene_queue(
             queue.step_timer = 0.0;
         }
 
-        CutsceneStep::StartDialogueCustom { ref npc_id, ref lines, portrait_index } => {
+        CutsceneStep::StartDialogueCustom {
+            ref npc_id,
+            ref lines,
+            portrait_index,
+        } => {
             dialogue_start.send(DialogueStartEvent {
                 npc_id: npc_id.clone(),
                 lines: lines.clone(),

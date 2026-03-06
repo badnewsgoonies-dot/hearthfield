@@ -1,7 +1,7 @@
 //! Cargo management — types, manifests, loading, condition tracking, weight effects.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════

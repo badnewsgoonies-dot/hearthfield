@@ -126,10 +126,7 @@ pub fn check_and_grant_treasure(
     }
 
     toast_events.send(ToastEvent {
-        message: format!(
-            "You found a treasure chest! (+{} gold)",
-            contents.gold
-        ),
+        message: format!("You found a treasure chest! (+{} gold)", contents.gold),
         duration_secs: 3.5,
     });
 
@@ -147,9 +144,15 @@ mod tests {
         // Roll many times and verify structure is always valid
         for _ in 0..100 {
             let contents = roll_treasure();
-            assert!(!contents.items.is_empty(), "Treasure should always have items");
-            assert!(contents.gold >= 50 && contents.gold <= 200,
-                "Gold should be in [50, 200], got {}", contents.gold);
+            assert!(
+                !contents.items.is_empty(),
+                "Treasure should always have items"
+            );
+            assert!(
+                contents.gold >= 50 && contents.gold <= 200,
+                "Gold should be in [50, 200], got {}",
+                contents.gold
+            );
             for (item_id, qty) in &contents.items {
                 assert!(!item_id.is_empty(), "Item ID should not be empty");
                 assert!(*qty > 0, "Item quantity should be positive");
@@ -160,8 +163,14 @@ mod tests {
     #[test]
     fn test_roll_treasure_item_ids_are_known() {
         let known_items = [
-            "copper_ore", "iron_ore", "amethyst", "topaz",
-            "ancient_sword", "dinosaur_egg", "iridium_ore", "prismatic_shard",
+            "copper_ore",
+            "iron_ore",
+            "amethyst",
+            "topaz",
+            "ancient_sword",
+            "dinosaur_egg",
+            "iridium_ore",
+            "prismatic_shard",
         ];
         for _ in 0..200 {
             let contents = roll_treasure();
@@ -185,14 +194,18 @@ mod tests {
     #[test]
     fn test_treasure_chance_with_magnet_bait() {
         let effective_chance = BASE_TREASURE_CHANCE + MAGNET_BAIT_EXTRA_CHANCE;
-        assert!((effective_chance - 0.20).abs() < f64::EPSILON,
-            "Magnet bait should give 20% treasure chance");
+        assert!(
+            (effective_chance - 0.20).abs() < f64::EPSILON,
+            "Magnet bait should give 20% treasure chance"
+        );
     }
 
     #[test]
     fn test_treasure_chance_with_wild_bait() {
         let effective_chance = BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE;
-        assert!((effective_chance - 0.10).abs() < f64::EPSILON,
-            "Wild bait should give 10% treasure chance");
+        assert!(
+            (effective_chance - 0.10).abs() < f64::EPSILON,
+            "Wild bait should give 10% treasure chance"
+        );
     }
 }

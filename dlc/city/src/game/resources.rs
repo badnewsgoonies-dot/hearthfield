@@ -528,9 +528,32 @@ pub enum CoworkerRole {
     Intern,
 }
 
+impl CoworkerRole {
+    pub const fn npc_role(self) -> NpcRole {
+        match self {
+            CoworkerRole::Manager => NpcRole::Manager,
+            CoworkerRole::Clerk => NpcRole::Clerk,
+            CoworkerRole::Analyst => NpcRole::Analyst,
+            CoworkerRole::Coordinator => NpcRole::Coordinator,
+            CoworkerRole::Intern => NpcRole::Intern,
+        }
+    }
+}
+
 #[derive(Resource, Debug, Clone)]
 pub struct CoworkerDialogue {
     pub lines: HashMap<NpcRole, Vec<String>>,
+}
+
+impl CoworkerDialogue {
+    pub fn line_for_role(&self, role: CoworkerRole, seed: u64, cursor: u32) -> Option<&str> {
+        let lines = self.lines.get(&role.npc_role())?;
+        if lines.is_empty() {
+            return None;
+        }
+        let index = (seed.wrapping_add(cursor as u64 * 11) % lines.len() as u64) as usize;
+        lines.get(index).map(String::as_str)
+    }
 }
 
 impl Default for CoworkerDialogue {
@@ -927,12 +950,12 @@ pub fn load_office_font(mut font: ResMut<OfficeFontHandle>, asset_server: Res<As
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MilestoneKind {
-    Friendly,      // affinity >= 25
-    Trusted,       // trust >= 25
-    CloseFriend,   // affinity >= 50
-    DeepTrust,     // trust >= 50
-    Rival,         // affinity <= -25
-    Distrusted,    // trust <= -25
+    Friendly,    // affinity >= 25
+    Trusted,     // trust >= 25
+    CloseFriend, // affinity >= 50
+    DeepTrust,   // trust >= 50
+    Rival,       // affinity <= -25
+    Distrusted,  // trust <= -25
 }
 
 #[derive(Resource, Debug, Clone, Default)]

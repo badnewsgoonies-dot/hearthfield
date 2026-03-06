@@ -1,7 +1,7 @@
 //! Load Game screen — select a save slot and load it.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -131,10 +131,7 @@ pub fn spawn_load_screen(
     commands.entity(root).add_child(hint);
 }
 
-pub fn despawn_load_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<LoadScreenRoot>>,
-) {
+pub fn despawn_load_screen(mut commands: Commands, query: Query<Entity, With<LoadScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -157,9 +154,7 @@ pub fn handle_load_input(
 
     // Click a slot button
     for (interaction, btn) in &interaction_q {
-        if *interaction == Interaction::Pressed
-            && save_slots.slots[btn.slot].is_some()
-        {
+        if *interaction == Interaction::Pressed && save_slots.slots[btn.slot].is_some() {
             load_events.send(LoadRequestEvent { slot: btn.slot });
             next_state.set(GameState::Playing);
         }

@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -130,54 +130,78 @@ pub fn spawn_map_screen(
 }
 
 /// Spawns the ASCII-art style map layout showing all locations and connections.
-fn spawn_map_layout(
-    parent: &mut ChildBuilder,
-    font: &Handle<Font>,
-    current_map: MapId,
-) {
+fn spawn_map_layout(parent: &mut ChildBuilder, font: &Handle<Font>, current_map: MapId) {
     // Row 1:  [Forest]          [Mine]
-    spawn_map_row(parent, font, current_map, &[
-        MapNode::Location(MapId::Forest),
-        MapNode::Spacer("          "),
-        MapNode::Location(MapId::MineEntrance),
-    ]);
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[
+            MapNode::Location(MapId::Forest),
+            MapNode::Spacer("          "),
+            MapNode::Location(MapId::MineEntrance),
+        ],
+    );
 
     // Row 2:      \               |
     spawn_map_text_row(parent, font, "    \\                    |");
 
     // Row 3:  [Farm] ------  [Town]
-    spawn_map_row(parent, font, current_map, &[
-        MapNode::Location(MapId::Farm),
-        MapNode::Spacer(" ----- "),
-        MapNode::Location(MapId::Town),
-    ]);
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[
+            MapNode::Location(MapId::Farm),
+            MapNode::Spacer(" ----- "),
+            MapNode::Location(MapId::Town),
+        ],
+    );
 
     // Row 4:     |               |
     spawn_map_text_row(parent, font, "   |                     |");
 
     // Row 5:  [Beach]       [General Store]
-    spawn_map_row(parent, font, current_map, &[
-        MapNode::Location(MapId::Beach),
-        MapNode::Spacer("       "),
-        MapNode::Location(MapId::GeneralStore),
-    ]);
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[
+            MapNode::Location(MapId::Beach),
+            MapNode::Spacer("       "),
+            MapNode::Location(MapId::GeneralStore),
+        ],
+    );
 
     // Row 6:                [Animal Shop]
-    spawn_map_row(parent, font, current_map, &[
-        MapNode::Spacer("                    "),
-        MapNode::Location(MapId::AnimalShop),
-    ]);
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[
+            MapNode::Spacer("                    "),
+            MapNode::Location(MapId::AnimalShop),
+        ],
+    );
 
     // Row 7:                [Blacksmith]
-    spawn_map_row(parent, font, current_map, &[
-        MapNode::Spacer("                    "),
-        MapNode::Location(MapId::Blacksmith),
-    ]);
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[
+            MapNode::Spacer("                    "),
+            MapNode::Location(MapId::Blacksmith),
+        ],
+    );
 
     // Row 8:  [Player House]
-    spawn_map_row(parent, font, current_map, &[
-        MapNode::Location(MapId::PlayerHouse),
-    ]);
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[MapNode::Location(MapId::PlayerHouse)],
+    );
 }
 
 enum MapNode {
@@ -268,10 +292,7 @@ fn map_id_display_name(map_id: MapId) -> &'static str {
     }
 }
 
-pub fn despawn_map_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<MapScreenRoot>>,
-) {
+pub fn despawn_map_screen(mut commands: Commands, query: Query<Entity, With<MapScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }

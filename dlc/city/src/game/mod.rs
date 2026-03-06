@@ -100,8 +100,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             )
             .add_systems(
                 Update,
-                ui::main_menu::handle_main_menu_input
-                    .run_if(in_state(OfficeGameState::MainMenu)),
+                ui::main_menu::handle_main_menu_input.run_if(in_state(OfficeGameState::MainMenu)),
             )
             // Pause toggle (keyboard Esc)
             .add_systems(
@@ -120,8 +119,7 @@ impl Plugin for CityOfficeWorkerPlugin {
             )
             .add_systems(
                 Update,
-                ui::pause_menu::handle_pause_input
-                    .run_if(in_state(OfficeGameState::Paused)),
+                ui::pause_menu::handle_pause_input.run_if(in_state(OfficeGameState::Paused)),
             )
             // HUD + Task Board + Interruption (InDay state)
             .add_systems(

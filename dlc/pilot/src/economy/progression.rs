@@ -1,7 +1,7 @@
 //! XP and rank progression — requirements, ceremonies, privileges, XP formulas, decay.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct RankRequirements {
     pub min_flights: u32,
@@ -12,12 +12,42 @@ pub struct RankRequirements {
 
 pub fn rank_requirements(rank: PilotRank) -> RankRequirements {
     match rank {
-        PilotRank::Student => RankRequirements { min_flights: 0, min_hours: 0.0, min_reputation: 0.0, min_xp: 0 },
-        PilotRank::Private => RankRequirements { min_flights: 5, min_hours: 2.0, min_reputation: 20.0, min_xp: 100 },
-        PilotRank::Commercial => RankRequirements { min_flights: 20, min_hours: 10.0, min_reputation: 40.0, min_xp: 350 },
-        PilotRank::Senior => RankRequirements { min_flights: 50, min_hours: 30.0, min_reputation: 60.0, min_xp: 800 },
-        PilotRank::Captain => RankRequirements { min_flights: 100, min_hours: 80.0, min_reputation: 75.0, min_xp: 1500 },
-        PilotRank::Ace => RankRequirements { min_flights: 200, min_hours: 150.0, min_reputation: 90.0, min_xp: 3000 },
+        PilotRank::Student => RankRequirements {
+            min_flights: 0,
+            min_hours: 0.0,
+            min_reputation: 0.0,
+            min_xp: 0,
+        },
+        PilotRank::Private => RankRequirements {
+            min_flights: 5,
+            min_hours: 2.0,
+            min_reputation: 20.0,
+            min_xp: 100,
+        },
+        PilotRank::Commercial => RankRequirements {
+            min_flights: 20,
+            min_hours: 10.0,
+            min_reputation: 40.0,
+            min_xp: 350,
+        },
+        PilotRank::Senior => RankRequirements {
+            min_flights: 50,
+            min_hours: 30.0,
+            min_reputation: 60.0,
+            min_xp: 800,
+        },
+        PilotRank::Captain => RankRequirements {
+            min_flights: 100,
+            min_hours: 80.0,
+            min_reputation: 75.0,
+            min_xp: 1500,
+        },
+        PilotRank::Ace => RankRequirements {
+            min_flights: 200,
+            min_hours: 150.0,
+            min_reputation: 90.0,
+            min_xp: 3000,
+        },
     }
 }
 
@@ -36,11 +66,36 @@ pub fn meets_rank_requirements(pilot: &PilotState) -> bool {
 pub fn rank_privileges(rank: PilotRank) -> &'static [&'static str] {
     match rank {
         PilotRank::Student => &["Training flights only", "HomeBase airport only"],
-        PilotRank::Private => &["Small single-engine aircraft", "Nearby airports unlocked", "Solo flights"],
-        PilotRank::Commercial => &["Multi-engine aircraft", "Passenger flights", "Distant airports", "Cargo missions"],
-        PilotRank::Senior => &["Turboprop & light jets", "All weather clearance", "High-altitude airports", "VIP charters"],
-        PilotRank::Captain => &["All jets", "Command flights", "Emergency dispatch priority", "Elite airports"],
-        PilotRank::Ace => &["Heavy jets", "Legendary status", "All missions", "Skyreach Elite access", "Ace flight suit"],
+        PilotRank::Private => &[
+            "Small single-engine aircraft",
+            "Nearby airports unlocked",
+            "Solo flights",
+        ],
+        PilotRank::Commercial => &[
+            "Multi-engine aircraft",
+            "Passenger flights",
+            "Distant airports",
+            "Cargo missions",
+        ],
+        PilotRank::Senior => &[
+            "Turboprop & light jets",
+            "All weather clearance",
+            "High-altitude airports",
+            "VIP charters",
+        ],
+        PilotRank::Captain => &[
+            "All jets",
+            "Command flights",
+            "Emergency dispatch priority",
+            "Elite airports",
+        ],
+        PilotRank::Ace => &[
+            "Heavy jets",
+            "Legendary status",
+            "All missions",
+            "Skyreach Elite access",
+            "Ace flight suit",
+        ],
     }
 }
 
@@ -63,9 +118,13 @@ pub fn calculate_flight_xp(
     };
 
     total += weather.flight_difficulty() * 30.0;
-    if had_emergency { total += 75.0; }
+    if had_emergency {
+        total += 75.0;
+    }
     total += (passenger_satisfaction / 100.0) * 20.0;
-    if on_time { total += 15.0; }
+    if on_time {
+        total += 15.0;
+    }
 
     total.max(1.0) as u32
 }
@@ -103,14 +162,20 @@ pub fn check_rank_up(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut cutscene_queue: ResMut<CutsceneQueue>,
 ) {
-    if !meets_rank_requirements(&pilot_state) { return; }
+    if !meets_rank_requirements(&pilot_state) {
+        return;
+    }
 
     if let Some(next_rank) = pilot_state.rank.next() {
         pilot_state.rank = next_rank;
         pilot_state.xp_to_next_rank = next_rank.next().map_or(u32::MAX, |r| r.xp_required());
 
-        rank_events.send(RankUpEvent { new_rank: next_rank });
-        sfx_events.send(PlaySfxEvent { sfx_id: "rank_up".to_string() });
+        rank_events.send(RankUpEvent {
+            new_rank: next_rank,
+        });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "rank_up".to_string(),
+        });
 
         let privileges = rank_privileges(next_rank);
         let privilege_text = privileges.join(", ");
@@ -118,13 +183,18 @@ pub fn check_rank_up(
             CutsceneStep::FadeOut { duration: 0.5 },
             CutsceneStep::Dialogue {
                 speaker: "Tower".to_string(),
-                text: format!("Congratulations! You've been promoted to {}!", next_rank.display_name()),
+                text: format!(
+                    "Congratulations! You've been promoted to {}!",
+                    next_rank.display_name()
+                ),
             },
             CutsceneStep::Dialogue {
                 speaker: "Tower".to_string(),
                 text: format!("New privileges: {}", privilege_text),
             },
-            CutsceneStep::PlaySfx { sfx_id: "applause".to_string() },
+            CutsceneStep::PlaySfx {
+                sfx_id: "applause".to_string(),
+            },
             CutsceneStep::FadeIn { duration: 0.5 },
         ]);
 
@@ -149,7 +219,10 @@ pub fn check_rank_decay(
         let decay = ((days_idle - 14) as f32 * 0.5).min(10.0);
         pilot_state.reputation = (pilot_state.reputation - decay).max(0.0);
         toast_events.send(ToastEvent {
-            message: format!("📉 Reputation declining! Fly to maintain standing. ({:.0}%)", pilot_state.reputation),
+            message: format!(
+                "📉 Reputation declining! Fly to maintain standing. ({:.0}%)",
+                pilot_state.reputation
+            ),
             duration_secs: 4.0,
         });
     } else if (7..14).contains(&days_idle) && !activity.warned_inactivity {
@@ -167,10 +240,14 @@ pub fn rank_progress_summary(pilot: &PilotState) -> String {
         format!(
             "Next: {} — XP: {}/{}, Flights: {}/{}, Hours: {:.0}/{:.0}, Rep: {:.0}/{:.0}",
             next.display_name(),
-            pilot.xp, req.min_xp,
-            pilot.total_flights, req.min_flights,
-            pilot.total_flight_hours, req.min_hours,
-            pilot.reputation, req.min_reputation,
+            pilot.xp,
+            req.min_xp,
+            pilot.total_flights,
+            req.min_flights,
+            pilot.total_flight_hours,
+            req.min_hours,
+            pilot.reputation,
+            req.min_reputation,
         )
     } else {
         "Maximum rank achieved!".to_string()

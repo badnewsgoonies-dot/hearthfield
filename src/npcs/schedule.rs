@@ -1,8 +1,8 @@
 //! NPC schedule resolution and movement toward schedule waypoints.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::spawning::NpcMovement;
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Given the current calendar state, return the active schedule entry for an NPC.
 pub fn current_schedule_entry(calendar: &Calendar, schedule: &NpcSchedule) -> ScheduleEntry {
@@ -11,7 +11,10 @@ pub fn current_schedule_entry(calendar: &Calendar, schedule: &NpcSchedule) -> Sc
         calendar.day_of_week(),
         DayOfWeek::Saturday | DayOfWeek::Sunday
     );
-    let is_raining = matches!(calendar.weather, Weather::Rainy | Weather::Stormy | Weather::Snowy);
+    let is_raining = matches!(
+        calendar.weather,
+        Weather::Rainy | Weather::Stormy | Weather::Snowy
+    );
     let is_festival = calendar.is_festival_day();
 
     // Priority: festival > rain > weekend > weekday

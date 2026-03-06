@@ -61,16 +61,56 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
     // Keyframes define tint color and overlay intensity at specific hours.
     // intensity = alpha of the overlay (0.0 = invisible, 0.5 = heavy tint)
     static KEYFRAMES: &[TintKeyframe] = &[
-        TintKeyframe { hour: 0.0,  tint: (0.3, 0.3, 0.5), intensity: 0.5 },  // midnight
-        TintKeyframe { hour: 5.0,  tint: (0.3, 0.3, 0.5), intensity: 0.5 },  // late night
-        TintKeyframe { hour: 6.0,  tint: (1.0, 0.9, 0.7), intensity: 0.15 }, // sunrise
-        TintKeyframe { hour: 8.0,  tint: (1.0, 1.0, 0.95), intensity: 0.05 }, // morning
-        TintKeyframe { hour: 10.0, tint: (1.0, 1.0, 1.0), intensity: 0.0 },  // full daylight
-        TintKeyframe { hour: 16.0, tint: (1.0, 1.0, 1.0), intensity: 0.0 },  // full daylight
-        TintKeyframe { hour: 18.0, tint: (1.0, 0.85, 0.6), intensity: 0.15 }, // sunset
-        TintKeyframe { hour: 20.0, tint: (0.6, 0.6, 0.9), intensity: 0.3 },  // twilight
-        TintKeyframe { hour: 22.0, tint: (0.3, 0.3, 0.5), intensity: 0.5 },  // night
-        TintKeyframe { hour: 24.0, tint: (0.3, 0.3, 0.5), intensity: 0.5 },  // midnight (wrap)
+        TintKeyframe {
+            hour: 0.0,
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.5,
+        }, // midnight
+        TintKeyframe {
+            hour: 5.0,
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.5,
+        }, // late night
+        TintKeyframe {
+            hour: 6.0,
+            tint: (1.0, 0.9, 0.7),
+            intensity: 0.15,
+        }, // sunrise
+        TintKeyframe {
+            hour: 8.0,
+            tint: (1.0, 1.0, 0.95),
+            intensity: 0.05,
+        }, // morning
+        TintKeyframe {
+            hour: 10.0,
+            tint: (1.0, 1.0, 1.0),
+            intensity: 0.0,
+        }, // full daylight
+        TintKeyframe {
+            hour: 16.0,
+            tint: (1.0, 1.0, 1.0),
+            intensity: 0.0,
+        }, // full daylight
+        TintKeyframe {
+            hour: 18.0,
+            tint: (1.0, 0.85, 0.6),
+            intensity: 0.15,
+        }, // sunset
+        TintKeyframe {
+            hour: 20.0,
+            tint: (0.6, 0.6, 0.9),
+            intensity: 0.3,
+        }, // twilight
+        TintKeyframe {
+            hour: 22.0,
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.5,
+        }, // night
+        TintKeyframe {
+            hour: 24.0,
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.5,
+        }, // midnight (wrap)
     ];
     KEYFRAMES
 }

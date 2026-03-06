@@ -1,8 +1,8 @@
 //! Mission board — refresh available missions, accept missions.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::story::StoryProgress;
+use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 /// Refresh the mission board daily with new missions.
@@ -94,7 +94,10 @@ pub fn refresh_mission_board(
                 time_limit_hours: None,
                 required_rank: dest.unlock_rank(),
                 required_aircraft_class: None,
-                passenger_count: if matches!(mtype, MissionType::Passenger | MissionType::VIP | MissionType::Charter) {
+                passenger_count: if matches!(
+                    mtype,
+                    MissionType::Passenger | MissionType::VIP | MissionType::Charter
+                ) {
                     rng.gen_range(1..30)
                 } else {
                     0
@@ -113,7 +116,9 @@ pub fn refresh_mission_board(
         if !story_progress.story_finished {
             if let Some(story_mission) = story_progress.current_mission() {
                 let required_rank = story_mission.chapter.required_rank();
-                let already_complete = mission_board.completed_ids.contains(&story_mission.id.to_string());
+                let already_complete = mission_board
+                    .completed_ids
+                    .contains(&story_mission.id.to_string());
                 if pilot_state.rank >= required_rank && !already_complete {
                     let story_def = MissionDef {
                         id: story_mission.id.to_string(),

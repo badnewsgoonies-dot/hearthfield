@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use crate::shared::*;
-use super::UiFontHandle;
 use super::hud::ItemAtlasData;
+use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -116,15 +116,13 @@ pub fn spawn_inventory_screen(
                     // Grid: 3 rows x 12 columns = 36 slots
                     for row in 0..3 {
                         panel
-                            .spawn((
-                                Node {
-                                    width: Val::Percent(100.0),
-                                    flex_direction: FlexDirection::Row,
-                                    justify_content: JustifyContent::Center,
-                                    column_gap: Val::Px(3.0),
-                                    ..default()
-                                },
-                            ))
+                            .spawn((Node {
+                                width: Val::Percent(100.0),
+                                flex_direction: FlexDirection::Row,
+                                justify_content: JustifyContent::Center,
+                                column_gap: Val::Px(3.0),
+                                ..default()
+                            },))
                             .with_children(|row_node| {
                                 for col in 0..12 {
                                     let index = row * 12 + col;
@@ -153,7 +151,9 @@ pub fn spawn_inventory_screen(
                                                     .and_then(|s| item_registry.get(&s.item_id))
                                                     .map(|def| def.sprite_index as usize)
                                                     .unwrap_or(0)
-                                            } else { 0 };
+                                            } else {
+                                                0
+                                            };
                                             let has_item = index < inventory.slots.len()
                                                 && inventory.slots[index].is_some();
                                             if atlas_data.loaded {
@@ -172,7 +172,11 @@ pub fn spawn_inventory_screen(
                                                         height: Val::Px(28.0),
                                                         ..default()
                                                     },
-                                                    if has_item { Visibility::Inherited } else { Visibility::Hidden },
+                                                    if has_item {
+                                                        Visibility::Inherited
+                                                    } else {
+                                                        Visibility::Hidden
+                                                    },
                                                 ));
                                             }
                                             // Item name
@@ -240,8 +244,14 @@ pub fn update_inventory_slots(
     item_registry: Res<ItemRegistry>,
     ui_state: Option<Res<InventoryUiState>>,
     _atlas_data: Res<ItemAtlasData>,
-    mut item_text_query: Query<(&InventorySlotItemName, &mut Text), (Without<InventorySlotQuantity>, Without<InventoryDescText>)>,
-    mut qty_text_query: Query<(&InventorySlotQuantity, &mut Text), (Without<InventorySlotItemName>, Without<InventoryDescText>)>,
+    mut item_text_query: Query<
+        (&InventorySlotItemName, &mut Text),
+        (Without<InventorySlotQuantity>, Without<InventoryDescText>),
+    >,
+    mut qty_text_query: Query<
+        (&InventorySlotQuantity, &mut Text),
+        (Without<InventorySlotItemName>, Without<InventoryDescText>),
+    >,
     mut icon_query: Query<(&InventorySlotIcon, &mut ImageNode, &mut Visibility)>,
     mut desc_query: Query<&mut Text, With<InventoryDescText>>,
 ) {
@@ -338,7 +348,9 @@ pub fn inventory_navigation(
     mut eat_food_events: EventWriter<EatFoodEvent>,
     mut toast_events: EventWriter<ToastEvent>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     let cur = ui_state.cursor_slot;
     let col = cur % 12;
     let row = cur / 12;

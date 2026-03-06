@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::UiFontHandle;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -49,7 +49,10 @@ pub fn spawn_relationships_screen(
     let mut npc_ids: Vec<NpcId> = npc_registry.npcs.keys().cloned().collect();
     npc_ids.sort();
 
-    commands.insert_resource(RelationshipsUiState { cursor: 0, npc_ids: npc_ids.clone() });
+    commands.insert_resource(RelationshipsUiState {
+        cursor: 0,
+        npc_ids: npc_ids.clone(),
+    });
 
     commands
         .spawn((
@@ -104,29 +107,36 @@ pub fn spawn_relationships_screen(
 
                     // NPC list
                     panel
-                        .spawn((
-                            Node {
-                                width: Val::Percent(100.0),
-                                flex_direction: FlexDirection::Column,
-                                flex_grow: 1.0,
-                                row_gap: Val::Px(3.0),
-                                overflow: Overflow::clip_y(),
-                                ..default()
-                            },
-                        ))
+                        .spawn((Node {
+                            width: Val::Percent(100.0),
+                            flex_direction: FlexDirection::Column,
+                            flex_grow: 1.0,
+                            row_gap: Val::Px(3.0),
+                            overflow: Overflow::clip_y(),
+                            ..default()
+                        },))
                         .with_children(|list| {
                             if npc_ids.is_empty() {
                                 list.spawn((
                                     Text::new("No NPCs found."),
-                                    TextFont { font: font.clone(), font_size: 14.0, ..default() },
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 14.0,
+                                        ..default()
+                                    },
                                     TextColor(Color::srgb(0.6, 0.6, 0.6)),
                                 ));
                             } else {
                                 for (i, npc_id) in npc_ids.iter().enumerate() {
-                                    let Some(npc_def) = npc_registry.npcs.get(npc_id) else { continue };
+                                    let Some(npc_def) = npc_registry.npcs.get(npc_id) else {
+                                        continue;
+                                    };
                                     let hearts = relationships.hearts(npc_id);
                                     let heart_str = format_hearts(hearts);
-                                    let row_text = format!("{:<16} {}  {}/10", npc_def.name, heart_str, hearts);
+                                    let row_text = format!(
+                                        "{:<16} {}  {}/10",
+                                        npc_def.name, heart_str, hearts
+                                    );
 
                                     list.spawn((
                                         RelNpcRowBg { index: i },
@@ -143,7 +153,11 @@ pub fn spawn_relationships_screen(
                                     .with_children(|row| {
                                         row.spawn((
                                             Text::new(row_text),
-                                            TextFont { font: font.clone(), font_size: 14.0, ..default() },
+                                            TextFont {
+                                                font: font.clone(),
+                                                font_size: 14.0,
+                                                ..default()
+                                            },
                                             TextColor(Color::srgb(0.95, 0.9, 1.0)),
                                         ));
                                     });
@@ -177,7 +191,13 @@ pub fn spawn_relationships_screen(
                         ))
                         .with_children(|detail| {
                             let first_id = npc_ids.first();
-                            spawn_detail_children(detail, first_id, &npc_registry, &relationships, &font);
+                            spawn_detail_children(
+                                detail,
+                                first_id,
+                                &npc_registry,
+                                &relationships,
+                                &font,
+                            );
                         });
                 });
         });
@@ -206,7 +226,9 @@ pub fn relationships_navigation(
     font_handle: Res<UiFontHandle>,
     detail_query: Query<Entity, With<RelDetailPanel>>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     let count = ui_state.npc_ids.len();
     if count == 0 {
         return;
@@ -270,7 +292,11 @@ fn spawn_detail_children(
     let Some(id) = npc_id else {
         parent.spawn((
             Text::new("Select an NPC to see details."),
-            TextFont { font: font.clone(), font_size: 13.0, ..default() },
+            TextFont {
+                font: font.clone(),
+                font_size: 13.0,
+                ..default()
+            },
             TextColor(Color::srgb(0.6, 0.6, 0.6)),
         ));
         return;
@@ -286,26 +312,43 @@ fn spawn_detail_children(
     // NPC name header
     parent.spawn((
         Text::new(format!("SELECTED: {}", def.name)),
-        TextFont { font: font.clone(), font_size: 14.0, ..default() },
+        TextFont {
+            font: font.clone(),
+            font_size: 14.0,
+            ..default()
+        },
         TextColor(Color::srgb(0.95, 0.8, 1.0)),
     ));
 
     // Birthday
     parent.spawn((
-        Text::new(format!("Birthday: {:?} {}", def.birthday_season, def.birthday_day)),
-        TextFont { font: font.clone(), font_size: 12.0, ..default() },
+        Text::new(format!(
+            "Birthday: {:?} {}",
+            def.birthday_season, def.birthday_day
+        )),
+        TextFont {
+            font: font.clone(),
+            font_size: 12.0,
+            ..default()
+        },
         TextColor(Color::srgb(0.85, 0.85, 0.85)),
     ));
 
     // Friendship
     parent.spawn((
         Text::new(format!("Friendship: {} pts ({}/10 hearts)", points, hearts)),
-        TextFont { font: font.clone(), font_size: 12.0, ..default() },
+        TextFont {
+            font: font.clone(),
+            font_size: 12.0,
+            ..default()
+        },
         TextColor(Color::srgb(1.0, 0.7, 0.7)),
     ));
 
     // Loved gifts
-    let loved: Vec<String> = def.gift_preferences.iter()
+    let loved: Vec<String> = def
+        .gift_preferences
+        .iter()
         .filter(|(_, pref)| matches!(pref, GiftPreference::Loved))
         .map(|(item_id, _)| item_id.clone())
         .collect();
@@ -314,7 +357,11 @@ fn spawn_detail_children(
         sorted.sort();
         parent.spawn((
             Text::new(format!("Loves: {}", sorted.join(", "))),
-            TextFont { font: font.clone(), font_size: 12.0, ..default() },
+            TextFont {
+                font: font.clone(),
+                font_size: 12.0,
+                ..default()
+            },
             TextColor(Color::srgb(1.0, 0.85, 0.4)),
         ));
     }
@@ -323,7 +370,11 @@ fn spawn_detail_children(
     if def.is_marriageable {
         parent.spawn((
             Text::new("Marriageable"),
-            TextFont { font: font.clone(), font_size: 11.0, ..default() },
+            TextFont {
+                font: font.clone(),
+                font_size: 11.0,
+                ..default()
+            },
             TextColor(Color::srgb(0.6, 0.9, 0.6)),
         ));
     }

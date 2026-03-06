@@ -5,8 +5,9 @@ use crate::game::events::{
     ResolveCalmlyEvent,
 };
 use crate::game::resources::{
-    format_clock, ActiveInterruptionContext, DayClock, DayStats, InterruptionKind, OfficeRules,
-    OfficeRunConfig, PlayerCareerState, PlayerMindState, SocialGraphState, UnlockCatalogState,
+    format_clock, ActiveInterruptionContext, CoworkerDialogue, DayClock, DayStats,
+    InterruptionKind, OfficeRules, OfficeRunConfig, PlayerCareerState, PlayerMindState,
+    SocialGraphState, UnlockCatalogState,
 };
 
 #[derive(Clone, Copy)]
@@ -133,58 +134,67 @@ const INTERRUPTION_SCENARIOS: [InterruptionScenarioTemplate; 12] = [
 
 struct InterruptionKindProfile {
     stress_delta: i32,
-    duration_minutes: u32,
+    duration_offset_minutes: i32,
     calm_choice: &'static str,
     panic_choice: &'static str,
+}
+
+fn interruption_duration_minutes(base_minutes: u32, offset_minutes: i32) -> u32 {
+    let adjusted = if offset_minutes >= 0 {
+        base_minutes.saturating_add(offset_minutes as u32)
+    } else {
+        base_minutes.saturating_sub((-offset_minutes) as u32)
+    };
+    adjusted.max(1)
 }
 
 fn interruption_profile(kind: InterruptionKind) -> InterruptionKindProfile {
     match kind {
         InterruptionKind::ManagerRequest => InterruptionKindProfile {
             stress_delta: 2,
-            duration_minutes: 10,
+            duration_offset_minutes: -2,
             calm_choice: "Give a crisp update and note your next milestone.",
             panic_choice: "Rambling status report and over-promising delivery.",
         },
         InterruptionKind::EmergencyMeeting => InterruptionKindProfile {
             stress_delta: 4,
-            duration_minutes: 18,
+            duration_offset_minutes: 6,
             calm_choice: "Capture action items and clarify your ownership.",
             panic_choice: "Leave without notes and miss key decisions.",
         },
         InterruptionKind::SystemOutage => InterruptionKindProfile {
             stress_delta: 3,
-            duration_minutes: 15,
+            duration_offset_minutes: 3,
             calm_choice: "Switch to offline tasks and document blockers.",
             panic_choice: "Refresh endlessly and lose focus.",
         },
         InterruptionKind::CoworkerHelp => InterruptionKindProfile {
             stress_delta: 1,
-            duration_minutes: 7,
+            duration_offset_minutes: -5,
             calm_choice: "Coach them quickly and set a clear next step.",
             panic_choice: "Take over the task and derail your own queue.",
         },
         InterruptionKind::PrinterJam => InterruptionKindProfile {
             stress_delta: 2,
-            duration_minutes: 8,
+            duration_offset_minutes: -4,
             calm_choice: "Clear the jam and reroute urgent pages.",
             panic_choice: "Mash buttons until the queue doubles.",
         },
         InterruptionKind::FireDrill => InterruptionKindProfile {
             stress_delta: 5,
-            duration_minutes: 20,
+            duration_offset_minutes: 8,
             calm_choice: "Follow protocol and regroup fast afterward.",
             panic_choice: "Forget your place and lose all momentum.",
         },
         InterruptionKind::BossVisit => InterruptionKindProfile {
             stress_delta: 3,
-            duration_minutes: 12,
+            duration_offset_minutes: 0,
             calm_choice: "Share a concise update and one smart ask.",
             panic_choice: "Freeze up and dodge direct questions.",
         },
         InterruptionKind::FreeLunch => InterruptionKindProfile {
             stress_delta: -2,
-            duration_minutes: 6,
+            duration_offset_minutes: -6,
             calm_choice: "Grab a quick slice and recharge.",
             panic_choice: "Overstay the break and miss deadlines.",
         },
@@ -192,7 +202,11 @@ fn interruption_profile(kind: InterruptionKind) -> InterruptionKindProfile {
 }
 
 pub fn pick_interruption_kind(seed: u64, day: u32, hour: u32) -> InterruptionKind {
-    match (seed.wrapping_add(day as u64 * 13).wrapping_add(hour as u64 * 7)) % 8 {
+    match (seed
+        .wrapping_add(day as u64 * 13)
+        .wrapping_add(hour as u64 * 7))
+        % 8
+    {
         0 => InterruptionKind::ManagerRequest,
         1 => InterruptionKind::EmergencyMeeting,
         2 => InterruptionKind::SystemOutage,
@@ -217,6 +231,7 @@ pub fn handle_interruption_requests(
     mut requests: EventReader<InterruptionEvent>,
     rules: Res<OfficeRules>,
     run_config: Res<OfficeRunConfig>,
+    dialogue: Option<Res<CoworkerDialogue>>,
     mut clock: ResMut<DayClock>,
     mut stats: ResMut<DayStats>,
     mut mind: ResMut<PlayerMindState>,
@@ -234,7 +249,10 @@ pub fn handle_interruption_requests(
         let kind_profile = interruption_profile(kind);
         social.scenario_cursor = social.scenario_cursor.wrapping_add(1);
 
-        clock.advance(kind_profile.duration_minutes);
+        clock.advance(interruption_duration_minutes(
+            rules.interruption_minutes,
+            kind_profile.duration_offset_minutes,
+        ));
         mind.stress = (mind.stress
             + rules.interruption_stress_increase
             + scenario.stress_modifier
@@ -246,7 +264,8 @@ pub fn handle_interruption_requests(
         stats.interruptions_triggered = stats.interruptions_triggered.saturating_add(1);
 
         if let Some(manager) = social.manager_mut() {
-            manager.affinity = (manager.affinity + scenario.manager_affinity_delta).clamp(-100, 100);
+            manager.affinity =
+                (manager.affinity + scenario.manager_affinity_delta).clamp(-100, 100);
             manager.trust = (manager.trust + scenario.manager_trust_delta).clamp(-100, 100);
         }
         let teammate_id = social.teammate_for_help(
@@ -257,20 +276,46 @@ pub fn handle_interruption_requests(
                 .saturating_add(stats.interruptions_triggered),
         );
 
-        // Build the context description based on kind
-        let manager_name = social
+        let manager_profile = social
             .profiles
             .iter()
-            .find(|p| p.role == crate::game::resources::CoworkerRole::Manager)
+            .find(|p| p.role == crate::game::resources::CoworkerRole::Manager);
+        let manager_name = manager_profile
             .map(|p| p.codename.clone())
             .unwrap_or_else(|| "Your manager".to_string());
-        let teammate_name = teammate_id
-            .and_then(|id| social.profiles.iter().find(|p| p.id == id))
-            .map(|p| p.codename.clone());
+        let manager_line = manager_profile
+            .and_then(|profile| {
+                dialogue.as_ref().and_then(|dialogue| {
+                    dialogue.line_for_role(profile.role, run_config.seed, social.scenario_cursor)
+                })
+            })
+            .map(str::to_string);
+        let teammate_profile = teammate_id.and_then(|id| {
+            social
+                .profiles
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| (p.codename.clone(), p.role))
+        });
+        let teammate_name = teammate_profile.as_ref().map(|(name, _)| name.clone());
+        let teammate_line = teammate_profile
+            .as_ref()
+            .and_then(|(_, role)| {
+                dialogue.as_ref().and_then(|dialogue| {
+                    dialogue.line_for_role(*role, run_config.seed, social.scenario_cursor + 1)
+                })
+            })
+            .map(str::to_string);
 
         let description = match kind {
             InterruptionKind::ManagerRequest => {
-                format!("{manager_name} stops by your desk. 'Got a minute? I need an update on the Henderson file.'")
+                let mut text = format!(
+                    "{manager_name} stops by your desk. 'Got a minute? I need an update on the Henderson file.'"
+                );
+                if let Some(line) = manager_line.as_deref() {
+                    text.push_str(&format!("\n\n{manager_name} adds: \"{line}\""));
+                }
+                text
             }
             InterruptionKind::EmergencyMeeting => {
                 "All hands! Emergency meeting in Conference Room B — the client changed the deadline.".to_string()
@@ -280,7 +325,13 @@ pub fn handle_interruption_requests(
             }
             InterruptionKind::CoworkerHelp => {
                 let name = teammate_name.clone().unwrap_or_else(|| "A coworker".to_string());
-                format!("{name} leans over: 'Hey, can you help me figure out this spreadsheet formula?'")
+                let mut text = format!(
+                    "{name} leans over: 'Hey, can you help me figure out this spreadsheet formula?'"
+                );
+                if let Some(line) = teammate_line.as_deref() {
+                    text.push_str(&format!("\n\n{name} mutters: \"{line}\""));
+                }
+                text
             }
             InterruptionKind::PrinterJam => "The printer is jammed again.".to_string(),
             InterruptionKind::FireDrill => "Fire drill! Everyone outside.".to_string(),
@@ -299,7 +350,8 @@ pub fn handle_interruption_requests(
 
         if let Some(teammate_id) = teammate_id {
             if let Some(teammate) = social.teammate_mut_by_id(teammate_id) {
-                teammate.affinity = (teammate.affinity + scenario.teammate_affinity_delta).clamp(-100, 100);
+                teammate.affinity =
+                    (teammate.affinity + scenario.teammate_affinity_delta).clamp(-100, 100);
                 teammate.trust = (teammate.trust + scenario.teammate_trust_delta).clamp(-100, 100);
             }
         }
@@ -419,11 +471,13 @@ pub fn handle_manager_checkin_requests(
         stats.manager_checkins = stats.manager_checkins.saturating_add(1);
         if let Some(manager) = social.manager_mut() {
             manager.affinity = (manager.affinity + 1).clamp(-100, 100);
-            manager.trust = (manager.trust + if mind.stress > rules.max_stress / 2 {
-                -1
-            } else {
-                2
-            }).clamp(-100, 100);
+            manager.trust = (manager.trust
+                + if mind.stress > rules.max_stress / 2 {
+                    -1
+                } else {
+                    2
+                })
+            .clamp(-100, 100);
         }
         social.normalize();
 

@@ -1,8 +1,8 @@
 //! Achievement tracker screen — grid of unlocked/locked/hidden achievements.
 
-use bevy::prelude::*;
+use crate::data::achievements::{AchievementEntry, ALL_ACHIEVEMENTS};
 use crate::shared::*;
-use crate::data::achievements::{ALL_ACHIEVEMENTS, AchievementEntry};
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -45,10 +45,7 @@ pub fn spawn_achievement_screen(
     // Title
     let unlocked_count = achievements.unlocked.len();
     let total_visible = ALL_ACHIEVEMENTS.iter().filter(|a| !a.hidden).count();
-    let title_text = format!(
-        "ACHIEVEMENTS — {} / {}",
-        unlocked_count, total_visible
-    );
+    let title_text = format!("ACHIEVEMENTS — {} / {}", unlocked_count, total_visible);
     let title = commands
         .spawn((
             Text::new(title_text),
@@ -68,17 +65,15 @@ pub fn spawn_achievement_screen(
 
     // Grid container
     let grid = commands
-        .spawn((
-            Node {
-                width: Val::Percent(95.0),
-                flex_direction: FlexDirection::Row,
-                flex_wrap: FlexWrap::Wrap,
-                justify_content: JustifyContent::Center,
-                column_gap: Val::Px(10.0),
-                row_gap: Val::Px(10.0),
-                ..default()
-            },
-        ))
+        .spawn((Node {
+            width: Val::Percent(95.0),
+            flex_direction: FlexDirection::Row,
+            flex_wrap: FlexWrap::Wrap,
+            justify_content: JustifyContent::Center,
+            column_gap: Val::Px(10.0),
+            row_gap: Val::Px(10.0),
+            ..default()
+        },))
         .id();
     commands.entity(root).add_child(grid);
 
@@ -101,6 +96,15 @@ pub fn despawn_achievement_screen(
 ) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn handle_achievement_input(
+    input: Res<PlayerInput>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if input.cancel || input.menu_cancel {
+        next_state.set(GameState::Playing);
     }
 }
 

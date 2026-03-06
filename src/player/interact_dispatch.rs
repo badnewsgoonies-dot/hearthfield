@@ -4,14 +4,14 @@
 //! dispatches the appropriate event, and sets `InteractionClaimed` so that
 //! legacy F-key systems skip.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // Domain event imports — use pub re-exports from domain mod.rs.
-use crate::economy::shipping::ShipItemEvent;
 use crate::crafting::{
-    OpenCraftingEvent, CollectMachineOutputEvent, InsertMachineInputEvent, ProcessingMachine,
+    CollectMachineOutputEvent, InsertMachineInputEvent, OpenCraftingEvent, ProcessingMachine,
 };
+use crate::economy::shipping::ShipItemEvent;
 
 #[allow(clippy::too_many_arguments)]
 pub fn dispatch_world_interaction(
@@ -91,9 +91,7 @@ pub fn dispatch_world_interaction(
                     });
                 } else {
                     let slot_idx = inventory.selected_slot;
-                    if let Some(slot) =
-                        inventory.slots.get(slot_idx).and_then(|s| s.as_ref())
-                    {
+                    if let Some(slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) {
                         machine_insert_events.send(InsertMachineInputEvent {
                             machine_entity: entity,
                             item_id: slot.item_id.clone(),

@@ -3,8 +3,8 @@
 //! Each zone type gets appropriate objects spawned at defined positions.
 //! Players interact with objects via the F-key to get items, info, or effects.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -86,7 +86,9 @@ impl ExtendedObjectKind {
         match self {
             Self::Desk => "A tidy operations desk with neatly stacked flight manifests.",
             Self::Bookshelf => "Aviation manuals, weather charts, and a few dog-eared novels.",
-            Self::NoticeBoard => "Pinned notices about schedule changes, safety reminders, and a lost cat poster.",
+            Self::NoticeBoard => {
+                "Pinned notices about schedule changes, safety reminders, and a lost cat poster."
+            }
             Self::SouvenirStand => "Miniature aircraft, postcards, and overpriced key-chains.",
             Self::TV => "The news is showing regional weather and flight delay updates.",
             Self::Radio => "Faint chatter from ATC frequencies crackles through the speaker.",
@@ -145,90 +147,306 @@ struct ObjectPlacement {
 
 fn terminal_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::Desk, gx: 4, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::NoticeBoard, gx: 12, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::Newspaper, gx: 6, gy: 6 },
-        ObjectPlacement { kind: ExtendedObjectKind::TV, gx: 15, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::Bench, gx: 8, gy: 10 },
-        ObjectPlacement { kind: ExtendedObjectKind::Bench, gx: 12, gy: 10 },
-        ObjectPlacement { kind: ExtendedObjectKind::Luggage, gx: 16, gy: 9 },
-        ObjectPlacement { kind: ExtendedObjectKind::WaterCooler, gx: 18, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::FireExtinguisher, gx: 1, gy: 5 },
-        ObjectPlacement { kind: ExtendedObjectKind::MapDisplay, gx: 8, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 3, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 19, gy: 1 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Desk,
+            gx: 4,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::NoticeBoard,
+            gx: 12,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Newspaper,
+            gx: 6,
+            gy: 6,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::TV,
+            gx: 15,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bench,
+            gx: 8,
+            gy: 10,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bench,
+            gx: 12,
+            gy: 10,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Luggage,
+            gx: 16,
+            gy: 9,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::WaterCooler,
+            gx: 18,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::FireExtinguisher,
+            gx: 1,
+            gy: 5,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::MapDisplay,
+            gx: 8,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 3,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 19,
+            gy: 1,
+        },
     ]
 }
 
 fn lounge_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::CoffeeMachine, gx: 14, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::TV, gx: 8, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::Radio, gx: 10, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::Bookshelf, gx: 16, gy: 4 },
-        ObjectPlacement { kind: ExtendedObjectKind::Newspaper, gx: 5, gy: 5 },
-        ObjectPlacement { kind: ExtendedObjectKind::Bench, gx: 6, gy: 8 },
-        ObjectPlacement { kind: ExtendedObjectKind::WaterCooler, gx: 13, gy: 7 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 2, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 17, gy: 1 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::CoffeeMachine,
+            gx: 14,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::TV,
+            gx: 8,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Radio,
+            gx: 10,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bookshelf,
+            gx: 16,
+            gy: 4,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Newspaper,
+            gx: 5,
+            gy: 5,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bench,
+            gx: 6,
+            gy: 8,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::WaterCooler,
+            gx: 13,
+            gy: 7,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 2,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 17,
+            gy: 1,
+        },
     ]
 }
 
 fn hangar_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::Computer, gx: 5, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::Phone, gx: 7, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::FirstAidKit, gx: 18, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::FireExtinguisher, gx: 1, gy: 6 },
-        ObjectPlacement { kind: ExtendedObjectKind::FireExtinguisher, gx: 1, gy: 12 },
-        ObjectPlacement { kind: ExtendedObjectKind::Desk, gx: 6, gy: 5 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Computer,
+            gx: 5,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Phone,
+            gx: 7,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::FirstAidKit,
+            gx: 18,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::FireExtinguisher,
+            gx: 1,
+            gy: 6,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::FireExtinguisher,
+            gx: 1,
+            gy: 12,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Desk,
+            gx: 6,
+            gy: 5,
+        },
     ]
 }
 
 fn control_tower_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::Computer, gx: 4, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::Computer, gx: 6, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::Computer, gx: 8, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::Radio, gx: 10, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::Phone, gx: 12, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::MapDisplay, gx: 7, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::CoffeeMachine, gx: 14, gy: 5 },
-        ObjectPlacement { kind: ExtendedObjectKind::Desk, gx: 3, gy: 5 },
-        ObjectPlacement { kind: ExtendedObjectKind::FirstAidKit, gx: 15, gy: 2 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Computer,
+            gx: 4,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Computer,
+            gx: 6,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Computer,
+            gx: 8,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Radio,
+            gx: 10,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Phone,
+            gx: 12,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::MapDisplay,
+            gx: 7,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::CoffeeMachine,
+            gx: 14,
+            gy: 5,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Desk,
+            gx: 3,
+            gy: 5,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::FirstAidKit,
+            gx: 15,
+            gy: 2,
+        },
     ]
 }
 
 fn crew_quarters_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::CoffeeMachine, gx: 10, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::Bookshelf, gx: 12, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::TV, gx: 6, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::Radio, gx: 8, gy: 4 },
-        ObjectPlacement { kind: ExtendedObjectKind::Newspaper, gx: 5, gy: 7 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 1, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::WaterCooler, gx: 11, gy: 7 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::CoffeeMachine,
+            gx: 10,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bookshelf,
+            gx: 12,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::TV,
+            gx: 6,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Radio,
+            gx: 8,
+            gy: 4,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Newspaper,
+            gx: 5,
+            gy: 7,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 1,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::WaterCooler,
+            gx: 11,
+            gy: 7,
+        },
     ]
 }
 
 fn shop_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::SouvenirStand, gx: 12, gy: 5 },
-        ObjectPlacement { kind: ExtendedObjectKind::SouvenirStand, gx: 14, gy: 5 },
-        ObjectPlacement { kind: ExtendedObjectKind::Newspaper, gx: 6, gy: 3 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 1, gy: 1 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::SouvenirStand,
+            gx: 12,
+            gy: 5,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::SouvenirStand,
+            gx: 14,
+            gy: 5,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Newspaper,
+            gx: 6,
+            gy: 3,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 1,
+            gy: 1,
+        },
     ]
 }
 
 fn city_objects() -> Vec<ObjectPlacement> {
     vec![
-        ObjectPlacement { kind: ExtendedObjectKind::Bench, gx: 5, gy: 4 },
-        ObjectPlacement { kind: ExtendedObjectKind::Bench, gx: 12, gy: 8 },
-        ObjectPlacement { kind: ExtendedObjectKind::MapDisplay, gx: 3, gy: 2 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 7, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::PlantPot, gx: 15, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::NoticeBoard, gx: 10, gy: 1 },
-        ObjectPlacement { kind: ExtendedObjectKind::Phone, gx: 17, gy: 3 },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bench,
+            gx: 5,
+            gy: 4,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Bench,
+            gx: 12,
+            gy: 8,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::MapDisplay,
+            gx: 3,
+            gy: 2,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 7,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::PlantPot,
+            gx: 15,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::NoticeBoard,
+            gx: 10,
+            gy: 1,
+        },
+        ObjectPlacement {
+            kind: ExtendedObjectKind::Phone,
+            gx: 17,
+            gy: 3,
+        },
     ]
 }
 

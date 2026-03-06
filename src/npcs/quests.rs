@@ -5,8 +5,8 @@
 //! and can involve delivering items, catching fish, harvesting crops,
 //! mining ores, talking to NPCs, or slaying monsters.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,7 +36,14 @@ const DELIVER_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("egg", 3, 8, 150, RewardTier::Early, "Egg Delivery"),
     ("milk", 3, 6, 160, RewardTier::Early, "Fresh Milk Run"),
     ("bread", 2, 4, 180, RewardTier::Early, "Bread Order"),
-    ("fried_egg", 2, 4, 200, RewardTier::Early, "Breakfast Platter"),
+    (
+        "fried_egg",
+        2,
+        4,
+        200,
+        RewardTier::Early,
+        "Breakfast Platter",
+    ),
     ("pancakes", 2, 4, 250, RewardTier::Mid, "Pancake Platter"),
     ("cookie", 3, 6, 280, RewardTier::Mid, "Cookie Batch"),
     ("cake", 1, 3, 340, RewardTier::Mid, "Cake Request"),
@@ -44,15 +51,36 @@ const DELIVER_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("pizza", 1, 3, 320, RewardTier::Mid, "Pizza Night"),
     ("spaghetti", 1, 3, 310, RewardTier::Mid, "Pasta Delivery"),
     // Elena – smelted bars
-    ("copper_bar", 2, 5, 300, RewardTier::Mid, "Copper Bars Needed"),
+    (
+        "copper_bar",
+        2,
+        5,
+        300,
+        RewardTier::Mid,
+        "Copper Bars Needed",
+    ),
     ("iron_bar", 2, 4, 380, RewardTier::Mid, "Iron Bars Wanted"),
     ("gold_bar", 1, 2, 580, RewardTier::Late, "Gold Bars Order"),
     // Mira – exotic & rare goods
-    ("ancient_fruit", 1, 2, 650, RewardTier::Late, "Ancient Relic Fruit"),
+    (
+        "ancient_fruit",
+        1,
+        2,
+        650,
+        RewardTier::Late,
+        "Ancient Relic Fruit",
+    ),
     // Nora – animal products
     ("wool", 2, 5, 200, RewardTier::Early, "Wool Wanted"),
     // Sam – random fun items
-    ("baked_potato", 3, 6, 170, RewardTier::Early, "Baked Potato Stack"),
+    (
+        "baked_potato",
+        3,
+        6,
+        170,
+        RewardTier::Early,
+        "Baked Potato Stack",
+    ),
 ];
 
 /// Harvest quest templates: (crop_id, quantity_range, base_gold, tier, title_prefix)
@@ -61,23 +89,65 @@ const HARVEST_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("potato", 3, 6, 160, RewardTier::Early, "Potato Bounty"),
     ("tomato", 3, 6, 170, RewardTier::Early, "Tomato Request"),
     ("corn", 3, 6, 180, RewardTier::Early, "Corn Collection"),
-    ("strawberry", 2, 5, 320, RewardTier::Mid, "Strawberry Picking"),
+    (
+        "strawberry",
+        2,
+        5,
+        320,
+        RewardTier::Mid,
+        "Strawberry Picking",
+    ),
     ("eggplant", 2, 5, 340, RewardTier::Mid, "Eggplant Request"),
-    ("cauliflower", 2, 4, 360, RewardTier::Mid, "Cauliflower Needed"),
+    (
+        "cauliflower",
+        2,
+        4,
+        360,
+        RewardTier::Mid,
+        "Cauliflower Needed",
+    ),
     ("melon", 1, 3, 520, RewardTier::Late, "Melon Delivery"),
     ("pumpkin", 1, 3, 560, RewardTier::Late, "Pumpkin Order"),
-    ("cranberry", 3, 6, 540, RewardTier::Late, "Cranberry Harvest"),
+    (
+        "cranberry",
+        3,
+        6,
+        540,
+        RewardTier::Late,
+        "Cranberry Harvest",
+    ),
     // Lily – flowers / seasonal crops
-    ("blueberry", 3, 6, 180, RewardTier::Early, "Blueberry Picking"),
+    (
+        "blueberry",
+        3,
+        6,
+        180,
+        RewardTier::Early,
+        "Blueberry Picking",
+    ),
     // Nora – staple crops
     ("wheat", 4, 8, 150, RewardTier::Early, "Wheat Bundle"),
     ("yam", 2, 5, 200, RewardTier::Mid, "Yam Harvest"),
     // Marco / Mira – premium ingredients
     ("coffee", 2, 4, 320, RewardTier::Mid, "Coffee Beans"),
     // Mira – exotic produce
-    ("ancient_fruit", 1, 2, 580, RewardTier::Late, "Ancient Fruit Harvest"),
+    (
+        "ancient_fruit",
+        1,
+        2,
+        580,
+        RewardTier::Late,
+        "Ancient Fruit Harvest",
+    ),
     // Mayor Rex – town event staples
-    ("pumpkin", 2, 4, 500, RewardTier::Late, "Festival Pumpkin Order"),
+    (
+        "pumpkin",
+        2,
+        4,
+        500,
+        RewardTier::Late,
+        "Festival Pumpkin Order",
+    ),
 ];
 
 /// Fish quest templates: (fish_id, base_gold, tier, title_prefix)
@@ -107,7 +177,14 @@ const CATCH_TEMPLATES: &[(&str, u32, RewardTier, &str)] = &[
 
 /// Mine quest templates: (item_id, quantity_range, base_gold, tier, title_prefix)
 const MINE_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
-    ("copper_ore", 3, 10, 150, RewardTier::Early, "Mining: Copper"),
+    (
+        "copper_ore",
+        3,
+        10,
+        150,
+        RewardTier::Early,
+        "Mining: Copper",
+    ),
     ("iron_ore", 3, 10, 180, RewardTier::Early, "Mining: Iron"),
     ("coal", 5, 12, 140, RewardTier::Early, "Coal Expedition"),
     ("quartz", 2, 5, 170, RewardTier::Early, "Quartz Collection"),
@@ -118,13 +195,27 @@ const MINE_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
     ("diamond", 1, 1, 700, RewardTier::Late, "Gem Hunt: Diamond"),
     ("gold_bar", 1, 2, 620, RewardTier::Late, "Smelter Contract"),
     // Elena – processed bars
-    ("copper_bar", 2, 5, 280, RewardTier::Mid, "Smelted Copper Bars"),
+    (
+        "copper_bar",
+        2,
+        5,
+        280,
+        RewardTier::Mid,
+        "Smelted Copper Bars",
+    ),
     ("iron_bar", 2, 4, 350, RewardTier::Mid, "Forged Iron Bars"),
 ];
 
 /// Monster quest templates: (monster_kind, quantity_range, base_gold, tier, title_prefix)
 const SLAY_TEMPLATES: &[(&str, u8, u8, u32, RewardTier, &str)] = &[
-    ("green_slime", 5, 12, 160, RewardTier::Early, "Slime Extermination"),
+    (
+        "green_slime",
+        5,
+        12,
+        160,
+        RewardTier::Early,
+        "Slime Extermination",
+    ),
     ("bat", 3, 8, 180, RewardTier::Early, "Bat Clearing"),
     ("rock_crab", 2, 5, 340, RewardTier::Mid, "Rock Crab Hunt"),
 ];
@@ -144,8 +235,16 @@ const TALK_TEMPLATES: &[(&str, RewardTier)] = &[
 
 /// NPC IDs used for Talk quests.
 const TALK_NPCS: &[&str] = &[
-    "margaret", "marco", "lily", "old_tom", "elena",
-    "mira", "doc", "mayor_rex", "sam", "nora",
+    "margaret",
+    "marco",
+    "lily",
+    "old_tom",
+    "elena",
+    "mira",
+    "doc",
+    "mayor_rex",
+    "sam",
+    "nora",
 ];
 
 /// Generates a unique quest ID from day, season, year, and an index.
@@ -251,10 +350,7 @@ fn talk_description(rng: &mut impl Rng, giver: &str, target_npc: &str) -> String
             "{} needs a messenger. Visit {} and have a conversation.",
             giver, target_npc
         ),
-        _ => format!(
-            "Please speak with {} on behalf of {}.",
-            target_npc, giver
-        ),
+        _ => format!("Please speak with {} on behalf of {}.", target_npc, giver),
     }
 }
 
@@ -322,17 +418,22 @@ pub fn post_daily_quests(
             };
             used_types.push(quest_type);
 
-            let next_day = if calendar.day >= DAYS_PER_SEASON { 1 } else { calendar.day + 1 };
+            let next_day = if calendar.day >= DAYS_PER_SEASON {
+                1
+            } else {
+                calendar.day + 1
+            };
             let next_season = if calendar.day >= DAYS_PER_SEASON {
                 calendar.season.next()
             } else {
                 calendar.season
             };
-            let next_year = if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter) {
-                calendar.year + 1
-            } else {
-                calendar.year
-            };
+            let next_year =
+                if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter) {
+                    calendar.year + 1
+                } else {
+                    calendar.year
+                };
 
             let quest_id = make_quest_id(next_day, &next_season, next_year, i);
             let quest_id_clone = quest_id.clone();
@@ -371,11 +472,7 @@ pub fn post_daily_quests(
                         reward_items: Vec::new(),
                         reward_friendship: rng.gen_range(20..=50) as i16,
                         days_remaining: Some(deadline),
-                        accepted_day: (
-                            next_day,
-                            season_to_idx(&next_season),
-                            next_year as u16,
-                        ),
+                        accepted_day: (next_day, season_to_idx(&next_season), next_year as u16),
                     }
                 }
                 1 => {
@@ -397,11 +494,7 @@ pub fn post_daily_quests(
                         reward_items: Vec::new(),
                         reward_friendship: rng.gen_range(25..=60) as i16,
                         days_remaining: Some(deadline),
-                        accepted_day: (
-                            next_day,
-                            season_to_idx(&next_season),
-                            next_year as u16,
-                        ),
+                        accepted_day: (next_day, season_to_idx(&next_season), next_year as u16),
                     }
                 }
                 2 => {
@@ -421,11 +514,7 @@ pub fn post_daily_quests(
                         reward_items: Vec::new(),
                         reward_friendship: rng.gen_range(30..=60) as i16,
                         days_remaining: Some(deadline),
-                        accepted_day: (
-                            next_day,
-                            season_to_idx(&next_season),
-                            next_year as u16,
-                        ),
+                        accepted_day: (next_day, season_to_idx(&next_season), next_year as u16),
                     }
                 }
                 3 => {
@@ -447,11 +536,7 @@ pub fn post_daily_quests(
                         reward_items: Vec::new(),
                         reward_friendship: rng.gen_range(25..=55) as i16,
                         days_remaining: Some(deadline),
-                        accepted_day: (
-                            next_day,
-                            season_to_idx(&next_season),
-                            next_year as u16,
-                        ),
+                        accepted_day: (next_day, season_to_idx(&next_season), next_year as u16),
                     }
                 }
                 4 => {
@@ -467,7 +552,10 @@ pub fn post_daily_quests(
                         }
                         target
                     } else {
-                        npc_names.first().cloned().unwrap_or_else(|| TALK_NPCS[0].to_string())
+                        npc_names
+                            .first()
+                            .cloned()
+                            .unwrap_or_else(|| TALK_NPCS[0].to_string())
                     };
                     let talk_tmpl = &TALK_TEMPLATES[rng.gen_range(0..TALK_TEMPLATES.len())];
                     let base_gold = match talk_tmpl.1 {
@@ -483,7 +571,10 @@ pub fn post_daily_quests(
                         .unwrap_or_else(|| target_npc.clone());
                     Quest {
                         id: quest_id,
-                        title: format!("{}: Visit {} for {}", talk_tmpl.0, target_npc_display, giver_display),
+                        title: format!(
+                            "{}: Visit {} for {}",
+                            talk_tmpl.0, target_npc_display, giver_display
+                        ),
                         description: talk_description(&mut rng, &giver, &target_npc),
                         giver: giver.clone(),
                         objective: QuestObjective::Talk {
@@ -494,11 +585,7 @@ pub fn post_daily_quests(
                         reward_items: Vec::new(),
                         reward_friendship: rng.gen_range(30..=70) as i16,
                         days_remaining: Some(deadline),
-                        accepted_day: (
-                            next_day,
-                            season_to_idx(&next_season),
-                            next_year as u16,
-                        ),
+                        accepted_day: (next_day, season_to_idx(&next_season), next_year as u16),
                     }
                 }
                 _ => {
@@ -520,11 +607,7 @@ pub fn post_daily_quests(
                         reward_items: Vec::new(),
                         reward_friendship: rng.gen_range(30..=60) as i16,
                         days_remaining: Some(deadline),
-                        accepted_day: (
-                            next_day,
-                            season_to_idx(&next_season),
-                            next_year as u16,
-                        ),
+                        accepted_day: (next_day, season_to_idx(&next_season), next_year as u16),
                     }
                 }
             };
@@ -534,7 +617,9 @@ pub fn post_daily_quests(
                 quest: quest.clone(),
             });
             quest_log.active.push(quest);
-            accepted_events.send(QuestAcceptedEvent { quest_id: quest_id_clone });
+            accepted_events.send(QuestAcceptedEvent {
+                quest_id: quest_id_clone,
+            });
         }
     }
 }
@@ -696,10 +781,7 @@ pub fn handle_quest_completed(
 ) {
     for event in completed_events.read() {
         // Find the quest in the active list
-        let quest_index = quest_log
-            .active
-            .iter()
-            .position(|q| q.id == event.quest_id);
+        let quest_index = quest_log.active.iter().position(|q| q.id == event.quest_id);
 
         if let Some(idx) = quest_index {
             let quest = quest_log.active.remove(idx);
@@ -719,18 +801,12 @@ pub fn handle_quest_completed(
 
             // Award friendship with quest giver
             if quest.reward_friendship != 0 {
-                relationships.add_friendship(
-                    &quest.giver,
-                    quest.reward_friendship as i32,
-                );
+                relationships.add_friendship(&quest.giver, quest.reward_friendship as i32);
             }
 
             // Toast notification
             toast_writer.send(ToastEvent {
-                message: format!(
-                    "Quest complete: {}! +{}g",
-                    quest.title, event.reward_gold
-                ),
+                message: format!("Quest complete: {}! +{}g", quest.title, event.reward_gold),
                 duration_secs: 4.0,
             });
 
@@ -787,7 +863,12 @@ pub fn track_monster_slain(
 
     for event in events.read() {
         for quest in quest_log.active.iter_mut() {
-            if let QuestObjective::Slay { ref monster_kind, quantity, ref mut slain } = quest.objective {
+            if let QuestObjective::Slay {
+                ref monster_kind,
+                quantity,
+                ref mut slain,
+            } = quest.objective
+            {
                 if *monster_kind == event.monster_kind && *slain < quantity {
                     *slain += 1;
                     if *slain >= quantity {
@@ -897,7 +978,9 @@ pub fn check_story_quests(
             quest = Quest {
                 id: "story_fishing_challenge".to_string(),
                 title: "Catch of the Day".to_string(),
-                description: "Old Tom wants to see if you've got what it takes. Catch a bass and show him!".to_string(),
+                description:
+                    "Old Tom wants to see if you've got what it takes. Catch a bass and show him!"
+                        .to_string(),
                 giver: "old_tom".to_string(),
                 objective: QuestObjective::Catch {
                     fish_id: "bass".to_string(),
@@ -942,4 +1025,3 @@ pub fn check_story_quests(
     quest_log.active.push(quest);
     accepted_events.send(QuestAcceptedEvent { quest_id });
 }
-

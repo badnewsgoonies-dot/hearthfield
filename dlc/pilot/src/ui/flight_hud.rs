@@ -1,8 +1,8 @@
 //! In-flight instrument panel — altitude, speed, heading, fuel, throttle,
 //! flight phase, distance remaining, passenger happiness.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct FlightHudRoot;
@@ -57,7 +57,9 @@ pub fn update_flight_hud(
     mut text_q: Query<&mut Text, With<FlightHudText>>,
 ) {
     let Ok(root) = query.get_single() else { return };
-    let Ok(children) = children_q.get(root) else { return };
+    let Ok(children) = children_q.get(root) else {
+        return;
+    };
 
     let lines = [
         format!("Phase: {}", flight.phase.display_name()),

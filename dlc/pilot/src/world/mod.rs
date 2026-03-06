@@ -1,17 +1,17 @@
 //! World domain — seasonal systems, airport status, world events.
 
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use rand::Rng;
 use std::collections::HashMap;
 
+pub mod events;
+pub mod lighting;
 pub mod objects;
 pub mod seasonal;
-pub mod lighting;
 pub mod weather_fx;
-pub mod events;
 pub mod ysort;
 
 pub struct WorldPlugin;
@@ -25,10 +25,10 @@ impl Plugin for WorldPlugin {
             .init_resource::<weather_fx::WeatherFxTimer>()
             .init_resource::<weather_fx::StormLightningTimer>()
             .init_resource::<events::DynamicEventQueue>()
-            .add_systems(Startup, (
-                lighting::spawn_light_overlay,
-                weather_fx::spawn_fog_overlay,
-            ))
+            .add_systems(
+                Startup,
+                (lighting::spawn_light_overlay, weather_fx::spawn_fog_overlay),
+            )
             .add_systems(
                 Update,
                 (
@@ -105,9 +105,18 @@ impl AirportStatusMap {
 /// Global events that affect all airports simultaneously.
 #[derive(Clone, Debug)]
 pub enum WorldEvent {
-    AirShow { airport: AirportId, duration_days: u32 },
-    Holiday { name: String, duration_days: u32 },
-    WeatherEmergency { affected: Vec<AirportId>, duration_days: u32 },
+    AirShow {
+        airport: AirportId,
+        duration_days: u32,
+    },
+    Holiday {
+        name: String,
+        duration_days: u32,
+    },
+    WeatherEmergency {
+        affected: Vec<AirportId>,
+        duration_days: u32,
+    },
 }
 
 #[derive(Resource, Default)]

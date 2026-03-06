@@ -6,25 +6,34 @@
 
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
+use std::path::PathBuf;
 
-mod shared;
-mod input;
-mod player;
-mod flight;
 mod aircraft;
 mod airports;
-mod missions;
 mod crew;
-mod weather;
-mod economy;
-mod ui;
-mod save;
 mod data;
+mod economy;
+mod flight;
+mod input;
+mod missions;
+mod player;
+mod save;
+mod shared;
+mod ui;
+mod weather;
 mod world;
 
 use shared::*;
 
 fn main() {
+    let asset_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|path| path.parent())
+        .expect("pilot crate should live under dlc/pilot/")
+        .to_path_buf()
+        .to_string_lossy()
+        .into_owned();
+
     App::new()
         .add_plugins(
             DefaultPlugins
@@ -37,7 +46,7 @@ fn main() {
                     ..default()
                 })
                 .set(AssetPlugin {
-                    file_path: "../../assets".to_string(),
+                    file_path: asset_root,
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),

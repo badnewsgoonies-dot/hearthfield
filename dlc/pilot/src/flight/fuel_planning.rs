@@ -3,8 +3,8 @@
 //! Calculates legal fuel requirements and checks aircraft weight limits before
 //! each flight. A FuelPlan is generated during the preflight briefing.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Fuel Plan ───────────────────────────────────────────────────────────
 
@@ -175,7 +175,9 @@ pub fn recommended_tankering(
     }
     // Carry enough extra for the return trip, up to capacity minus required
     let capacity_remaining = aircraft.fuel_capacity - plan.total_required;
-    capacity_remaining.max(0.0).min(aircraft.fuel_capacity * 0.3)
+    capacity_remaining
+        .max(0.0)
+        .min(aircraft.fuel_capacity * 0.3)
 }
 
 // ─── Fuel Plan Display Helper ────────────────────────────────────────────
@@ -214,14 +216,20 @@ pub fn display_fuel_plan_on_preflight(
     }
 
     let Some(owned) = fleet.active() else { return };
-    let Some(def) = aircraft_registry.get(&owned.aircraft_id) else { return };
+    let Some(def) = aircraft_registry.get(&owned.aircraft_id) else {
+        return;
+    };
 
     let plan = calculate_fuel_plan(
         flight_state.origin,
         flight_state.destination,
         def,
         &weather,
-        if weather.visibility_nm < 3.0 { FlightRules::Ifr } else { FlightRules::VfrDay },
+        if weather.visibility_nm < 3.0 {
+            FlightRules::Ifr
+        } else {
+            FlightRules::VfrDay
+        },
         0.0,
     );
 

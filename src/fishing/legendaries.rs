@@ -32,7 +32,13 @@ pub const LEGENDARY_FISH: &[(&str, MapId, Season, f32, f64)] = &[
     // Golden Walleye — Farm pond in spring, somewhat hard (0.80), 2% chance
     ("golden_walleye", MapId::Farm, Season::Spring, 0.80, 0.02),
     // Ancient Coelacanth — Beach in winter, the rarest fish in the game (0.99), 1% chance
-    ("ancient_coelacanth", MapId::Beach, Season::Winter, 0.99, 0.01),
+    (
+        "ancient_coelacanth",
+        MapId::Beach,
+        Season::Winter,
+        0.99,
+        0.01,
+    ),
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -46,10 +52,7 @@ pub const LEGENDARY_FISH: &[(&str, MapId, Season, f32, f64)] = &[
 /// match **and** whose spawn roll succeeds is returned. If multiple legendaries
 /// match conditions (unlikely given the table design), the first one to win its
 /// roll is used.
-pub fn try_roll_legendary(
-    map_id: MapId,
-    season: Season,
-) -> Option<(&'static str, f32)> {
+pub fn try_roll_legendary(map_id: MapId, season: Season) -> Option<(&'static str, f32)> {
     let mut rng = rand::thread_rng();
 
     for &(fish_id, req_map, req_season, difficulty, spawn_chance) in LEGENDARY_FISH {
@@ -203,7 +206,11 @@ mod tests {
     fn test_legendary_sell_prices_are_positive() {
         for &(id, _, _, _, _) in LEGENDARY_FISH {
             let price = legendary_sell_price(id);
-            assert!(price > 0, "Legendary {} should have a positive sell price", id);
+            assert!(
+                price > 0,
+                "Legendary {} should have a positive sell price",
+                id
+            );
         }
     }
 
@@ -214,7 +221,10 @@ mod tests {
         for _ in 0..1000 {
             let result = try_roll_legendary(MapId::Farm, Season::Winter);
             if let Some((id, _)) = result {
-                assert_ne!(id, "crimson_king", "Should not roll crimson_king on Farm/Winter");
+                assert_ne!(
+                    id, "crimson_king",
+                    "Should not roll crimson_king on Farm/Winter"
+                );
             }
         }
     }

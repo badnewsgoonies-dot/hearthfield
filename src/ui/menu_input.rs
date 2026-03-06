@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 /// Reset MenuAction at frame start (before observers fire).
 pub fn reset_menu_action(mut action: ResMut<MenuAction>) {
@@ -88,7 +88,13 @@ pub fn menu_cancel_transitions(
         GameState::Dialogue if cutscene_queue.active => {
             next.set(GameState::Cutscene);
         }
-        GameState::Inventory | GameState::Shop | GameState::Crafting | GameState::Dialogue | GameState::Journal | GameState::RelationshipsView | GameState::MapView => {
+        GameState::Inventory
+        | GameState::Shop
+        | GameState::Crafting
+        | GameState::Dialogue
+        | GameState::Journal
+        | GameState::RelationshipsView
+        | GameState::MapView => {
             next.set(GameState::Playing);
         }
         _ => {}

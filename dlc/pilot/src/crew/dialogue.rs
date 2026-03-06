@@ -1,7 +1,7 @@
 //! Dialogue system for crew interactions.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub fn handle_dialogue_start(
     mut events: EventReader<DialogueStartEvent>,
@@ -25,7 +25,11 @@ pub fn handle_dialogue_start(
         } else if friendship >= 25 {
             format!("Hi there! {} How's flying?", member.name)
         } else if friendship >= 0 {
-            format!("Oh, hello. I'm {}. {}", member.name, member.role.display_name())
+            format!(
+                "Oh, hello. I'm {}. {}",
+                member.name,
+                member.role.display_name()
+            )
         } else {
             format!("...{} here.", member.name)
         };
@@ -71,7 +75,8 @@ pub fn handle_dialogue_start(
 
         // Add random pool dialogue
         if !member.dialogue_pool.is_empty() {
-            let idx = (calendar.total_days() as usize + ev.npc_id.len()) % member.dialogue_pool.len();
+            let idx =
+                (calendar.total_days() as usize + ev.npc_id.len()) % member.dialogue_pool.len();
             lines.push(DialogueLine {
                 text: member.dialogue_pool[idx].clone(),
                 speaker: member.name.clone(),

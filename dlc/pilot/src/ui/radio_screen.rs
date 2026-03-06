@@ -1,7 +1,7 @@
 //! Radio communication screen — select and transmit ATC / crew messages.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Radio Data ──────────────────────────────────────────────────────────
 
@@ -56,11 +56,7 @@ pub fn spawn_radio_screen(
 ) {
     // Populate default messages based on flight phase.
     radio_state.frequency = "121.50 MHz".to_string();
-    radio_state.callsign = format!(
-        "{} {}",
-        pilot.current_airport.icao_code(),
-        "Tower"
-    );
+    radio_state.callsign = format!("{} {}", pilot.current_airport.icao_code(), "Tower");
     radio_state.selected_index = 0;
     radio_state.messages = build_radio_messages(&flight_state);
 
@@ -135,10 +131,7 @@ pub fn spawn_radio_screen(
         });
 }
 
-pub fn despawn_radio_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<RadioScreenRoot>>,
-) {
+pub fn despawn_radio_screen(mut commands: Commands, query: Query<Entity, With<RadioScreenRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -234,12 +227,10 @@ fn build_radio_messages(flight: &FlightState) -> Vec<RadioEntry> {
                 response: "Hold position, traffic on final.".into(),
             },
         ],
-        FlightPhase::Takeoff | FlightPhase::Climb => vec![
-            RadioEntry {
-                label: "Departing, climbing to assigned altitude".into(),
-                response: "Radar contact. Climb and maintain flight level 180.".into(),
-            },
-        ],
+        FlightPhase::Takeoff | FlightPhase::Climb => vec![RadioEntry {
+            label: "Departing, climbing to assigned altitude".into(),
+            response: "Radar contact. Climb and maintain flight level 180.".into(),
+        }],
         FlightPhase::Cruise => vec![
             RadioEntry {
                 label: "Request altitude change".into(),
@@ -260,28 +251,22 @@ fn build_radio_messages(flight: &FlightState) -> Vec<RadioEntry> {
                 response: "Roger, cleared visual approach runway 09.".into(),
             },
         ],
-        FlightPhase::Landing => vec![
-            RadioEntry {
-                label: "On final".into(),
-                response: "Cleared to land runway 09. Wind 090 at 8.".into(),
-            },
-        ],
-        FlightPhase::Arrived => vec![
-            RadioEntry {
-                label: "Clear of runway".into(),
-                response: "Roger, taxi to gate via Bravo.".into(),
-            },
-        ],
+        FlightPhase::Landing => vec![RadioEntry {
+            label: "On final".into(),
+            response: "Cleared to land runway 09. Wind 090 at 8.".into(),
+        }],
+        FlightPhase::Arrived => vec![RadioEntry {
+            label: "Clear of runway".into(),
+            response: "Roger, taxi to gate via Bravo.".into(),
+        }],
         FlightPhase::Emergency => vec![
             RadioEntry {
                 label: "MAYDAY MAYDAY MAYDAY".into(),
-                response: "Roger MAYDAY. Emergency services standing by. State intentions."
-                    .into(),
+                response: "Roger MAYDAY. Emergency services standing by. State intentions.".into(),
             },
             RadioEntry {
                 label: "Requesting emergency landing".into(),
-                response: "Cleared for immediate approach any runway. All traffic holding."
-                    .into(),
+                response: "Cleared for immediate approach any runway. All traffic holding.".into(),
             },
         ],
     }

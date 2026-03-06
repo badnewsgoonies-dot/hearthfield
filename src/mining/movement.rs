@@ -6,9 +6,9 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
-use super::floor_gen::{MINE_WIDTH, MINE_HEIGHT};
+use super::floor_gen::{MINE_HEIGHT, MINE_WIDTH};
+use crate::shared::*;
 
 /// Timer resource to prevent movement from being too fast (grid-based).
 #[derive(Resource, Debug)]

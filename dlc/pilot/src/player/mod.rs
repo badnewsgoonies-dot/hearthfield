@@ -1,19 +1,19 @@
 //! Player domain — pilot character movement, interaction, camera.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-pub mod movement;
-pub mod interaction;
-pub mod camera;
-pub mod spawn;
 pub mod apartment;
-pub mod logbook;
-pub mod skills;
-pub mod reputation;
-pub mod day_cycle;
-pub mod journal;
+pub mod camera;
 pub mod collections;
+pub mod day_cycle;
+pub mod interaction;
+pub mod journal;
+pub mod logbook;
+pub mod movement;
+pub mod reputation;
+pub mod skills;
+pub mod spawn;
 
 pub struct PlayerPlugin;
 
@@ -24,7 +24,10 @@ impl Plugin for PlayerPlugin {
             .init_resource::<skills::PilotSkills>()
             .init_resource::<reputation::Reputation>()
             .init_resource::<spawn::PlayerSpriteData>()
-            .add_systems(OnEnter(GameState::Playing), (spawn::spawn_player, spawn::setup_new_game))
+            .add_systems(
+                OnEnter(GameState::Playing),
+                (spawn::spawn_player, spawn::setup_new_game),
+            )
             .add_systems(
                 Update,
                 (

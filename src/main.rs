@@ -1,50 +1,60 @@
-mod shared;
-mod input;
-mod calendar;
-mod player;
-mod farming;
 mod animals;
-mod world;
-mod npcs;
-mod economy;
+mod calendar;
 mod crafting;
-mod fishing;
-mod mining;
-mod ui;
-mod save;
 mod data;
+mod economy;
+mod farming;
+mod fishing;
+mod input;
+mod mining;
+mod npcs;
+mod player;
+mod save;
+mod shared;
+mod ui;
+mod world;
 
-use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 use bevy::core_pipeline::tonemapping::Tonemapping;
+use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::PathBuf;
 
 use shared::*;
 
 fn main() {
+    #[cfg(not(target_arch = "wasm32"))]
+    let asset_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .to_string_lossy()
+        .into_owned();
+
+    let default_plugins = DefaultPlugins
+        .set(AssetPlugin {
+            meta_check: AssetMetaCheck::Never,
+            #[cfg(not(target_arch = "wasm32"))]
+            file_path: asset_path,
+            ..default()
+        })
+        .set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Hearthfield".into(),
+                resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
+                present_mode: PresentMode::AutoVsync,
+                resizable: true,
+                #[cfg(target_arch = "wasm32")]
+                canvas: Some("#game-canvas".into()),
+                #[cfg(target_arch = "wasm32")]
+                fit_canvas_to_parent: true,
+                ..default()
+            }),
+            ..default()
+        })
+        .set(ImagePlugin::default_nearest());
+
     App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(AssetPlugin {
-                    meta_check: AssetMetaCheck::Never,
-                    ..default()
-                })
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Hearthfield".into(),
-                        resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
-                        present_mode: PresentMode::AutoVsync,
-                        resizable: true,
-                        #[cfg(target_arch = "wasm32")]
-                        canvas: Some("#game-canvas".into()),
-                        #[cfg(target_arch = "wasm32")]
-                        fit_canvas_to_parent: true,
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(ImagePlugin::default_nearest()),
-        )
+        .add_plugins(default_plugins)
         // Clear color (dark navy, close to HTML background)
         .insert_resource(ClearColor(Color::srgb(0.15, 0.22, 0.12)))
         // Game state

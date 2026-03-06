@@ -1,7 +1,7 @@
 //! Airport announcement system — periodic PA messages displayed as toast notifications.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use rand::Rng;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -30,15 +30,28 @@ impl Default for AnnouncementTimer {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const DESTINATIONS: &[&str] = &[
-    "Windport", "Frostpeak", "Sunhaven", "Ironforge", "Cloudmere",
-    "Duskhollow", "Stormwatch", "Grand City", "Skyreach",
+    "Windport",
+    "Frostpeak",
+    "Sunhaven",
+    "Ironforge",
+    "Cloudmere",
+    "Duskhollow",
+    "Stormwatch",
+    "Grand City",
+    "Skyreach",
 ];
 
 const GATE_NUMBERS: &[&str] = &["1", "2", "3", "4", "5", "6", "7", "8", "12", "15"];
 
 const CREW_NAMES: &[&str] = &[
-    "Captain Elena", "Officer Marco", "Navigator Yuki", "Mechanic Hank",
-    "Attendant Sofia", "Controller Raj", "Instructor Chen", "Captain Pete",
+    "Captain Elena",
+    "Officer Marco",
+    "Navigator Yuki",
+    "Mechanic Hank",
+    "Attendant Sofia",
+    "Controller Raj",
+    "Instructor Chen",
+    "Captain Pete",
 ];
 
 const SECURITY_REMINDERS: &[&str] = &[
@@ -71,7 +84,10 @@ pub fn play_announcements(
     mut toast: EventWriter<ToastEvent>,
 ) {
     // Only play in indoor terminal-like zones
-    if !matches!(location.zone, MapZone::Terminal | MapZone::Lounge | MapZone::Shop) {
+    if !matches!(
+        location.zone,
+        MapZone::Terminal | MapZone::Lounge | MapZone::Shop
+    ) {
         return;
     }
 

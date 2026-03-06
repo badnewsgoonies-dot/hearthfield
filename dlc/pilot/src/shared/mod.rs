@@ -205,7 +205,6 @@ pub enum Weather {
     Windy,
 }
 
-
 impl Weather {
     pub fn flight_difficulty(&self) -> f32 {
         match self {
@@ -263,18 +262,17 @@ pub enum TurbulenceLevel {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AirportId {
     #[default]
-    HomeBase,      // Starter airport — small regional
-    Windport,      // Coastal city
-    Frostpeak,     // Mountain airport
-    Sunhaven,      // Tropical resort
-    Ironforge,     // Industrial hub
-    Cloudmere,     // High-altitude
-    Duskhollow,    // Desert oasis
-    Stormwatch,    // Weather research station
-    Grandcity,     // Major international hub
-    Skyreach,      // Elite/endgame airport
+    HomeBase, // Starter airport — small regional
+    Windport,   // Coastal city
+    Frostpeak,  // Mountain airport
+    Sunhaven,   // Tropical resort
+    Ironforge,  // Industrial hub
+    Cloudmere,  // High-altitude
+    Duskhollow, // Desert oasis
+    Stormwatch, // Weather research station
+    Grandcity,  // Major international hub
+    Skyreach,   // Elite/endgame airport
 }
-
 
 impl AirportId {
     pub fn display_name(&self) -> &'static str {
@@ -336,7 +334,6 @@ pub enum MapZone {
     Shop,
     CityStreet,
 }
-
 
 impl MapZone {
     pub fn is_indoor(&self) -> bool {
@@ -800,7 +797,8 @@ impl Inventory {
             if slot.quantity >= quantity {
                 slot.quantity -= quantity;
                 if slot.quantity == 0 {
-                    self.slots.retain(|s| s.item_id != item_id || s.quantity > 0);
+                    self.slots
+                        .retain(|s| s.item_id != item_id || s.quantity > 0);
                 }
                 return true;
             }
@@ -847,11 +845,11 @@ pub enum ItemCategory {
     Drink,
     Gift,
     Tool,
-    Part,       // Aircraft parts
+    Part, // Aircraft parts
     Fuel,
     Map,
-    Document,   // Licenses, manuals
-    Cosmetic,   // Pilot customization
+    Document, // Licenses, manuals
+    Cosmetic, // Pilot customization
     Collectible,
     KeyItem,
 }
@@ -886,8 +884,8 @@ pub struct AircraftDef {
     pub maintenance_cost_per_flight: u32,
     pub required_license: LicenseType,
     pub required_rank: PilotRank,
-    pub handling: f32,     // 0.0 = sluggish, 1.0 = responsive
-    pub durability: f32,   // max condition
+    pub handling: f32,   // 0.0 = sluggish, 1.0 = responsive
+    pub durability: f32, // max condition
     pub sprite_index: u32,
 }
 
@@ -950,7 +948,7 @@ impl Fleet {
 pub struct OwnedAircraft {
     pub aircraft_id: String,
     pub nickname: String,
-    pub condition: f32,      // 0.0 = broken, 100.0 = perfect
+    pub condition: f32, // 0.0 = broken, 100.0 = perfect
     pub fuel: f32,
     pub total_flights: u32,
     pub customizations: Vec<String>,
@@ -972,7 +970,7 @@ pub struct FlightState {
     pub distance_remaining_nm: f32,
     pub distance_total_nm: f32,
     pub flight_time_secs: f32,
-    pub throttle: f32,        // 0.0 - 1.0
+    pub throttle: f32, // 0.0 - 1.0
     pub flaps_deployed: bool,
     pub gear_down: bool,
     pub autopilot: bool,
@@ -1397,26 +1395,126 @@ pub struct AchievementDef {
 }
 
 pub const ACHIEVEMENTS: &[AchievementDef] = &[
-    AchievementDef { id: "first_flight", name: "Wheels Up", description: "Complete your first flight", icon_index: 0 },
-    AchievementDef { id: "perfect_10", name: "Butter Landing x10", description: "Make 10 perfect landings", icon_index: 1 },
-    AchievementDef { id: "all_airports", name: "Globe Trotter", description: "Visit every airport", icon_index: 2 },
-    AchievementDef { id: "storm_pilot", name: "Storm Chaser", description: "Complete a flight in severe weather", icon_index: 3 },
-    AchievementDef { id: "night_owl", name: "Night Owl", description: "Complete 5 night flights", icon_index: 4 },
-    AchievementDef { id: "captain_rank", name: "Captain!", description: "Reach Captain rank", icon_index: 5 },
-    AchievementDef { id: "ace_rank", name: "Ace of Aces", description: "Reach Ace rank", icon_index: 6 },
-    AchievementDef { id: "millionaire", name: "Sky Millionaire", description: "Earn 1,000,000 gold total", icon_index: 7 },
-    AchievementDef { id: "friend_all", name: "Crew Family", description: "Max friendship with all crew", icon_index: 8 },
-    AchievementDef { id: "all_aircraft", name: "Collector", description: "Own every aircraft type", icon_index: 9 },
-    AchievementDef { id: "cargo_king", name: "Cargo King", description: "Deliver 100 cargo missions", icon_index: 10 },
-    AchievementDef { id: "medical_hero", name: "Lifesaver", description: "Complete 10 medical flights", icon_index: 11 },
-    AchievementDef { id: "vip_service", name: "First Class", description: "Complete 20 VIP charters", icon_index: 12 },
-    AchievementDef { id: "100_flights", name: "Century Pilot", description: "Complete 100 flights", icon_index: 13 },
-    AchievementDef { id: "500_flights", name: "Sky Legend", description: "Complete 500 flights", icon_index: 14 },
-    AchievementDef { id: "all_licenses", name: "Full Ticket", description: "Earn every license type", icon_index: 15 },
-    AchievementDef { id: "speed_demon", name: "Speed Demon", description: "Fly at maximum speed in a heavy jet", icon_index: 16 },
-    AchievementDef { id: "fuel_saver", name: "Eco Pilot", description: "Complete 10 flights under fuel budget", icon_index: 17 },
-    AchievementDef { id: "no_damage", name: "Pristine Fleet", description: "Complete 50 flights with no aircraft damage", icon_index: 18 },
-    AchievementDef { id: "rescue_5", name: "Guardian Angel", description: "Complete 5 rescue missions", icon_index: 19 },
+    AchievementDef {
+        id: "first_flight",
+        name: "Wheels Up",
+        description: "Complete your first flight",
+        icon_index: 0,
+    },
+    AchievementDef {
+        id: "perfect_10",
+        name: "Butter Landing x10",
+        description: "Make 10 perfect landings",
+        icon_index: 1,
+    },
+    AchievementDef {
+        id: "all_airports",
+        name: "Globe Trotter",
+        description: "Visit every airport",
+        icon_index: 2,
+    },
+    AchievementDef {
+        id: "storm_pilot",
+        name: "Storm Chaser",
+        description: "Complete a flight in severe weather",
+        icon_index: 3,
+    },
+    AchievementDef {
+        id: "night_owl",
+        name: "Night Owl",
+        description: "Complete 5 night flights",
+        icon_index: 4,
+    },
+    AchievementDef {
+        id: "captain_rank",
+        name: "Captain!",
+        description: "Reach Captain rank",
+        icon_index: 5,
+    },
+    AchievementDef {
+        id: "ace_rank",
+        name: "Ace of Aces",
+        description: "Reach Ace rank",
+        icon_index: 6,
+    },
+    AchievementDef {
+        id: "millionaire",
+        name: "Sky Millionaire",
+        description: "Earn 1,000,000 gold total",
+        icon_index: 7,
+    },
+    AchievementDef {
+        id: "friend_all",
+        name: "Crew Family",
+        description: "Max friendship with all crew",
+        icon_index: 8,
+    },
+    AchievementDef {
+        id: "all_aircraft",
+        name: "Collector",
+        description: "Own every aircraft type",
+        icon_index: 9,
+    },
+    AchievementDef {
+        id: "cargo_king",
+        name: "Cargo King",
+        description: "Deliver 100 cargo missions",
+        icon_index: 10,
+    },
+    AchievementDef {
+        id: "medical_hero",
+        name: "Lifesaver",
+        description: "Complete 10 medical flights",
+        icon_index: 11,
+    },
+    AchievementDef {
+        id: "vip_service",
+        name: "First Class",
+        description: "Complete 20 VIP charters",
+        icon_index: 12,
+    },
+    AchievementDef {
+        id: "100_flights",
+        name: "Century Pilot",
+        description: "Complete 100 flights",
+        icon_index: 13,
+    },
+    AchievementDef {
+        id: "500_flights",
+        name: "Sky Legend",
+        description: "Complete 500 flights",
+        icon_index: 14,
+    },
+    AchievementDef {
+        id: "all_licenses",
+        name: "Full Ticket",
+        description: "Earn every license type",
+        icon_index: 15,
+    },
+    AchievementDef {
+        id: "speed_demon",
+        name: "Speed Demon",
+        description: "Fly at maximum speed in a heavy jet",
+        icon_index: 16,
+    },
+    AchievementDef {
+        id: "fuel_saver",
+        name: "Eco Pilot",
+        description: "Complete 10 flights under fuel budget",
+        icon_index: 17,
+    },
+    AchievementDef {
+        id: "no_damage",
+        name: "Pristine Fleet",
+        description: "Complete 50 flights with no aircraft damage",
+        icon_index: 18,
+    },
+    AchievementDef {
+        id: "rescue_5",
+        name: "Guardian Angel",
+        description: "Complete 5 rescue missions",
+        icon_index: 19,
+    },
 ];
 
 #[derive(Resource, Default, Clone, Debug, Serialize, Deserialize)]
@@ -1658,14 +1756,34 @@ pub struct CutsceneStartEvent {
 
 #[derive(Clone, Debug)]
 pub enum CutsceneStep {
-    Dialogue { speaker: String, text: String },
-    Wait { seconds: f32 },
-    Teleport { airport: AirportId, zone: MapZone, x: i32, y: i32 },
-    FadeOut { duration: f32 },
-    FadeIn { duration: f32 },
-    PlayMusic { track_id: String },
-    PlaySfx { sfx_id: String },
-    SetWeather { weather: Weather },
+    Dialogue {
+        speaker: String,
+        text: String,
+    },
+    Wait {
+        seconds: f32,
+    },
+    Teleport {
+        airport: AirportId,
+        zone: MapZone,
+        x: i32,
+        y: i32,
+    },
+    FadeOut {
+        duration: f32,
+    },
+    FadeIn {
+        duration: f32,
+    },
+    PlayMusic {
+        track_id: String,
+    },
+    PlaySfx {
+        sfx_id: String,
+    },
+    SetWeather {
+        weather: Weather,
+    },
 }
 
 #[derive(Resource, Default)]

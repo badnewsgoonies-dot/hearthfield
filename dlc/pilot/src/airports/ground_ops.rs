@@ -1,7 +1,7 @@
 //! Ground operations — taxi, pushback, taxiway routing, de-icing, parking, turnaround.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─── Taxiway System ──────────────────────────────────────────────────────
 
@@ -59,25 +59,69 @@ pub struct TaxiRoute {
 pub fn build_taxi_route(airport: AirportId, to_runway: bool) -> TaxiRoute {
     let steps = match (airport, to_runway) {
         (AirportId::HomeBase, true) => vec![
-            TaxiStep { taxiway: TaxiwayLetter::Alpha, hold_short: false, instruction: "Taxi via Alpha".into() },
-            TaxiStep { taxiway: TaxiwayLetter::Bravo, hold_short: true, instruction: "Hold short Runway 27 on Bravo".into() },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Alpha,
+                hold_short: false,
+                instruction: "Taxi via Alpha".into(),
+            },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Bravo,
+                hold_short: true,
+                instruction: "Hold short Runway 27 on Bravo".into(),
+            },
         ],
         (AirportId::Grandcity, true) => vec![
-            TaxiStep { taxiway: TaxiwayLetter::Charlie, hold_short: false, instruction: "Taxi via Charlie".into() },
-            TaxiStep { taxiway: TaxiwayLetter::Delta, hold_short: false, instruction: "Continue Delta".into() },
-            TaxiStep { taxiway: TaxiwayLetter::Echo, hold_short: true, instruction: "Hold short Runway 09L on Echo".into() },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Charlie,
+                hold_short: false,
+                instruction: "Taxi via Charlie".into(),
+            },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Delta,
+                hold_short: false,
+                instruction: "Continue Delta".into(),
+            },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Echo,
+                hold_short: true,
+                instruction: "Hold short Runway 09L on Echo".into(),
+            },
         ],
         (_, true) => vec![
-            TaxiStep { taxiway: TaxiwayLetter::Alpha, hold_short: false, instruction: "Taxi via Alpha".into() },
-            TaxiStep { taxiway: TaxiwayLetter::Bravo, hold_short: true, instruction: "Hold short runway on Bravo".into() },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Alpha,
+                hold_short: false,
+                instruction: "Taxi via Alpha".into(),
+            },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Bravo,
+                hold_short: true,
+                instruction: "Hold short runway on Bravo".into(),
+            },
         ],
         (AirportId::Grandcity, false) => vec![
-            TaxiStep { taxiway: TaxiwayLetter::Foxtrot, hold_short: false, instruction: "Exit runway via Foxtrot".into() },
-            TaxiStep { taxiway: TaxiwayLetter::Delta, hold_short: false, instruction: "Taxi to gate via Delta".into() },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Foxtrot,
+                hold_short: false,
+                instruction: "Exit runway via Foxtrot".into(),
+            },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Delta,
+                hold_short: false,
+                instruction: "Taxi to gate via Delta".into(),
+            },
         ],
         (_, false) => vec![
-            TaxiStep { taxiway: TaxiwayLetter::Alpha, hold_short: false, instruction: "Exit runway via Alpha".into() },
-            TaxiStep { taxiway: TaxiwayLetter::Bravo, hold_short: false, instruction: "Taxi to ramp via Bravo".into() },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Alpha,
+                hold_short: false,
+                instruction: "Exit runway via Alpha".into(),
+            },
+            TaxiStep {
+                taxiway: TaxiwayLetter::Bravo,
+                hold_short: false,
+                instruction: "Taxi to ramp via Bravo".into(),
+            },
         ],
     };
 
@@ -223,10 +267,7 @@ pub fn setup_ground_ops_on_arrival(
 }
 
 /// Tick turnaround timer while on ground.
-pub fn update_turnaround(
-    time: Res<Time>,
-    mut ground_ops: ResMut<GroundOpsState>,
-) {
+pub fn update_turnaround(time: Res<Time>, mut ground_ops: ResMut<GroundOpsState>) {
     if ground_ops.turnaround_remaining_secs > 0.0 {
         ground_ops.turnaround_remaining_secs =
             (ground_ops.turnaround_remaining_secs - time.delta_secs()).max(0.0);
@@ -257,7 +298,10 @@ pub fn update_taxi_progress(
         {
             if step.hold_short {
                 toast.send(ToastEvent {
-                    message: format!("Hold short on {} — waiting for traffic", step.taxiway.display()),
+                    message: format!(
+                        "Hold short on {} — waiting for traffic",
+                        step.taxiway.display()
+                    ),
                     duration_secs: 3.0,
                 });
             }

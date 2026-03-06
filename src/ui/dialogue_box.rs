@@ -1,8 +1,8 @@
-use bevy::prelude::*;
-use crate::shared::*;
-use crate::npcs::spawning::NpcSpriteData;
-use crate::npcs::definitions::npc_sprite_file;
 use super::UiFontHandle;
+use crate::npcs::definitions::npc_sprite_file;
+use crate::npcs::spawning::NpcSpriteData;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -119,10 +119,9 @@ pub fn spawn_dialogue_box(
                 .with_children(|panel| {
                     // Left: NPC portrait using per-NPC spritesheet
                     if npc_sprites.loaded {
-                        let npc_id_str = ui_state.as_ref()
-                            .map(|s| s.npc_id.as_str())
-                            .unwrap_or("");
-                        let portrait_image = npc_sprites.images
+                        let npc_id_str = ui_state.as_ref().map(|s| s.npc_id.as_str()).unwrap_or("");
+                        let portrait_image = npc_sprites
+                            .images
                             .get(npc_id_str)
                             .cloned()
                             .unwrap_or_else(|| asset_server.load(npc_sprite_file(npc_id_str)));
@@ -137,7 +136,11 @@ pub fn spawn_dialogue_box(
                                 image: portrait_image,
                                 texture_atlas: Some(TextureAtlas {
                                     layout: npc_sprites.layout.clone(),
-                                    index: ui_state.as_ref().and_then(|s| s.portrait_index).unwrap_or(0) as usize,
+                                    index: ui_state
+                                        .as_ref()
+                                        .and_then(|s| s.portrait_index)
+                                        .unwrap_or(0)
+                                        as usize,
                                 }),
                                 ..default()
                             },
@@ -156,14 +159,12 @@ pub fn spawn_dialogue_box(
 
                     // Right: Text area
                     panel
-                        .spawn((
-                            Node {
-                                flex_direction: FlexDirection::Column,
-                                flex_grow: 1.0,
-                                justify_content: JustifyContent::SpaceBetween,
-                                ..default()
-                            },
-                        ))
+                        .spawn((Node {
+                            flex_direction: FlexDirection::Column,
+                            flex_grow: 1.0,
+                            justify_content: JustifyContent::SpaceBetween,
+                            ..default()
+                        },))
                         .with_children(|text_area| {
                             // NPC name
                             text_area.spawn((
@@ -205,10 +206,7 @@ pub fn spawn_dialogue_box(
         });
 }
 
-pub fn despawn_dialogue_box(
-    mut commands: Commands,
-    query: Query<Entity, With<DialogueBoxRoot>>,
-) {
+pub fn despawn_dialogue_box(mut commands: Commands, query: Query<Entity, With<DialogueBoxRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
@@ -232,7 +230,9 @@ pub fn advance_dialogue(
         return;
     }
 
-    let Some(ref mut state) = ui_state else { return };
+    let Some(ref mut state) = ui_state else {
+        return;
+    };
 
     state.current_line += 1;
 
@@ -272,9 +272,7 @@ pub fn advance_dialogue(
 /// Reads `DialogueEndEvent` to ensure the event bus is drained each frame.
 /// Without this reader, unread events would persist and potentially cause
 /// stale state in subsequent frames.
-pub fn handle_dialogue_end(
-    mut events: EventReader<DialogueEndEvent>,
-) {
+pub fn handle_dialogue_end(mut events: EventReader<DialogueEndEvent>) {
     for _ev in events.read() {
         info!("[UI/Dialogue] DialogueEndEvent received — dialogue cleanup complete.");
     }

@@ -87,11 +87,11 @@ pub enum Weather {
 pub struct Calendar {
     pub year: u32,
     pub season: Season,
-    pub day: u8,           // 1-28
-    pub hour: u8,          // 6-25 (25 = 1:00 AM next day)
-    pub minute: u8,        // 0-59
+    pub day: u8,    // 1-28
+    pub hour: u8,   // 6-25 (25 = 1:00 AM next day)
+    pub minute: u8, // 0-59
     pub weather: Weather,
-    pub time_scale: f32,   // game-minutes per real-second (default ~10)
+    pub time_scale: f32, // game-minutes per real-second (default ~10)
     pub time_paused: bool,
     pub elapsed_real_seconds: f32, // accumulator for sub-minute ticks
 }
@@ -114,7 +114,8 @@ impl Default for Calendar {
 
 impl Calendar {
     pub fn day_of_week(&self) -> DayOfWeek {
-        let total_days = (self.season.index() as u32 * DAYS_PER_SEASON as u32) + (self.day as u32 - 1);
+        let total_days =
+            (self.season.index() as u32 * DAYS_PER_SEASON as u32) + (self.day as u32 - 1);
         match total_days % 7 {
             0 => DayOfWeek::Monday,
             1 => DayOfWeek::Tuesday,
@@ -127,16 +128,15 @@ impl Calendar {
     }
 
     pub fn total_days_elapsed(&self) -> u32 {
-        ((self.year - 1) * (SEASONS_PER_YEAR as u32 * DAYS_PER_SEASON as u32)) + (self.season.index() as u32 * DAYS_PER_SEASON as u32) + (self.day as u32 - 1)
+        ((self.year - 1) * (SEASONS_PER_YEAR as u32 * DAYS_PER_SEASON as u32))
+            + (self.season.index() as u32 * DAYS_PER_SEASON as u32)
+            + (self.day as u32 - 1)
     }
 
     pub fn is_festival_day(&self) -> bool {
         matches!(
             (self.season, self.day),
-            (Season::Spring, 13)
-                | (Season::Summer, 11)
-                | (Season::Fall, 16)
-                | (Season::Winter, 25)
+            (Season::Spring, 13) | (Season::Summer, 11) | (Season::Fall, 16) | (Season::Winter, 25)
         )
     }
 
@@ -243,7 +243,9 @@ impl ToolTier {
 
     /// Days the blacksmith takes for any upgrade.
     #[allow(dead_code)]
-    pub fn upgrade_days(&self) -> u8 { 2 }
+    pub fn upgrade_days(&self) -> u8 {
+        2
+    }
 }
 
 #[derive(Component, Debug, Clone, Default)]
@@ -346,8 +348,8 @@ pub struct ItemDef {
     pub buy_price: Option<u32>, // None = not buyable
     pub stack_size: u8,         // max per slot (1 for tools, 99 for most items)
     pub edible: bool,
-    pub energy_restore: f32,    // if edible
-    pub sprite_index: u32,      // atlas index
+    pub energy_restore: f32, // if edible
+    pub sprite_index: u32,   // atlas index
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -560,7 +562,7 @@ pub struct Animal {
     pub name: String,
     pub age: AnimalAge,
     pub days_old: u16,
-    pub happiness: u8,    // 0-255
+    pub happiness: u8, // 0-255
     pub fed_today: bool,
     pub petted_today: bool,
     pub product_ready: bool,
@@ -637,11 +639,11 @@ pub type NpcId = String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GiftPreference {
-    Loved,   // +80 points
-    Liked,   // +45 points
-    Neutral, // +20 points
+    Loved,    // +80 points
+    Liked,    // +45 points
+    Neutral,  // +20 points
     Disliked, // -20 points
-    Hated,   // -40 points
+    Hated,    // -40 points
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -660,7 +662,7 @@ pub struct NpcDef {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduleEntry {
-    pub time: f32,      // e.g. 9.0 = 9:00 AM
+    pub time: f32, // e.g. 9.0 = 9:00 AM
     pub map: MapId,
     pub x: i32,
     pub y: i32,
@@ -788,10 +790,10 @@ pub struct FishDef {
     pub name: String,
     pub location: FishLocation,
     pub seasons: Vec<Season>,
-    pub time_range: (f32, f32),    // e.g. (6.0, 20.0) = 6AM-8PM
+    pub time_range: (f32, f32), // e.g. (6.0, 20.0) = 6AM-8PM
     pub weather_required: Option<Weather>,
     pub rarity: Rarity,
-    pub difficulty: f32,           // 0.0 = trivial, 1.0 = legendary
+    pub difficulty: f32, // 0.0 = trivial, 1.0 = legendary
     pub sell_price: u32,
     pub sprite_index: u32,
 }
@@ -814,9 +816,9 @@ pub enum MineEnemy {
 
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MineState {
-    pub current_floor: u8,             // 0 = not in mine
-    pub deepest_floor_reached: u8,     // for elevator
-    pub elevator_floors: Vec<u8>,      // unlocked elevator stops (every 5)
+    pub current_floor: u8,         // 0 = not in mine
+    pub deepest_floor_reached: u8, // for elevator
+    pub elevator_floors: Vec<u8>,  // unlocked elevator stops (every 5)
 }
 
 #[derive(Component, Debug, Clone)]
@@ -1082,7 +1084,6 @@ pub struct QualityStack {
     pub quality: ItemQuality,
 }
 
-
 /// Toast notification for player feedback.
 #[derive(Event, Debug, Clone)]
 pub struct ToastEvent {
@@ -1129,7 +1130,9 @@ impl Default for DayNightTint {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// House upgrade tier. Determines available features.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum HouseTier {
     #[default]
     Basic,
@@ -1141,12 +1144,14 @@ pub enum HouseTier {
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HouseState {
     pub tier: HouseTier,
-    pub has_kitchen: bool,     // Big+ house
-    pub has_nursery: bool,     // Deluxe house
+    pub has_kitchen: bool, // Big+ house
+    pub has_nursery: bool, // Deluxe house
 }
 
 /// Romance/relationship stage with marriage candidates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum RelationshipStage {
     #[default]
     Stranger,
@@ -1223,12 +1228,34 @@ pub struct Quest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum QuestObjective {
-    Deliver { item_id: ItemId, quantity: u8, delivered: u8 },
-    Catch { fish_id: String, delivered: bool },
-    Harvest { crop_id: String, quantity: u8, harvested: u8 },
-    Mine { item_id: ItemId, quantity: u8, collected: u8 },
-    Talk { npc_name: String, talked: bool },
-    Slay { monster_kind: String, quantity: u8, slain: u8 },
+    Deliver {
+        item_id: ItemId,
+        quantity: u8,
+        delivered: u8,
+    },
+    Catch {
+        fish_id: String,
+        delivered: bool,
+    },
+    Harvest {
+        crop_id: String,
+        quantity: u8,
+        harvested: u8,
+    },
+    Mine {
+        item_id: ItemId,
+        quantity: u8,
+        collected: u8,
+    },
+    Talk {
+        npc_name: String,
+        talked: bool,
+    },
+    Slay {
+        monster_kind: String,
+        quantity: u8,
+        slain: u8,
+    },
 }
 
 /// A mine enemy was killed by the player.
@@ -1472,14 +1499,18 @@ pub struct PlayStats {
 pub struct InputBlocks(pub std::collections::HashSet<std::any::TypeId>);
 
 impl InputBlocks {
-    pub fn is_blocked(&self) -> bool { !self.0.is_empty() }
+    pub fn is_blocked(&self) -> bool {
+        !self.0.is_empty()
+    }
     #[allow(dead_code)]
-    pub fn block<T: 'static>(&mut self) { self.0.insert(std::any::TypeId::of::<T>()); }
+    pub fn block<T: 'static>(&mut self) {
+        self.0.insert(std::any::TypeId::of::<T>());
+    }
     #[allow(dead_code)]
-    pub fn unblock<T: 'static>(&mut self) { self.0.remove(&std::any::TypeId::of::<T>()); }
+    pub fn unblock<T: 'static>(&mut self) {
+        self.0.remove(&std::any::TypeId::of::<T>());
+    }
 }
-
-
 
 // ═══════════════════════════════════════════════════════════════════════
 // INTERACTION SYSTEM
@@ -1552,9 +1583,9 @@ pub struct PlayerInput {
     pub move_axis: Vec2,
 
     // Actions (just_pressed this frame)
-    pub interact: bool,           // F — talk, pick up, open chest, shipping bin
-    pub tool_use: bool,           // Space / LMB — swing tool
-    pub tool_secondary: bool,     // R / RMB — eat food, place item
+    pub interact: bool,       // F — talk, pick up, open chest, shipping bin
+    pub tool_use: bool,       // Space / LMB — swing tool
+    pub tool_secondary: bool, // R / RMB — eat food, place item
 
     // Menu toggles (just_pressed)
     pub open_inventory: bool,     // E
@@ -1565,30 +1596,30 @@ pub struct PlayerInput {
     pub pause: bool,              // Escape
 
     // Tool selection
-    pub tool_next: bool,          // ] / scroll up
-    pub tool_prev: bool,          // [ / scroll down
-    pub tool_slot: Option<u8>,    // 1-9 → Some(0..8)
+    pub tool_next: bool,       // ] / scroll up
+    pub tool_prev: bool,       // [ / scroll down
+    pub tool_slot: Option<u8>, // 1-9 → Some(0..8)
 
     // Fishing
-    pub fishing_reel: bool,       // held (pressed, not just_pressed)
+    pub fishing_reel: bool, // held (pressed, not just_pressed)
 
     // Mining combat (same as tool_use, context determines meaning)
     pub attack: bool,
 
     // UI navigation (menus, dialogue)
-    pub ui_confirm: bool,         // Enter / E
-    pub ui_cancel: bool,          // Escape
+    pub ui_confirm: bool, // Enter / E
+    pub ui_cancel: bool,  // Escape
     pub ui_up: bool,
     pub ui_down: bool,
     pub ui_left: bool,
     pub ui_right: bool,
-    pub tab_pressed: bool,            // Tab key (panel switch, mode cycle)
+    pub tab_pressed: bool, // Tab key (panel switch, mode cycle)
 
     // Meta
-    pub any_key: bool,            // splash/title "press any key"
-    pub skip_cutscene: bool,      // Space during cutscene
-    pub quicksave: bool,          // F5
-    pub quickload: bool,          // F9
+    pub any_key: bool,       // splash/title "press any key"
+    pub skip_cutscene: bool, // Space during cutscene
+    pub quicksave: bool,     // F5
+    pub quickload: bool,     // F9
 }
 
 /// Which input context is active. Determines which PlayerInput fields get written.
@@ -1596,11 +1627,11 @@ pub struct PlayerInput {
 pub enum InputContext {
     #[default]
     Gameplay,
-    Menu,           // inventory, shop, crafting, chest, pause
-    Dialogue,       // interact to advance, ui_up/down for choices
-    Fishing,        // fishing_reel only
-    Cutscene,       // skip_cutscene only
-    Disabled,       // loading, transitions — nothing written
+    Menu,     // inventory, shop, crafting, chest, pause
+    Dialogue, // interact to advance, ui_up/down for choices
+    Fishing,  // fishing_reel only
+    Cutscene, // skip_cutscene only
+    Disabled, // loading, transitions — nothing written
 }
 
 /// Keyboard binding table. Hardcoded defaults now, remappable later.
@@ -1757,15 +1788,9 @@ pub fn watering_can_area(
         ToolTier::Basic => {
             vec![(target_x, target_y)]
         }
-        ToolTier::Copper => {
-            line_tiles(target_x, target_y, facing, 3)
-        }
-        ToolTier::Iron => {
-            line_tiles(target_x, target_y, facing, 5)
-        }
-        ToolTier::Gold => {
-            square_area(target_x, target_y, 1)
-        }
+        ToolTier::Copper => line_tiles(target_x, target_y, facing, 3),
+        ToolTier::Iron => line_tiles(target_x, target_y, facing, 5),
+        ToolTier::Gold => square_area(target_x, target_y, 1),
         ToolTier::Iridium => {
             let half = 3_i32;
             let mut tiles = Vec::with_capacity(36);
@@ -1808,10 +1833,10 @@ fn square_area(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
 /// Returns the (dx, dy) unit step for each facing direction.
 fn facing_delta(facing: Facing) -> (i32, i32) {
     match facing {
-        Facing::Up    => (0,  1),
-        Facing::Down  => (0, -1),
-        Facing::Left  => (-1, 0),
-        Facing::Right => (1,  0),
+        Facing::Up => (0, 1),
+        Facing::Down => (0, -1),
+        Facing::Left => (-1, 0),
+        Facing::Right => (1, 0),
     }
 }
 
@@ -2011,7 +2036,9 @@ mod tests {
         let leftover2 = inv.try_add("stone", 1, 5);
         assert_eq!(leftover2, 0);
         // First (and only full) slot should still be at exactly 5
-        let full_slots: Vec<_> = inv.slots.iter()
+        let full_slots: Vec<_> = inv
+            .slots
+            .iter()
             .filter_map(|s| s.as_ref())
             .filter(|s| s.item_id == "stone" && s.quantity == 5)
             .collect();
@@ -2076,7 +2103,9 @@ mod tests {
         assert!(inv.slots.iter().any(|s| s.is_some()));
         inv.try_remove("turnip", 1);
         // After removing all, the slot should be None
-        let turnip_slots: Vec<_> = inv.slots.iter()
+        let turnip_slots: Vec<_> = inv
+            .slots
+            .iter()
             .filter(|s| s.as_ref().is_some_and(|s| s.item_id == "turnip"))
             .collect();
         assert!(turnip_slots.is_empty());
@@ -2128,7 +2157,8 @@ mod tests {
     #[test]
     fn test_add_friendship_clamps_at_max() {
         let mut rel = Relationships::default();
-        rel.friendship.insert("elena".to_string(), MAX_FRIENDSHIP - 10);
+        rel.friendship
+            .insert("elena".to_string(), MAX_FRIENDSHIP - 10);
         rel.add_friendship("elena", 100);
         assert_eq!(*rel.friendship.get("elena").unwrap(), MAX_FRIENDSHIP);
     }
@@ -2178,13 +2208,21 @@ mod tests {
 
     #[test]
     fn test_calendar_time_float_midnight() {
-        let cal = Calendar { hour: 24, minute: 0, ..Calendar::default() };
+        let cal = Calendar {
+            hour: 24,
+            minute: 0,
+            ..Calendar::default()
+        };
         assert!((cal.time_float() - 24.0).abs() < f32::EPSILON);
     }
 
     #[test]
     fn test_calendar_day_28_advances_to_next_season() {
-        let mut cal = Calendar { season: Season::Spring, day: 28, ..Calendar::default() };
+        let mut cal = Calendar {
+            season: Season::Spring,
+            day: 28,
+            ..Calendar::default()
+        };
         // Simulate the day-end advancement used by CalendarPlugin
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -2197,7 +2235,12 @@ mod tests {
 
     #[test]
     fn test_calendar_winter_day_28_wraps_to_spring_next_year() {
-        let mut cal = Calendar { season: Season::Winter, day: 28, year: 3, ..Calendar::default() };
+        let mut cal = Calendar {
+            season: Season::Winter,
+            day: 28,
+            year: 3,
+            ..Calendar::default()
+        };
         // Simulate the day-end advancement
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -2215,7 +2258,12 @@ mod tests {
     #[test]
     fn test_calendar_year_increments_only_on_winter_rollover() {
         // Advancing Spring day 28 should NOT increment the year
-        let mut cal = Calendar { season: Season::Spring, day: 28, year: 1, ..Calendar::default() };
+        let mut cal = Calendar {
+            season: Season::Spring,
+            day: 28,
+            year: 1,
+            ..Calendar::default()
+        };
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
             cal.day = 1;
@@ -2224,7 +2272,10 @@ mod tests {
                 cal.year += 1;
             }
         }
-        assert_eq!(cal.year, 1, "Year should not increment outside Winter→Spring");
+        assert_eq!(
+            cal.year, 1,
+            "Year should not increment outside Winter→Spring"
+        );
     }
 
     // ── FarmState ───────────────────────────────────────────────────
@@ -2234,16 +2285,22 @@ mod tests {
         let mut farm = FarmState::default();
         let pos = (5, 5);
         // Plant a first crop
-        farm.crops.insert(pos, CropTile {
-            crop_id: "turnip_seed".to_string(),
-            current_stage: 0,
-            days_in_stage: 0,
-            watered_today: false,
-            days_without_water: 0,
-            dead: false,
-        });
+        farm.crops.insert(
+            pos,
+            CropTile {
+                crop_id: "turnip_seed".to_string(),
+                current_stage: 0,
+                days_in_stage: 0,
+                watered_today: false,
+                days_without_water: 0,
+                dead: false,
+            },
+        );
         // The farming plugin guards planting with !contains_key; verify the guard
-        assert!(farm.crops.contains_key(&pos), "Tile is occupied; planting must be blocked");
+        assert!(
+            farm.crops.contains_key(&pos),
+            "Tile is occupied; planting must be blocked"
+        );
     }
 
     #[test]

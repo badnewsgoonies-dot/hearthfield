@@ -1,8 +1,8 @@
 //! Insurance Office screen — view policy, buy/upgrade coverage, claims history.
 
-use bevy::prelude::*;
+use crate::economy::insurance::{CoverageType, InsuranceState};
 use crate::shared::*;
-use crate::economy::insurance::{InsuranceState, CoverageType};
+use bevy::prelude::*;
 
 // ─── Components ──────────────────────────────────────────────────────────
 
@@ -130,7 +130,11 @@ pub fn spawn_insurance_screen(
         .id();
     commands.entity(root).add_child(section_label);
 
-    for coverage in [CoverageType::Basic, CoverageType::Standard, CoverageType::Premium] {
+    for coverage in [
+        CoverageType::Basic,
+        CoverageType::Standard,
+        CoverageType::Premium,
+    ] {
         let label = format!(
             "{} — {}g/mo base | Deductible: {}g | Limit: {}g",
             coverage.display_name(),

@@ -37,7 +37,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 100,
             season_available: Some(Season::Spring),
         },
-
         // ── Summer Seeds ──────────────────────────────────────────
         ShopListing {
             item_id: "melon_seeds".into(),
@@ -59,7 +58,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 150,
             season_available: Some(Season::Summer),
         },
-
         // ── Fall Seeds ────────────────────────────────────────────
         ShopListing {
             item_id: "eggplant_seeds".into(),
@@ -81,7 +79,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 60,
             season_available: Some(Season::Fall),
         },
-
         // ── Multi-Season Seeds (available in their first season) ──
         // Wheat: summer and fall
         ShopListing {
@@ -95,7 +92,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 250,
             season_available: Some(Season::Spring),
         },
-
         // ── Year-Round Supplies ───────────────────────────────────
         ShopListing {
             item_id: "hay".into(),
@@ -112,14 +108,12 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 500,
             season_available: None,
         },
-
         // ── Purchasable Food ──────────────────────────────────────
         ShopListing {
             item_id: "ice_cream".into(),
             price: 250,
             season_available: Some(Season::Summer),
         },
-
         // ── Relationship / Gift Items ─────────────────────────────
         ShopListing {
             item_id: "bouquet".into(),
@@ -131,7 +125,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 5_000,
             season_available: None,
         },
-
         // ── Recipes for Sale (represented as special items) ───────
         // Note: actual recipe unlock is handled by the economy domain;
         // here we list them at their purchasing prices. The economy
@@ -214,7 +207,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 500,
             season_available: None,
         },
-
         // ── Buildings ─────────────────────────────────────────────
         // Coop: required before buying chickens
         ShopListing {
@@ -232,7 +224,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 20_000,
             season_available: None,
         },
-
         // Barn: required before buying cows and sheep
         ShopListing {
             item_id: "building_barn".into(),
@@ -249,7 +240,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 25_000,
             season_available: None,
         },
-
         // ── Animal Feed ───────────────────────────────────────────
         ShopListing {
             item_id: "hay".into(),
@@ -295,7 +285,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 25_000,
             season_available: None,
         },
-
         ShopListing {
             item_id: "upgrade_watering_can_copper".into(),
             price: 2_000,
@@ -316,7 +305,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 25_000,
             season_available: None,
         },
-
         ShopListing {
             item_id: "upgrade_axe_copper".into(),
             price: 2_000,
@@ -337,7 +325,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 25_000,
             season_available: None,
         },
-
         ShopListing {
             item_id: "upgrade_pickaxe_copper".into(),
             price: 2_000,
@@ -358,7 +345,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 25_000,
             season_available: None,
         },
-
         // ── Ores (purchasable in early game) ──────────────────────
         ShopListing {
             item_id: "copper_ore".into(),
@@ -375,7 +361,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 150,
             season_available: None,
         },
-
         // ── Bombs (crafting recipe also available, but can buy here) ──
         ShopListing {
             item_id: "cherry_bomb".into(),
@@ -387,7 +372,6 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 600,
             season_available: None,
         },
-
         // ── Crafting Recipe Books (for sale at friendship levels) ──
         ShopListing {
             item_id: "recipe_book_basic_sprinkler".into(),

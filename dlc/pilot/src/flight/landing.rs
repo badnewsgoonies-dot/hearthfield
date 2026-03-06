@@ -1,7 +1,7 @@
 //! Landing evaluation system.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub fn evaluate_landing(
@@ -46,7 +46,8 @@ pub fn evaluate_landing(
 
         // Calculate fuel used from aircraft burn rate and flight time
         // fuel_burn_rate is in gallons/hour, flight_time_secs is in seconds
-        let fuel_burn_rate = fleet.active()
+        let fuel_burn_rate = fleet
+            .active()
             .and_then(|ac| aircraft_registry.get(&ac.aircraft_id))
             .map_or(1.0, |def| def.fuel_burn_rate);
         let fuel_used = flight_state.flight_time_secs / 3600.0 * fuel_burn_rate;
@@ -86,10 +87,7 @@ pub fn evaluate_landing(
         });
 
         toast_events.send(ToastEvent {
-            message: format!(
-                "Landed! Grade: {} | +{}g +{}xp",
-                grade_str, gold, total_xp
-            ),
+            message: format!("Landed! Grade: {} | +{}g +{}xp", grade_str, gold, total_xp),
             duration_secs: 5.0,
         });
     }
@@ -129,8 +127,9 @@ fn evaluate_landing_quality(state: &FlightState) -> LandingGrade {
     let flaps_factor = if state.flaps_deployed { 1.0 } else { 0.5 };
     let passenger_factor = state.passengers_happy / 100.0;
 
-    let score =
-        speed_factor * WEIGHT_SPEED + flaps_factor * WEIGHT_FLAPS + passenger_factor * WEIGHT_PASSENGERS;
+    let score = speed_factor * WEIGHT_SPEED
+        + flaps_factor * WEIGHT_FLAPS
+        + passenger_factor * WEIGHT_PASSENGERS;
 
     if score > GRADE_PERFECT_THRESHOLD {
         LandingGrade::Perfect

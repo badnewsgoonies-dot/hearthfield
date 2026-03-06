@@ -1,9 +1,9 @@
 //! Harvest system — player interacts with mature crops.
 
+use super::{CropTileEntity, FarmEntities, HarvestAttemptEvent};
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::shared::*;
-use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Harvest particle component + systems
@@ -153,9 +153,14 @@ pub fn handle_harvest_attempt(
                 &mut crop_harvested_events,
                 &crop_registry,
             ) {
-                sfx_events.send(PlaySfxEvent { sfx_id: "harvest".to_string() });
+                sfx_events.send(PlaySfxEvent {
+                    sfx_id: "harvest".to_string(),
+                });
                 if !crop_name.is_empty() {
-                    toast_events.send(ToastEvent { message: format!("Harvested {}!", crop_name), duration_secs: 2.0 });
+                    toast_events.send(ToastEvent {
+                        message: format!("Harvested {}!", crop_name),
+                        duration_secs: 2.0,
+                    });
                 }
 
                 // Spawn harvest particle burst at the tile position
@@ -295,17 +300,23 @@ fn refresh_crop_entity(
         // Entity doesn't exist yet — spawn a placeholder; sync_crop_sprites
         // will upgrade it to an atlas sprite on the next frame.
         let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
-        let color = super::crop_stage_color(crop.current_stage, _def.growth_days.len() as u8, crop.dead);
-        let entity = commands.spawn((
-            Sprite {
-                color,
-                custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-                ..default()
-            },
-            Transform::from_translation(translation),
-            CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-            crop.clone(),
-        )).id();
+        let color =
+            super::crop_stage_color(crop.current_stage, _def.growth_days.len() as u8, crop.dead);
+        let entity = commands
+            .spawn((
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
+                    ..default()
+                },
+                Transform::from_translation(translation),
+                CropTileEntity {
+                    grid_x: pos.0,
+                    grid_y: pos.1,
+                },
+                crop.clone(),
+            ))
+            .id();
         farm_entities.crop_entities.insert(pos, entity);
     }
 }

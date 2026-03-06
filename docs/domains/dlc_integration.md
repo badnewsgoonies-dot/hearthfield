@@ -2,8 +2,8 @@
 
 ## Goal
 Add "Skywarden (Pilot DLC)" and "City Office Worker" options to the Hearthfield
-main menu. When selected, launch the respective DLC binary. Return to the main
-menu when the DLC process exits.
+main menu. When selected, launch the respective DLC binary without blocking the
+base game. The main menu remains available while the DLC process runs.
 
 ## Architecture Decision
 Both DLCs are **standalone Bevy applications** with their own type contracts,
@@ -30,13 +30,18 @@ viable. Instead: **subprocess launch** via `std::process::Command`.
    // Determine the binary path relative to the current executable
    let current_exe = std::env::current_exe().unwrap_or_default();
    let base_dir = current_exe.parent().unwrap_or(std::path::Path::new("."));
-   let dlc_binary = base_dir.join("skywarden"); // or "city_office_worker"
+   let dlc_binary = base_dir.join("skywarden"); // or "city_office_worker_dlc"
 
    // Spawn the process
    std::process::Command::new(&dlc_binary)
+       .current_dir(env!("CARGO_MANIFEST_DIR").join("dlc/pilot")) // or dlc/city
        .spawn()
        .ok();
    ```
+
+   Note: both DLCs currently use `AssetPlugin { file_path: "../../assets" }`, so
+   the child working directory must point at the DLC crate folder in repo-local
+   runs or asset loading will break.
 
 4. Update `MAIN_MENU_MAX_ITEMS` to accommodate the new options.
 
@@ -47,18 +52,18 @@ viable. Instead: **subprocess launch** via `std::process::Command`.
 Add workspace members so both DLCs build together:
 ```toml
 [workspace]
-members = [".", "dlc/pilot", "city_office_worker_dlc"]
+members = [".", "dlc/pilot", "dlc/city"]
 ```
 
 ### DLC Cargo.toml files
 Ensure `[[bin]]` section specifies the binary name:
 - `dlc/pilot/Cargo.toml`: binary name `skywarden`
-- `city_office_worker_dlc/Cargo.toml`: binary name `city_office_worker`
+- `dlc/city/Cargo.toml`: binary name `city_office_worker_dlc`
 
 ## Constants
 - `MAIN_MENU_OPTIONS` (native): 5 items
 - `MAIN_MENU_OPTIONS` (wasm): 2 items (DLCs not available on web)
-- DLC binary names: `skywarden`, `city_office_worker`
+- DLC binary names: `skywarden`, `city_office_worker_dlc`
 
 ## Does NOT Handle
 - Merging DLC plugins into the base game binary

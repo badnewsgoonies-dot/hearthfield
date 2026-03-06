@@ -1,22 +1,21 @@
 //! Detailed instrument panel simulation with lag, damping, and failures.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct InstrumentPlugin;
 
 impl Plugin for InstrumentPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<InstrumentPanel>()
-            .add_systems(
-                Update,
-                (
-                    update_instruments,
-                    apply_instrument_failures,
-                    update_visibility,
-                )
-                    .run_if(in_state(GameState::Flying)),
-            );
+        app.init_resource::<InstrumentPanel>().add_systems(
+            Update,
+            (
+                update_instruments,
+                apply_instrument_failures,
+                update_visibility,
+            )
+                .run_if(in_state(GameState::Flying)),
+        );
     }
 }
 

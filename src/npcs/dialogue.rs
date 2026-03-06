@@ -1,8 +1,8 @@
 //! Dialogue system: handle player interaction with NPCs, build dialogue lines
 //! based on friendship level, and emit DialogueStartEvent.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -84,8 +84,7 @@ pub fn handle_npc_interaction(
     let hearts = relationships.hearts(npc_id);
     let lines = build_dialogue_lines(npc_id, hearts, &npc_registry, &relationships, &calendar);
 
-    let portrait_index = npc_registry.npcs.get(npc_id)
-        .map(|def| def.portrait_index);
+    let portrait_index = npc_registry.npcs.get(npc_id).map(|def| def.portrait_index);
 
     // Award 20 friendship points (1/5 of a heart) on first daily talk
     if !daily_talks.talked.contains(npc_id) {
@@ -122,7 +121,12 @@ pub fn build_dialogue_lines(
     let mut lines = Vec::new();
 
     // --- Contextual: "already gifted today" notice ---
-    if relationships.gifted_today.get(npc_id).copied().unwrap_or(false) {
+    if relationships
+        .gifted_today
+        .get(npc_id)
+        .copied()
+        .unwrap_or(false)
+    {
         lines.push(
             "I really appreciate everything you've given me today. Come back tomorrow!".to_string(),
         );
@@ -200,45 +204,75 @@ fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
     let comment = match (npc_id, weather) {
         (_, Weather::Sunny) => return None, // sunny is default — no special comment
 
-        ("margaret", Weather::Rainy)  => "Rainy days mean more baking. Everyone wants fresh bread when it's grey outside.",
-        ("margaret", Weather::Stormy) => "Storm's rattling the windows! I hope my oven stays lit...",
-        ("margaret", Weather::Snowy)  => "Snow reminds me of powdered sugar. Makes me want to bake something sweet.",
+        ("margaret", Weather::Rainy) => {
+            "Rainy days mean more baking. Everyone wants fresh bread when it's grey outside."
+        }
+        ("margaret", Weather::Stormy) => {
+            "Storm's rattling the windows! I hope my oven stays lit..."
+        }
+        ("margaret", Weather::Snowy) => {
+            "Snow reminds me of powdered sugar. Makes me want to bake something sweet."
+        }
 
-        ("marco", Weather::Rainy)     => "Rain days are soup days. Come by later — I'm making chowder.",
-        ("marco", Weather::Stormy)    => "This storm! The herbs in my garden are getting flattened...",
-        ("marco", Weather::Snowy)     => "Snow means hearty stews. My kitchen hasn't cooled down in days.",
+        ("marco", Weather::Rainy) => "Rain days are soup days. Come by later — I'm making chowder.",
+        ("marco", Weather::Stormy) => "This storm! The herbs in my garden are getting flattened...",
+        ("marco", Weather::Snowy) => {
+            "Snow means hearty stews. My kitchen hasn't cooled down in days."
+        }
 
-        ("lily", Weather::Rainy)      => "The flowers LOVE the rain! Look how bright they are!",
-        ("lily", Weather::Stormy)     => "Oh no, my poor petunias! I hope they survive the storm...",
-        ("lily", Weather::Snowy)      => "Even in the snow, there's beauty. Have you seen the frost on the windows?",
+        ("lily", Weather::Rainy) => "The flowers LOVE the rain! Look how bright they are!",
+        ("lily", Weather::Stormy) => "Oh no, my poor petunias! I hope they survive the storm...",
+        ("lily", Weather::Snowy) => {
+            "Even in the snow, there's beauty. Have you seen the frost on the windows?"
+        }
 
-        ("old_tom", Weather::Rainy)   => "Rain's good fishing weather, if you know where to look.",
-        ("old_tom", Weather::Stormy)  => "No sense going out in this. Even the fish are hiding.",
-        ("old_tom", Weather::Snowy)   => "Ice fishing season! Grab a stool and join me by the lake.",
+        ("old_tom", Weather::Rainy) => "Rain's good fishing weather, if you know where to look.",
+        ("old_tom", Weather::Stormy) => "No sense going out in this. Even the fish are hiding.",
+        ("old_tom", Weather::Snowy) => "Ice fishing season! Grab a stool and join me by the lake.",
 
-        ("elena", Weather::Rainy)     => "Rainy days mean fewer customers. I use the time to sharpen the tools.",
-        ("elena", Weather::Stormy)    => "Storm makes the forge feel cozy, honestly. Nothing like hot metal in cold air.",
-        ("elena", Weather::Snowy)     => "Snow piles up on the anvil overnight. Adds character.",
+        ("elena", Weather::Rainy) => {
+            "Rainy days mean fewer customers. I use the time to sharpen the tools."
+        }
+        ("elena", Weather::Stormy) => {
+            "Storm makes the forge feel cozy, honestly. Nothing like hot metal in cold air."
+        }
+        ("elena", Weather::Snowy) => "Snow piles up on the anvil overnight. Adds character.",
 
-        ("mira", Weather::Rainy)      => "Rain keeps the travelers off the roads. Bad for business.",
-        ("mira", Weather::Stormy)     => "I've weathered worse storms than this in the Eastern deserts.",
-        ("mira", Weather::Snowy)      => "Snow! It never snowed where I grew up. I still find it magical.",
+        ("mira", Weather::Rainy) => "Rain keeps the travelers off the roads. Bad for business.",
+        ("mira", Weather::Stormy) => {
+            "I've weathered worse storms than this in the Eastern deserts."
+        }
+        ("mira", Weather::Snowy) => {
+            "Snow! It never snowed where I grew up. I still find it magical."
+        }
 
-        ("doc", Weather::Rainy)       => "Damp weather aggravates joint pain. Tell the older folks to stay warm.",
-        ("doc", Weather::Stormy)      => "Storm season means injuries. Please be careful out there.",
-        ("doc", Weather::Snowy)       => "Bundle up! I've already seen two cases of frostbite this week.",
+        ("doc", Weather::Rainy) => {
+            "Damp weather aggravates joint pain. Tell the older folks to stay warm."
+        }
+        ("doc", Weather::Stormy) => "Storm season means injuries. Please be careful out there.",
+        ("doc", Weather::Snowy) => "Bundle up! I've already seen two cases of frostbite this week.",
 
-        ("mayor_rex", Weather::Rainy) => "Rain is good for the crops! The town treasury thanks the clouds.",
-        ("mayor_rex", Weather::Stormy)=> "I've filed a formal complaint with the weather. No response yet.",
+        ("mayor_rex", Weather::Rainy) => {
+            "Rain is good for the crops! The town treasury thanks the clouds."
+        }
+        ("mayor_rex", Weather::Stormy) => {
+            "I've filed a formal complaint with the weather. No response yet."
+        }
         ("mayor_rex", Weather::Snowy) => "I do love how the town square looks under fresh snow.",
 
-        ("sam", Weather::Rainy)       => "Rain on the roof... best percussion section in nature.",
-        ("sam", Weather::Stormy)      => "This storm has ENERGY. I'm writing it into my next song.",
-        ("sam", Weather::Snowy)       => "Snow muffles everything. The silence is almost musical.",
+        ("sam", Weather::Rainy) => "Rain on the roof... best percussion section in nature.",
+        ("sam", Weather::Stormy) => "This storm has ENERGY. I'm writing it into my next song.",
+        ("sam", Weather::Snowy) => "Snow muffles everything. The silence is almost musical.",
 
-        ("nora", Weather::Rainy)      => "Steady rain like this fattens the crops better than any fancy fertilizer.",
-        ("nora", Weather::Stormy)     => "Storm's coming in hard. My old bones felt it before the clouds did.",
-        ("nora", Weather::Snowy)      => "Snow's our warning bell. Best finish winter prep before the drifts get deep.",
+        ("nora", Weather::Rainy) => {
+            "Steady rain like this fattens the crops better than any fancy fertilizer."
+        }
+        ("nora", Weather::Stormy) => {
+            "Storm's coming in hard. My old bones felt it before the clouds did."
+        }
+        ("nora", Weather::Snowy) => {
+            "Snow's our warning bell. Best finish winter prep before the drifts get deep."
+        }
 
         _ => return None,
     };
@@ -493,19 +527,22 @@ pub fn build_gift_response_lines(
             vec![format!("{}{}", birthday_prefix, response)]
         }
         GiftPreference::Liked => {
-            vec![
-                format!("{}{} — oh, I really like this! Thank you so much.", birthday_prefix, item_name),
-            ]
+            vec![format!(
+                "{}{} — oh, I really like this! Thank you so much.",
+                birthday_prefix, item_name
+            )]
         }
         GiftPreference::Neutral => {
-            vec![
-                format!("{}Oh, a gift! Thank you for thinking of me. That's very kind.", birthday_prefix),
-            ]
+            vec![format!(
+                "{}Oh, a gift! Thank you for thinking of me. That's very kind.",
+                birthday_prefix
+            )]
         }
         GiftPreference::Disliked => {
-            vec![
-                format!("{}I appreciate the thought, but... a {}? Hmm. Thank you anyway.", birthday_prefix, item_name),
-            ]
+            vec![format!(
+                "{}I appreciate the thought, but... a {}? Hmm. Thank you anyway.",
+                birthday_prefix, item_name
+            )]
         }
         GiftPreference::Hated => {
             let response = hated_response(npc_id, item_name);
@@ -516,33 +553,90 @@ pub fn build_gift_response_lines(
 
 fn loved_response(npc_id: &str, item_name: &str) -> String {
     match npc_id {
-        "margaret"  => format!("A {}! Oh, this will be perfect for my next batch of pastries! Thank you, dear.", item_name),
-        "marco"     => format!("A {}! Incredible quality. I can already taste the dish I'll make with this.", item_name),
-        "lily"      => format!("A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!", item_name),
-        "old_tom"   => format!("A {}? Well now... haven't seen one this fine in years. Much obliged.", item_name),
-        "elena"     => format!("Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.", item_name),
-        "mira"      => format!("A {}! You have a trader's eye for value. I'm genuinely impressed.", item_name),
-        "doc"       => format!("A {}? This is... very thoughtful. I appreciate it more than you know.", item_name),
-        "mayor_rex" => format!("A {} for the mayor! I shall display this proudly in my office!", item_name),
-        "sam"       => format!("A {}! No way! This is exactly what I needed for inspiration. You're the best.", item_name),
-        "nora"      => format!("A {}. Good quality. You've got a farmer's instinct for the real stuff.", item_name),
-        _           => format!("A {}! Thank you, I love it!", item_name),
+        "margaret" => format!(
+            "A {}! Oh, this will be perfect for my next batch of pastries! Thank you, dear.",
+            item_name
+        ),
+        "marco" => format!(
+            "A {}! Incredible quality. I can already taste the dish I'll make with this.",
+            item_name
+        ),
+        "lily" => format!(
+            "A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!",
+            item_name
+        ),
+        "old_tom" => format!(
+            "A {}? Well now... haven't seen one this fine in years. Much obliged.",
+            item_name
+        ),
+        "elena" => format!(
+            "Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.",
+            item_name
+        ),
+        "mira" => format!(
+            "A {}! You have a trader's eye for value. I'm genuinely impressed.",
+            item_name
+        ),
+        "doc" => format!(
+            "A {}? This is... very thoughtful. I appreciate it more than you know.",
+            item_name
+        ),
+        "mayor_rex" => format!(
+            "A {} for the mayor! I shall display this proudly in my office!",
+            item_name
+        ),
+        "sam" => format!(
+            "A {}! No way! This is exactly what I needed for inspiration. You're the best.",
+            item_name
+        ),
+        "nora" => format!(
+            "A {}. Good quality. You've got a farmer's instinct for the real stuff.",
+            item_name
+        ),
+        _ => format!("A {}! Thank you, I love it!", item_name),
     }
 }
 
 fn hated_response(npc_id: &str, item_name: &str) -> String {
     match npc_id {
-        "margaret"  => format!("A {}? Oh dear... I don't think that belongs in any recipe I know.", item_name),
-        "marco"     => format!("A {}? I wouldn't serve this to my worst critic. No offense.", item_name),
-        "lily"      => format!("A {}?! Ew ew ew! Get it away from my flowers!", item_name),
-        "old_tom"   => format!("A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.", item_name),
-        "elena"     => format!("A {}? I'd sooner melt this down than look at it. Not my style.", item_name),
-        "mira"      => format!("A {}? In my travels, I've learned to politely decline. Consider this me declining.", item_name),
-        "doc"       => format!("A {}? I don't think this is... medically advisable. For anyone.", item_name),
-        "mayor_rex" => format!("A {}? I appreciate the gesture, but the mayor's office has standards.", item_name),
-        "sam"       => format!("A {}? I've seen things like this at the bottom of a dumpster. Left 'em there too.", item_name),
-        "nora"      => format!("A {}? Hmph. Been farming all my life and never needed one of those.", item_name),
-        _           => format!("A {}? ...Thanks, I guess.", item_name),
+        "margaret" => format!(
+            "A {}? Oh dear... I don't think that belongs in any recipe I know.",
+            item_name
+        ),
+        "marco" => format!(
+            "A {}? I wouldn't serve this to my worst critic. No offense.",
+            item_name
+        ),
+        "lily" => format!("A {}?! Ew ew ew! Get it away from my flowers!", item_name),
+        "old_tom" => format!(
+            "A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.",
+            item_name
+        ),
+        "elena" => format!(
+            "A {}? I'd sooner melt this down than look at it. Not my style.",
+            item_name
+        ),
+        "mira" => format!(
+            "A {}? In my travels, I've learned to politely decline. Consider this me declining.",
+            item_name
+        ),
+        "doc" => format!(
+            "A {}? I don't think this is... medically advisable. For anyone.",
+            item_name
+        ),
+        "mayor_rex" => format!(
+            "A {}? I appreciate the gesture, but the mayor's office has standards.",
+            item_name
+        ),
+        "sam" => format!(
+            "A {}? I've seen things like this at the bottom of a dumpster. Left 'em there too.",
+            item_name
+        ),
+        "nora" => format!(
+            "A {}? Hmph. Been farming all my life and never needed one of those.",
+            item_name
+        ),
+        _ => format!("A {}? ...Thanks, I guess.", item_name),
     }
 }
 
@@ -588,32 +682,35 @@ mod tests {
 
     #[test]
     fn test_gift_response_loved_contains_item_name() {
-        let lines = build_gift_response_lines(
-            "elena", "Elena", GiftPreference::Loved, "Sunflower", false,
-        );
+        let lines =
+            build_gift_response_lines("elena", "Elena", GiftPreference::Loved, "Sunflower", false);
         assert!(!lines.is_empty());
-        assert!(lines[0].contains("Sunflower"),
-            "Loved response should mention item name");
+        assert!(
+            lines[0].contains("Sunflower"),
+            "Loved response should mention item name"
+        );
     }
 
     #[test]
     fn test_gift_response_hated_contains_item_name() {
-        let lines = build_gift_response_lines(
-            "marco", "Marco", GiftPreference::Hated, "Trash", false,
-        );
+        let lines =
+            build_gift_response_lines("marco", "Marco", GiftPreference::Hated, "Trash", false);
         assert!(!lines.is_empty());
-        assert!(lines[0].contains("Trash"),
-            "Hated response should mention item name");
+        assert!(
+            lines[0].contains("Trash"),
+            "Hated response should mention item name"
+        );
     }
 
     #[test]
     fn test_gift_response_birthday_prefix() {
-        let lines = build_gift_response_lines(
-            "elena", "Elena", GiftPreference::Neutral, "Stone", true,
-        );
+        let lines =
+            build_gift_response_lines("elena", "Elena", GiftPreference::Neutral, "Stone", true);
         assert!(!lines.is_empty());
-        assert!(lines[0].contains("birthday"),
-            "Birthday gift should mention birthday");
+        assert!(
+            lines[0].contains("birthday"),
+            "Birthday gift should mention birthday"
+        );
     }
 
     #[test]

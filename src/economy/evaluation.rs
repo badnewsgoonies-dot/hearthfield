@@ -6,8 +6,8 @@
 //! Scoring: up to 21 points across 8 categories. Candle count is determined by
 //! point thresholds: 0-5 = 1 candle, 6-10 = 2, 11-15 = 3, 16-21 = 4.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 use super::gold::EconomyStats;
 use super::stats::HarvestStats;
@@ -42,7 +42,10 @@ pub fn check_evaluation_trigger(
     }
 
     if calendar.year >= 3 && calendar.season == Season::Spring && calendar.day == 1 {
-        info!("[Evaluation] Year {} Spring Day 1 detected — firing EvaluationTriggerEvent.", calendar.year);
+        info!(
+            "[Evaluation] Year {} Spring Day 1 detected — firing EvaluationTriggerEvent.",
+            calendar.year
+        );
         trigger_events.send(EvaluationTriggerEvent);
     }
 }
@@ -75,7 +78,8 @@ pub fn handle_evaluation(
         let previous_candles = eval_score.candles_lit;
         let was_evaluated = eval_score.evaluated;
 
-        let mut categories: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut categories: std::collections::HashMap<String, u32> =
+            std::collections::HashMap::new();
         let mut total = 0u32;
 
         // ── Earnings (4 points) ───────────────────────────────────────────────
@@ -134,7 +138,8 @@ pub fn handle_evaluation(
 
         // ── Skills (4 points) ─────────────────────────────────────────────────
         // 50+ crops harvested total (sum all crop counts in HarvestStats)
-        let total_crops_harvested: u32 = harvest_stats.crops.values().map(|(count, _)| *count).sum();
+        let total_crops_harvested: u32 =
+            harvest_stats.crops.values().map(|(count, _)| *count).sum();
         if total_crops_harvested >= 50 {
             categories.insert("skills_crops_50".to_string(), 1);
             total += 1;
@@ -249,13 +254,9 @@ pub fn handle_evaluation(
         } else {
             // First evaluation.
             toast_events.send(ToastEvent {
-                message: format!(
-                    "Evaluation: {} points — {} candle(s) lit!",
-                    total, candles
-                ),
+                message: format!("Evaluation: {} points — {} candle(s) lit!", total, candles),
                 duration_secs: 6.0,
             });
         }
     }
 }
-

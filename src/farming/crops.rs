@@ -1,11 +1,10 @@
 //! Crop planting and growth-stage management.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::{
-    FarmEntities, CropTileEntity, PlantSeedEvent,
-    crop_stage_color, crop_can_grow_in_season,
+    crop_can_grow_in_season, crop_stage_color, CropTileEntity, FarmEntities, PlantSeedEvent,
 };
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detect seed use — player presses interact while holding a seed over tilled soil
@@ -79,10 +78,10 @@ pub fn detect_seed_use(
 
     // Target tile is the tile the player is facing.
     let (offset_x, offset_y) = match movement.facing {
-        Facing::Up    => (0,  1),
-        Facing::Down  => (0, -1),
-        Facing::Left  => (-1, 0),
-        Facing::Right => (1,  0),
+        Facing::Up => (0, 1),
+        Facing::Down => (0, -1),
+        Facing::Left => (-1, 0),
+        Facing::Right => (1, 0),
     };
 
     // Try facing tile first, then player's own tile.
@@ -179,16 +178,12 @@ pub fn handle_plant_seed(
         };
         farm_state.crops.insert(pos, crop.clone());
 
-        sfx_events.send(PlaySfxEvent { sfx_id: "plant".to_string() });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "plant".to_string(),
+        });
 
         // Spawn crop sprite entity.
-        spawn_crop_entity(
-            &mut commands,
-            &mut farm_entities,
-            pos,
-            &crop,
-            &crop_def,
-        );
+        spawn_crop_entity(&mut commands, &mut farm_entities, pos, &crop, &crop_def);
     }
 }
 
@@ -217,16 +212,21 @@ pub fn spawn_crop_entity(
     let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
     let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
 
-    let entity = commands.spawn((
-        Sprite {
-            color,
-            custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-            ..default()
-        },
-        Transform::from_translation(translation),
-        CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-        crop.clone(),
-    )).id();
+    let entity = commands
+        .spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
+                ..default()
+            },
+            Transform::from_translation(translation),
+            CropTileEntity {
+                grid_x: pos.0,
+                grid_y: pos.1,
+            },
+            crop.clone(),
+        ))
+        .id();
 
     farm_entities.crop_entities.insert(pos, entity);
 }

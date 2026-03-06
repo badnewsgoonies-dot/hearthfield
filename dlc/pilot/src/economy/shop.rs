@@ -1,7 +1,7 @@
 //! Shop system — purchasing, selling, bulk discounts, restock, friendship pricing.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 const BULK_THRESHOLD: u32 = 5;
 const BULK_DISCOUNT: f32 = 0.10;
@@ -22,13 +22,25 @@ fn airport_premium_items(airport: AirportId) -> Vec<(&'static str, u32)> {
     match airport {
         AirportId::HomeBase => vec![("pilot_manual", 150), ("local_map", 50)],
         AirportId::Windport => vec![("sea_chart", 200), ("waterproof_jacket", 120)],
-        AirportId::Frostpeak => vec![("thermal_gloves", 80), ("de_icer_spray", 100), ("snow_goggles", 60)],
-        AirportId::Sunhaven => vec![("tropical_snack", 30), ("sunscreen", 25), ("surfboard_model", 300)],
+        AirportId::Frostpeak => vec![
+            ("thermal_gloves", 80),
+            ("de_icer_spray", 100),
+            ("snow_goggles", 60),
+        ],
+        AirportId::Sunhaven => vec![
+            ("tropical_snack", 30),
+            ("sunscreen", 25),
+            ("surfboard_model", 300),
+        ],
         AirportId::Ironforge => vec![("titanium_wrench", 250), ("spare_rivets", 40)],
         AirportId::Cloudmere => vec![("oxygen_mask", 180), ("altimeter_charm", 150)],
         AirportId::Duskhollow => vec![("desert_canteen", 60), ("sand_filter", 90)],
         AirportId::Stormwatch => vec![("weather_almanac", 200), ("lightning_rod_pin", 120)],
-        AirportId::Grandcity => vec![("luxury_headset", 500), ("first_class_coffee", 50), ("gold_wings_pin", 400)],
+        AirportId::Grandcity => vec![
+            ("luxury_headset", 500),
+            ("first_class_coffee", 50),
+            ("gold_wings_pin", 400),
+        ],
         AirportId::Skyreach => vec![("ace_flight_suit", 1000), ("legendary_compass", 800)],
     }
 }
@@ -49,7 +61,9 @@ fn _bulk_adjusted_price(unit_price: u32, quantity: u32) -> u32 {
 }
 
 pub fn is_airport_exclusive(airport: AirportId, item_id: &str) -> bool {
-    airport_premium_items(airport).iter().any(|(id, _)| *id == item_id)
+    airport_premium_items(airport)
+        .iter()
+        .any(|(id, _)| *id == item_id)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -95,14 +109,22 @@ pub fn handle_purchase(
         economy_stats.total_spent += adjusted_price;
         economy_stats.items_purchased += 1;
 
-        let name = item_registry.get(&ev.item_id).map_or("Item", |d| d.name.as_str());
+        let name = item_registry
+            .get(&ev.item_id)
+            .map_or("Item", |d| d.name.as_str());
         let savings = ev.price.saturating_sub(adjusted_price);
         let msg = if savings > 0 {
-            format!("Purchased {} for {}g (saved {}g!)", name, adjusted_price, savings)
+            format!(
+                "Purchased {} for {}g (saved {}g!)",
+                name, adjusted_price, savings
+            )
         } else {
             format!("Purchased {} for {}g", name, adjusted_price)
         };
-        toast_events.send(ToastEvent { message: msg, duration_secs: 2.5 });
+        toast_events.send(ToastEvent {
+            message: msg,
+            duration_secs: 2.5,
+        });
     }
 }
 
@@ -129,7 +151,9 @@ pub fn handle_sell(
         gold.amount += total_price;
         economy_stats.total_earned += total_price;
 
-        let name = item_registry.get(&ev.item_id).map_or("Item", |d| d.name.as_str());
+        let name = item_registry
+            .get(&ev.item_id)
+            .map_or("Item", |d| d.name.as_str());
         toast_events.send(ToastEvent {
             message: format!("Sold {} x{} for {}g", name, ev.quantity, total_price),
             duration_secs: 2.0,
@@ -146,7 +170,9 @@ pub fn restock_shop(
 ) {
     for _ev in day_end_events.read() {
         let day = calendar.total_days();
-        if day <= restock_timer.last_restock_day { continue; }
+        if day <= restock_timer.last_restock_day {
+            continue;
+        }
         restock_timer.last_restock_day = day;
 
         for listing in active_shop.listings.iter_mut() {
