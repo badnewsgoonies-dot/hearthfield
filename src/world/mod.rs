@@ -60,6 +60,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<SeasonalTintApplied>()
             .init_resource::<LeafSpawnAccumulator>()
             .init_resource::<WaterAnimationTimer>()
+            .init_resource::<WaterEdgePhase>()
             // Day/night + weather resources
             .init_resource::<DayNightTint>()
             .init_resource::<LightningFlash>()
@@ -501,6 +502,16 @@ pub struct MapTile;
 #[derive(Component, Debug)]
 pub struct WaterTile;
 
+/// Bitmask indicating which edges of a water tile border non-water tiles.
+/// bit 0 = north, bit 1 = east, bit 2 = south, bit 3 = west.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct WaterEdgeMask(#[allow(dead_code)] pub u8);
+
+/// Marker component for water edge overlay sprites.
+/// Tagged with MapTile so they despawn with the map.
+#[derive(Component, Debug)]
+pub struct WaterEdgeOverlay;
+
 /// Timer resource for water tile animation (cycles 4 frames).
 #[derive(Resource)]
 pub struct WaterAnimationTimer(pub Timer);
@@ -510,6 +521,10 @@ impl Default for WaterAnimationTimer {
         Self(Timer::from_seconds(0.5, TimerMode::Repeating))
     }
 }
+
+/// Tracks the current animation phase (0-3) for water edge overlay alpha pulsing.
+#[derive(Resource, Default)]
+pub struct WaterEdgePhase(pub u8);
 
 // ═══════════════════════════════════════════════════════════════════════
 // TILE COLORS (fallback for Void tiles and season change)
@@ -688,9 +703,13 @@ fn spawn_tile_sprites(
                         )),
                         MapTile,
                     ));
-                    // Tag water tiles for animation cycling
+                    // Tag water tiles for animation cycling and spawn edge overlays
                     if tile == TileKind::Water {
-                        entity_cmd.insert(WaterTile);
+                        let mask = water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
+                        entity_cmd.insert((WaterTile, WaterEdgeMask(mask)));
+                        if mask != 0 {
+                            spawn_water_edge_overlays(commands, x, y, mask, season);
+                        }
                     }
                 }
                 None => {
@@ -714,6 +733,84 @@ fn spawn_tile_sprites(
     }
 }
 
+
+/// Compute the water edge bitmask for the tile at (x, y).
+/// bit 0 = north (y+1), bit 1 = east (x+1), bit 2 = south (y-1), bit 3 = west (x-1).
+/// A bit is set when the neighbor in that direction is non-water (or out of bounds).
+fn water_edge_mask(x: usize, y: usize, tiles: &[TileKind], width: usize, height: usize) -> u8 {
+    let mut mask: u8 = 0;
+    let is_non_water = |nx: i32, ny: i32| -> bool {
+        if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+            return true;
+        }
+        tiles[ny as usize * width + nx as usize] != TileKind::Water
+    };
+    if is_non_water(x as i32, y as i32 + 1) { mask |= 0b0001; } // north
+    if is_non_water(x as i32 + 1, y as i32) { mask |= 0b0010; } // east
+    if is_non_water(x as i32, y as i32 - 1) { mask |= 0b0100; } // south
+    if is_non_water(x as i32 - 1, y as i32) { mask |= 0b1000; } // west
+    mask
+}
+
+/// Spawn semi-transparent overlay sprites on the edges of a water tile that
+/// border non-water tiles. Each overlay is a thin stripe of water colour
+/// with alpha so it blends softly against the adjacent land tile.
+fn spawn_water_edge_overlays(
+    commands: &mut Commands,
+    x: usize,
+    y: usize,
+    mask: u8,
+    season: Season,
+) {
+    let cx = x as f32 * TILE_SIZE;
+    let cy = y as f32 * TILE_SIZE;
+    let z = Z_GROUND + 0.1;
+
+    let water_color = {
+        let base = match season {
+            Season::Spring => Color::srgb(0.14, 0.35, 0.57),
+            Season::Summer => Color::srgb(0.16, 0.38, 0.55),
+            Season::Fall => Color::srgb(0.12, 0.30, 0.50),
+            Season::Winter => Color::srgb(0.35, 0.50, 0.65),
+        };
+        let [r, g, b, _] = base.to_srgba().to_f32_array();
+        Color::srgba(r, g, b, 0.40)
+    };
+
+    let half = TILE_SIZE / 2.0;
+    let edge_thick = 4.0;
+    let edge_offset = half - edge_thick / 2.0;
+
+    if mask & 0b0001 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(TILE_SIZE, edge_thick)), ..default() },
+            Transform::from_translation(Vec3::new(cx, cy + edge_offset, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+    if mask & 0b0010 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(edge_thick, TILE_SIZE)), ..default() },
+            Transform::from_translation(Vec3::new(cx + edge_offset, cy, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+    if mask & 0b0100 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(TILE_SIZE, edge_thick)), ..default() },
+            Transform::from_translation(Vec3::new(cx, cy - edge_offset, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+    if mask & 0b1000 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(edge_thick, TILE_SIZE)), ..default() },
+            Transform::from_translation(Vec3::new(cx - edge_offset, cy, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+}
+
 /// Despawn all map tiles and world objects.
 fn despawn_map(
     commands: &mut Commands,
@@ -728,18 +825,29 @@ fn despawn_map(
     }
 }
 
-/// Animate water tiles by cycling through 4 atlas frames.
+/// Animate water tiles by cycling through 4 atlas frames, and pulse edge overlay alpha.
 fn animate_water_tiles(
     time: Res<Time>,
     mut timer: ResMut<WaterAnimationTimer>,
-    mut query: Query<&mut Sprite, With<WaterTile>>,
+    mut phase: ResMut<WaterEdgePhase>,
+    mut water_query: Query<&mut Sprite, With<WaterTile>>,
+    mut overlay_query: Query<&mut Sprite, (With<WaterEdgeOverlay>, Without<WaterTile>)>,
 ) {
+    // Alpha values for the 4 phases: ramp up then back down for a gentle pulse.
+    const EDGE_ALPHAS: [f32; 4] = [0.30, 0.40, 0.50, 0.40];
+
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
-        for mut sprite in query.iter_mut() {
+        for mut sprite in water_query.iter_mut() {
             if let Some(atlas) = &mut sprite.texture_atlas {
                 atlas.index = (atlas.index + 1) % 4;
             }
+        }
+        phase.0 = (phase.0 + 1) % 4;
+        let alpha = EDGE_ALPHAS[phase.0 as usize];
+        for mut sprite in overlay_query.iter_mut() {
+            let [r, g, b, _] = sprite.color.to_srgba().to_f32_array();
+            sprite.color = Color::srgba(r, g, b, alpha);
         }
     }
 }
@@ -893,6 +1001,8 @@ pub fn sync_collision_map(
     }
 }
 
+type SeasonTileQuery<'w, 's> = Query<'w, 's, (&'static Transform, &'static mut Sprite), (With<MapTile>, Without<WaterEdgeOverlay>)>;
+
 /// Handle SeasonChangeEvent: update tile sprites for the new season.
 /// For atlas-based tiles, we swap the atlas index to the seasonal variant.
 /// For Void tiles (plain colored), we leave them as-is.
@@ -902,7 +1012,7 @@ pub fn sync_collision_map(
 /// indices have been updated).
 fn handle_season_change(
     mut season_events: EventReader<SeasonChangeEvent>,
-    mut tile_query: Query<(&Transform, &mut Sprite), With<MapTile>>,
+    mut tile_query: SeasonTileQuery,
     world_map: Res<WorldMap>,
     terrain_atlases: Res<TerrainAtlases>,
     mut tint_applied: ResMut<SeasonalTintApplied>,
