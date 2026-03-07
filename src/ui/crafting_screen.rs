@@ -1,5 +1,7 @@
-use bevy::prelude::*;
+use super::hud::ItemAtlasData;
+use super::UiFontHandle;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -7,6 +9,12 @@ use crate::shared::*;
 
 #[derive(Component)]
 pub struct CraftingScreenRoot;
+
+#[derive(Component)]
+pub struct CraftingRecipeIcon {
+    #[allow(dead_code)]
+    pub index: usize,
+}
 
 #[derive(Component)]
 pub struct CraftingRecipeRow {
@@ -44,6 +52,9 @@ pub fn spawn_crafting_screen(
     mut commands: Commands,
     recipe_registry: Res<RecipeRegistry>,
     unlocked_recipes: Res<UnlockedRecipes>,
+    item_registry: Res<ItemRegistry>,
+    atlas_data: Res<ItemAtlasData>,
+    font_handle: Res<UiFontHandle>,
 ) {
     // Gather visible recipes: show all unlocked (or all if unlocked list is empty for development)
     let visible: Vec<String> = if unlocked_recipes.ids.is_empty() {
@@ -59,7 +70,7 @@ pub fn spawn_crafting_screen(
 
     commands.insert_resource(CraftingUiState {
         cursor: 0,
-        visible_recipes: visible,
+        visible_recipes: visible.clone(),
         status_message: String::new(),
         status_timer: 0.0,
     });
@@ -97,6 +108,7 @@ pub fn spawn_crafting_screen(
                     panel.spawn((
                         Text::new("CRAFTING"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 22.0,
                             ..default()
                         },
@@ -108,6 +120,7 @@ pub fn spawn_crafting_screen(
                         CraftingStatusText,
                         Text::new(""),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 13.0,
                             ..default()
                         },
@@ -131,10 +144,42 @@ pub fn spawn_crafting_screen(
                                 BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.6)),
                             ))
                             .with_children(|row| {
+                                // Item icon
+                                let mut icon_cmd = row.spawn((
+                                    CraftingRecipeIcon { index: i },
+                                    Node {
+                                        width: Val::Px(24.0),
+                                        height: Val::Px(24.0),
+                                        margin: UiRect::right(Val::Px(6.0)),
+                                        ..default()
+                                    },
+                                ));
+                                if atlas_data.loaded {
+                                    if let Some(recipe_id) = visible.get(i) {
+                                        if let Some(recipe) =
+                                            recipe_registry.recipes.get(recipe_id.as_str())
+                                        {
+                                            if let Some(item_def) =
+                                                item_registry.get(&recipe.result)
+                                            {
+                                                icon_cmd.insert(ImageNode {
+                                                    image: atlas_data.image.clone(),
+                                                    texture_atlas: Some(TextureAtlas {
+                                                        layout: atlas_data.layout.clone(),
+                                                        index: item_def.sprite_index as usize,
+                                                    }),
+                                                    ..default()
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+
                                 row.spawn((
                                     CraftingRecipeName { index: i },
                                     Text::new(""),
                                     TextFont {
+                                        font: font_handle.0.clone(),
                                         font_size: 14.0,
                                         ..default()
                                     },
@@ -144,6 +189,7 @@ pub fn spawn_crafting_screen(
                                     CraftingRecipeMaterials { index: i },
                                     Text::new(""),
                                     TextFont {
+                                        font: font_handle.0.clone(),
                                         font_size: 11.0,
                                         ..default()
                                     },
@@ -156,6 +202,7 @@ pub fn spawn_crafting_screen(
                     panel.spawn((
                         Text::new("Up/Down: Select | Enter: Craft | Esc: Close"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 11.0,
                             ..default()
                         },
@@ -170,7 +217,7 @@ pub fn despawn_crafting_screen(
     query: Query<Entity, With<CraftingScreenRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<CraftingUiState>();
 }
@@ -179,15 +226,29 @@ pub fn despawn_crafting_screen(
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_crafting_display(
     ui_state: Option<Res<CraftingUiState>>,
     recipe_registry: Res<RecipeRegistry>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
-    mut name_query: Query<(&CraftingRecipeName, &mut Text, &mut TextColor), Without<CraftingRecipeMaterials>>,
-    mut mat_query: Query<(&CraftingRecipeMaterials, &mut Text, &mut TextColor), Without<CraftingRecipeName>>,
+    mut name_query: Query<
+        (&CraftingRecipeName, &mut Text, &mut TextColor),
+        Without<CraftingRecipeMaterials>,
+    >,
+    mut mat_query: Query<
+        (&CraftingRecipeMaterials, &mut Text, &mut TextColor),
+        Without<CraftingRecipeName>,
+    >,
     mut row_query: Query<(&CraftingRecipeRow, &mut BackgroundColor)>,
-    mut status_query: Query<&mut Text, (With<CraftingStatusText>, Without<CraftingRecipeName>, Without<CraftingRecipeMaterials>)>,
+    mut status_query: Query<
+        &mut Text,
+        (
+            With<CraftingStatusText>,
+            Without<CraftingRecipeName>,
+            Without<CraftingRecipeMaterials>,
+        ),
+    >,
 ) {
     let Some(ui_state) = ui_state else { return };
 
@@ -262,59 +323,43 @@ pub fn crafting_navigation(
     action: Res<MenuAction>,
     mut ui_state: Option<ResMut<CraftingUiState>>,
     recipe_registry: Res<RecipeRegistry>,
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
+    inventory: Res<Inventory>,
+    mut craft_events: EventWriter<crate::crafting::CraftItemEvent>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
 
     let max = ui_state.visible_recipes.len();
 
-    if action.move_down {
-        if max > 0 && ui_state.cursor < max - 1 {
-            ui_state.cursor += 1;
-        }
+    if action.move_down && max > 0 && ui_state.cursor < max - 1 {
+        ui_state.cursor += 1;
     }
-    if action.move_up {
-        if ui_state.cursor > 0 {
-            ui_state.cursor -= 1;
-        }
+    if action.move_up && ui_state.cursor > 0 {
+        ui_state.cursor -= 1;
     }
 
-    if action.activate {
-        if ui_state.cursor < ui_state.visible_recipes.len() {
-            let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
-            if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {
-                if can_craft_recipe(recipe, &inventory) {
-                    // Consume materials
-                    for (item_id, qty) in &recipe.ingredients {
-                        inventory.try_remove(item_id, *qty);
-                    }
-                    // Add result
-                    let max_stack = item_registry
-                        .get(&recipe.result)
-                        .map(|d| d.stack_size)
-                        .unwrap_or(99);
-                    let overflow = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
-                    if overflow > 0 {
-                        ui_state.status_message = "Crafted! (some items didn't fit)".to_string();
-                    } else {
-                        ui_state.status_message = format!("Crafted {}!", recipe.name);
-                    }
-                    ui_state.status_timer = 2.0;
-                } else {
-                    ui_state.status_message = "Not enough materials!".to_string();
-                    ui_state.status_timer = 2.0;
-                }
+    if action.activate && ui_state.cursor < ui_state.visible_recipes.len() {
+        let recipe_id = ui_state.visible_recipes[ui_state.cursor].clone();
+        if let Some(recipe) = recipe_registry.recipes.get(&recipe_id) {
+            if can_craft_recipe(recipe, &inventory) {
+                craft_events.send(crate::crafting::CraftItemEvent {
+                    recipe_id: recipe_id.clone(),
+                });
+                ui_state.status_message = "Crafting...".to_string();
+                ui_state.status_timer = 2.0;
+            } else {
+                ui_state.status_message = "Not enough materials!".to_string();
+                ui_state.status_timer = 2.0;
             }
         }
     }
 }
 
-pub fn crafting_status_timer(
-    time: Res<Time>,
-    mut ui_state: Option<ResMut<CraftingUiState>>,
-) {
-    let Some(ref mut ui_state) = ui_state else { return };
+pub fn crafting_status_timer(time: Res<Time>, mut ui_state: Option<ResMut<CraftingUiState>>) {
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
     if ui_state.status_timer > 0.0 {
         ui_state.status_timer -= time.delta_secs();
         if ui_state.status_timer <= 0.0 {

@@ -1,13 +1,13 @@
 //! Dialogue system: handle player interaction with NPCs, build dialogue lines
 //! based on friendship level, and emit DialogueStartEvent.
 
-use bevy::prelude::*;
+use super::spawning::NpcMovement;
 use crate::shared::*;
+use bevy::prelude::*;
+use std::collections::HashSet;
+use std::sync::atomic::{AtomicU8, Ordering};
 
-/// Component marking an NPC that the player is adjacent to and can interact with.
-#[derive(Component, Debug)]
-#[allow(dead_code)]
-pub struct NpcInteractable;
+static SEASON_COMMENT_DAY: AtomicU8 = AtomicU8::new(1);
 
 /// Resource tracking the last-interacted NPC (for gift-giving context).
 #[derive(Resource, Debug, Default)]
@@ -15,19 +15,29 @@ pub struct ActiveNpcInteraction {
     pub npc_id: Option<String>,
 }
 
-/// System: detect player pressing Space near an NPC and start dialogue.
+/// Tracks which NPCs the player has already talked to today, so daily
+/// friendship is only awarded once per NPC per day.
+#[derive(Resource, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DailyTalkTracker {
+    pub talked: HashSet<String>,
+}
+
+/// System: detect player pressing F (interact) near an NPC and start dialogue.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_npc_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     player_query: Query<&Transform, With<Player>>,
-    npc_query: Query<(&Npc, &Transform)>,
-    relationships: Res<Relationships>,
+    mut npc_query: Query<(Entity, &Npc, &Transform, Option<&mut NpcMovement>)>,
+    mut relationships: ResMut<Relationships>,
     npc_registry: Res<NpcRegistry>,
     calendar: Res<Calendar>,
     mut dialogue_writer: EventWriter<DialogueStartEvent>,
     mut active_interaction: ResMut<ActiveNpcInteraction>,
     current_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut interaction_claimed: ResMut<InteractionClaimed>,
+    mut daily_talks: ResMut<DailyTalkTracker>,
 ) {
     // Only check interaction during Playing state
     if *current_state.get() != GameState::Playing {
@@ -38,7 +48,11 @@ pub fn handle_npc_interaction(
         return;
     }
 
-    if !player_input.tool_use {
+    if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 
@@ -50,31 +64,46 @@ pub fn handle_npc_interaction(
     let interaction_range = TILE_SIZE * 1.5; // 1.5 tiles in world space
 
     // Find the closest adjacent NPC within range
-    let mut closest: Option<(&Npc, f32)> = None;
-    for (npc, npc_transform) in npc_query.iter() {
+    let mut closest: Option<(Entity, f32)> = None;
+    for (entity, _npc, npc_transform, _) in npc_query.iter() {
         let npc_pos = npc_transform.translation.truncate();
         let dist = player_pos.distance(npc_pos);
         if dist <= interaction_range {
             match closest {
-                None => closest = Some((npc, dist)),
-                Some((_, best_dist)) if dist < best_dist => closest = Some((npc, dist)),
+                None => closest = Some((entity, dist)),
+                Some((_, best_dist)) if dist < best_dist => closest = Some((entity, dist)),
                 _ => {}
             }
         }
     }
 
-    let Some((npc, _)) = closest else {
+    let Some((closest_entity, _)) = closest else {
         return;
     };
 
-    let npc_id = &npc.id;
-    let hearts = relationships.hearts(npc_id);
-    let lines = build_dialogue_lines(npc_id, hearts, &npc_registry, &relationships, &calendar);
+    // Get NPC data and make them face the player
+    let Ok((_, npc, _, npc_movement)) = npc_query.get_mut(closest_entity) else {
+        return;
+    };
+    let npc_id = npc.id.clone();
+    // Point NPC target toward player so the animation system picks the correct facing row
+    if let Some(mut movement) = npc_movement {
+        movement.target_x = player_pos.x;
+        movement.target_y = player_pos.y;
+    }
+    let hearts = relationships.hearts(&npc_id);
+    let lines = build_dialogue_lines(&npc_id, hearts, &npc_registry, &relationships, &calendar);
 
-    let portrait_index = npc_registry.npcs.get(npc_id)
-        .map(|def| def.portrait_index);
+    let portrait_index = npc_registry.npcs.get(&npc_id).map(|def| def.portrait_index);
+
+    // Award 20 friendship points (1/5 of a heart) on first daily talk
+    if !daily_talks.talked.contains(&npc_id) {
+        relationships.add_friendship(&npc_id, 20);
+        daily_talks.talked.insert(npc_id.clone());
+    }
 
     active_interaction.npc_id = Some(npc_id.clone());
+    interaction_claimed.0 = true;
 
     dialogue_writer.send(DialogueStartEvent {
         npc_id: npc_id.clone(),
@@ -102,7 +131,12 @@ pub fn build_dialogue_lines(
     let mut lines = Vec::new();
 
     // --- Contextual: "already gifted today" notice ---
-    if relationships.gifted_today.get(npc_id).copied().unwrap_or(false) {
+    if relationships
+        .gifted_today
+        .get(npc_id)
+        .copied()
+        .unwrap_or(false)
+    {
         lines.push(
             "I really appreciate everything you've given me today. Come back tomorrow!".to_string(),
         );
@@ -113,10 +147,7 @@ pub fn build_dialogue_lines(
     let is_birthday =
         calendar.season == npc_def.birthday_season && calendar.day == npc_def.birthday_day;
     if is_birthday {
-        lines.push(format!(
-            "Oh! Today is my birthday! I can't believe you remembered, {}!",
-            npc_def.name
-        ));
+        lines.push("Oh! Today is my birthday! I can't believe you remembered!".to_string());
     }
 
     // --- Contextual: weather comment (prepend one line) ---
@@ -126,6 +157,7 @@ pub fn build_dialogue_lines(
     }
 
     // --- Contextual: seasonal comment ---
+    SEASON_COMMENT_DAY.store(calendar.day, Ordering::Relaxed);
     let season_line = npc_season_comment(npc_id, calendar.season);
     if let Some(sl) = season_line {
         lines.push(sl);
@@ -179,98 +211,299 @@ pub fn build_dialogue_lines(
 
 /// Return a weather-aware comment for the given NPC, or None if no comment is warranted.
 fn npc_weather_comment(npc_id: &str, weather: Weather) -> Option<String> {
-    match weather {
-        Weather::Sunny => None, // sunny is default — no special comment
-        Weather::Rainy => {
-            let line = match npc_id {
-                "mayor_thomas"   => "Wet day today! Good for the crops, I suppose.",
-                "elena"          => "The rain has kept the shop quiet. I like the sound it makes on the roof, honestly.",
-                "marcus"         => "Rainy days mean fewer customers. I use the time to sharpen the tools.",
-                "dr_iris"        => "Stay dry out there! Wet feet lead to all sorts of trouble.",
-                "old_pete"       => "Rain's good fishing weather, if you know where to look.",
-                "chef_rosa"      => "Rain days are soup days. Come by the inn later — I'm making chowder.",
-                "miner_gil"      => "Rain keeps me out of the mountains. Might as well dig inside.",
-                "librarian_faye" => "A perfect reading day. I almost don't mind the clouds.",
-                "farmer_dale"    => "Good steady rain. The fields will thank us for it.",
-                "child_lily"     => "It's RAINING! I jumped in three puddles already!",
-                _                => "Wet day, isn't it? Hope you brought an umbrella.",
-            };
-            Some(line.to_string())
+    let comment = match (npc_id, weather) {
+        (_, Weather::Sunny) => return None, // sunny is default — no special comment
+
+        ("margaret", Weather::Rainy) => {
+            "Rainy days mean more baking. Everyone wants fresh bread when it's grey outside."
         }
-        Weather::Stormy => {
-            let line = match npc_id {
-                "mayor_thomas"   => "Nasty storm rolling in. Please be careful out there.",
-                "elena"          => "This storm has me worried. Please don't stay out too long.",
-                "marcus"         => "A storm like this could bring down a tree. Watch your head.",
-                "dr_iris"        => "In this weather? You're lucky I'm open! Please be safe.",
-                "old_pete"       => "I'd stay off the water today. That storm's no joke.",
-                "chef_rosa"      => "I closed the shutters and lit the fire. Come in if you need to warm up!",
-                "miner_gil"      => "Even I stay out of the mine when lightning's this close.",
-                "librarian_faye" => "The storm knocked my shutters open! Three books got damp. I'm devastated.",
-                "farmer_dale"    => "Storm like this can flatten crops. Hope you've got some shelter built.",
-                "child_lily"     => "Mama said I can't go outside but the thunder is SO COOL.",
-                _                => "Quite a storm today, eh? You should head inside soon.",
-            };
-            Some(line.to_string())
+        ("margaret", Weather::Stormy) => {
+            "Storm's rattling the windows! I hope my oven stays lit..."
         }
-        Weather::Snowy => {
-            let line = match npc_id {
-                "mayor_thomas"   => "First snow of winter! Hearthfield looks like a painting today.",
-                "elena"          => "Snow! The shop window looks magical with the flakes drifting by.",
-                "marcus"         => "Snow days are slow days. I use the time to plan spring inventory.",
-                "dr_iris"        => "Bundle up! Frostbite is no laughing matter.",
-                "old_pete"       => "Ice fishing season. The pond freezes just right by the old bridge.",
-                "chef_rosa"      => "Snow means hot cocoa weather. I'll put a pot on.",
-                "miner_gil"      => "Doesn't matter what the sky does — it's always the same temperature down in the mine.",
-                "librarian_faye" => "Snow makes everything so quiet. I could read all day.",
-                "farmer_dale"    => "Snow cover actually protects the winter crops. Nature's blanket.",
-                "child_lily"     => "SNOW!! Can you build a snowman with me later?!",
-                _                => "Snow's here! Stay warm out there.",
-            };
-            Some(line.to_string())
+        ("margaret", Weather::Snowy) => {
+            "Snow reminds me of powdered sugar. Makes me want to bake something sweet."
         }
-    }
+
+        ("marco", Weather::Rainy) => "Rain days are soup days. Come by later — I'm making chowder.",
+        ("marco", Weather::Stormy) => "This storm! The herbs in my garden are getting flattened...",
+        ("marco", Weather::Snowy) => {
+            "Snow means hearty stews. My kitchen hasn't cooled down in days."
+        }
+
+        ("lily", Weather::Rainy) => "The flowers LOVE the rain! Look how bright they are!",
+        ("lily", Weather::Stormy) => "Oh no, my poor petunias! I hope they survive the storm...",
+        ("lily", Weather::Snowy) => {
+            "Even in the snow, there's beauty. Have you seen the frost on the windows?"
+        }
+
+        ("old_tom", Weather::Rainy) => "Rain's good fishing weather, if you know where to look.",
+        ("old_tom", Weather::Stormy) => "No sense going out in this. Even the fish are hiding.",
+        ("old_tom", Weather::Snowy) => "Ice fishing season! Grab a stool and join me by the lake.",
+
+        ("elena", Weather::Rainy) => {
+            "Rainy days mean fewer customers. I use the time to sharpen the tools."
+        }
+        ("elena", Weather::Stormy) => {
+            "Storm makes the forge feel cozy, honestly. Nothing like hot metal in cold air."
+        }
+        ("elena", Weather::Snowy) => "Snow piles up on the anvil overnight. Adds character.",
+
+        ("mira", Weather::Rainy) => "Rain keeps the travelers off the roads. Bad for business.",
+        ("mira", Weather::Stormy) => {
+            "I've weathered worse storms than this in the Eastern deserts."
+        }
+        ("mira", Weather::Snowy) => {
+            "Snow! It never snowed where I grew up. I still find it magical."
+        }
+
+        ("doc", Weather::Rainy) => {
+            "Damp weather aggravates joint pain. Tell the older folks to stay warm."
+        }
+        ("doc", Weather::Stormy) => "Storm season means injuries. Please be careful out there.",
+        ("doc", Weather::Snowy) => "Bundle up! I've already seen two cases of frostbite this week.",
+
+        ("mayor_rex", Weather::Rainy) => {
+            "Rain is good for the crops! The town treasury thanks the clouds."
+        }
+        ("mayor_rex", Weather::Stormy) => {
+            "I've filed a formal complaint with the weather. No response yet."
+        }
+        ("mayor_rex", Weather::Snowy) => "I do love how the town square looks under fresh snow.",
+
+        ("sam", Weather::Rainy) => "Rain on the roof... best percussion section in nature.",
+        ("sam", Weather::Stormy) => "This storm has ENERGY. I'm writing it into my next song.",
+        ("sam", Weather::Snowy) => "Snow muffles everything. The silence is almost musical.",
+
+        ("nora", Weather::Rainy) => {
+            "Steady rain like this fattens the crops better than any fancy fertilizer."
+        }
+        ("nora", Weather::Stormy) => {
+            "Storm's coming in hard. My old bones felt it before the clouds did."
+        }
+        ("nora", Weather::Snowy) => {
+            "Snow's our warning bell. Best finish winter prep before the drifts get deep."
+        }
+
+        _ => return None,
+    };
+    Some(comment.to_string())
 }
 
 /// Return a season-aware comment for the given NPC, or None if no comment is warranted.
-/// To keep dialogue from feeling repetitive, only return something for specific season/NPC combos.
+/// Selective — only where it fits the character, to avoid repetitive dialogue.
 fn npc_season_comment(npc_id: &str, season: Season) -> Option<String> {
-    let line = match (npc_id, season) {
-        // Spring
-        ("elena", Season::Spring) =>
-            Some("Spring is my favourite time of year. Everything is blooming!"),
-        ("farmer_dale", Season::Spring) =>
-            Some("Time to get those seeds in the ground. Spring waits for no one."),
-        ("child_lily", Season::Spring) =>
-            Some("Spring means the Egg Festival is coming! I can't wait!!"),
+    let variants: &[&str] = match (npc_id, season) {
+        ("lily", Season::Spring) => &[
+            "Spring! SPRING! Everything is blooming and I can't stop smiling!",
+            "My greenhouse smells like fresh lilac and wet soil. Best perfume in town.",
+            "Tulips, daisies, peonies... spring is my busiest and happiest season.",
+        ],
+        ("elena", Season::Spring) => &[
+            "Spring orders are piling up at the forge. Hoes, shears, and plow tips all day.",
+            "Every farmer wants sharpened tools in spring, so the anvil barely cools.",
+            "New season, new metalwork. I tune plowshares like musicians tune instruments.",
+        ],
+        ("doc", Season::Spring) => &[
+            "Pollen season again. Keep handkerchiefs nearby and don't ignore those allergies.",
+            "Spring colds spread fast when nights stay cool. Rest and fluids, not stubbornness.",
+            "If your eyes itch and you sneeze at flowers, come by for a remedy.",
+        ],
+        ("sam", Season::Spring) => &[
+            "Birdsong, thawing creeks, fresh air... spring hands me melodies for free.",
+            "I tuned my guitar on the porch this morning; even the robins kept tempo.",
+            "Spring gigs feel lighter, like every chord has sunlight in it.",
+        ],
+        ("nora", Season::Spring) => &[
+            "Planting season. Best time of the year if you ask me.",
+            "Spring soil tells the truth: if it crumbles right, your crops will thank you.",
+            "First furrow of spring always feels like opening a new book.",
+        ],
+        ("margaret", Season::Spring) => &[
+            "Egg Festival's coming up! I've been working on a new recipe.",
+            "Spring mornings are perfect for proofing bread by the sunny window.",
+            "Fresh eggs and new berries mean the bakery smells like celebration.",
+        ],
 
-        // Summer
-        ("old_pete", Season::Summer) =>
-            Some("Summer's when the big fish come in. Best season for the rod, no question."),
-        ("chef_rosa", Season::Summer) =>
-            Some("Summer produce is just bursting with flavour. Best season to cook."),
-        ("mayor_thomas", Season::Summer) =>
-            Some("The town square festival is my proudest achievement as mayor. Still months of planning every year."),
+        ("lily", Season::Summer) => &[
+            "Summer flowers are dramatic in the best way. Big petals, bright colors, zero shyness!",
+            "My garden is bursting so hard I need three extra vases by noon.",
+            "Heat makes the roses bold. They practically pose for compliments.",
+        ],
+        ("elena", Season::Summer) => &[
+            "The forge is brutal in summer. You learn fast, work smart, and drink water.",
+            "Steel moves differently in this heat. Great for shaping, rough on lungs.",
+            "I keep two things close in summer: tongs and a full water jug.",
+        ],
+        ("nora", Season::Summer) => &[
+            "Summer crops don't wait for anyone. Sunrise to sunset, there's always field work.",
+            "If you weed late in summer, the field punishes you by morning.",
+            "Corn, beans, and sweat. That's summer farming in three words.",
+        ],
+        ("old_tom", Season::Summer) => &[
+            "Summer means the big fish come in. You should try the deep water.",
+            "Warm mornings and calm water put trout in a biting mood.",
+            "On hot days I fish before dawn; by noon the river gets lazy.",
+        ],
+        ("marco", Season::Summer) => &[
+            "Summer produce is incredible. Tomatoes, peppers, corn...",
+            "I can build a whole menu from summer herbs and one good olive oil.",
+            "When zucchini and basil are in season, my kitchen sings.",
+        ],
+        ("mayor_rex", Season::Summer) => &[
+            "The town festival is the highlight of my year. Planning is underway!",
+            "Summer brings visitors, so we keep the square tidy and the permits moving.",
+            "Council meetings run long this season, but it keeps town events smooth.",
+        ],
+        ("sam", Season::Summer) => &[
+            "Summer crowds are loud and friendly. Perfect audience for a guitar set.",
+            "I play by the fountain at dusk; the reverb between buildings is amazing.",
+            "Long summer evenings mean I can squeeze in one more song before dark.",
+        ],
 
-        // Fall
-        ("farmer_dale", Season::Fall) =>
-            Some("Harvest time. This is what all that spring planting was for."),
-        ("librarian_faye", Season::Fall) =>
-            Some("Fall colours through the library window. It's almost too pretty to concentrate."),
-        ("miner_gil", Season::Fall) =>
-            Some("The mine runs deep this time of year. Some say the rocks change with the seasons. I believe it."),
+        ("lily", Season::Fall) => &[
+            "Falling leaves make the best crunchy carpet — I could play outside all day!",
+            "The garden goes to sleep for fall, but the colors make everything magical.",
+            "I'm collecting the prettiest leaves I can find. Nature's confetti!",
+        ],
+        ("margaret", Season::Summer) => &[
+            "Summer means berry picking — and berry-filled pastries! The bakery smells incredible.",
+            "Long days are perfect for slow-rise doughs. Heat does half the work for me.",
+            "I'm testing a new summer tart recipe with fresh peaches. Stop by and try one!",
+        ],
+        ("margaret", Season::Fall) => &[
+            "Fall means pumpkin loaves and cinnamon rolls. My ovens hardly get a break.",
+            "Cool air helps my sourdough crust set just right.",
+            "Apple season keeps me elbow-deep in pie dough from dawn to closing.",
+        ],
+        ("old_tom", Season::Spring) => &[
+            "Spring's when the fish wake up hungry. Best time of year to cast a line.",
+            "Snow melt fills the river fast in spring. The trout love the cold fresh water.",
+            "I'm at the lake before sunrise most spring mornings. Early casts, big catches.",
+        ],
+        ("old_tom", Season::Fall) => &[
+            "Cooler water, hungry fish. Fall's one of the best times to cast a line.",
+            "Autumn wind on the lake means steady bites if you stay patient.",
+            "Fish school near the reeds in fall. Cast quiet and let the line drift.",
+        ],
+        ("doc", Season::Summer) => &[
+            "Stay hydrated out there! Heat exhaustion sneaks up on you faster than you'd think.",
+            "My top summer health tip: shade, water, and rest during peak afternoon heat.",
+            "Summer's beautiful, but it's my busiest season for heatstroke cases. Please be careful.",
+        ],
+        ("doc", Season::Fall) => &[
+            "I spend fall preparing medicine stocks now, before winter illnesses arrive.",
+            "Dry leaves, cold mornings, and coughs. Fall is prevention season at the clinic.",
+            "I brew extra herbal tonics in autumn so we're ready for first frost.",
+        ],
+        ("nora", Season::Fall) => &[
+            "Harvest time. Nothing beats the smell of fresh-cut wheat.",
+            "A good fall harvest starts with clean rows and sharp sickles.",
+            "If your barn is full by first frost, you did the year right.",
+        ],
+        ("mira", Season::Fall) => &[
+            "The fall colours draw me back here every year. Worth the trip.",
+            "Autumn caravans move slower, but rare spices fetch better prices.",
+            "I trade wool and dried fruit all fall; travelers love practical luxuries.",
+        ],
+        ("sam", Season::Fall) => &[
+            "Something about autumn puts me in a songwriting mood.",
+            "Crisp air and rustling leaves make a great rhythm section.",
+            "I write my best acoustic sets in fall. The town listens closer somehow.",
+        ],
 
-        // Winter
-        ("old_pete", Season::Winter) =>
-            Some("Not much fishing to be had above ground. Good time to mend the nets."),
-        ("dr_iris", Season::Winter) =>
-            Some("Winter's my busiest season — everyone catches cold. Please dress warmly!"),
-        ("marcus", Season::Winter) =>
-            Some("Winter gives me time to practice new techniques at the forge. Quiet work is good work."),
+        ("margaret", Season::Winter) => &[
+            "Winter calls for comfort food. Stews, pies, and warm bread from dawn to dusk.",
+            "In winter I bake extra rye loaves so no one goes home hungry.",
+            "Nothing beats pulling a buttered roll from the oven while snow falls outside.",
+        ],
+        ("lily", Season::Winter) => &[
+            "The greenhouse keeps my winter blooms alive. Tiny summer in a glass house!",
+            "I tuck my bulbs in warm beds so spring color arrives right on time.",
+            "Winter teaches flowers patience. A little light, a little water, lots of hope.",
+        ],
+        ("mayor_rex", Season::Winter) => &[
+            "Winter festival planning is in full swing. Logistics now, celebration later!",
+            "Snow means budget meetings, road crews, and hot cider for volunteers.",
+            "Keeping the town running through winter is governance at its finest.",
+        ],
+        ("old_tom", Season::Winter) => &[
+            "Mending nets by the fire. A fisherman's winter ritual.",
+            "Cold water slows fish down, but the patient angler still eats well.",
+            "I watch the weather close in winter; one bad wind can cost a boat.",
+        ],
+        ("doc", Season::Winter) => &[
+            "Cold season keeps me busy. Stock up on hot soup and rest.",
+            "Frost and flu arrive together. Gloves, sleep, and warm tea are good medicine.",
+            "If your cough lingers past a week, stop by. Don't wait it out.",
+        ],
+        ("elena", Season::Fall) => &[
+            "Fall harvest means everyone needs tools sharpened before the big push. Busy weeks ahead.",
+            "The leaves turning colors remind me of a forge fire. Reds, oranges, gold — beautiful.",
+            "I love autumn light at the forge. Long shadows and cool air make for clean work.",
+        ],
+        ("elena", Season::Winter) => &[
+            "Quiet at the forge. Good time to practice new techniques.",
+            "Winter is for precision work: small tools, fine edges, clean welds.",
+            "Metal turns brittle in deep cold, so I temper slower and check every strike.",
+        ],
+        ("sam", Season::Winter) => &[
+            "Winter hush makes every guitar note ring longer in the night air.",
+            "I play near the tavern hearth in winter; warm room, warm crowd, better songs.",
+            "Snowy nights are made for soft melodies and slow chord changes.",
+        ],
+        ("nora", Season::Winter) => &[
+            "Winter's when a farmer plans more than plants. Notes now, better yields later.",
+            "I turn compost through the cold so spring soil starts rich.",
+            "Cold mornings teach patience. Fields rest, and farmers sharpen their sense.",
+        ],
 
-        _ => None,
+        ("marco", Season::Spring) => &[
+            "Spring herbs are tender and bright. Even simple soups taste alive again.",
+            "I wait all year for spring onions and young greens.",
+            "First spring harvest means lighter sauces and sharper flavors.",
+        ],
+        ("marco", Season::Fall) => &[
+            "Fall is stockpot season. Roots, squash, and slow-cooked depth.",
+            "I roast pumpkins and garlic until the whole inn smells like dinner.",
+            "Autumn ingredients are humble, but they make the richest plates.",
+        ],
+        ("marco", Season::Winter) => &[
+            "In winter I lean on braises and stews. Low heat, long time, big comfort.",
+            "Citrus from distant traders keeps winter dishes from feeling heavy.",
+            "A good winter kitchen is equal parts fire, broth, and patience.",
+        ],
+        ("mira", Season::Spring) => &[
+            "Spring roads open again, and caravans start bringing fresh goods.",
+            "I barter seeds, silk, and stories once the mountain passes thaw.",
+            "New season, new routes. Trade thrives when mud finally dries.",
+        ],
+        ("mira", Season::Summer) => &[
+            "Summer markets are loud, hot, and very profitable.",
+            "Travelers pay well for chilled drinks and bright fabrics this time of year.",
+            "I move spices at dawn in summer before the heat spoils tempers.",
+        ],
+        ("mira", Season::Winter) => &[
+            "Winter caravans are risky, but rare wares are worth the snow.",
+            "I plan routes by storm reports now. Trade is math in bad weather.",
+            "Exotic teas sell fastest in winter; everyone wants warmth in a cup.",
+        ],
+        ("mayor_rex", Season::Spring) => &[
+            "Spring means permits, planting support, and repairing winter damage around town.",
+            "I love spring council sessions. So many new projects to approve.",
+            "When the square fills with planters again, I know governance is working.",
+        ],
+        ("mayor_rex", Season::Fall) => &[
+            "Fall is budget season. We fund winter prep before the first hard frost.",
+            "Harvest reports keep the council honest and the granaries ready.",
+            "Town governance in autumn is ledgers by day, lantern inspections by dusk.",
+        ],
+
+        _ => return None,
     };
-    line.map(|s| s.to_string())
+
+    let calendar_day = SEASON_COMMENT_DAY.load(Ordering::Relaxed);
+    let idx = (calendar_day as usize) % variants.len();
+    Some(variants[idx].to_string())
 }
 
 /// Get the dialogue tier key for a given heart count.
@@ -293,7 +526,7 @@ pub fn build_gift_response_lines(
     is_birthday: bool,
 ) -> Vec<String> {
     let birthday_prefix = if is_birthday {
-        format!("Oh! Is it really for me? And on my birthday! ")
+        "Oh! Is it really for me? And on my birthday! ".to_string()
     } else {
         String::new()
     };
@@ -304,19 +537,16 @@ pub fn build_gift_response_lines(
             vec![format!("{}{}", birthday_prefix, response)]
         }
         GiftPreference::Liked => {
-            vec![
-                format!("{}{} — oh, I really like this! Thank you so much.", birthday_prefix, item_name),
-            ]
+            vec![format!("{}{}", birthday_prefix, liked_response(npc_id, item_name))]
         }
         GiftPreference::Neutral => {
-            vec![
-                format!("{}Oh, a gift! Thank you for thinking of me. That's very kind.", birthday_prefix),
-            ]
+            vec![format!(
+                "{}Oh, a gift! Thank you for thinking of me. That's very kind.",
+                birthday_prefix
+            )]
         }
         GiftPreference::Disliked => {
-            vec![
-                format!("{}I appreciate the thought, but... a {}? Hmm. Thank you anyway.", birthday_prefix, item_name),
-            ]
+            vec![format!("{}{}", birthday_prefix, disliked_response(npc_id, item_name))]
         }
         GiftPreference::Hated => {
             let response = hated_response(npc_id, item_name);
@@ -326,34 +556,408 @@ pub fn build_gift_response_lines(
 }
 
 fn loved_response(npc_id: &str, item_name: &str) -> String {
-    match npc_id {
-        "mayor_thomas" => format!("A {}! I've been looking for one like this for ages. You have exceptional taste, my friend.", item_name),
-        "elena" => format!("A {}! Oh, it's absolutely beautiful! I'll press this one into my favorite book.", item_name),
-        "marcus" => format!("Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.", item_name),
-        "dr_iris" => format!("Wonderful! Do you know how rare {} is around here? This will be very useful. Thank you.", item_name),
-        "old_pete" => format!("Ha! A {}! You really know the way to an old fisherman's heart. Much appreciated.", item_name),
-        "chef_rosa" => format!("A {}! Oh, the things I could make with this... you'll have to come try the dish when it's ready!", item_name),
-        "miner_gil" => format!("Now we're talking! A quality {}. You've got a good eye. I appreciate this more than you know.", item_name),
-        "librarian_faye" => format!("A {}! Do you realize how significant this is? I've only read about these! Thank you, truly.", item_name),
-        "farmer_dale" => format!("A {}! I haven't seen one this fine in years. You're growing into quite the farmer — and gift-giver!", item_name),
-        "child_lily" => format!("A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!", item_name),
-        _ => format!("Oh, a {}! This is exactly what I wanted! Thank you so much!", item_name),
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 3;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
+            "A {}! Oh, this will be perfect for my next batch of pastries! Thank you, dear.",
+            item_name
+        ),
+        ("margaret", 1) => format!(
+            "Oh my goodness, a {}! I was just thinking about this. You know me too well!",
+            item_name
+        ),
+        ("margaret", _) => format!(
+            "A {}! Biscuit, come look what we got! Thank you so much, dear.",
+            item_name
+        ),
+
+        ("marco", 0) => format!(
+            "A {}! Incredible quality. I can already taste the dish I'll make with this.",
+            item_name
+        ),
+        ("marco", 1) => format!(
+            "Magnifico! A {}! My nonna would weep tears of joy. I may do the same.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "A {} of this quality? You found the finest one. I am speechless. Mostly.",
+            item_name
+        ),
+
+        ("lily", 0) => format!(
+            "A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!",
+            item_name
+        ),
+        ("lily", 1) => format!(
+            "OH! A {}!! I'm going to put it right in my special spot — the best spot in the whole shop!",
+            item_name
+        ),
+        ("lily", _) => format!(
+            "A {}?! How did you KNOW?! This is exactly what I wanted!! I can't stop smiling!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
+            "A {}? Well now... haven't seen one this fine in years. Much obliged.",
+            item_name
+        ),
+        ("old_tom", 1) => format!(
+            "A {}. Now that's the kind of gift a man can use. Nod of respect.",
+            item_name
+        ),
+        ("old_tom", _) => format!(
+            "...A {}. You know your stuff. I'll give you that. Good gift.",
+            item_name
+        ),
+
+        ("elena", 0) => format!(
+            "Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.",
+            item_name
+        ),
+        ("elena", 1) => format!(
+            "A {}. This is exactly what I needed. How did you know? Don't answer — just, thank you.",
+            item_name
+        ),
+        ("elena", _) => format!(
+            "You brought me a {}? That's actually very thoughtful. Good judgment.",
+            item_name
+        ),
+
+        ("mira", 0) => format!(
+            "A {}! You have a trader's eye for value. I'm genuinely impressed.",
+            item_name
+        ),
+        ("mira", 1) => format!(
+            "A {}! Do you know how hard this is to source? Beautifully done.",
+            item_name
+        ),
+        ("mira", _) => format!(
+            "A {}. Exceptional taste. I've sold lesser versions for triple the price.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
+            "A {}? This is... very thoughtful. I appreciate it more than you know.",
+            item_name
+        ),
+        ("doc", 1) => format!(
+            "A {}! Oh, that is genuinely perfect. Thank you. Really.",
+            item_name
+        ),
+        ("doc", _) => format!(
+            "You brought me a {}. You have no idea how much I needed this today. Thank you.",
+            item_name
+        ),
+
+        ("mayor_rex", 0) => format!(
+            "A {} for the mayor! I shall display this proudly in my office!",
+            item_name
+        ),
+        ("mayor_rex", 1) => format!(
+            "A {}! This is exactly the quality befitting the mayor's residence. Well done.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "You have brought me a {}? This demonstrates excellent civic judgment. I approve.",
+            item_name
+        ),
+
+        ("sam", 0) => format!(
+            "A {}! No way! This is exactly what I needed for inspiration. You're the best.",
+            item_name
+        ),
+        ("sam", 1) => format!(
+            "Whoa, a {}?! Are you serious right now?! This is incredible!!",
+            item_name
+        ),
+        ("sam", _) => format!(
+            "A {}!! Okay, you just jumped to the top of my favorites list. No contest.",
+            item_name
+        ),
+
+        ("nora", 0) => format!(
+            "A {}. Good quality. You've got a farmer's instinct for the real stuff.",
+            item_name
+        ),
+        ("nora", 1) => format!(
+            "A {}. Now that's something. This is the kind of gift that means you paid attention.",
+            item_name
+        ),
+        ("nora", _) => format!(
+            "A {}? This is exactly what a working farmer needs. Well chosen.",
+            item_name
+        ),
+
+        _ => format!("A {}! Thank you, I love it!", item_name),
+    }
+}
+
+fn liked_response(npc_id: &str, item_name: &str) -> String {
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 2;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
+            "A {}! How lovely — I'll put this to good use in the kitchen. Thoughtful of you.",
+            item_name
+        ),
+        ("margaret", _) => format!("Oh, a {}! I do enjoy this. Thank you, dear.", item_name),
+
+        ("marco", 0) => format!(
+            "A {}! Good quality. I will use this well — you have my professional promise.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "Ah, a {}. Not my first choice, but respectable. Grazie.",
+            item_name
+        ),
+
+        ("lily", 0) => format!(
+            "Oh! A {}! I like this a lot. Thank you for thinking of me!",
+            item_name
+        ),
+        ("lily", _) => format!(
+            "Wow, a {}! That's really sweet of you. I'll treasure it!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
+            "Hmph. A {}. That'll do. That'll do nicely, actually.",
+            item_name
+        ),
+        ("old_tom", _) => format!("A {}. I can work with this. Decent pick.", item_name),
+
+        ("elena", 0) => format!("A {}. Good quality. This'll go to good use.", item_name),
+        ("elena", _) => format!("Decent choice. A {}. I appreciate it.", item_name),
+
+        ("mira", 0) => format!("A {}. A solid choice. Good instinct.", item_name),
+        ("mira", _) => format!(
+            "Hmm, a {}. I know people who'd pay well for this. Thank you.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
+            "A {}! That's a kind thought. I'll enjoy this.",
+            item_name
+        ),
+        ("doc", _) => format!("Oh, a {}. Very considerate of you. Thank you.", item_name),
+
+        ("mayor_rex", 0) => format!(
+            "A {}! The mayor thanks you. This is a fine gift.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "A {}. A respectable choice. The mayor is pleased.",
+            item_name
+        ),
+
+        ("sam", 0) => format!("Oh hey, a {}! Sweet. Thanks!", item_name),
+        ("sam", _) => format!("A {}? Cool! I appreciate it.", item_name),
+
+        ("nora", 0) => format!("A {}. Not bad. This'll be useful.", item_name),
+        ("nora", _) => format!(
+            "A {}. Good pick. Practical gift from a practical person.",
+            item_name
+        ),
+
+        _ => format!("{} — oh, I really like this! Thank you so much.", item_name),
+    }
+}
+
+fn disliked_response(npc_id: &str, item_name: &str) -> String {
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 2;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
+            "Oh... a {}. I appreciate the thought, I really do. I'll find somewhere to put it.",
+            item_name
+        ),
+        ("margaret", _) => format!(
+            "A {}? Well, you're always kind to think of me. Not exactly my first choice, but thank you.",
+            item_name
+        ),
+
+        ("marco", 0) => format!(
+            "A {}? I... appreciate the gesture. It is perhaps not the most inspiring ingredient.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "Hmm. A {}. I will accept this with grace and perhaps repurpose it somehow.",
+            item_name
+        ),
+
+        ("lily", 0) => format!(
+            "Oh, a {}... Um. Thank you! It's very... sturdy. That's a quality.",
+            item_name
+        ),
+        ("lily", _) => format!(
+            "A {}? I'll find somewhere nice for it. Thank you for bringing it by!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
+            "A {}? ...I suppose. Wasn't on my list, but I'll take it.",
+            item_name
+        ),
+        ("old_tom", _) => format!(
+            "A {}. I have no use for this, truthfully. But thanks.",
+            item_name
+        ),
+
+        ("elena", 0) => format!(
+            "A {}? Not exactly workshop material, but I won't refuse a gift.",
+            item_name
+        ),
+        ("elena", _) => format!("I'll accept a {}. Doesn't mean I'll use it.", item_name),
+
+        ("mira", 0) => format!(
+            "A {}. I've traded stranger things. Thank you, truly.",
+            item_name
+        ),
+        ("mira", _) => format!(
+            "A {}? Not high on my list, but I respect the gesture.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
+            "A {}? Well... it was kind of you to think of me. I'll keep it.",
+            item_name
+        ),
+        ("doc", _) => format!(
+            "A {}. Hmm. It's the thought that counts, and this thought was generous.",
+            item_name
+        ),
+
+        ("mayor_rex", 0) => format!(
+            "A {}. I shall... find a suitable civic use for this. Thank you for the gesture.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "This {} will be logged in the mayoral gift register. Thank you.",
+            item_name
+        ),
+
+        ("sam", 0) => format!(
+            "A {}. Um. Thanks, I guess? I'll find somewhere to put it.",
+            item_name
+        ),
+        ("sam", _) => format!(
+            "Oh. A {}. That's... yeah. Thanks for thinking of me.",
+            item_name
+        ),
+
+        ("nora", 0) => format!("A {}. Well. It's kind of you to bring anything.", item_name),
+        ("nora", _) => format!(
+            "A {}. Hmph. I won't complain about a gift. Thank you.",
+            item_name
+        ),
+
+        _ => format!(
+            "I appreciate the thought, but... a {}? Hmm. Thank you anyway.",
+            item_name
+        ),
     }
 }
 
 fn hated_response(npc_id: &str, item_name: &str) -> String {
-    match npc_id {
-        "mayor_thomas" => format!("A {}...? I... well. I'm sure you meant well.", item_name),
-        "elena" => format!("Oh. A {}. I... don't really know what to do with this. But thank you for the thought.", item_name),
-        "marcus" => format!("A {}? What am I supposed to do with that? ...I'll figure something out.", item_name),
-        "dr_iris" => format!("A {}. Hmm. I can't say this is medically advisable, but... thank you?", item_name),
-        "old_pete" => format!("A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.", item_name),
-        "chef_rosa" => format!("A {}... in MY kitchen? I... no. No, I don't think so. But thank you.", item_name),
-        "miner_gil" => format!("A {}? I've seen things like this at the bottom of the mine. Left 'em there too.", item_name),
-        "librarian_faye" => format!("A {}? I... must admit I'm not sure this belongs in a library. Or anywhere near me.", item_name),
-        "farmer_dale" => format!("A {}? Hmph. Been farming sixty years and never needed one of those.", item_name),
-        "child_lily" => format!("Ewwww! A {}! I don't want THAT! ...but okay fine I'll keep it.", item_name),
-        _ => format!("Oh. A {}. I... see. Thank you for thinking of me.", item_name),
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 2;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
+            "A {}? Oh dear... I don't think that belongs in any recipe I know.",
+            item_name
+        ),
+        ("margaret", _) => format!(
+            "A {}? Oh, sweetheart... no. I'll just quietly set this aside.",
+            item_name
+        ),
+
+        ("marco", 0) => format!(
+            "A {}? I wouldn't serve this to my worst critic. No offense.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "A {}? This offends my kitchen and my ancestors. Please take it back.",
+            item_name
+        ),
+
+        ("lily", 0) => format!("A {}?! Ew ew ew! Get it away from my flowers!", item_name),
+        ("lily", _) => format!(
+            "A {}?! Why would you — I can't even look at it! Take it back, please!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
+            "A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.",
+            item_name
+        ),
+        ("old_tom", _) => format!(
+            "A {}? ...No. Just no. Keep that away from my tackle box.",
+            item_name
+        ),
+
+        ("elena", 0) => format!(
+            "A {}? I'd sooner melt this down than look at it. Not my style.",
+            item_name
+        ),
+        ("elena", _) => format!(
+            "A {}? You brought this to a blacksmith? This is an insult to metal.",
+            item_name
+        ),
+
+        ("mira", 0) => format!(
+            "A {}? In my travels, I've learned to politely decline. Consider this me declining.",
+            item_name
+        ),
+        ("mira", _) => format!(
+            "A {}? I once traded one of these for passage out of a bad port. I overpaid.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
+            "A {}? I don't think this is... medically advisable. For anyone.",
+            item_name
+        ),
+        ("doc", _) => format!(
+            "A {}? As a doctor, I must recommend you dispose of this. Carefully.",
+            item_name
+        ),
+
+        ("mayor_rex", 0) => format!(
+            "A {}? I appreciate the gesture, but the mayor's office has standards.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "A {}? This will not be entering the mayoral gift registry. I am being diplomatic.",
+            item_name
+        ),
+
+        ("sam", 0) => format!(
+            "A {}? I've seen things like this at the bottom of a dumpster. Left 'em there too.",
+            item_name
+        ),
+        ("sam", _) => format!(
+            "A {}? Dude... no. Just no. I'll pretend this didn't happen.",
+            item_name
+        ),
+
+        ("nora", 0) => format!(
+            "A {}? Hmph. Been farming all my life and never needed one of those.",
+            item_name
+        ),
+        ("nora", _) => format!(
+            "A {}? I wouldn't compost this. And I compost everything.",
+            item_name
+        ),
+
+        _ => format!("A {}? ...Thanks, I guess.", item_name),
+    }
+}
+
+/// Clears the daily-talk tracker at the end of each day so players
+/// can earn friendship by talking again the next day.
+pub fn reset_daily_talks(
+    mut day_end_events: EventReader<DayEndEvent>,
+    mut daily_talks: ResMut<DailyTalkTracker>,
+) {
+    for _event in day_end_events.read() {
+        daily_talks.talked.clear();
     }
 }
 
@@ -388,49 +992,52 @@ mod tests {
 
     #[test]
     fn test_gift_response_loved_contains_item_name() {
-        let lines = build_gift_response_lines(
-            "elena", "Elena", GiftPreference::Loved, "Sunflower", false,
-        );
+        let lines =
+            build_gift_response_lines("elena", "Elena", GiftPreference::Loved, "Sunflower", false);
         assert!(!lines.is_empty());
-        assert!(lines[0].contains("Sunflower"),
-            "Loved response should mention item name");
+        assert!(
+            lines[0].contains("Sunflower"),
+            "Loved response should mention item name"
+        );
     }
 
     #[test]
     fn test_gift_response_hated_contains_item_name() {
-        let lines = build_gift_response_lines(
-            "marcus", "Marcus", GiftPreference::Hated, "Trash", false,
-        );
+        let lines =
+            build_gift_response_lines("marco", "Marco", GiftPreference::Hated, "Trash", false);
         assert!(!lines.is_empty());
-        assert!(lines[0].contains("Trash"),
-            "Hated response should mention item name");
+        assert!(
+            lines[0].contains("Trash"),
+            "Hated response should mention item name"
+        );
     }
 
     #[test]
     fn test_gift_response_birthday_prefix() {
-        let lines = build_gift_response_lines(
-            "elena", "Elena", GiftPreference::Neutral, "Stone", true,
-        );
+        let lines =
+            build_gift_response_lines("elena", "Elena", GiftPreference::Neutral, "Stone", true);
         assert!(!lines.is_empty());
-        assert!(lines[0].contains("birthday"),
-            "Birthday gift should mention birthday");
+        assert!(
+            lines[0].contains("birthday"),
+            "Birthday gift should mention birthday"
+        );
     }
 
     #[test]
     fn test_npc_weather_comment_sunny_returns_none() {
         // Sunny weather should produce no special comment
         assert!(npc_weather_comment("elena", Weather::Sunny).is_none());
-        assert!(npc_weather_comment("marcus", Weather::Sunny).is_none());
+        assert!(npc_weather_comment("marco", Weather::Sunny).is_none());
     }
 
     #[test]
     fn test_npc_weather_comment_rainy_returns_some() {
         assert!(npc_weather_comment("elena", Weather::Rainy).is_some());
-        assert!(npc_weather_comment("old_pete", Weather::Rainy).is_some());
+        assert!(npc_weather_comment("old_tom", Weather::Rainy).is_some());
     }
 
     #[test]
     fn test_npc_weather_comment_snowy_returns_some() {
-        assert!(npc_weather_comment("child_lily", Weather::Snowy).is_some());
+        assert!(npc_weather_comment("lily", Weather::Snowy).is_some());
     }
 }

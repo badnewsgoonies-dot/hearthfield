@@ -47,11 +47,12 @@ pub struct EnemyAttackCooldown {
 
 /// Resource tracking the current floor's state.
 #[derive(Resource, Debug, Clone)]
-#[allow(dead_code)]
 pub struct ActiveFloor {
     pub floor: u8,
+    #[allow(dead_code)]
     pub total_rocks: usize,
     pub rocks_remaining: usize,
+    pub rocks_broken_this_floor: usize,
     pub ladder_revealed: bool,
     /// Player grid position in the mine.
     pub player_grid_x: i32,
@@ -66,6 +67,7 @@ impl Default for ActiveFloor {
             floor: 0,
             total_rocks: 0,
             rocks_remaining: 0,
+            rocks_broken_this_floor: 0,
             ladder_revealed: false,
             player_grid_x: 12,
             player_grid_y: 1,

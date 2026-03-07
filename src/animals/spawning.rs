@@ -1,7 +1,7 @@
+use super::{AnimalAnimTimer, AnimalSpriteData, WanderAi};
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::shared::*;
-use super::{WanderAi, AnimalSpriteData};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animal visual configuration
@@ -17,28 +17,53 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
     match kind {
         AnimalKind::Chicken => AnimalVisual {
             color: Color::srgb(0.9, 0.85, 0.3),
-            width: 12.0,
-            height: 12.0,
+            width: 16.0,
+            height: 16.0,
         },
         AnimalKind::Cow => AnimalVisual {
             color: Color::srgb(0.85, 0.85, 0.85),
+            width: 32.0,
+            height: 32.0,
+        },
+        AnimalKind::Sheep => AnimalVisual {
+            color: Color::srgb(0.97, 0.97, 0.97),
             width: 20.0,
             height: 16.0,
         },
-        AnimalKind::Sheep => AnimalVisual {
-            color: Color::srgb(0.95, 0.95, 0.9),
+        AnimalKind::Goat => AnimalVisual {
+            color: Color::srgb(0.85, 0.85, 0.78),
             width: 18.0,
-            height: 14.0,
+            height: 18.0,
         },
-        AnimalKind::Cat => AnimalVisual {
-            color: Color::srgb(0.8, 0.5, 0.2),
+        AnimalKind::Duck => AnimalVisual {
+            color: Color::srgb(0.95, 0.88, 0.1),
             width: 10.0,
             height: 10.0,
         },
-        AnimalKind::Dog => AnimalVisual {
-            color: Color::srgb(0.6, 0.4, 0.2),
+        AnimalKind::Rabbit => AnimalVisual {
+            color: Color::srgb(0.8, 0.8, 0.8),
+            width: 8.0,
+            height: 10.0,
+        },
+        AnimalKind::Pig => AnimalVisual {
+            color: Color::srgb(0.95, 0.7, 0.73),
+            width: 22.0,
+            height: 18.0,
+        },
+        AnimalKind::Horse => AnimalVisual {
+            color: Color::srgb(0.35, 0.2, 0.1),
+            width: 24.0,
+            height: 20.0,
+        },
+        AnimalKind::Cat => AnimalVisual {
+            color: Color::srgb(0.9, 0.55, 0.2),
             width: 12.0,
             height: 12.0,
+        },
+        AnimalKind::Dog => AnimalVisual {
+            color: Color::srgb(0.6, 0.38, 0.18),
+            width: 14.0,
+            height: 14.0,
         },
     }
 }
@@ -48,13 +73,18 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
 /// pets (cat, dog) roam a wider farm area.
 fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
     match kind {
-        AnimalKind::Chicken => (Vec2::new(-96.0, -192.0), Vec2::new(96.0, -96.0)),
-        AnimalKind::Cow | AnimalKind::Sheep => {
-            (Vec2::new(-192.0, -192.0), Vec2::new(-32.0, -64.0))
-        }
-        AnimalKind::Cat | AnimalKind::Dog => {
-            (Vec2::new(-256.0, -256.0), Vec2::new(256.0, 256.0))
-        }
+        AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => (
+            Vec2::new(8.0 * TILE_SIZE, 16.0 * TILE_SIZE),
+            Vec2::new(12.0 * TILE_SIZE, 18.0 * TILE_SIZE),
+        ),
+        AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => (
+            Vec2::new(3.0 * TILE_SIZE, 16.0 * TILE_SIZE),
+            Vec2::new(7.0 * TILE_SIZE, 18.0 * TILE_SIZE),
+        ),
+        AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => (
+            Vec2::new(10.0 * TILE_SIZE, 8.0 * TILE_SIZE),
+            Vec2::new(20.0 * TILE_SIZE, 16.0 * TILE_SIZE),
+        ),
     }
 }
 
@@ -69,6 +99,21 @@ fn item_to_animal(item_id: &str) -> Option<AnimalKind> {
         "sheep" => Some(AnimalKind::Sheep),
         "cat" => Some(AnimalKind::Cat),
         "dog" => Some(AnimalKind::Dog),
+        "goat" => Some(AnimalKind::Goat),
+        "duck" => Some(AnimalKind::Duck),
+        "rabbit" => Some(AnimalKind::Rabbit),
+        "pig" => Some(AnimalKind::Pig),
+        "horse" => Some(AnimalKind::Horse),
+        "animal_chicken" => Some(AnimalKind::Chicken),
+        "animal_cow" => Some(AnimalKind::Cow),
+        "animal_sheep" => Some(AnimalKind::Sheep),
+        "animal_cat" => Some(AnimalKind::Cat),
+        "animal_dog" => Some(AnimalKind::Dog),
+        "animal_goat" => Some(AnimalKind::Goat),
+        "animal_duck" => Some(AnimalKind::Duck),
+        "animal_rabbit" => Some(AnimalKind::Rabbit),
+        "animal_pig" => Some(AnimalKind::Pig),
+        "animal_horse" => Some(AnimalKind::Horse),
         _ => None,
     }
 }
@@ -77,6 +122,11 @@ fn generate_animal_name(kind: AnimalKind, rng: &mut impl Rng) -> String {
     let chicken_names = ["Penny", "Goldie", "Clucky", "Nugget", "Dottie"];
     let cow_names = ["Bessie", "Daisy", "Rosie", "Mocha", "Cream"];
     let sheep_names = ["Fluffkins", "Woolie", "Cotton", "Misty", "Pearl"];
+    let goat_names = ["Clover", "Maple", "Pepper", "Ginger", "Nutmeg"];
+    let duck_names = ["Quackers", "Puddle", "Waddles", "Drake", "Feather"];
+    let rabbit_names = ["Thumper", "Clover", "Bun-Bun", "Flopsy", "Hazel"];
+    let pig_names = ["Hamlet", "Truffle", "Mud", "Bacon", "Rosie"];
+    let horse_names = ["Thunder", "Spirit", "Maple", "Blaze", "Storm"];
     let cat_names = ["Whiskers", "Mittens", "Shadow", "Luna", "Cleo"];
     let dog_names = ["Rex", "Buddy", "Scout", "Max", "Hazel"];
 
@@ -84,6 +134,11 @@ fn generate_animal_name(kind: AnimalKind, rng: &mut impl Rng) -> String {
         AnimalKind::Chicken => &chicken_names[..],
         AnimalKind::Cow => &cow_names[..],
         AnimalKind::Sheep => &sheep_names[..],
+        AnimalKind::Goat => &goat_names[..],
+        AnimalKind::Duck => &duck_names[..],
+        AnimalKind::Rabbit => &rabbit_names[..],
+        AnimalKind::Pig => &pig_names[..],
+        AnimalKind::Horse => &horse_names[..],
         AnimalKind::Cat => &cat_names[..],
         AnimalKind::Dog => &dog_names[..],
     };
@@ -100,6 +155,8 @@ pub fn handle_animal_purchase(
     animal_state: Res<AnimalState>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     sprite_data: Res<AnimalSpriteData>,
+    animal_query: Query<&Animal>,
+    mut toast_writer: EventWriter<ToastEvent>,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -114,10 +171,12 @@ pub fn handle_animal_purchase(
 
         // Building check: chickens need coop, cows/sheep need barn.
         let has_building = match kind {
-            AnimalKind::Chicken => animal_state.has_coop,
-            AnimalKind::Cow | AnimalKind::Sheep => animal_state.has_barn,
-            // Pets don't need a building.
-            AnimalKind::Cat | AnimalKind::Dog => true,
+            AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => animal_state.has_coop,
+            AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
+                animal_state.has_barn
+            }
+            // Companions don't need a building.
+            AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => true,
         };
 
         if !has_building {
@@ -127,6 +186,67 @@ pub fn handle_animal_purchase(
                 kind
             );
             continue;
+        }
+
+        // Cap enforcement per housing type.
+        match kind {
+            AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
+                let count = animal_query
+                    .iter()
+                    .filter(|a| {
+                        matches!(
+                            a.kind,
+                            AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit
+                        )
+                    })
+                    .count();
+                let max = (animal_state.coop_level as usize) * 4;
+                if count >= max {
+                    toast_writer.send(ToastEvent {
+                        message: "Your coop is full! Upgrade to house more animals.".to_string(),
+                        duration_secs: 3.0,
+                    });
+                    continue;
+                }
+            }
+            AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
+                let count = animal_query
+                    .iter()
+                    .filter(|a| {
+                        matches!(
+                            a.kind,
+                            AnimalKind::Cow
+                                | AnimalKind::Sheep
+                                | AnimalKind::Goat
+                                | AnimalKind::Pig
+                        )
+                    })
+                    .count();
+                let max = (animal_state.barn_level as usize) * 4;
+                if count >= max {
+                    toast_writer.send(ToastEvent {
+                        message: "Your barn is full! Upgrade to house more animals.".to_string(),
+                        duration_secs: 3.0,
+                    });
+                    continue;
+                }
+            }
+            AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
+                let already_has = animal_query.iter().any(|a| a.kind == kind);
+                if already_has {
+                    let name = match kind {
+                        AnimalKind::Horse => "horse",
+                        AnimalKind::Cat => "cat",
+                        AnimalKind::Dog => "dog",
+                        _ => unreachable!(),
+                    };
+                    toast_writer.send(ToastEvent {
+                        message: format!("You already have a {}!", name),
+                        duration_secs: 3.0,
+                    });
+                    continue;
+                }
+            }
         }
 
         let (pen_min, pen_max) = pen_bounds_for(kind);
@@ -164,6 +284,7 @@ pub fn handle_animal_purchase(
                         },
                     );
                     s.custom_size = Some(Vec2::new(16.0, 16.0));
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Cow => {
@@ -175,20 +296,91 @@ pub fn handle_animal_purchase(
                         },
                     );
                     s.custom_size = Some(Vec2::new(32.0, 32.0));
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
-                _ => Sprite {
-                    color: vis.color,
-                    custom_size: Some(Vec2::new(vis.width, vis.height)),
-                    ..default()
-                },
+                // Non-atlas animals: procedural colored sprites with distinct sizes.
+                AnimalKind::Sheep => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.97, 0.97, 0.97),
+                        custom_size: Some(Vec2::new(20.0, 16.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Cat => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.9, 0.55, 0.2),
+                        custom_size: Some(Vec2::new(12.0, 12.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Dog => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.6, 0.38, 0.18),
+                        custom_size: Some(Vec2::new(14.0, 14.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Duck => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.95, 0.88, 0.1),
+                        custom_size: Some(Vec2::new(10.0, 10.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Rabbit => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.8, 0.8, 0.8),
+                        custom_size: Some(Vec2::new(8.0, 10.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Pig => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.95, 0.7, 0.73),
+                        custom_size: Some(Vec2::new(22.0, 18.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Goat => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.85, 0.85, 0.78),
+                        custom_size: Some(Vec2::new(18.0, 18.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Horse => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.35, 0.2, 0.1),
+                        custom_size: Some(Vec2::new(24.0, 20.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
             }
         } else {
-            Sprite {
+            let mut s = Sprite {
                 color: vis.color,
                 custom_size: Some(Vec2::new(vis.width, vis.height)),
                 ..default()
-            }
+            };
+            s.anchor = bevy::sprite::Anchor::BottomCenter;
+            s
         };
 
         let entity = commands
@@ -211,17 +403,36 @@ pub fn handle_animal_purchase(
                         AnimalKind::Sheep => 16.0,
                         AnimalKind::Cat => 24.0,
                         AnimalKind::Dog => 28.0,
+                        AnimalKind::Goat => 18.0,
+                        AnimalKind::Duck => 18.0,
+                        AnimalKind::Rabbit => 26.0,
+                        AnimalKind::Pig => 14.0,
+                        AnimalKind::Horse => 30.0,
                     },
                 },
             ))
             .id();
+
+        // Attach animation timer for all animals.
+        // Atlas animals (chicken, cow) cycle sprite frames; non-atlas animals
+        // use the timer elapsed time to drive a vertical bob animation.
+        let (anim_period, anim_frames) = match kind {
+            AnimalKind::Chicken => (0.2, 4),
+            AnimalKind::Cow => (0.25, 3),
+            _ => (0.3, 2), // non-atlas: 2 phases for bob
+        };
+        commands.entity(entity).insert(AnimalAnimTimer {
+            timer: Timer::from_seconds(anim_period, TimerMode::Repeating),
+            frame_count: anim_frames,
+            current_frame: 0,
+        });
 
         // Spawn a "name tag" text as a child entity.
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Text2d::new(name.clone()),
                 TextFont {
-                    font_size: 6.0,
+                    font_size: 11.0,
                     ..default()
                 },
                 TextColor(Color::WHITE),
@@ -233,7 +444,10 @@ pub fn handle_animal_purchase(
             sfx_id: format!("{}_cry", ev.item_id),
         });
 
-        info!("Spawned {:?} named '{}'  at ({:.0}, {:.0})", kind, name, spawn_x, spawn_y);
+        info!(
+            "Spawned {:?} named '{}'  at ({:.0}, {:.0})",
+            kind, name, spawn_x, spawn_y
+        );
     }
 }
 
@@ -241,21 +455,53 @@ pub fn handle_animal_purchase(
 // System: spawn the feed trough at a fixed position on the farm.
 // ─────────────────────────────────────────────────────────────────────────────
 
-pub fn setup_feed_trough(mut commands: Commands) {
-    // Trough sits at the entrance of the barn area. Grid position (−10, −8) in
-    // a 16-px grid → world (−160, −128).
-    commands.spawn((
-        super::FeedTrough {
-            grid_x: -10,
-            grid_y: -8,
-        },
+pub fn setup_feed_trough(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut furniture: ResMut<crate::world::objects::FurnitureAtlases>,
+    existing: Query<Entity, With<super::FeedTrough>>,
+) {
+    // Guard against re-entry (e.g. Playing → Cutscene → Playing).
+    if !existing.is_empty() {
+        return;
+    }
+
+    // Ensure furniture atlas is loaded even if WorldPlugin hasn't run yet
+    // (AnimalPlugin may be registered before WorldPlugin).
+    crate::world::objects::ensure_furniture_atlases_loaded(
+        &asset_server,
+        &mut layouts,
+        &mut furniture,
+    );
+    let sprite = if furniture.loaded {
+        let mut s = Sprite::from_atlas_image(
+            furniture.image.clone(),
+            TextureAtlas {
+                layout: furniture.layout.clone(),
+                index: 30, // row 3: low/flat object for feed trough
+            },
+        );
+        s.custom_size = Some(Vec2::new(24.0, 10.0));
+        s
+    } else {
         Sprite {
             color: Color::srgb(0.55, 0.38, 0.18),
             custom_size: Some(Vec2::new(24.0, 10.0)),
             ..default()
+        }
+    };
+
+    // Trough sits at the entrance of the barn area. Grid position (5, 19) — south of barn entrance
+    // in a 16-px grid → world (80.0, 304.0).
+    commands.spawn((
+        super::FeedTrough {
+            grid_x: 5,
+            grid_y: 19,
         },
-        Transform::from_xyz(-160.0, -128.0, Z_ENTITY_BASE),
-        LogicalPosition(Vec2::new(-160.0, -128.0)),
+        sprite,
+        Transform::from_xyz(5.0 * TILE_SIZE, 19.0 * TILE_SIZE, Z_ENTITY_BASE),
+        LogicalPosition(Vec2::new(5.0 * TILE_SIZE, 19.0 * TILE_SIZE)),
         YSorted,
         Visibility::default(),
     ));

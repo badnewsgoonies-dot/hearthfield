@@ -10,9 +10,9 @@
 use bevy::prelude::*;
 use rand::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
-use super::floor_gen::{MINE_WIDTH, MINE_HEIGHT};
+use super::floor_gen::{MINE_HEIGHT, MINE_WIDTH};
+use crate::shared::*;
 
 /// Player combat damage based on pickaxe tier (doubles as weapon).
 fn player_attack_damage(tier: ToolTier) -> f32 {
@@ -26,12 +26,15 @@ fn player_attack_damage(tier: ToolTier) -> f32 {
 }
 
 /// System: player attacks an enemy with the pickaxe.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_player_attack(
     mut commands: Commands,
     mut tool_events: EventReader<ToolUseEvent>,
     mut enemies: Query<(Entity, &MineGridPos, &mut MineMonster)>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut monster_slain_events: EventWriter<MonsterSlainEvent>,
+    mut stamina_events: EventWriter<StaminaDrainEvent>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 {
@@ -62,7 +65,7 @@ pub fn handle_player_attack(
         }
 
         if let Some((entity, kind)) = killed {
-            commands.entity(entity).despawn();
+            commands.entity(entity).despawn_recursive();
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "mine_enemy_die".to_string(),
@@ -74,7 +77,20 @@ pub fn handle_player_attack(
                 item_id,
                 quantity: qty,
             });
+
+            // Notify quest system
+            let kind_str = match kind {
+                MineEnemy::GreenSlime => "green_slime",
+                MineEnemy::Bat => "bat",
+                MineEnemy::RockCrab => "rock_crab",
+            };
+            monster_slain_events.send(MonsterSlainEvent {
+                monster_kind: kind_str.to_string(),
+            });
         }
+
+        // Drain stamina for swinging at an enemy
+        stamina_events.send(StaminaDrainEvent { amount: 2.0 });
     }
 }
 
@@ -84,10 +100,14 @@ fn enemy_loot(kind: MineEnemy) -> (String, u8) {
     match kind {
         MineEnemy::GreenSlime => {
             let roll: f64 = rng.gen();
-            if roll < 0.3 {
+            if roll < 0.25 {
+                ("slime".to_string(), rng.gen_range(1..=3))
+            } else if roll < 0.45 {
                 ("slime_jelly".to_string(), rng.gen_range(1..=2))
-            } else if roll < 0.5 {
+            } else if roll < 0.6 {
                 ("copper_ore".to_string(), 1)
+            } else if roll < 0.75 {
+                ("sap".to_string(), rng.gen_range(1..=2))
             } else {
                 ("stone".to_string(), rng.gen_range(1..=3))
             }
@@ -123,7 +143,12 @@ fn enemy_loot(kind: MineEnemy) -> (String, u8) {
 /// Enemies move one tile toward the player on their move timer tick.
 pub fn enemy_ai_movement(
     time: Res<Time>,
-    mut enemies: Query<(&mut MineGridPos, &mut Transform, &MineMonster, &mut EnemyMoveTick)>,
+    mut enemies: Query<(
+        &mut MineGridPos,
+        &mut Transform,
+        &MineMonster,
+        &mut EnemyMoveTick,
+    )>,
     rocks: Query<&MineGridPos, (With<MineRock>, Without<MineMonster>)>,
     active_floor: Res<ActiveFloor>,
     in_mine: Res<InMine>,
@@ -136,10 +161,8 @@ pub fn enemy_ai_movement(
     let player_y = active_floor.player_grid_y;
 
     // Build a set of occupied tiles (rocks block enemy movement)
-    let rock_positions: std::collections::HashSet<(i32, i32)> = rocks
-        .iter()
-        .map(|p| (p.x, p.y))
-        .collect();
+    let rock_positions: std::collections::HashSet<(i32, i32)> =
+        rocks.iter().map(|p| (p.x, p.y)).collect();
 
     for (mut grid_pos, mut transform, _monster, mut move_tick) in enemies.iter_mut() {
         move_tick.timer.tick(time.delta());
@@ -165,7 +188,7 @@ pub fn enemy_ai_movement(
 
         for (nx, ny) in candidates {
             // Check bounds (stay within walkable area)
-            if nx < 1 || nx >= MINE_WIDTH - 1 || ny < 0 || ny >= MINE_HEIGHT - 1 {
+            if !(1..MINE_WIDTH - 1).contains(&nx) || !(1..MINE_HEIGHT - 1).contains(&ny) {
                 continue;
             }
             // Don't walk into rocks
@@ -188,6 +211,7 @@ pub fn enemy_ai_movement(
 }
 
 /// System: enemies attack the player when adjacent.
+#[allow(clippy::too_many_arguments)]
 pub fn enemy_attack_player(
     time: Res<Time>,
     mut enemies: Query<(&MineGridPos, &MineMonster, &mut EnemyAttackCooldown)>,
@@ -195,6 +219,7 @@ pub fn enemy_attack_player(
     mut player_state: ResMut<PlayerState>,
     mut iframes: ResMut<PlayerIFrames>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
@@ -222,10 +247,16 @@ pub fn enemy_attack_player(
         let dist = (grid_pos.x - px).abs() + (grid_pos.y - py).abs();
         if dist <= 1 {
             // Attack!
-            player_state.health = (player_state.health - monster.damage).max(0.0);
+            let damage = monster.damage;
+            player_state.health = (player_state.health - damage).max(0.0);
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "player_hurt".to_string(),
+            });
+
+            toast_events.send(ToastEvent {
+                message: format!("-{} HP", damage as i32),
+                duration_secs: 1.5,
             });
 
             // Grant brief invincibility to prevent multi-hit stacking
@@ -239,6 +270,7 @@ pub fn enemy_attack_player(
 
 /// System: check if the player's health has reached zero (knockout).
 /// On knockout, exit the mine, set health to a fraction, and lose some gold.
+#[allow(clippy::too_many_arguments)]
 pub fn check_player_knockout(
     mut player_state: ResMut<PlayerState>,
     mut mine_state: ResMut<MineState>,
@@ -247,13 +279,14 @@ pub fn check_player_knockout(
     mut map_events: EventWriter<MapTransitionEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut gold_events: EventWriter<GoldChangeEvent>,
+    mut iframes: ResMut<PlayerIFrames>,
 ) {
     if !in_mine.0 {
         return;
     }
 
     if player_state.health <= 0.0 {
-        // Knockout! Player wakes up at mine entrance with reduced health/gold.
+        // Knockout! Player wakes up at home with reduced health/gold.
         sfx_events.send(PlaySfxEvent {
             sfx_id: "player_knockout".to_string(),
         });
@@ -269,17 +302,18 @@ pub fn check_player_knockout(
 
         // Restore partial health
         player_state.health = player_state.max_health * 0.5;
+        iframes.timer = Timer::from_seconds(0.0, TimerMode::Once);
 
         // Reset mine state
         mine_state.current_floor = 0;
         in_mine.0 = false;
         active_floor.spawned = false;
 
-        // Transition back to mine entrance
+        // Transition to player's house (wake up at home after knockout)
         map_events.send(MapTransitionEvent {
-            to_map: MapId::MineEntrance,
+            to_map: MapId::PlayerHouse,
             to_x: 12,
-            to_y: 12,
+            to_y: 4,
         });
     }
 }

@@ -7,26 +7,25 @@
 //!  │              │
 //!  │  [ catch  ]  │  ← catch bar: player holds Space to rise, releases to fall
 //!  └──────────────┘
-//!  [████░░░░░░░░░░]  ← progress bar: 0% to 100%
+//!  [████░░░░░░░░░░]  ← progress bar: overlap ratio visualization
 //!
-//! Progress fills while overlapping, drains while not. Reach 100% = caught!
-//! Drain to 0% = escaped.
+//! Timer-based mechanic: 10-second minigame. Player must keep the catch bar
+//! overlapping the fish zone for at least 80% of the timer to succeed.
 //!
 //! # Perfect Catch
-//! If the catch bar was inside the fish zone for 90%+ of the minigame duration
-//! (tracked via `overlap_time_total` / `minigame_total_time`), the player gets
-//! a "Perfect catch!" toast and a quality upgrade notification.
+//! If the catch bar was inside the fish zone for 90%+ of the minigame duration,
+//! the player gets a "Perfect catch!" toast and a quality upgrade notification.
 
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::shared::*;
-use super::{
-    FishingState, FishingMinigameState, FishEncyclopedia,
-    MinigameFishZone, MinigameCatchBar, MinigameProgressFill,
-};
 use super::resolve::{catch_fish, end_fishing_escape};
 use super::Bobber;
+use super::{
+    FishEncyclopedia, FishingMinigameState, FishingState, MinigameCatchBar, MinigameFishZone,
+    MinigameProgressFill,
+};
+use crate::shared::*;
 
 // ─── Tuning constants ─────────────────────────────────────────────────────────
 
@@ -35,15 +34,15 @@ const CATCH_RISE_SPEED: f32 = 60.0;
 /// How fast the catch bar falls when Space is released.
 const CATCH_FALL_SPEED: f32 = 45.0;
 
-/// How fast the progress fills when overlapping (% per second).
-const PROGRESS_FILL_RATE: f32 = 20.0;
-/// How fast the progress drains when not overlapping (% per second).
-const PROGRESS_DRAIN_RATE: f32 = 15.0;
-
 /// Maximum speed of the fish zone (units/second at difficulty 1.0).
 const FISH_MAX_SPEED: f32 = 90.0;
 /// Minimum speed (at difficulty 0.0).
 const FISH_MIN_SPEED: f32 = 20.0;
+
+/// Total minigame duration in seconds (spec: 10 seconds).
+const MINIGAME_DURATION: f32 = 10.0;
+/// Overlap ratio required to catch the fish (spec: 80%).
+const CATCH_OVERLAP_THRESHOLD: f32 = 0.80;
 
 // ─── Systems ─────────────────────────────────────────────────────────────────
 
@@ -85,17 +84,15 @@ pub fn update_fish_zone(
         let min_interval = 0.4 + (1.0 - difficulty) * 0.8;
         let max_interval = min_interval + 1.2 + (1.0 - difficulty) * 0.5;
         let next_interval = rng.gen_range(min_interval..max_interval);
-        minigame_state.direction_change_timer =
-            Timer::from_seconds(next_interval, TimerMode::Once);
+        minigame_state.direction_change_timer = Timer::from_seconds(next_interval, TimerMode::Once);
     }
 
     // Apply velocity to fish zone center
     let speed = minigame_state.fish_zone_velocity;
-    minigame_state.fish_zone_center =
-        (minigame_state.fish_zone_center + speed * dt).clamp(
-            minigame_state.fish_zone_half,
-            100.0 - minigame_state.fish_zone_half,
-        );
+    minigame_state.fish_zone_center = (minigame_state.fish_zone_center + speed * dt).clamp(
+        minigame_state.fish_zone_half,
+        100.0 - minigame_state.fish_zone_half,
+    );
 
     // Bounce: reverse velocity at edges
     let lo = minigame_state.fish_zone_half;
@@ -126,19 +123,13 @@ pub fn update_catch_bar(
     let catch_half = minigame_state.catch_bar_half;
 
     if space_held {
-        minigame_state.catch_bar_center =
-            (minigame_state.catch_bar_center + CATCH_RISE_SPEED * dt).clamp(
-                catch_half,
-                100.0 - catch_half,
-            );
+        minigame_state.catch_bar_center = (minigame_state.catch_bar_center + CATCH_RISE_SPEED * dt)
+            .clamp(catch_half, 100.0 - catch_half);
     } else {
         // Lead Bobber reduces fall speed so the bar is easier to hold up.
         let effective_fall = CATCH_FALL_SPEED * minigame_state.catch_fall_multiplier;
-        minigame_state.catch_bar_center =
-            (minigame_state.catch_bar_center - effective_fall * dt).clamp(
-                catch_half,
-                100.0 - catch_half,
-            );
+        minigame_state.catch_bar_center = (minigame_state.catch_bar_center - effective_fall * dt)
+            .clamp(catch_half, 100.0 - catch_half);
     }
 
     let catch_center = minigame_state.catch_bar_center;
@@ -150,7 +141,10 @@ pub fn update_catch_bar(
     }
 }
 
-/// Update progress bar fill and accumulate perfect-catch timing.
+/// Update overlap tracking and progress bar fill.
+///
+/// Uses a 10-second timer. The progress bar shows current overlap ratio
+/// relative to elapsed time. Catch requires 80% overlap when the timer expires.
 pub fn update_progress(
     mut minigame_state: ResMut<FishingMinigameState>,
     time: Res<Time>,
@@ -159,17 +153,14 @@ pub fn update_progress(
 ) {
     let dt = time.delta_secs();
 
-    // Only accumulate perfect-catch timing after the first 0.5s grace period,
+    // Only accumulate timing after the first 0.5s grace period,
     // so the initial bar-placement isn't counted against the player.
     if minigame_state.elapsed > 0.5 {
         minigame_state.minigame_total_time += dt;
     }
 
     if minigame_state.is_overlapping() {
-        minigame_state.progress =
-            (minigame_state.progress + PROGRESS_FILL_RATE * dt).clamp(0.0, 100.0);
-
-        // Track how long the bar was overlapping (for perfect catch calculation).
+        // Track how long the bar was overlapping (for catch calculation).
         if minigame_state.elapsed > 0.5 {
             minigame_state.overlap_time_total += dt;
         }
@@ -182,22 +173,26 @@ pub fn update_progress(
             });
             minigame_state.overlap_sfx_cooldown = 0.3;
         }
-    } else {
-        // Trap Bobber slows the drain rate so misses are less punishing.
-        let effective_drain = PROGRESS_DRAIN_RATE * minigame_state.progress_drain_multiplier;
-        minigame_state.progress =
-            (minigame_state.progress - effective_drain * dt).clamp(0.0, 100.0);
     }
 
-    let fraction = minigame_state.progress / 100.0;
+    // Progress bar shows current overlap ratio (0-100%)
+    let effective_time = minigame_state.minigame_total_time;
+    let ratio = if effective_time > 0.1 {
+        (minigame_state.overlap_time_total / effective_time).clamp(0.0, 1.0)
+    } else {
+        0.5 // Show 50% during grace period
+    };
+    minigame_state.progress = ratio * 100.0;
 
     // Update progress fill bar x-scale
+    let fraction = ratio;
     for mut transform in progress_fill_query.iter_mut() {
         transform.scale.x = fraction.max(0.001);
     }
 }
 
-/// Check whether the minigame is won, lost, or cancelled.
+/// Check whether the minigame timer has expired, determine catch/fail, or cancel.
+#[allow(clippy::too_many_arguments)]
 pub fn check_minigame_result(
     mut fishing_state: ResMut<FishingState>,
     minigame_state: Res<FishingMinigameState>,
@@ -214,51 +209,54 @@ pub fn check_minigame_result(
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
 ) {
-    // Win condition
-    if minigame_state.progress >= 100.0 {
-        // Determine perfect catch before consuming minigame_state
-        let is_perfect = minigame_state.is_perfect_catch();
-        let bait_equipped = fishing_state.bait_equipped;
-        let selected_fish = fishing_state.selected_fish_id.clone();
+    let timer_expired = minigame_state.minigame_total_time >= MINIGAME_DURATION;
 
-        let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
-        catch_fish(
-            &mut fishing_state,
-            &mut next_state,
-            &mut stamina_events,
-            &mut item_pickup_events,
-            &mut sfx_events,
-            &fish_registry,
-            &mut commands,
-            bobber_entities,
-            &mut encyclopedia,
-            &calendar,
-            &mut toast_events,
-            &mut gold_events,
-            bait_equipped,
-        );
+    // Check overlap ratio
+    let overlap_ratio = if minigame_state.minigame_total_time > 0.1 {
+        minigame_state.overlap_time_total / minigame_state.minigame_total_time
+    } else {
+        0.0
+    };
 
-        // Perfect catch notification (after the normal catch is processed)
-        if is_perfect {
-            toast_events.send(ToastEvent {
-                message: "Perfect catch! Quality upgraded!".to_string(),
-                duration_secs: 3.5,
-            });
-            sfx_events.send(PlaySfxEvent {
-                sfx_id: "perfect_catch".to_string(),
-            });
-        }
+    if timer_expired {
+        if overlap_ratio >= CATCH_OVERLAP_THRESHOLD {
+            // Win: overlap >= 80% — caught the fish!
+            let is_perfect = minigame_state.is_perfect_catch();
+            let bait_id = fishing_state.bait_id.clone();
+            let selected_fish = fishing_state.selected_fish_id.clone();
 
-        // Wild bait double-catch: 15% chance for a bonus fish
-        if bait_equipped {
-            // We can't inspect which bait type was equipped post-catch (state was
-            // reset), so we stored the flag in the local capture above. Only
-            // wild_bait triggers double-catch; we check it via the inventory in
-            // handle_tool_use_for_fishing, so here we use the helper roll.
-            // In a full implementation you would store bait_id on FishingState;
-            // for now wild_bait_double_catch_roll() is always called but only
-            // sends an event when the random check passes.
-            if super::cast::wild_bait_double_catch_roll() {
+            let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
+            catch_fish(
+                &mut fishing_state,
+                &mut next_state,
+                &mut stamina_events,
+                &mut item_pickup_events,
+                &mut sfx_events,
+                &fish_registry,
+                &mut commands,
+                bobber_entities,
+                &mut encyclopedia,
+                &calendar,
+                &mut toast_events,
+                &mut gold_events,
+                bait_id.as_deref(),
+            );
+
+            // Perfect catch notification (after the normal catch is processed)
+            if is_perfect {
+                toast_events.send(ToastEvent {
+                    message: "Perfect catch! Quality upgraded!".to_string(),
+                    duration_secs: 3.5,
+                });
+                sfx_events.send(PlaySfxEvent {
+                    sfx_id: "perfect_catch".to_string(),
+                });
+            }
+
+            // Wild bait double-catch: 15% chance for a bonus fish (wild_bait only)
+            if bait_id.as_deref() == Some("wild_bait")
+                && super::cast::wild_bait_double_catch_roll()
+            {
                 if let Some(ref fid) = selected_fish {
                     item_pickup_events.send(ItemPickupEvent {
                         item_id: fid.clone(),
@@ -270,25 +268,29 @@ pub fn check_minigame_result(
                     });
                 }
             }
+        } else {
+            // Fail: timer expired but overlap < 80%
+            sfx_events.send(PlaySfxEvent {
+                sfx_id: "fish_escape".to_string(),
+            });
+            toast_events.send(ToastEvent {
+                message: format!(
+                    "The fish got away! ({:.0}% overlap, need {:.0}%)",
+                    overlap_ratio * 100.0,
+                    CATCH_OVERLAP_THRESHOLD * 100.0
+                ),
+                duration_secs: 2.5,
+            });
+            let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
+            end_fishing_escape(
+                &mut fishing_state,
+                &mut next_state,
+                &mut stamina_events,
+                &mut commands,
+                bobber_entities,
+                true,
+            );
         }
-
-        return;
-    }
-
-    // Loss condition (progress drained to zero after game started)
-    if minigame_state.progress <= 0.0 && minigame_state.elapsed > 0.5 {
-        sfx_events.send(PlaySfxEvent {
-            sfx_id: "fish_escape".to_string(),
-        });
-        let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
-        end_fishing_escape(
-            &mut fishing_state,
-            &mut next_state,
-            &mut stamina_events,
-            &mut commands,
-            bobber_entities,
-            true, // coming from Fishing state
-        );
         return;
     }
 

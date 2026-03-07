@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Hearthfield</title>
+    <link data-trunk rel="copy-dir" href="assets"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%; overflow: hidden;
+            background: #1a1a2e;
+            overscroll-behavior: none; touch-action: none;
+        }
+        canvas {
+            width: 100% !important; height: 100% !important;
+            object-fit: contain;
+            image-rendering: pixelated; image-rendering: crisp-edges;
+        }
+        @supports (-webkit-touch-callout: none) {
+            html, body { height: -webkit-fill-available; }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        document.addEventListener('gesturestart', e => e.preventDefault());
+        document.addEventListener('gesturechange', e => e.preventDefault());
+        document.addEventListener('gestureend', e => e.preventDefault());
+        let audioUnlocked = false;
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const buf = ctx.createBuffer(1, 1, 22050);
+            const src = ctx.createBufferSource();
+            src.buffer = buf; src.connect(ctx.destination); src.start(0);
+            audioUnlocked = true;
+        }
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
+    </script>
+</body>
+</html>

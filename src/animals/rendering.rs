@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::FloatingFeedback;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Floating feedback text (hearts, "Yum!", etc.)
@@ -8,12 +8,7 @@ use super::FloatingFeedback;
 
 /// Convenience function called from other submodules to spawn a floating text
 /// entity that drifts upward and fades out.
-pub fn spawn_floating_text(
-    commands: &mut Commands,
-    position: Vec3,
-    text: &str,
-    color: Color,
-) {
+pub fn spawn_floating_text(commands: &mut Commands, position: Vec3, text: &str, color: Color) {
     commands.spawn((
         FloatingFeedback {
             lifetime: Timer::from_seconds(1.2, TimerMode::Once),
@@ -38,7 +33,12 @@ pub fn spawn_floating_text(
 pub fn update_floating_feedback(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Transform, &mut FloatingFeedback, &mut TextColor)>,
+    mut query: Query<(
+        Entity,
+        &mut Transform,
+        &mut FloatingFeedback,
+        &mut TextColor,
+    )>,
 ) {
     for (entity, mut transform, mut feedback, mut color) in query.iter_mut() {
         feedback.lifetime.tick(time.delta());

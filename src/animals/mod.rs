@@ -1,24 +1,24 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-modules
 // ─────────────────────────────────────────────────────────────────────────────
-mod spawning;
-mod movement;
-mod feeding;
-mod products;
 mod day_end;
+mod feeding;
 mod interaction;
+mod movement;
+mod products;
 mod rendering;
+mod spawning;
 
-pub use spawning::*;
-pub use movement::*;
-pub use feeding::*;
-pub use products::*;
 pub use day_end::*;
+pub use feeding::*;
 pub use interaction::*;
+pub use movement::*;
+pub use products::*;
 pub use rendering::*;
+pub use spawning::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Private ECS components (internal to the animals domain)
@@ -26,7 +26,6 @@ pub use rendering::*;
 
 /// Marks an entity as the feed-trough object on the farm.
 #[derive(Component, Debug, Clone)]
-#[allow(dead_code)]
 pub struct FeedTrough {
     pub grid_x: i32,
     pub grid_y: i32,
@@ -66,7 +65,19 @@ pub struct UnfedDays {
     pub count: u8,
 }
 
-/// Cached sprite atlas handles for animals with real sprite assets.
+/// Timer component driving animal walk-cycle frame advancement.
+/// Attached to all animal kinds. Atlas animals (chicken, cow) cycle sprite frames;
+/// non-atlas animals use the timer elapsed time to drive a vertical bob animation.
+#[derive(Component, Debug, Clone)]
+pub struct AnimalAnimTimer {
+    pub timer: Timer,
+    /// Number of frames per animation row (atlas animals) or bob phases (non-atlas).
+    pub frame_count: usize,
+    /// Current frame index within the row.
+    pub current_frame: usize,
+}
+
+/// Cached sprite atlas handles for animals with real sprite assets (chicken, cow).
 #[derive(Resource, Default)]
 pub struct AnimalSpriteData {
     pub loaded: bool,
@@ -110,6 +121,60 @@ pub fn load_animal_sprites(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Animal sprite animation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// System: animate animal sprites by cycling atlas frames when the animal is
+/// moving (has a wander target). When idle, snaps back to frame 0 and resets
+/// the timer so the bob offset returns to zero for non-atlas animals.
+/// Non-atlas animals (no TextureAtlas) have their vertical bob applied by
+/// `bob_non_atlas_animals` in PostUpdate after position sync.
+pub fn animate_animal_sprites(
+    time: Res<Time>,
+    mut query: Query<(&WanderAi, &mut Sprite, &mut AnimalAnimTimer)>,
+) {
+    for (wander, mut sprite, mut anim) in query.iter_mut() {
+        let is_moving = wander.target.is_some();
+
+        if is_moving {
+            anim.timer.tick(time.delta());
+            if anim.timer.just_finished() {
+                anim.current_frame = (anim.current_frame + 1) % anim.frame_count;
+            }
+        } else {
+            anim.current_frame = 0;
+            anim.timer.reset();
+        }
+
+        if let Some(atlas) = &mut sprite.texture_atlas {
+            atlas.index = anim.current_frame;
+        }
+    }
+}
+
+/// System: apply a vertical bob (±1 px) to non-atlas animals while they move.
+/// Runs in PostUpdate after `sync_position_and_ysort` has written the base
+/// translation from LogicalPosition, so the offset is applied on top cleanly.
+pub fn bob_non_atlas_animals(
+    mut query: Query<(&WanderAi, &Sprite, &AnimalAnimTimer, &mut Transform)>,
+) {
+    for (wander, sprite, anim, mut transform) in query.iter_mut() {
+        if sprite.texture_atlas.is_some() {
+            continue;
+        }
+        if wander.target.is_some() {
+            let elapsed = anim.timer.elapsed_secs();
+            let period = anim.timer.duration().as_secs_f32();
+            if period > 0.0 {
+                let bob = (elapsed / period * std::f32::consts::TAU).sin();
+                transform.translation.y += bob;
+            }
+        }
+        // When idle the timer was reset (elapsed = 0, sin = 0) so no bob is added.
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Plugin
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -117,11 +182,12 @@ pub struct AnimalPlugin;
 
 impl Plugin for AnimalPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<AnimalSpriteData>()
+        app.init_resource::<AnimalSpriteData>()
             // ── startup / loading ────────────────────────────────────────────
-            .add_systems(OnEnter(GameState::Playing), (load_animal_sprites, setup_feed_trough))
-
+            .add_systems(
+                OnEnter(GameState::Playing),
+                (load_animal_sprites, setup_feed_trough),
+            )
             // ── purchase detection ───────────────────────────────────────────
             .add_systems(
                 Update,
@@ -134,10 +200,17 @@ impl Plugin for AnimalPlugin {
                     update_floating_feedback,
                     sync_animal_state_resource,
                     update_product_indicators,
+                    animate_animal_sprites,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
-
+            // ── bob non-atlas animals after position sync ────────────────────
+            .add_systems(
+                PostUpdate,
+                bob_non_atlas_animals
+                    .after(crate::world::ysort::sync_position_and_ysort)
+                    .run_if(in_state(GameState::Playing)),
+            )
             // ── day-end processing ───────────────────────────────────────────
             .add_systems(
                 Update,

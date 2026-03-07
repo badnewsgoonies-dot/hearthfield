@@ -22,8 +22,8 @@ mod rock_breaking;
 mod spawning;
 mod transitions;
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use components::*;
 use movement::MineMoveCooldown;
 
@@ -38,8 +38,12 @@ impl Plugin for MiningPlugin {
         app.init_resource::<PlayerIFrames>();
         app.init_resource::<MineMoveCooldown>();
         app.init_resource::<ElevatorUiOpen>();
+        app.init_resource::<spawning::MiningAtlas>();
+        app.init_resource::<spawning::EnemyAtlas>();
+        app.add_event::<MonsterSlainEvent>();
 
         // === Systems that run during Playing state ===
+        app.add_systems(OnEnter(GameState::Playing), spawning::load_mining_atlas);
         app.add_systems(
             Update,
             (

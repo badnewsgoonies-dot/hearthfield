@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use super::{CollisionMap, DistanceAnimator};
 use crate::shared::*;
-use super::{CollisionMap, DistanceAnimator, world_to_grid};
+use bevy::prelude::*;
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
 /// updates facing direction, snaps grid position, and checks collisions.
@@ -31,9 +31,17 @@ pub fn player_movement(
         movement.is_moving = true;
 
         if dir.y.abs() >= dir.x.abs() {
-            movement.facing = if dir.y > 0.0 { Facing::Up } else { Facing::Down };
+            movement.facing = if dir.y > 0.0 {
+                Facing::Up
+            } else {
+                Facing::Down
+            };
         } else {
-            movement.facing = if dir.x > 0.0 { Facing::Right } else { Facing::Left };
+            movement.facing = if dir.x > 0.0 {
+                Facing::Right
+            } else {
+                Facing::Left
+            };
         }
 
         let normalized = dir.normalize();
@@ -42,8 +50,20 @@ pub fn player_movement(
         let candidate_x = logical_pos.0.x + delta.x;
         let candidate_y = logical_pos.0.y + delta.y;
 
-        let can_move_x = !is_blocked(candidate_x, logical_pos.0.y, &collision_map, &farm_state, &player_state);
-        let can_move_y = !is_blocked(logical_pos.0.x, candidate_y, &collision_map, &farm_state, &player_state);
+        let can_move_x = !is_blocked(
+            candidate_x,
+            logical_pos.0.y,
+            &collision_map,
+            &farm_state,
+            &player_state,
+        );
+        let can_move_y = !is_blocked(
+            logical_pos.0.x,
+            candidate_y,
+            &collision_map,
+            &farm_state,
+            &player_state,
+        );
 
         if can_move_x {
             logical_pos.0.x = candidate_x;
@@ -52,9 +72,9 @@ pub fn player_movement(
             logical_pos.0.y = candidate_y;
         }
 
-        let (gx, gy) = world_to_grid(logical_pos.0.x, logical_pos.0.y);
-        grid_pos.x = gx;
-        grid_pos.y = gy;
+        let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+        grid_pos.x = g.x;
+        grid_pos.y = g.y;
     } else {
         movement.is_moving = false;
     }
@@ -69,19 +89,22 @@ pub fn player_movement(
 
 /// Drive the walk-cycle animation using distance-based frame advance.
 pub fn animate_player_sprite(
-    mut query: Query<(
-        &LogicalPosition,
-        &PlayerMovement,
-        &mut Sprite,
-        &mut DistanceAnimator,
-    ), With<Player>>,
+    mut query: Query<
+        (
+            &LogicalPosition,
+            &PlayerMovement,
+            &mut Sprite,
+            &mut DistanceAnimator,
+        ),
+        With<Player>,
+    >,
 ) {
     for (pos, movement, mut sprite, mut anim) in query.iter_mut() {
         let base: usize = match movement.facing {
-            Facing::Down  =>  0,
-            Facing::Up    =>  4,
-            Facing::Right =>  8,
-            Facing::Left  => 12,
+            Facing::Down => 0,
+            Facing::Up => 4,
+            Facing::Left => 8,
+            Facing::Right => 12,
         };
 
         match movement.anim_state {
@@ -121,6 +144,35 @@ pub fn animate_player_sprite(
     }
 }
 
+/// Emit a footstep SFX every 32 pixels of distance traveled while walking.
+pub fn footstep_sfx(
+    query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
+    mut sfx_writer: EventWriter<PlaySfxEvent>,
+    mut distance_acc: Local<f32>,
+    mut last_pos: Local<Vec2>,
+) {
+    let Ok((pos, movement)) = query.get_single() else {
+        return;
+    };
+
+    if movement.is_moving {
+        let delta = pos.0 - *last_pos;
+        let dist = delta.length();
+        *distance_acc += dist;
+
+        if *distance_acc >= 32.0 {
+            sfx_writer.send(PlaySfxEvent {
+                sfx_id: "footstep".to_string(),
+            });
+            *distance_acc = 0.0;
+        }
+    } else {
+        *distance_acc = 0.0;
+    }
+
+    *last_pos = pos.0;
+}
+
 /// Check whether a world position is blocked.
 fn is_blocked(
     wx: f32,
@@ -129,7 +181,8 @@ fn is_blocked(
     farm_state: &FarmState,
     player_state: &PlayerState,
 ) -> bool {
-    let (gx, gy) = world_to_grid(wx, wy);
+    let g = world_to_grid(wx, wy);
+    let (gx, gy) = (g.x, g.y);
 
     if collision_map.initialised && collision_map.solid_tiles.contains(&(gx, gy)) {
         return true;
@@ -143,14 +196,14 @@ fn is_blocked(
     }
 
     if player_state.current_map == MapId::Farm {
-        if let Some(obj) = farm_state.objects.get(&(gx, gy)) {
-            match obj {
-                FarmObject::Tree { .. }
-                | FarmObject::Rock { .. }
-                | FarmObject::Stump { .. }
-                | FarmObject::Fence => return true,
-                _ => {}
-            }
+        if let Some(
+            FarmObject::Tree { .. }
+            | FarmObject::Rock { .. }
+            | FarmObject::Stump { .. }
+            | FarmObject::Fence,
+        ) = farm_state.objects.get(&(gx, gy))
+        {
+            return true;
         }
     }
 

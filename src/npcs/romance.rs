@@ -147,11 +147,19 @@ pub fn handle_bouquet(
             continue;
         }
 
-        // All checks passed — begin dating
-        stages.stages.insert(npc_id.clone(), RelationshipStage::Dating);
-
         // Consume bouquet from inventory
-        inventory.try_remove("bouquet", 1);
+        if inventory.try_remove("bouquet", 1) == 0 {
+            toast_writer.send(ToastEvent {
+                message: "You need a bouquet to start dating someone.".to_string(),
+                duration_secs: 3.0,
+            });
+            continue;
+        }
+
+        // All checks passed — begin dating
+        stages
+            .stages
+            .insert(npc_id.clone(), RelationshipStage::Dating);
 
         toast_writer.send(ToastEvent {
             message: format!("You are now dating {}!", npc_name),
@@ -166,21 +174,17 @@ pub fn handle_bouquet(
 
 /// Process ProposalEvent. Validates prerequisites and sets the NPC to Engaged,
 /// scheduling the wedding in 3 days.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_proposal(
     mut proposal_reader: EventReader<ProposalEvent>,
     npc_registry: Res<NpcRegistry>,
     relationships: Res<Relationships>,
-    stages: Res<RelationshipStages>,
     house_state: Res<HouseState>,
     mut wedding_timer: ResMut<WeddingTimer>,
     mut relationship_stages: ResMut<RelationshipStages>,
     mut inventory: ResMut<Inventory>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
-    // Avoid borrow conflict: we read `stages` above but need mutable access
-    // through `relationship_stages`. We use `stages` only for the initial check.
-    let _ = &stages; // Suppress unused warning — we actually use relationship_stages below.
-
     for event in proposal_reader.read() {
         let npc_name = &event.npc_name;
 
@@ -231,8 +235,19 @@ pub fn handle_proposal(
         // Check: house tier >= Big
         if house_state.tier < HouseTier::Big {
             toast_writer.send(ToastEvent {
-                message: "Your house is too small. Upgrade to at least a Big house before proposing.".to_string(),
+                message:
+                    "Your house is too small. Upgrade to at least a Big house before proposing."
+                        .to_string(),
                 duration_secs: 4.0,
+            });
+            continue;
+        }
+
+        // Consume mermaid pendant from inventory
+        if inventory.try_remove("mermaid_pendant", 1) == 0 {
+            toast_writer.send(ToastEvent {
+                message: "You need a mermaid pendant to propose.".to_string(),
+                duration_secs: 3.0,
             });
             continue;
         }
@@ -241,9 +256,6 @@ pub fn handle_proposal(
         relationship_stages
             .stages
             .insert(npc_id.clone(), RelationshipStage::Engaged);
-
-        // Consume mermaid pendant from inventory
-        inventory.try_remove("mermaid_pendant", 1);
 
         // Schedule wedding in 3 days
         wedding_timer.days_remaining = Some(3);
@@ -377,13 +389,7 @@ pub fn spouse_daily_action(
         SpouseAction::FeedAnimals
     } else if roll < 0.80 {
         // 15% GiveBreakfast: give a random breakfast item
-        let breakfasts = [
-            "fried_egg",
-            "pancakes",
-            "toast",
-            "porridge",
-            "fruit_salad",
-        ];
+        let breakfasts = ["fried_egg", "pancakes", "toast", "porridge", "fruit_salad"];
         let idx = rng.gen_range(0..breakfasts.len());
         SpouseAction::GiveBreakfast(breakfasts[idx].to_string())
     } else if roll < 0.90 {
@@ -404,10 +410,7 @@ pub fn spouse_daily_action(
         }
         SpouseAction::GiveBreakfast(item) => {
             let display_name = item.replace('_', " ");
-            format!(
-                "{} made you {} for breakfast!",
-                spouse_name, display_name
-            )
+            format!("{} made you {} for breakfast!", spouse_name, display_name)
         }
         SpouseAction::RepairFence => {
             format!("{} repaired a fence on the farm.", spouse_name)
@@ -477,7 +480,7 @@ fn water_random_crops(farm_state: &mut FarmState, count: usize) {
                 && farm_state
                     .soil
                     .get(pos)
-                    .map_or(false, |s| *s == SoilState::Tilled)
+                    .is_some_and(|s| *s == SoilState::Tilled)
         })
         .map(|(pos, _)| *pos)
         .collect();
@@ -514,10 +517,11 @@ fn water_random_crops(farm_state: &mut FarmState, count: usize) {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// DayEndEvent listener. Adjusts spouse happiness based on whether the player
-/// interacted with the spouse today (using gifted_today as a proxy for talking).
+/// interacted with the spouse today (gift or conversation).
 pub fn update_spouse_happiness(
     mut day_end_reader: EventReader<DayEndEvent>,
     relationships: Res<Relationships>,
+    daily_talks: Res<super::dialogue::DailyTalkTracker>,
     mut marriage_state: ResMut<MarriageState>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
@@ -527,12 +531,12 @@ pub fn update_spouse_happiness(
             continue;
         }
 
-        // Check if the spouse was interacted with today
+        // Check if the spouse was interacted with today (gift or conversation)
         let spouse_id = relationships.spouse.as_deref();
-        let talked_today = spouse_id
-            .and_then(|id| relationships.gifted_today.get(id))
-            .copied()
-            .unwrap_or(false);
+        let talked_today = spouse_id.is_some_and(|id| {
+            relationships.gifted_today.get(id).copied().unwrap_or(false)
+                || daily_talks.talked.contains(id)
+        });
 
         let old_happiness = marriage_state.spouse_happiness;
 
@@ -571,10 +575,7 @@ pub fn update_spouse_happiness(
 
 /// Look up an NPC definition by display name (case-insensitive match).
 /// Returns (npc_id, &NpcDef) if found.
-fn find_npc_by_name<'a>(
-    npc_registry: &'a NpcRegistry,
-    name: &str,
-) -> Option<(NpcId, &'a NpcDef)> {
+fn find_npc_by_name<'a>(npc_registry: &'a NpcRegistry, name: &str) -> Option<(NpcId, &'a NpcDef)> {
     let name_lower = name.to_lowercase();
     for (id, def) in npc_registry.npcs.iter() {
         if def.name.to_lowercase() == name_lower {

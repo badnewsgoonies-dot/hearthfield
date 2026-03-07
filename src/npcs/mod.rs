@@ -3,96 +3,108 @@
 //! Manages all 10 townspeople: their schedules, movement, dialogue, and gift system.
 //! Communicates exclusively through shared resources and events.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 mod animation;
-mod definitions;
-mod dialogue;
+pub mod definitions;
+pub mod dialogue;
+pub mod emotes;
 mod gifts;
-mod map_events;
-pub mod romance;
+pub mod map_events;
 pub mod quests;
+pub mod romance;
 mod schedule;
 pub mod schedules;
-mod spawning;
+pub mod spawning;
 
-use definitions::build_npc_registry;
-use dialogue::{handle_npc_interaction, ActiveNpcInteraction};
-use gifts::{handle_gifts, handle_gift_input};
-use map_events::{handle_map_transition, handle_day_end, GiftDecayTracker};
+use animation::animate_npc_sprites;
+use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
+use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, NpcEmoteEvent};
+use gifts::{handle_gift_input, handle_gifts};
+use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
+use quests::{
+    check_story_quests, expire_quests, handle_quest_accepted, handle_quest_completed,
+    log_quest_posted, post_daily_quests, post_seasonal_quests, track_monster_slain,
+    track_quest_progress,
+};
 use romance::{
-    WeddingTimer,
-    update_relationship_stages,
-    handle_bouquet,
-    handle_proposal,
-    tick_wedding_timer,
-    handle_wedding,
-    spouse_daily_action,
-    handle_spouse_action,
-    update_spouse_happiness,
+    handle_bouquet, handle_proposal, handle_spouse_action, handle_wedding, spouse_daily_action,
+    tick_wedding_timer, update_relationship_stages, update_spouse_happiness, WeddingTimer,
 };
-use schedule::{
-    update_npc_schedules,
-    move_npcs_toward_targets,
-    ScheduleUpdateTimer,
-};
+use schedule::{move_npcs_toward_targets, update_npc_schedules, ScheduleUpdateTimer};
 use schedules::{
-    apply_enhanced_schedules,
-    refresh_schedules_on_season_change,
-    check_farm_visits,
+    apply_enhanced_schedules, check_farm_visits, refresh_schedules_on_season_change,
     FarmVisitTracker,
 };
-use animation::animate_npc_sprites;
-use spawning::{spawn_initial_npcs, SpawnedNpcs, NpcSpriteData};
-use quests::{
-    post_daily_quests,
-    handle_quest_accepted,
-    track_quest_progress,
-    handle_quest_completed,
-    expire_quests,
-};
+use spawning::{preload_npc_sprites, spawn_initial_npcs, NpcSpriteData, SpawnedNpcs};
 
 pub struct NpcPlugin;
 
 impl Plugin for NpcPlugin {
     fn build(&self, app: &mut App) {
         // Initialize NPC-domain resources
-        app
-            .init_resource::<SpawnedNpcs>()
+        app.init_resource::<SpawnedNpcs>()
             .init_resource::<NpcSpriteData>()
             .init_resource::<ActiveNpcInteraction>()
+            .init_resource::<DailyTalkTracker>()
             .init_resource::<ScheduleUpdateTimer>()
             .init_resource::<GiftDecayTracker>()
             .init_resource::<WeddingTimer>()
-            .init_resource::<FarmVisitTracker>();
+            .init_resource::<FarmVisitTracker>()
+            .init_resource::<EmoteSprites>()
+            .add_event::<NpcEmoteEvent>();
 
-        // Populate NPC registry on startup (before Loading completes)
-        app.add_systems(Startup, setup_npc_registry);
+        // NPC data is populated by DataPlugin during OnEnter(Loading).
 
         // Apply enhanced (seasonally-varied) schedules and spawn NPCs when entering Playing.
         // apply_enhanced_schedules must run before spawn_initial_npcs so spawning uses the
         // correct seasonal positions.
         app.add_systems(
             OnEnter(GameState::Playing),
-            (apply_enhanced_schedules, spawn_initial_npcs).chain(),
+            (
+                preload_npc_sprites,
+                apply_enhanced_schedules,
+                spawn_initial_npcs,
+            )
+                .chain(),
+        );
+
+        // NPC interaction runs before the world interaction dispatcher so NPCs
+        // take priority over world objects when both are within range.
+        app.add_systems(
+            Update,
+            handle_npc_interaction
+                .in_set(UpdatePhase::Intent)
+                .run_if(in_state(GameState::Playing))
+                .before(crate::player::interact_dispatch::dispatch_world_interaction),
+        );
+
+        // Deterministic schedule resolution cadence.
+        app.add_systems(
+            FixedUpdate,
+            update_npc_schedules
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
         );
 
         // Playing-state systems: core NPC behaviour
         app.add_systems(
             Update,
             (
-                update_npc_schedules,
                 move_npcs_toward_targets,
                 animate_npc_sprites,
-                handle_npc_interaction,
                 handle_gift_input,
                 handle_gifts,
                 handle_map_transition,
                 handle_day_end,
                 refresh_schedules_on_season_change,
                 check_farm_visits,
+                spawn_emote_bubbles,
+                animate_emote_bubbles,
+                reset_daily_talks,
             )
+                .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -109,19 +121,17 @@ impl Plugin for NpcPlugin {
                 handle_spouse_action,
                 update_spouse_happiness,
                 post_daily_quests,
+                post_seasonal_quests,
+                check_story_quests,
+                log_quest_posted,
                 handle_quest_accepted,
                 track_quest_progress,
+                track_monster_slain,
                 handle_quest_completed,
                 expire_quests,
             )
+                .in_set(UpdatePhase::Reactions)
                 .run_if(in_state(GameState::Playing)),
         );
     }
-}
-
-/// System: populate the NpcRegistry from our built-in definitions.
-fn setup_npc_registry(mut npc_registry: ResMut<NpcRegistry>) {
-    let registry = build_npc_registry();
-    npc_registry.npcs = registry.npcs;
-    npc_registry.schedules = registry.schedules;
 }

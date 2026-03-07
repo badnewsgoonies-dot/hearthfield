@@ -1,7 +1,7 @@
+use super::WanderAi;
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::shared::*;
-use super::WanderAi;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Wander AI system

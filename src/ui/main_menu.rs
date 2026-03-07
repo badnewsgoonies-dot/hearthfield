@@ -1,10 +1,12 @@
+use super::menu_kit::{self, set_button_visual_animated, MenuAssets, MenuButtonText};
 use super::UiFontHandle;
-use super::menu_kit::{self, MenuAssets, MenuButtonText, set_button_visual};
 use crate::save::{
     LoadCompleteEvent, LoadRequestEvent, NewGameEvent, SaveSlotInfoCache, NUM_SAVE_SLOTS,
 };
 use crate::shared::*;
 use bevy::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::{Path, PathBuf};
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -29,12 +31,87 @@ pub enum MainMenuMode {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Quit"];
+const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Skywarden", "City Office", "Quit"];
 
 #[cfg(target_arch = "wasm32")]
 const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game"];
 const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
-const MAIN_MENU_MAX_ITEMS: usize = NUM_SAVE_SLOTS + 1;
+const LOAD_MENU_OPTION_COUNT: usize = NUM_SAVE_SLOTS + 1;
+const ROOT_MENU_OPTION_COUNT: usize = MAIN_MENU_OPTIONS.len();
+const MENU_MODE_FADE_DURATION: f32 = 0.22;
+const MAIN_MENU_MAX_ITEMS: usize = if ROOT_MENU_OPTION_COUNT > LOAD_MENU_OPTION_COUNT {
+    ROOT_MENU_OPTION_COUNT
+} else {
+    LOAD_MENU_OPTION_COUNT
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+struct DlcLaunchTarget {
+    menu_label: &'static str,
+    binary_stem: &'static str,
+    working_dir: &'static str,
+    build_command: &'static str,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+const SKYWARDEN_TARGET: DlcLaunchTarget = DlcLaunchTarget {
+    menu_label: "Skywarden",
+    binary_stem: "skywarden",
+    working_dir: "dlc/pilot",
+    build_command: "cargo build -p skywarden",
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+const CITY_OFFICE_TARGET: DlcLaunchTarget = DlcLaunchTarget {
+    menu_label: "City Office",
+    binary_stem: "city_office_worker_dlc",
+    working_dir: "dlc/city",
+    build_command: "cargo build -p city_office_worker_dlc",
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+fn sibling_dlc_binary_path(binary_stem: &str) -> PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    exe_dir.join(format!("{binary_stem}{}", std::env::consts::EXE_SUFFIX))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn dlc_working_dir(relative_path: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(relative_path)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn launch_dlc(target: &DlcLaunchTarget) -> Result<(), String> {
+    let binary_path = sibling_dlc_binary_path(target.binary_stem);
+    let working_dir = dlc_working_dir(target.working_dir);
+    if !binary_path.is_file() {
+        return Err(format!(
+            "{} not installed. Build with: {}",
+            target.menu_label, target.build_command
+        ));
+    }
+    if !working_dir.is_dir() {
+        return Err(format!(
+            "{} launch directory missing. Build with: {}",
+            target.menu_label, target.build_command
+        ));
+    }
+
+    std::process::Command::new(&binary_path)
+        .current_dir(&working_dir)
+        .spawn()
+        .map(|_| ())
+        .map_err(|err| {
+            format!(
+                "Failed to launch {}. Build with: {} ({err})",
+                target.menu_label, target.build_command
+            )
+        })
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN / DESPAWN
@@ -51,6 +128,10 @@ pub fn spawn_main_menu(
         cursor: 0,
         status_message: String::new(),
         pending_load_slot: None,
+    });
+    commands.insert_resource(MainMenuVisualState {
+        previous_mode: MainMenuMode::Root,
+        transition_t: 1.0,
     });
 
     let font = font_handle.0.clone();
@@ -118,6 +199,12 @@ pub fn spawn_main_menu(
 #[derive(Component)]
 pub struct MainMenuStatusText;
 
+#[derive(Resource)]
+pub struct MainMenuVisualState {
+    pub previous_mode: MainMenuMode,
+    pub transition_t: f32,
+}
+
 fn current_option_count(mode: MainMenuMode) -> usize {
     match mode {
         MainMenuMode::Root => MAIN_MENU_OPTIONS.len(),
@@ -144,11 +231,33 @@ fn load_slot_label(slot_info: Option<&crate::save::SaveSlotInfo>) -> String {
     }
 }
 
+fn menu_option_label(
+    mode: MainMenuMode,
+    index: usize,
+    cache: Option<&SaveSlotInfoCache>,
+) -> Option<(String, bool)> {
+    match mode {
+        MainMenuMode::Root => MAIN_MENU_OPTIONS
+            .get(index)
+            .map(|label| ((*label).to_string(), true)),
+        MainMenuMode::LoadSlots => {
+            if index == LOAD_MENU_BACK_INDEX {
+                Some(("Back".to_string(), true))
+            } else {
+                let slot_info = cache.and_then(|c| c.slots.get(index));
+                let slot_exists = slot_info.map(|s| s.exists).unwrap_or(false);
+                Some((load_slot_label(slot_info), slot_exists))
+            }
+        }
+    }
+}
+
 pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<MainMenuState>();
+    commands.remove_resource::<MainMenuVisualState>();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -156,7 +265,9 @@ pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainM
 // ═══════════════════════════════════════════════════════════════════════
 
 pub fn update_main_menu_visuals(
+    time: Res<Time>,
     state: Option<Res<MainMenuState>>,
+    mut visual_state: Option<ResMut<MainMenuVisualState>>,
     cache: Option<Res<SaveSlotInfoCache>>,
     mut item_query: Query<(&MenuItem, &mut ImageNode, &mut Visibility)>,
     mut text_query: Query<
@@ -166,6 +277,18 @@ pub fn update_main_menu_visuals(
     mut status_query: Query<&mut Text, (With<MainMenuStatusText>, Without<MenuButtonText>)>,
 ) {
     let Some(state) = state else { return };
+    let Some(ref mut visual_state) = visual_state else {
+        return;
+    };
+    if visual_state.previous_mode != state.mode {
+        visual_state.previous_mode = state.mode;
+        visual_state.transition_t = 0.0;
+    } else {
+        visual_state.transition_t =
+            (visual_state.transition_t + time.delta_secs() / MENU_MODE_FADE_DURATION).clamp(0.0, 1.0);
+    }
+    let fade_in = visual_state.transition_t * visual_state.transition_t * (3.0 - 2.0 * visual_state.transition_t);
+    let pulse = ((time.elapsed_secs() * 4.5).sin() * 0.5 + 0.5) * 0.75;
     let option_count = current_option_count(state.mode);
 
     for (item, mut image_node, mut visibility) in &mut item_query {
@@ -174,7 +297,9 @@ pub fn update_main_menu_visuals(
             continue;
         }
         *visibility = Visibility::Visible;
-        set_button_visual(&mut image_node, item.index == state.cursor);
+        let selected = item.index == state.cursor;
+        let selected_pulse = if selected { pulse } else { 0.0 };
+        set_button_visual_animated(&mut image_node, selected, selected_pulse, 0.85 + fade_in * 0.15);
     }
 
     for (btn_text, mut text, mut color) in &mut text_query {
@@ -183,33 +308,30 @@ pub fn update_main_menu_visuals(
             continue;
         }
 
-        match state.mode {
-            MainMenuMode::Root => {
-                text.0 = MAIN_MENU_OPTIONS[btn_text.index].to_string();
-                color.0 = Color::WHITE;
-            }
-            MainMenuMode::LoadSlots => {
-                if btn_text.index == LOAD_MENU_BACK_INDEX {
-                    text.0 = "Back".to_string();
-                    color.0 = Color::WHITE;
-                } else {
-                    let slot_info = cache.as_ref().and_then(|c| c.slots.get(btn_text.index));
-                    let slot_exists = slot_info.map(|s| s.exists).unwrap_or(false);
-                    text.0 = load_slot_label(slot_info);
-                    color.0 = if slot_exists {
-                        Color::WHITE
-                    } else {
-                        Color::srgb(0.6, 0.6, 0.6)
-                    };
-                }
-            }
+        let Some((label, enabled)) = menu_option_label(state.mode, btn_text.index, cache.as_deref()) else {
+            text.0.clear();
+            continue;
+        };
+        text.0 = label;
+        let selected = btn_text.index == state.cursor;
+        let alpha = 0.75 + fade_in * 0.25;
+        color.0 = if selected {
+            let glow = 0.85 + pulse * 0.15;
+            Color::srgba(1.0, glow, 0.72, alpha)
+        } else if enabled {
+            Color::srgba(0.92, 0.92, 0.92, alpha * 0.92)
+        } else {
+            Color::srgba(0.58, 0.58, 0.58, alpha * 0.82)
         }
     }
 
-    let mut status = status_query.single_mut();
+    let Ok(mut status) = status_query.get_single_mut() else {
+        return;
+    };
     status.0 = state.status_message.clone();
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn main_menu_navigation(
     action: Res<MenuAction>,
     mut state: Option<ResMut<MainMenuState>>,
@@ -218,6 +340,8 @@ pub fn main_menu_navigation(
     mut new_game_events: EventWriter<NewGameEvent>,
     mut load_events: EventWriter<LoadRequestEvent>,
     mut app_exit: EventWriter<AppExit>,
+    mut cutscene_queue: ResMut<CutsceneQueue>,
+    mut fade: ResMut<super::transitions::ScreenFade>,
 ) {
     let Some(ref mut state) = state else { return };
     let option_count = current_option_count(state.mode);
@@ -229,15 +353,11 @@ pub fn main_menu_navigation(
         }
     }
 
-    if action.move_down {
-        if state.cursor + 1 < option_count {
-            state.cursor += 1;
-        }
+    if action.move_down && state.cursor + 1 < option_count {
+        state.cursor += 1;
     }
-    if action.move_up {
-        if state.cursor > 0 {
-            state.cursor -= 1;
-        }
+    if action.move_up && state.cursor > 0 {
+        state.cursor -= 1;
     }
 
     if action.activate {
@@ -252,6 +372,17 @@ pub fn main_menu_navigation(
                         farm_name: "Hearthfield Farm".to_string(),
                         active_slot: 0,
                     });
+                    // Set screen to black before entering Playing so the
+                    // farm spawns invisibly behind the fade overlay.
+                    fade.alpha = 1.0;
+                    fade.target_alpha = 1.0;
+                    fade.active = false;
+                    // Pre-populate the cutscene queue with the intro sequence.
+                    // start_pending_cutscene (OnEnter Playing) will detect this
+                    // and redirect to Cutscene state.
+                    cutscene_queue.steps = super::intro_sequence::build_intro_sequence();
+                    cutscene_queue.active = true;
+                    cutscene_queue.step_timer = 0.0;
                     next_state.set(GameState::Playing);
                 }
                 1 => {
@@ -260,7 +391,27 @@ pub fn main_menu_navigation(
                     state.status_message.clear();
                 }
                 #[cfg(not(target_arch = "wasm32"))]
-                2 => {
+                2 => match launch_dlc(&SKYWARDEN_TARGET) {
+                    Ok(()) => {
+                        state.status_message = "Launching Skywarden...".to_string();
+                        app_exit.send(AppExit::Success);
+                    }
+                    Err(err) => {
+                        state.status_message = err;
+                    }
+                },
+                #[cfg(not(target_arch = "wasm32"))]
+                3 => match launch_dlc(&CITY_OFFICE_TARGET) {
+                    Ok(()) => {
+                        state.status_message = "Launching City Office...".to_string();
+                        app_exit.send(AppExit::Success);
+                    }
+                    Err(err) => {
+                        state.status_message = err;
+                    }
+                },
+                #[cfg(not(target_arch = "wasm32"))]
+                4 => {
                     app_exit.send(AppExit::Success);
                 }
                 _ => {}
@@ -321,5 +472,32 @@ pub fn handle_load_complete_in_main_menu(
                 .clone()
                 .unwrap_or_else(|| "Failed to load save slot.".to_string());
         }
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sibling_dlc_binary_path_uses_platform_suffix() {
+        let path = sibling_dlc_binary_path("skywarden");
+        let expected = format!("skywarden{}", std::env::consts::EXE_SUFFIX);
+        assert_eq!(
+            path.file_name().and_then(|name| name.to_str()),
+            Some(expected.as_str())
+        );
+    }
+
+    #[test]
+    fn menu_button_pool_covers_root_and_load_menus() {
+        assert!(MAIN_MENU_MAX_ITEMS >= MAIN_MENU_OPTIONS.len());
+        assert!(MAIN_MENU_MAX_ITEMS >= LOAD_MENU_OPTION_COUNT);
+    }
+
+    #[test]
+    fn dlc_working_dir_is_repo_relative() {
+        let dir = dlc_working_dir("dlc/pilot");
+        assert!(dir.ends_with(Path::new("dlc").join("pilot")));
     }
 }

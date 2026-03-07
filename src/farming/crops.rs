@@ -1,11 +1,10 @@
 //! Crop planting and growth-stage management.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::{
-    FarmEntities, CropTileEntity, PlantSeedEvent,
-    grid_to_world, crop_stage_color, crop_can_grow_in_season,
+    crop_can_grow_in_season, crop_stage_color, CropTileEntity, FarmEntities, PlantSeedEvent,
 };
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detect seed use — player presses interact while holding a seed over tilled soil
@@ -14,6 +13,7 @@ use super::{
 /// Detect when the player presses the interact key (F) while holding a seed
 /// item in their selected hotbar slot, then emit a PlantSeedEvent at the player's
 /// current grid tile (or the tile the player is facing).
+#[allow(clippy::too_many_arguments)]
 pub fn detect_seed_use(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -25,13 +25,18 @@ pub fn detect_seed_use(
     player_query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
     mut plant_events: EventWriter<PlantSeedEvent>,
     mut toast_writer: EventWriter<ToastEvent>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     if input_blocks.is_blocked() {
         return;
     }
 
-    // Interact key: F
-    if !player_input.interact {
+    // Interact key (F) or tool-use key (Space) — both plant seeds.
+    if !player_input.interact && !player_input.tool_use {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 
@@ -42,7 +47,7 @@ pub fn detect_seed_use(
 
     // Get the selected item from inventory.
     let slot_idx = inventory.selected_slot;
-    let Some(slot) = inventory.slots[slot_idx].as_ref() else {
+    let Some(slot) = inventory.slots.get(slot_idx).and_then(|s| s.as_ref()) else {
         return;
     };
 
@@ -67,15 +72,16 @@ pub fn detect_seed_use(
         return;
     };
 
-    let player_gx = (logical_pos.0.x / TILE_SIZE).round() as i32;
-    let player_gy = (logical_pos.0.y / TILE_SIZE).round() as i32;
+    let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+    let player_gx = g.x;
+    let player_gy = g.y;
 
     // Target tile is the tile the player is facing.
     let (offset_x, offset_y) = match movement.facing {
-        Facing::Up    => (0,  1),
-        Facing::Down  => (0, -1),
-        Facing::Left  => (-1, 0),
-        Facing::Right => (1,  0),
+        Facing::Up => (0, 1),
+        Facing::Down => (0, -1),
+        Facing::Left => (-1, 0),
+        Facing::Right => (1, 0),
     };
 
     // Try facing tile first, then player's own tile.
@@ -104,6 +110,7 @@ pub fn detect_seed_use(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Listen for PlantSeedEvent and actually plant the crop.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_plant_seed(
     mut plant_events: EventReader<PlantSeedEvent>,
     mut farm_state: ResMut<FarmState>,
@@ -171,16 +178,12 @@ pub fn handle_plant_seed(
         };
         farm_state.crops.insert(pos, crop.clone());
 
-        sfx_events.send(PlaySfxEvent { sfx_id: "plant".to_string() });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "plant".to_string(),
+        });
 
         // Spawn crop sprite entity.
-        spawn_crop_entity(
-            &mut commands,
-            &mut farm_entities,
-            pos,
-            &crop,
-            &crop_def,
-        );
+        spawn_crop_entity(&mut commands, &mut farm_entities, pos, &crop, &crop_def);
     }
 }
 
@@ -207,18 +210,23 @@ pub fn spawn_crop_entity(
 ) {
     let total_stages = crop_def.growth_days.len() as u8;
     let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
-    let translation = grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
+    let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
 
-    let entity = commands.spawn((
-        Sprite {
-            color,
-            custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-            ..default()
-        },
-        Transform::from_translation(translation),
-        CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-        crop.clone(),
-    )).id();
+    let entity = commands
+        .spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
+                ..default()
+            },
+            Transform::from_translation(translation),
+            CropTileEntity {
+                grid_x: pos.0,
+                grid_y: pos.1,
+            },
+            crop.clone(),
+        ))
+        .id();
 
     farm_entities.crop_entities.insert(pos, entity);
 }

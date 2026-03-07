@@ -3,41 +3,41 @@
 //! All cross-domain communication goes through `crate::shared::*` events and resources.
 //! No other domain module is imported here.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-pub mod gold;
-pub mod shop;
-pub mod shipping;
+pub mod achievements;
 pub mod blacksmith;
+pub mod buildings;
+pub mod evaluation;
+pub mod gold;
+pub mod play_stats;
+pub mod shipping;
+pub mod shop;
 pub mod stats;
 pub mod tool_upgrades;
-pub mod evaluation;
-pub mod play_stats;
-pub mod achievements;
-pub mod buildings;
 
+use achievements::{check_achievements, notify_achievement_unlocked, track_achievement_progress};
+use blacksmith::{
+    drain_upgrade_complete, handle_upgrade_request, tick_upgrade_queue, ToolUpgradeCompleteEvent,
+    ToolUpgradeQueue, ToolUpgradeRequestEvent,
+};
+use buildings::{handle_building_upgrade_request, tick_building_upgrade, BuildingLevels};
+use evaluation::{check_evaluation_trigger, handle_evaluation};
 use gold::{apply_gold_changes, EconomyStats};
-use shop::{
-    ActiveShop, BuyRequestEvent, SellRequestEvent,
-    handle_buy, handle_sell, on_enter_shop, on_exit_shop, refresh_shop_affordability,
+use play_stats::{
+    track_animal_products_collected, track_crops_harvested, track_day_end, track_fish_caught,
+    track_food_eaten, track_gifts_given, track_gold_earned,
 };
 use shipping::{
-    ShipItemEvent, ShippingBinPreview,
     place_in_shipping_bin, process_shipping_bin_on_day_end, update_shipping_bin_preview,
+    ShipItemEvent, ShippingBinPreview, ShippingBinQuality,
 };
-use blacksmith::{
-    ToolUpgradeQueue, ToolUpgradeRequestEvent, ToolUpgradeCompleteEvent,
-    handle_upgrade_request, tick_upgrade_queue,
+use shop::{
+    handle_shop_transaction_gold, on_enter_shop, on_exit_shop, refresh_shop_affordability,
+    ActiveShop,
 };
-use stats::{HarvestStats, AnimalProductStats, track_crop_harvests, track_animal_products};
-use evaluation::{check_evaluation_trigger, handle_evaluation};
-use achievements::{check_achievements, track_achievement_progress};
-use play_stats::{
-    track_crops_harvested, track_fish_caught, track_day_end,
-    track_gifts_given, track_animals_petted, track_gold_earned, track_recipes_cooked,
-};
-use buildings::{BuildingLevels, handle_building_upgrade_request, tick_building_upgrade};
+use stats::{track_animal_products, track_crop_harvests, AnimalProductStats, HarvestStats};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
@@ -54,12 +54,11 @@ impl Plugin for EconomyPlugin {
             .init_resource::<ToolUpgradeQueue>()
             .init_resource::<HarvestStats>()
             .init_resource::<AnimalProductStats>()
-            .init_resource::<BuildingLevels>();
+            .init_resource::<BuildingLevels>()
+            .init_resource::<ShippingBinQuality>();
 
         // ── Internal Events ────────────────────────────────────────────────
-        app.add_event::<BuyRequestEvent>()
-            .add_event::<SellRequestEvent>()
-            .add_event::<ShipItemEvent>()
+        app.add_event::<ShipItemEvent>()
             .add_event::<ToolUpgradeRequestEvent>()
             .add_event::<ToolUpgradeCompleteEvent>();
 
@@ -79,6 +78,8 @@ impl Plugin for EconomyPlugin {
                 process_shipping_bin_on_day_end,
                 // Day-end: tick tool upgrade timers.
                 tick_upgrade_queue,
+                // Drain ToolUpgradeCompleteEvent to prevent "event not read" warnings.
+                drain_upgrade_complete,
                 // Harvest and animal product stat tracking.
                 track_crop_harvests,
                 track_animal_products,
@@ -90,13 +91,23 @@ impl Plugin for EconomyPlugin {
                 track_fish_caught,
                 track_day_end,
                 track_gifts_given,
-                track_animals_petted,
+                track_animal_products_collected,
                 track_gold_earned,
-                track_recipes_cooked,
+                track_food_eaten,
                 // Achievement progress counters (rocks broken, crops planted, gold-quality crops).
                 track_achievement_progress,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // ── Achievement systems (separate group to stay under Bevy tuple limit) ──
+        app.add_systems(
+            Update,
+            (
                 // Achievement condition checks — fires AchievementUnlockedEvent when earned.
                 check_achievements,
+                // Display toast notifications for newly unlocked achievements.
+                notify_achievement_unlocked,
             )
                 .run_if(in_state(GameState::Playing)),
         );
@@ -104,10 +115,7 @@ impl Plugin for EconomyPlugin {
         // ── Systems: Building upgrades (Playing state) ─────────────────────
         app.add_systems(
             Update,
-            (
-                handle_building_upgrade_request,
-                tick_building_upgrade,
-            )
+            (handle_building_upgrade_request, tick_building_upgrade)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -117,9 +125,6 @@ impl Plugin for EconomyPlugin {
             (
                 // Keep affordability flags fresh each frame.
                 refresh_shop_affordability,
-                // Process buy/sell requests from the UI.
-                handle_buy,
-                handle_sell,
                 // Tool upgrades are only requested from the Blacksmith shop.
                 handle_upgrade_request,
                 // Allow exiting the shop with Escape.
@@ -127,6 +132,8 @@ impl Plugin for EconomyPlugin {
                 // Gold changes can also arrive while in the shop
                 // (e.g., from another concurrent event — keep it consistent).
                 apply_gold_changes,
+                // Track buy/sell transactions in EconomyStats and PlayStats via GoldChangeEvent.
+                handle_shop_transaction_gold,
             )
                 .run_if(in_state(GameState::Shop)),
         );

@@ -1,11 +1,11 @@
 //! NPC spawning: instantiate Npc entities for the current map.
 //! Respects the schedule system to place NPCs at correct starting positions.
 
-use bevy::prelude::*;
-use crate::shared::*;
-use super::definitions::{ALL_NPC_IDS, npc_color};
-use super::schedule::current_schedule_entry;
 use super::animation::NpcAnimationTimer;
+use super::definitions::{npc_color, npc_sprite_file, ALL_NPC_IDS};
+use super::schedule::current_schedule_entry;
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Component tracking where an NPC should be moving toward.
 #[derive(Component, Debug, Clone)]
@@ -39,23 +39,50 @@ pub struct SpawnedNpcs {
     pub entities: std::collections::HashMap<String, Entity>,
 }
 
-/// Resource holding the loaded NPC character spritesheet atlas.
+/// Resource holding NPC character spritesheet atlas handles.
 ///
-/// All NPCs share the same 192×192 spritesheet (4×4 grid of 48×48 frames):
+/// Each NPC has a unique 192×192 spritesheet (4×4 grid of 48×48 frames):
 ///   Row 0 (indices 0-3):  Walk down
 ///   Row 1 (indices 4-7):  Walk up
-///   Row 2 (indices 8-11): Walk right
-///   Row 3 (indices 12-15): Walk left
-///
-/// Each NPC is tinted via npc_color() to visually differentiate them.
+///   Row 2 (indices 8-11): Walk left
+///   Row 3 (indices 12-15): Walk right
 #[derive(Resource, Default)]
 pub struct NpcSpriteData {
     pub loaded: bool,
-    pub image: Handle<Image>,
+    /// Shared atlas layout (all NPC sheets are identical 4×4 grids).
     pub layout: Handle<TextureAtlasLayout>,
+    /// Per-NPC image handles keyed by NPC id.
+    pub images: std::collections::HashMap<String, Handle<Image>>,
+}
+
+/// System: eagerly loads all NPC sprite atlases on `OnEnter(Playing)`.
+/// This ensures NPC sprites are ready before any spawn system runs,
+/// eliminating first-frame colored-rectangle fallbacks.
+pub fn preload_npc_sprites(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut npc_sprites: ResMut<NpcSpriteData>,
+) {
+    if npc_sprites.loaded {
+        return;
+    }
+    npc_sprites.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(48, 48),
+        4,
+        4,
+        None,
+        None,
+    ));
+    for &npc_id in ALL_NPC_IDS {
+        let path = npc_sprite_file(npc_id);
+        let handle = asset_server.load(path);
+        npc_sprites.images.insert(npc_id.to_string(), handle);
+    }
+    npc_sprites.loaded = true;
 }
 
 /// System: on entering Playing state, spawn NPCs for the current map.
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_initial_npcs(
     mut commands: Commands,
     calendar: Res<Calendar>,
@@ -80,6 +107,7 @@ pub fn spawn_initial_npcs(
 }
 
 /// Spawn all NPCs that should appear on a given map right now.
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_npcs_for_map(
     commands: &mut Commands,
     calendar: &Calendar,
@@ -90,9 +118,8 @@ pub fn spawn_npcs_for_map(
     layouts: &mut Assets<TextureAtlasLayout>,
     npc_sprites: &mut NpcSpriteData,
 ) {
-    // Load the character spritesheet atlas on first use.
+    // Load the shared atlas layout on first use.
     if !npc_sprites.loaded {
-        npc_sprites.image = asset_server.load("sprites/character_spritesheet.png");
         npc_sprites.layout = layouts.add(TextureAtlasLayout::from_grid(
             UVec2::new(48, 48),
             4,
@@ -100,6 +127,12 @@ pub fn spawn_npcs_for_map(
             None,
             None,
         ));
+        // Pre-load each NPC's unique spritesheet.
+        for &npc_id in ALL_NPC_IDS {
+            let path = npc_sprite_file(npc_id);
+            let handle = asset_server.load(path);
+            npc_sprites.images.insert(npc_id.to_string(), handle);
+        }
         npc_sprites.loaded = true;
     }
 
@@ -123,64 +156,68 @@ pub fn spawn_npcs_for_map(
             continue;
         }
 
-        let world_x = entry.x as f32 * TILE_SIZE;
-        let world_y = -(entry.y as f32 * TILE_SIZE);
-        let color = npc_color(npc_id);
+        let wc = grid_to_world_center(entry.x, entry.y);
+        let world_x = wc.x;
+        let world_y = wc.y;
+        let name_color = npc_color(npc_id);
 
-        // Use atlas sprite with tint color to differentiate NPCs visually.
+        // Use the NPC's unique spritesheet — no tinting needed.
+        let npc_image = npc_sprites
+            .images
+            .get(npc_id)
+            .cloned()
+            .unwrap_or_else(|| asset_server.load(npc_sprite_file(npc_id)));
+
         // Index 0 = first frame of Walk-down row, used as the default idle pose.
         let mut sprite = Sprite::from_atlas_image(
-            npc_sprites.image.clone(),
+            npc_image,
             TextureAtlas {
                 layout: npc_sprites.layout.clone(),
                 index: 0,
             },
         );
-        sprite.color = color;
+        sprite.custom_size = Some(Vec2::new(48.0, 48.0));
+        sprite.anchor = bevy::sprite::Anchor::BottomCenter;
 
-        let entity = commands.spawn((
-            Npc {
-                id: npc_id.to_string(),
-                name: npc_def.name.clone(),
-            },
-            NpcMovement {
-                target_x: world_x,
-                target_y: world_y,
-                speed: 40.0,
-                is_moving: false,
-            },
-            NpcAnimationTimer {
-                timer: Timer::from_seconds(0.15, TimerMode::Repeating),
-                frame_count: 4,
-                current_frame: 0,
-            },
-            NpcMapTag(map),
-            sprite,
-            LogicalPosition(Vec2::new(world_x, world_y)),
-            Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
-            YSorted,
-            Visibility::default(),
-        )).id();
+        let entity = commands
+            .spawn((
+                Npc {
+                    id: npc_id.to_string(),
+                    name: npc_def.name.clone(),
+                },
+                NpcMovement {
+                    target_x: world_x,
+                    target_y: world_y,
+                    speed: 40.0,
+                    is_moving: false,
+                },
+                NpcAnimationTimer {
+                    timer: Timer::from_seconds(0.15, TimerMode::Repeating),
+                    frame_count: 4,
+                    current_frame: 0,
+                },
+                NpcMapTag(map),
+                sprite,
+                LogicalPosition(Vec2::new(world_x, world_y)),
+                Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
+                YSorted,
+                Visibility::default(),
+            ))
+            .id();
+
+        // Floating name tag above the NPC sprite.
+        commands.entity(entity).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(npc_def.name.clone()),
+                TextFont {
+                    font_size: 5.0,
+                    ..default()
+                },
+                TextColor(name_color),
+                Transform::from_xyz(0.0, 38.0, 0.1),
+            ));
+        });
 
         spawned.entities.insert(npc_id.to_string(), entity);
     }
-}
-
-/// Despawn all NPC entities for a given map (called on map transition out).
-#[allow(dead_code)]
-pub fn despawn_npcs_for_map(
-    commands: &mut Commands,
-    map: MapId,
-    spawned: &mut SpawnedNpcs,
-    npc_map_tags: &Query<(Entity, &NpcMapTag)>,
-) {
-    let mut to_remove = Vec::new();
-    for (entity, tag) in npc_map_tags.iter() {
-        if tag.0 == map {
-            commands.entity(entity).despawn_recursive();
-            to_remove.push(entity);
-        }
-    }
-    // Clean up the tracking map
-    spawned.entities.retain(|_, e| !to_remove.contains(e));
 }

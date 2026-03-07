@@ -15,9 +15,9 @@ use rand::Rng;
 
 use crate::shared::*;
 
-use super::MapTile;
-use super::objects::{WorldObject, WorldObjectData};
 use super::maps::WorldObjectKind;
+use super::objects::{WorldObject, WorldObjectData};
+use super::{MapTile, WaterEdgeOverlay};
 
 // ═══════════════════════════════════════════════════════════════════════
 // RESOURCES
@@ -25,15 +25,9 @@ use super::maps::WorldObjectKind;
 
 /// Tracks which season the last tint pass was applied for.
 /// Initialised to `None` so the first Playing frame always triggers a tint.
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Default)]
 pub struct SeasonalTintApplied {
     pub season: Option<Season>,
-}
-
-impl Default for SeasonalTintApplied {
-    fn default() -> Self {
-        Self { season: None }
-    }
 }
 
 /// Accumulates fractional frames so we spawn exactly 1 leaf per 60 frames on
@@ -73,7 +67,7 @@ fn terrain_tint(season: Season) -> Color {
     match season {
         Season::Spring => Color::WHITE, // lush — no modification needed
         Season::Summer => Color::srgb(1.0, 0.95, 0.85), // warm golden haze
-        Season::Fall   => Color::srgb(1.0, 0.80, 0.55), // orange warmth
+        Season::Fall => Color::srgb(1.0, 0.80, 0.55), // orange warmth
         Season::Winter => Color::srgb(0.85, 0.90, 1.00), // cool blue-white
     }
 }
@@ -109,7 +103,7 @@ fn object_tint(season: Season) -> Color {
     match season {
         Season::Spring => Color::WHITE,
         Season::Summer => Color::srgb(1.0, 0.97, 0.90),
-        Season::Fall   => Color::srgb(0.95, 0.90, 0.80),
+        Season::Fall => Color::srgb(0.95, 0.90, 0.80),
         Season::Winter => Color::srgb(0.90, 0.93, 1.00),
     }
 }
@@ -126,10 +120,11 @@ fn object_tint(season: Season) -> Color {
 /// change events, and map transitions (when the resource is not reset — the
 /// new season is still in the Calendar so the first frame of the new map
 /// will pick it up automatically).
+#[allow(clippy::type_complexity)]
 pub fn apply_seasonal_tint(
     calendar: Res<Calendar>,
     mut tint_applied: ResMut<SeasonalTintApplied>,
-    mut tile_query: Query<&mut Sprite, (With<MapTile>, Without<WorldObject>)>,
+    mut tile_query: Query<&mut Sprite, (With<MapTile>, Without<WorldObject>, Without<WaterEdgeOverlay>)>,
     mut object_query: Query<(&mut Sprite, &WorldObjectData), (With<WorldObject>, Without<MapTile>)>,
 ) {
     let current_season = calendar.season;
@@ -149,7 +144,7 @@ pub fn apply_seasonal_tint(
     // ── World objects (trees, rocks, bushes, stumps, logs) ────────────────────
     for (mut sprite, obj_data) in object_query.iter_mut() {
         let tint = match obj_data.kind {
-            WorldObjectKind::Tree => {
+            WorldObjectKind::Tree | WorldObjectKind::Pine => {
                 // Use grid position hash to choose variant so adjacent trees differ.
                 let variant_b = (obj_data.grid_x.wrapping_add(obj_data.grid_y * 3)) % 2 == 1;
                 tree_tint(current_season, variant_b)

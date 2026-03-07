@@ -25,6 +25,16 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
             is_cooking: false,
             unlocked_by_default: false, // unlocked by friendship or shop
         },
+        "iridium_sprinkler" => Recipe {
+            id: "iridium_sprinkler".into(),
+            name: "Iridium Sprinkler".into(),
+            // Auto-waters a 5×5 area (24 tiles) each morning.
+            ingredients: vec![("gold_bar".into(), 1), ("iridium_bar".into(), 1)],
+            result: "iridium_sprinkler".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: false,
+        },
         // ── Fences & Paths ──────────────────────────────────────────────────
         "fence" => Recipe {
             id: "fence".into(),
@@ -40,6 +50,15 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
             name: "Path".into(),
             ingredients: vec![("stone".into(), 1)],
             result: "path".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
+        "gate" => Recipe {
+            id: "gate".into(),
+            name: "Gate".into(),
+            ingredients: vec![("wood".into(), 10)],
+            result: "gate".into(),
             result_quantity: 1,
             is_cooking: false,
             unlocked_by_default: true,
@@ -179,10 +198,7 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
             id: "lightning_rod".into(),
             name: "Lightning Rod".into(),
             // Protects the farm from lightning strikes during storms.
-            ingredients: vec![
-                ("iron_bar".into(), 5),
-                ("bat_wing".into(), 5),
-            ],
+            ingredients: vec![("iron_bar".into(), 5), ("bat_wing".into(), 5)],
             result: "lightning_rod".into(),
             result_quantity: 1,
             is_cooking: false,
@@ -256,6 +272,28 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
             is_cooking: false,
             unlocked_by_default: false,
         },
+        // ── Decorative ───────────────────────────────────────────────────
+        "bench" => Recipe {
+            id: "bench".into(),
+            name: "Bench".into(),
+            ingredients: vec![("wood".into(), 20), ("iron_bar".into(), 1)],
+            result: "bench".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
+        "lamppost" => Recipe {
+            id: "lamppost".into(),
+            name: "Lamppost".into(),
+            ingredients: vec![
+                ("iron_bar".into(), 3),
+                ("coal".into(), 1),
+            ],
+            result: "lamppost".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
         _ => return None,
     };
     Some(r)
@@ -295,11 +333,7 @@ pub fn make_cooking_recipe(id: &str) -> Option<Recipe> {
         "cheese_omelette" => Recipe {
             id: "cheese_omelette".into(),
             name: "Cheese Omelette".into(),
-            ingredients: vec![
-                ("egg".into(), 1),
-                ("milk".into(), 1),
-                ("cheese".into(), 1),
-            ],
+            ingredients: vec![("egg".into(), 1), ("milk".into(), 1), ("cheese".into(), 1)],
             result: "cheese_omelette".into(),
             result_quantity: 1,
             is_cooking: true,
@@ -430,8 +464,10 @@ pub fn make_cooking_recipe(id: &str) -> Option<Recipe> {
 pub const ALL_CRAFTING_RECIPE_IDS: &[&str] = &[
     "sprinkler",
     "quality_sprinkler",
+    "iridium_sprinkler",
     "fence",
     "path",
+    "gate",
     "chest",
     "furnace",
     "preserves_jar",
@@ -449,6 +485,8 @@ pub const ALL_CRAFTING_RECIPE_IDS: &[&str] = &[
     "seed_maker",
     "recycler",
     "worm_bin",
+    "bench",
+    "lamppost",
 ];
 
 /// All cooking recipe ids (for data plugin initialization).

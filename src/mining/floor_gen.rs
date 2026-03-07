@@ -14,8 +14,8 @@ pub const MINE_HEIGHT: i32 = 24;
 
 /// Describes a single generated floor before it is spawned into the ECS.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct FloorBlueprint {
+    #[allow(dead_code)]
     pub floor: u8,
     pub rocks: Vec<RockBlueprint>,
     pub enemies: Vec<EnemyBlueprint>,
@@ -24,6 +24,7 @@ pub struct FloorBlueprint {
     /// that rock is destroyed (or all rocks are destroyed).
     pub ladder_hidden: bool,
     /// Index into `rocks` that contains the hidden ladder (if any).
+    #[allow(dead_code)]
     pub ladder_rock_index: Option<usize>,
     /// Player spawn position (near the entrance).
     pub spawn_pos: (i32, i32),
@@ -58,10 +59,10 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
     // --- Player spawn (bottom-center) ---
     let spawn_pos = (MINE_WIDTH / 2, 1);
 
-    // --- Determine rock coverage (40-60%) ---
-    let total_tiles = (MINE_WIDTH * MINE_HEIGHT) as usize;
-    let coverage: f64 = rng.gen_range(0.40..=0.60);
-    let max_rocks = (total_tiles as f64 * coverage) as usize;
+    // --- Determine rock count (8-15, increasing with depth) ---
+    let min_rocks = (8 + (floor as usize) / 5).min(15); // 8 at floor 1, up to 12 at floor 20
+    let max_rocks_cap = 15usize;
+    let max_rocks = rng.gen_range(min_rocks..=max_rocks_cap);
 
     // Reserve tiles: spawn area (3x3 around spawn) and border row at bottom
     let mut occupied = std::collections::HashSet::new();
@@ -128,13 +129,29 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
         // Place ladder openly in the upper portion
         let mut lx;
         let mut ly;
+        let mut ladder_attempts = 0;
         loop {
             lx = rng.gen_range(2..MINE_WIDTH - 2);
             ly = rng.gen_range(MINE_HEIGHT / 2..MINE_HEIGHT - 2);
+            ladder_attempts += 1;
             if !occupied.contains(&(lx, ly)) {
                 break;
             }
+            if ladder_attempts >= 100 {
+                // Exhaustive fallback: find any unoccupied tile in the upper half
+                'outer: for scan_y in (MINE_HEIGHT / 2..MINE_HEIGHT - 2).rev() {
+                    for scan_x in 2..MINE_WIDTH - 2 {
+                        if !occupied.contains(&(scan_x, scan_y)) {
+                            lx = scan_x;
+                            ly = scan_y;
+                            break 'outer;
+                        }
+                    }
+                }
+                break;
+            }
         }
+        occupied.insert((lx, ly));
         ((lx, ly), false, None)
     };
 
@@ -166,75 +183,126 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
 }
 
 /// Choose a rock drop based on floor depth.
+///
+/// Spec drop rates:
+/// - Floors 1-5:  Stone (70%), Copper ore (30%)
+/// - Floors 6-10: Stone (40%), Copper (40%), Iron ore (20%)
+/// - Floors 11-15: Stone (35%), Iron (40%), Gold ore (20%), gems (5%)
+/// - Floors 16-20: Stone (20%), Gold (30%), Iridium ore (10%), gems (10%), Iron (30%)
+///
+/// Rock health: 3 (stone) to 6 (ore/gem).
 fn rock_drop(floor: u8, rng: &mut StdRng) -> (String, u8, u8) {
     let roll: f64 = rng.gen();
 
     if floor <= 5 {
-        // Floors 1-5: Stone, Copper Ore (20%)
-        if roll < 0.20 {
-            ("copper_ore".to_string(), rng.gen_range(1..=2), rng.gen_range(2..=3))
+        // Floors 1-5: Stone (70%), Copper ore (30%)
+        if roll < 0.30 {
+            ("copper_ore".to_string(), rng.gen_range(1..=2), 4)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     } else if floor <= 10 {
-        // Floors 6-10: Stone, Copper (30%), Iron (15%)
-        if roll < 0.15 {
-            ("iron_ore".to_string(), rng.gen_range(1..=2), rng.gen_range(3..=4))
-        } else if roll < 0.45 {
-            ("copper_ore".to_string(), rng.gen_range(1..=2), rng.gen_range(2..=3))
+        // Floors 6-10: Stone (40%), Copper (40%), Iron (20%)
+        if roll < 0.20 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 5)
+        } else if roll < 0.60 {
+            ("copper_ore".to_string(), rng.gen_range(1..=2), 4)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     } else if floor <= 15 {
-        // Floors 11-15: Stone, Iron (30%), Gold (10%), Quartz (5%)
+        // Floors 11-15: Stone (35%), Iron (40%), Gold (20%), gems (5%)
         if roll < 0.05 {
-            ("quartz".to_string(), 1, 3)
-        } else if roll < 0.15 {
-            ("gold_ore".to_string(), rng.gen_range(1..=2), 4)
-        } else if roll < 0.45 {
-            ("iron_ore".to_string(), rng.gen_range(1..=2), 3)
+            (pick_gem(rng), 1, 5)
+        } else if roll < 0.25 {
+            ("gold_ore".to_string(), rng.gen_range(1..=2), 5)
+        } else if roll < 0.65 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 5)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     } else {
-        // Floors 16-20: Stone, Gold (25%), Diamond (3%), Ruby (2%), Emerald (2%)
-        if roll < 0.02 {
-            ("emerald".to_string(), 1, 4)
-        } else if roll < 0.04 {
-            ("ruby".to_string(), 1, 4)
-        } else if roll < 0.07 {
-            ("diamond".to_string(), 1, 4)
-        } else if roll < 0.32 {
-            ("gold_ore".to_string(), rng.gen_range(1..=2), 4)
+        // Floors 16-20: Stone (20%), Gold (30%), Iridium (10%), gems (10%), Iron (30%)
+        if roll < 0.10 {
+            (pick_gem(rng), 1, 6)
+        } else if roll < 0.20 {
+            ("iridium_ore".to_string(), rng.gen_range(1..=2), 6)
+        } else if roll < 0.50 {
+            ("gold_ore".to_string(), rng.gen_range(1..=2), 5)
+        } else if roll < 0.80 {
+            ("iron_ore".to_string(), rng.gen_range(1..=2), 5)
         } else {
-            ("stone".to_string(), rng.gen_range(1..=3), 2)
+            ("stone".to_string(), rng.gen_range(1..=3), 3)
         }
     }
 }
 
+/// Pick a gem type according to spec distribution:
+/// quartz 40%, amethyst 25%, emerald 15%, ruby 12%, diamond 8%
+fn pick_gem(rng: &mut StdRng) -> String {
+    let roll: f64 = rng.gen();
+    if roll < 0.40 {
+        "quartz".to_string()
+    } else if roll < 0.65 {
+        "amethyst".to_string()
+    } else if roll < 0.80 {
+        "emerald".to_string()
+    } else if roll < 0.92 {
+        "ruby".to_string()
+    } else {
+        "diamond".to_string()
+    }
+}
+
 /// How many enemies spawn on this floor.
+///
+/// Spec:
+/// - Floors 1-5:  1-2 GreenSlime → total 1-2
+/// - Floors 6-10: 2-3 GreenSlime + 1 Bat → total 3-4
+/// - Floors 11-15: 2-3 Bat + 1-2 RockCrab → total 3-5
+/// - Floors 16-20: 2-4 mixed → total 2-4
 fn enemy_count_for_floor(floor: u8, rng: &mut StdRng) -> usize {
-    let base = 2;
-    let extra = (floor as usize) / 4; // +1 every 4 floors
-    let count = base + extra + rng.gen_range(0..=1);
-    count.min(6) // cap at 6
+    if floor <= 5 {
+        rng.gen_range(1..=2)
+    } else if floor <= 10 {
+        rng.gen_range(3..=4)
+    } else if floor <= 15 {
+        rng.gen_range(3..=5)
+    } else {
+        rng.gen_range(2..=4)
+    }
 }
 
 /// Pick an enemy type appropriate for the floor depth.
+///
+/// Spec:
+/// - Floors 1-5:  GreenSlime only
+/// - Floors 6-10: mostly GreenSlime + some Bat
+/// - Floors 11-15: mostly Bat + some RockCrab
+/// - Floors 16-20: mixed (all three)
 fn pick_enemy_kind(floor: u8, rng: &mut StdRng) -> MineEnemy {
     let roll: f64 = rng.gen();
-    if floor < 5 {
+    if floor <= 5 {
         MineEnemy::GreenSlime
-    } else if floor < 10 {
-        if roll < 0.6 {
+    } else if floor <= 10 {
+        // 2-3 GreenSlime + 1 Bat → ~70% slime, 30% bat
+        if roll < 0.70 {
             MineEnemy::GreenSlime
         } else {
             MineEnemy::Bat
         }
+    } else if floor <= 15 {
+        // 2-3 Bat + 1-2 RockCrab → ~60% bat, 40% crab
+        if roll < 0.60 {
+            MineEnemy::Bat
+        } else {
+            MineEnemy::RockCrab
+        }
     } else {
-        if roll < 0.35 {
+        // Floors 16-20: mixed
+        if roll < 0.30 {
             MineEnemy::GreenSlime
-        } else if roll < 0.65 {
+        } else if roll < 0.60 {
             MineEnemy::Bat
         } else {
             MineEnemy::RockCrab
@@ -243,6 +311,13 @@ fn pick_enemy_kind(floor: u8, rng: &mut StdRng) -> MineEnemy {
 }
 
 /// Build an EnemyBlueprint with stats scaled to floor depth.
+///
+/// Base stats per spec:
+/// - GreenSlime: HP 20, DMG 5, Speed 30
+/// - Bat: HP 15, DMG 8, Speed 50
+/// - RockCrab: HP 40, DMG 12, Speed 15
+///
+/// Floor scaling: +1 HP per floor, +0.5 DMG per floor.
 fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlueprint {
     let f = floor as f32;
     match kind {
@@ -252,8 +327,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 20.0 + f,
             max_health: 20.0 + f,
-            damage: 5.0 + f / 2.0,
-            speed: 24.0, // slow
+            damage: 5.0 + f * 0.5,
+            speed: 30.0,
         },
         MineEnemy::Bat => EnemyBlueprint {
             x,
@@ -261,8 +336,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 15.0 + f,
             max_health: 15.0 + f,
-            damage: 8.0 + f / 2.0,
-            speed: 48.0, // fast
+            damage: 8.0 + f * 0.5,
+            speed: 50.0,
         },
         MineEnemy::RockCrab => EnemyBlueprint {
             x,
@@ -270,8 +345,110 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 40.0 + f,
             max_health: 40.0 + f,
-            damage: 12.0 + f / 2.0,
-            speed: 16.0, // very slow but tanky
+            damage: 12.0 + f * 0.5,
+            speed: 15.0,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use std::collections::HashSet;
+
+    #[test]
+    fn generate_floor_produces_valid_output_for_key_floors() {
+        for floor in [1_u8, 5, 10, 15, 20] {
+            let bp = generate_floor(floor);
+
+            assert!(
+                (0..MINE_WIDTH).contains(&bp.ladder_pos.0),
+                "ladder x out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+            assert!(
+                (0..MINE_HEIGHT).contains(&bp.ladder_pos.1),
+                "ladder y out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+
+            assert!(
+                !bp.rocks.is_empty(),
+                "expected >0 rocks on floor {floor}, got 0"
+            );
+
+            let mut enemy_positions = HashSet::new();
+            for enemy in &bp.enemies {
+                assert!(
+                    (0..MINE_WIDTH).contains(&enemy.x),
+                    "enemy x out of bounds on floor {floor}: ({}, {})",
+                    enemy.x,
+                    enemy.y
+                );
+                assert!(
+                    (0..MINE_HEIGHT).contains(&enemy.y),
+                    "enemy y out of bounds on floor {floor}: ({}, {})",
+                    enemy.x,
+                    enemy.y
+                );
+                assert!(
+                    enemy_positions.insert((enemy.x, enemy.y)),
+                    "duplicate enemy position on floor {floor}: ({}, {})",
+                    enemy.x,
+                    enemy.y
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn enemy_count_for_floor_is_reasonable() {
+        for seed in 0_u64..100 {
+            let mut rng_floor_1 = StdRng::seed_from_u64(seed);
+            let floor_1_count = enemy_count_for_floor(1, &mut rng_floor_1);
+            assert!(
+                (1..=2).contains(&floor_1_count),
+                "floor 1 enemy count out of expected range: {floor_1_count}"
+            );
+
+            let mut rng_floor_10 = StdRng::seed_from_u64(seed);
+            let floor_10_count = enemy_count_for_floor(10, &mut rng_floor_10);
+            assert!(
+                (3..=4).contains(&floor_10_count),
+                "floor 10 enemy count out of expected range: {floor_10_count}"
+            );
+
+            let mut rng_floor_15 = StdRng::seed_from_u64(seed);
+            let floor_15_count = enemy_count_for_floor(15, &mut rng_floor_15);
+            assert!(
+                (3..=5).contains(&floor_15_count),
+                "floor 15 enemy count out of expected range: {floor_15_count}"
+            );
+
+            let mut rng_floor_20 = StdRng::seed_from_u64(seed);
+            let floor_20_count = enemy_count_for_floor(20, &mut rng_floor_20);
+            assert!(
+                (2..=4).contains(&floor_20_count),
+                "floor 20 enemy count out of expected range: {floor_20_count}"
+            );
+        }
+    }
+
+    #[test]
+    fn ladder_position_safety_bound_holds_across_many_floors() {
+        for floor in 1_u8..=100 {
+            let bp = generate_floor(floor);
+            assert!(
+                (0..MINE_WIDTH).contains(&bp.ladder_pos.0),
+                "ladder x out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+            assert!(
+                (0..MINE_HEIGHT).contains(&bp.ladder_pos.1),
+                "ladder y out of bounds on floor {floor}: {:?}",
+                bp.ladder_pos
+            );
+        }
     }
 }

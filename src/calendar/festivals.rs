@@ -6,17 +6,17 @@
 //! - Harvest Festival (Fall 16): Submit a crop for judging in Town.
 //! - Winter Star (Winter 25): Gift exchange with a randomly assigned NPC.
 
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-
-use crate::shared::*;
+use serde::{Deserialize, Serialize};
 
 // ═══════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Identifies which festival is active.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FestivalKind {
     EggFestival,     // Spring 13
     Luau,            // Summer 11
@@ -25,10 +25,12 @@ pub enum FestivalKind {
 }
 
 /// Tracks the currently active festival (if any) and its progress.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FestivalState {
     pub active: Option<FestivalKind>,
     pub started: bool,
+    /// Runtime-only: not persisted across saves.
+    #[serde(skip)]
     pub timer: Option<Timer>,
     pub score: u32,
     pub items_collected: u32,
@@ -98,10 +100,13 @@ pub fn check_festival_day(
             festival.announced_day = Some(today);
             let name = festival_display_name(kind);
             toast_writer.send(ToastEvent {
-                message: format!("Today is the {}! Press E to participate.", name),
+                message: format!("Today is the {}! Press F to participate.", name),
                 duration_secs: 5.0,
             });
-            info!("[Festivals] Announced {} on Day {} {:?}", name, calendar.day, calendar.season);
+            info!(
+                "[Festivals] Announced {} on Day {} {:?}",
+                name, calendar.day, calendar.season
+            );
         }
     } else {
         // Not a festival day — reset state if it was active.
@@ -130,6 +135,7 @@ pub fn start_egg_hunt(
     player_state: Res<PlayerState>,
     mut commands: Commands,
     mut toast_writer: EventWriter<ToastEvent>,
+    asset_server: Res<AssetServer>,
 ) {
     // Guard: must be Egg Festival, not yet started, player on Farm, pressing E.
     if festival.active != Some(FestivalKind::EggFestival) {
@@ -151,18 +157,18 @@ pub fn start_egg_hunt(
     festival.timer = Some(Timer::from_seconds(30.0, TimerMode::Once));
 
     // Spawn 20 egg entities at random positions within the farm area.
+    let egg_image: Handle<Image> = asset_server.load("sprites/egg_item.png");
     let mut rng = rand::thread_rng();
     for _ in 0..20 {
         let x = rng.gen_range(-8..8) as f32 * TILE_SIZE;
         let y = rng.gen_range(-8..8) as f32 * TILE_SIZE;
 
+        let mut egg_sprite = Sprite::from_image(egg_image.clone());
+        egg_sprite.custom_size = Some(Vec2::new(12.0, 12.0));
+
         commands.spawn((
             FestivalEgg,
-            Sprite {
-                color: Color::srgb(1.0, 0.95, 0.2), // bright yellow
-                custom_size: Some(Vec2::new(6.0, 6.0)),
-                ..default()
-            },
+            egg_sprite,
             Transform::from_translation(Vec3::new(x, y, Z_EFFECTS)),
         ));
     }
@@ -181,6 +187,7 @@ pub fn start_egg_hunt(
 
 /// Checks player proximity to each egg entity; despawns collected eggs
 /// and awards the player when the timer expires.
+#[allow(clippy::too_many_arguments)]
 pub fn collect_eggs(
     time: Res<Time>,
     mut festival: ResMut<FestivalState>,
@@ -202,8 +209,12 @@ pub fn collect_eggs(
     // Tick the timer, then immediately read whether it finished, before
     // doing anything else with `festival`.  This avoids overlapping
     // mutable borrows.
-    festival.timer.as_mut().unwrap().tick(time.delta());
-    let timer_finished = festival.timer.as_ref().unwrap().just_finished();
+    let timer_finished = if let Some(timer) = festival.timer.as_mut() {
+        timer.tick(time.delta());
+        timer.just_finished()
+    } else {
+        false
+    };
 
     // Check player proximity to eggs.
     if let Ok(player_transform) = player_query.get_single() {
@@ -254,10 +265,7 @@ pub fn collect_eggs(
         festival.started = false;
         festival.timer = None;
 
-        info!(
-            "[Festivals] Egg Hunt ended — {} eggs collected.",
-            collected
-        );
+        info!("[Festivals] Egg Hunt ended — {} eggs collected.", collected);
     }
 }
 
@@ -267,6 +275,7 @@ pub fn collect_eggs(
 
 /// The player contributes their currently selected hotbar item to the
 /// communal luau soup.  Quality determines NPC friendship gain.
+#[allow(clippy::too_many_arguments)]
 pub fn start_luau(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -293,9 +302,11 @@ pub fn start_luau(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
-        (slot.item_id.clone(), slot.quantity)
-    });
+    let item_info = inventory
+        .slots
+        .get(slot_index)
+        .and_then(|s| s.as_ref())
+        .map(|slot| (slot.item_id.clone(), slot.quantity));
 
     let (item_id, _qty) = match item_info {
         Some(info) => info,
@@ -326,13 +337,10 @@ pub fn start_luau(
     } else if sell_price >= 100 {
         (
             "Very tasty! The town enjoyed the soup.",
-            100i32, // +1 heart
+            FRIENDSHIP_PER_HEART as i32, // +1 heart
         )
     } else {
-        (
-            "Not bad. The soup was decent.",
-            0i32,
-        )
+        ("Not bad. The soup was decent.", 0i32)
     };
 
     // Apply friendship to all registered NPCs.
@@ -365,6 +373,7 @@ pub fn start_luau(
 /// The player submits a crop item for judging.  Score is calculated from
 /// the crop's sell price.  If the score beats a threshold the player
 /// wins a gold prize.
+#[allow(clippy::too_many_arguments)]
 pub fn start_harvest_festival(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -390,9 +399,11 @@ pub fn start_harvest_festival(
 
     // Check selected hotbar item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
-        (slot.item_id.clone(), slot.quantity)
-    });
+    let item_info = inventory
+        .slots
+        .get(slot_index)
+        .and_then(|s| s.as_ref())
+        .map(|slot| (slot.item_id.clone(), slot.quantity));
 
     let (item_id, _qty) = match item_info {
         Some(info) => info,
@@ -537,6 +548,7 @@ pub fn setup_winter_star(
 /// When the player presses E in Town on Winter 25, the held item is
 /// given to the assigned NPC.  The player then receives a random gift
 /// from their assigned giver NPC.
+#[allow(clippy::too_many_arguments)]
 pub fn winter_star_give_gift(
     player_input: Res<PlayerInput>,
     mut festival: ResMut<FestivalState>,
@@ -572,9 +584,11 @@ pub fn winter_star_give_gift(
 
     // Check that the player is holding an item.
     let slot_index = inventory.selected_slot;
-    let item_info = inventory.slots[slot_index].as_ref().map(|slot| {
-        slot.item_id.clone()
-    });
+    let item_info = inventory
+        .slots
+        .get(slot_index)
+        .and_then(|s| s.as_ref())
+        .map(|slot| slot.item_id.clone());
 
     let item_id = match item_info {
         Some(id) => id,

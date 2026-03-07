@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::shared::*;
 use super::spawn_floating_text;
+use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Petting system
@@ -45,8 +45,7 @@ pub fn handle_animal_interact(
     // First, check if any in-range animal has a product ready. If so, skip
     // petting entirely — handle_product_collection will process that press.
     let any_product_ready = animal_query.iter().any(|(_, animal, animal_lp)| {
-        animal.product_ready
-            && player_pos.distance(animal_lp.0) <= INTERACT_RANGE
+        animal.product_ready && player_pos.distance(animal_lp.0) <= INTERACT_RANGE
     });
 
     if any_product_ready {
@@ -72,6 +71,11 @@ pub fn handle_animal_interact(
                 AnimalKind::Chicken => "Bawk!",
                 AnimalKind::Cow => "Moo~",
                 AnimalKind::Sheep => "Baa!",
+                AnimalKind::Goat => "Meh!",
+                AnimalKind::Duck => "Quack!",
+                AnimalKind::Rabbit => "~squeak~",
+                AnimalKind::Pig => "Oink!",
+                AnimalKind::Horse => "Neigh!",
                 AnimalKind::Cat => "<3",
                 AnimalKind::Dog => "Woof!",
             };

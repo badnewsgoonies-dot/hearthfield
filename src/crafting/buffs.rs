@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -64,6 +64,81 @@ pub fn food_buff_for_item(item_id: &str) -> Option<FoodBuff> {
         "porridge" => Some(FoodBuff {
             buff_type: BuffType::Farming,
             magnitude: 1.1,
+            minutes_remaining: 90,
+        }),
+        "turnip_soup" => Some(FoodBuff {
+            buff_type: BuffType::Farming,
+            magnitude: 1.15,
+            minutes_remaining: 90,
+        }),
+        "strawberry_jam" => Some(FoodBuff {
+            buff_type: BuffType::Speed,
+            magnitude: 1.1,
+            minutes_remaining: 60,
+        }),
+        "cauliflower_gratin" => Some(FoodBuff {
+            buff_type: BuffType::MaxStamina,
+            magnitude: 20.0,
+            minutes_remaining: 120,
+        }),
+        "sardine_toast" => Some(FoodBuff {
+            buff_type: BuffType::Fishing,
+            magnitude: 1.15,
+            minutes_remaining: 90,
+        }),
+        "corn_tortilla" => Some(FoodBuff {
+            buff_type: BuffType::Speed,
+            magnitude: 1.1,
+            minutes_remaining: 60,
+        }),
+        "blueberry_muffin" => Some(FoodBuff {
+            buff_type: BuffType::Luck,
+            magnitude: 1.2,
+            minutes_remaining: 90,
+        }),
+        "pumpkin_bread" => Some(FoodBuff {
+            buff_type: BuffType::Defense,
+            magnitude: 1.15,
+            minutes_remaining: 120,
+        }),
+        "cranberry_tart" => Some(FoodBuff {
+            buff_type: BuffType::Luck,
+            magnitude: 1.3,
+            minutes_remaining: 120,
+        }),
+        "yam_pudding" => Some(FoodBuff {
+            buff_type: BuffType::MaxStamina,
+            magnitude: 25.0,
+            minutes_remaining: 150,
+        }),
+        "stuffed_eggplant" => Some(FoodBuff {
+            buff_type: BuffType::Farming,
+            magnitude: 1.2,
+            minutes_remaining: 120,
+        }),
+        "coffee_pudding" => Some(FoodBuff {
+            buff_type: BuffType::Speed,
+            magnitude: 1.2,
+            minutes_remaining: 180,
+        }),
+        "smoked_eel" => Some(FoodBuff {
+            buff_type: BuffType::Fishing,
+            magnitude: 1.3,
+            minutes_remaining: 150,
+        }),
+        "truffle_pasta" => Some(FoodBuff {
+            buff_type: BuffType::Luck,
+            magnitude: 1.5,
+            minutes_remaining: 240,
+        }),
+        "tuna_tartare" => Some(FoodBuff {
+            buff_type: BuffType::Attack,
+            magnitude: 1.25,
+            minutes_remaining: 120,
+        }),
+        "eggplant_stir_fry" => Some(FoodBuff {
+            buff_type: BuffType::Mining,
+            magnitude: 1.15,
             minutes_remaining: 90,
         }),
         // Plain food — stamina only, no buff
@@ -139,17 +214,11 @@ pub fn handle_eat_food(
 
             active_buffs.buffs.push(new_buff);
 
-            info!(
-                "Buff '{}' applied for {} game-minutes",
-                buff_label, minutes
-            );
+            info!("Buff '{}' applied for {} game-minutes", buff_label, minutes);
 
             let item_name = item_display_name(&item_registry, item_id);
             toast_events.send(ToastEvent {
-                message: format!(
-                    "Ate {}! {} for {}m",
-                    item_name, buff_label, minutes
-                ),
+                message: format!("Ate {}! {} for {}m", item_name, buff_label, minutes),
                 duration_secs: 3.0,
             });
         } else {
@@ -204,17 +273,15 @@ pub fn tick_buff_durations(
     let mut expired_labels: Vec<String> = Vec::new();
 
     for buff in active_buffs.buffs.iter_mut() {
-        let decrement = elapsed.min(buff.minutes_remaining as u32) as u32;
-        buff.minutes_remaining = buff.minutes_remaining.saturating_sub(decrement as u32);
+        let decrement = elapsed.min(buff.minutes_remaining);
+        buff.minutes_remaining = buff.minutes_remaining.saturating_sub(decrement);
         if buff.minutes_remaining == 0 {
             expired_labels.push(buff_type_label(buff.buff_type).to_string());
         }
     }
 
     // Remove expired buffs.
-    active_buffs
-        .buffs
-        .retain(|b| b.minutes_remaining > 0);
+    active_buffs.buffs.retain(|b| b.minutes_remaining > 0);
 
     // Notify the player for each expired buff.
     for label in expired_labels {
@@ -267,7 +334,7 @@ pub fn apply_buff_effects(
         if original_max_stamina.is_none() {
             *original_max_stamina = Some(player_state.max_stamina);
         }
-        let base = original_max_stamina.unwrap();
+        let base = original_max_stamina.unwrap_or(MAX_STAMINA);
         let desired = base + max_stamina_bonus;
         // Only update when the value actually needs changing to avoid
         // constantly dirtying the resource.
@@ -301,7 +368,7 @@ fn calendar_absolute_minute(cal: &Calendar) -> u32 {
     let season_idx = match cal.season {
         Season::Spring => 0u32,
         Season::Summer => 1,
-        Season::Fall   => 2,
+        Season::Fall => 2,
         Season::Winter => 3,
     };
     let days_in_year = season_idx * 28 + (cal.day as u32).saturating_sub(1);
@@ -312,13 +379,13 @@ fn calendar_absolute_minute(cal: &Calendar) -> u32 {
 /// Returns a human-readable label for a BuffType.
 fn buff_type_label(buff_type: BuffType) -> &'static str {
     match buff_type {
-        BuffType::Speed      => "Speed",
-        BuffType::Mining     => "Mining",
-        BuffType::Fishing    => "Fishing",
-        BuffType::Farming    => "Farming",
-        BuffType::Defense    => "Defense",
-        BuffType::Attack     => "Attack",
-        BuffType::Luck       => "Luck",
+        BuffType::Speed => "Speed",
+        BuffType::Mining => "Mining",
+        BuffType::Fishing => "Fishing",
+        BuffType::Farming => "Farming",
+        BuffType::Defense => "Defense",
+        BuffType::Attack => "Attack",
+        BuffType::Luck => "Luck",
         BuffType::MaxStamina => "Max Stamina",
     }
 }
@@ -337,9 +404,7 @@ fn item_display_name<'a>(registry: &'a ItemRegistry, item_id: &'a str) -> String
                     let mut chars = word.chars();
                     match chars.next() {
                         None => String::new(),
-                        Some(first) => {
-                            first.to_uppercase().collect::<String>() + chars.as_str()
-                        }
+                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
                     }
                 })
                 .collect::<Vec<_>>()

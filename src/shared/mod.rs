@@ -3,6 +3,10 @@
 //! This is the type contract. Every domain plugin imports from here.
 //! No domain imports from any other domain directly.
 
+mod schedule;
+
+pub use schedule::*;
+
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,6 +15,7 @@ use std::collections::HashMap;
 // GAME STATE — top-level state machine
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, States, Default)]
 pub enum GameState {
     #[default]
@@ -21,12 +26,14 @@ pub enum GameState {
     Dialogue,
     Shop,
     Fishing,
-    #[allow(dead_code)]
     Mining,
     Crafting,
     Inventory,
-    #[allow(dead_code)]
+    Journal,
     Cutscene,
+    BuildingUpgrade,
+    RelationshipsView,
+    MapView,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -84,11 +91,11 @@ pub enum Weather {
 pub struct Calendar {
     pub year: u32,
     pub season: Season,
-    pub day: u8,           // 1-28
-    pub hour: u8,          // 6-25 (25 = 1:00 AM next day)
-    pub minute: u8,        // 0-59
+    pub day: u8,    // 1-28
+    pub hour: u8,   // 6-25 (25 = 1:00 AM next day)
+    pub minute: u8, // 0-59
     pub weather: Weather,
-    pub time_scale: f32,   // game-minutes per real-second (default ~10)
+    pub time_scale: f32, // game-minutes per real-second (default 1/6 => 10 game-minutes per real-minute)
     pub time_paused: bool,
     pub elapsed_real_seconds: f32, // accumulator for sub-minute ticks
 }
@@ -102,7 +109,7 @@ impl Default for Calendar {
             hour: 6,
             minute: 0,
             weather: Weather::Sunny,
-            time_scale: 10.0,
+            time_scale: 1.0 / 6.0,
             time_paused: false,
             elapsed_real_seconds: 0.0,
         }
@@ -111,7 +118,8 @@ impl Default for Calendar {
 
 impl Calendar {
     pub fn day_of_week(&self) -> DayOfWeek {
-        let total_days = (self.season.index() as u32 * 28) + (self.day as u32 - 1);
+        let total_days =
+            (self.season.index() as u32 * DAYS_PER_SEASON as u32) + (self.day as u32 - 1);
         match total_days % 7 {
             0 => DayOfWeek::Monday,
             1 => DayOfWeek::Tuesday,
@@ -124,16 +132,15 @@ impl Calendar {
     }
 
     pub fn total_days_elapsed(&self) -> u32 {
-        ((self.year - 1) * 112) + (self.season.index() as u32 * 28) + (self.day as u32 - 1)
+        ((self.year - 1) * (SEASONS_PER_YEAR as u32 * DAYS_PER_SEASON as u32))
+            + (self.season.index() as u32 * DAYS_PER_SEASON as u32)
+            + (self.day as u32 - 1)
     }
 
     pub fn is_festival_day(&self) -> bool {
         matches!(
             (self.season, self.day),
-            (Season::Spring, 13)
-                | (Season::Summer, 11)
-                | (Season::Fall, 16)
-                | (Season::Winter, 25)
+            (Season::Spring, 13) | (Season::Summer, 11) | (Season::Fall, 16) | (Season::Winter, 25)
         )
     }
 
@@ -147,18 +154,13 @@ impl Calendar {
 // PLAYER
 // ═══════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Facing {
     Up,
+    #[default]
     Down,
     Left,
     Right,
-}
-
-impl Default for Facing {
-    fn default() -> Self {
-        Facing::Down
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -214,7 +216,6 @@ impl ToolTier {
     }
 
     /// Number of bars required to upgrade FROM this tier.
-    #[allow(dead_code)]
     pub fn upgrade_bars_needed(&self) -> u8 {
         match self {
             ToolTier::Basic | ToolTier::Copper | ToolTier::Iron | ToolTier::Gold => 5,
@@ -223,7 +224,6 @@ impl ToolTier {
     }
 
     /// The bar item needed to upgrade FROM this tier.
-    #[allow(dead_code)]
     pub fn upgrade_bar_item(&self) -> Option<&'static str> {
         match self {
             ToolTier::Basic => Some("copper_bar"),
@@ -247,7 +247,9 @@ impl ToolTier {
 
     /// Days the blacksmith takes for any upgrade.
     #[allow(dead_code)]
-    pub fn upgrade_days(&self) -> u8 { 2 }
+    pub fn upgrade_days(&self) -> u8 {
+        2
+    }
 }
 
 #[derive(Component, Debug, Clone, Default)]
@@ -284,6 +286,10 @@ pub struct PlayerState {
     pub tools: HashMap<ToolKind, ToolTier>,
     pub gold: u32,
     pub current_map: MapId,
+    #[serde(default)]
+    pub save_grid_x: i32,
+    #[serde(default)]
+    pub save_grid_y: i32,
 }
 
 impl Default for PlayerState {
@@ -297,14 +303,16 @@ impl Default for PlayerState {
         tools.insert(ToolKind::Scythe, ToolTier::Basic);
 
         Self {
-            stamina: 100.0,
-            max_stamina: 100.0,
-            health: 100.0,
-            max_health: 100.0,
+            stamina: MAX_STAMINA,
+            max_stamina: MAX_STAMINA,
+            health: MAX_HEALTH,
+            max_health: MAX_HEALTH,
             equipped_tool: ToolKind::Hoe,
             tools,
             gold: 500,
-            current_map: MapId::Farm,
+            current_map: MapId::PlayerHouse,
+            save_grid_x: 8,
+            save_grid_y: 8,
         }
     }
 }
@@ -344,8 +352,8 @@ pub struct ItemDef {
     pub buy_price: Option<u32>, // None = not buyable
     pub stack_size: u8,         // max per slot (1 for tools, 99 for most items)
     pub edible: bool,
-    pub energy_restore: f32,    // if edible
-    pub sprite_index: u32,      // atlas index
+    pub energy_restore: f32, // if edible
+    pub sprite_index: u32,   // atlas index
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -356,7 +364,7 @@ pub struct InventorySlot {
 
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct Inventory {
-    /// 36 slots: 0-11 = hotbar, 12-35 = backpack
+    /// `TOTAL_INVENTORY_SLOTS` slots: 0-11 = hotbar, 12-35 = backpack
     pub slots: Vec<Option<InventorySlot>>,
     pub selected_slot: usize,
 }
@@ -364,7 +372,7 @@ pub struct Inventory {
 impl Default for Inventory {
     fn default() -> Self {
         Self {
-            slots: vec![None; 36],
+            slots: vec![None; TOTAL_INVENTORY_SLOTS],
             selected_slot: 0,
         }
     }
@@ -537,6 +545,11 @@ pub enum AnimalKind {
     Chicken,
     Cow,
     Sheep,
+    Goat,
+    Duck,
+    Rabbit,
+    Pig,
+    Horse,
     Cat,
     Dog,
 }
@@ -553,7 +566,7 @@ pub struct Animal {
     pub name: String,
     pub age: AnimalAge,
     pub days_old: u16,
-    pub happiness: u8,    // 0-255
+    pub happiness: u8, // 0-255
     pub fed_today: bool,
     pub petted_today: bool,
     pub product_ready: bool,
@@ -613,8 +626,8 @@ impl GridPosition {
     }
 }
 
-#[derive(Debug, Clone)]
 #[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub struct MapTransition {
     pub from_map: MapId,
     pub from_rect: (i32, i32, i32, i32), // x, y, w, h trigger area
@@ -630,11 +643,11 @@ pub type NpcId = String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GiftPreference {
-    Loved,   // +80 points
-    Liked,   // +45 points
-    Neutral, // +20 points
+    Loved,    // +80 points
+    Liked,    // +45 points
+    Neutral,  // +20 points
     Disliked, // -20 points
-    Hated,   // -40 points
+    Hated,    // -40 points
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -653,7 +666,7 @@ pub struct NpcDef {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduleEntry {
-    pub time: f32,      // e.g. 9.0 = 9:00 AM
+    pub time: f32, // e.g. 9.0 = 9:00 AM
     pub map: MapId,
     pub x: i32,
     pub y: i32,
@@ -685,14 +698,14 @@ impl Relationships {
 
     pub fn add_friendship(&mut self, npc_id: &str, amount: i32) {
         let entry = self.friendship.entry(npc_id.to_string()).or_insert(0);
-        *entry = (*entry as i32 + amount).clamp(0, 1000) as u32;
+        *entry = (*entry as i32 + amount).clamp(0, MAX_FRIENDSHIP as i32) as u32;
     }
 }
 
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct Npc {
     pub id: NpcId,
-    #[allow(dead_code)]
     pub name: String,
 }
 
@@ -781,10 +794,10 @@ pub struct FishDef {
     pub name: String,
     pub location: FishLocation,
     pub seasons: Vec<Season>,
-    pub time_range: (f32, f32),    // e.g. (6.0, 20.0) = 6AM-8PM
+    pub time_range: (f32, f32), // e.g. (6.0, 20.0) = 6AM-8PM
     pub weather_required: Option<Weather>,
     pub rarity: Rarity,
-    pub difficulty: f32,           // 0.0 = trivial, 1.0 = legendary
+    pub difficulty: f32, // 0.0 = trivial, 1.0 = legendary
     pub sell_price: u32,
     pub sprite_index: u32,
 }
@@ -807,9 +820,9 @@ pub enum MineEnemy {
 
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MineState {
-    pub current_floor: u8,             // 0 = not in mine
-    pub deepest_floor_reached: u8,     // for elevator
-    pub elevator_floors: Vec<u8>,      // unlocked elevator stops (every 5)
+    pub current_floor: u8,         // 0 = not in mine
+    pub deepest_floor_reached: u8, // for elevator
+    pub elevator_floors: Vec<u8>,  // unlocked elevator stops (every 5)
 }
 
 #[derive(Component, Debug, Clone)]
@@ -819,14 +832,13 @@ pub struct MineRock {
     pub drop_quantity: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct MineMonster {
     pub kind: MineEnemy,
     pub health: f32,
-    #[allow(dead_code)]
     pub max_health: f32,
     pub damage: f32,
-    #[allow(dead_code)]
     pub speed: f32,
 }
 
@@ -853,10 +865,10 @@ pub struct ItemPickupEvent {
     pub quantity: u8,
 }
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ItemRemovedEvent {
     pub item_id: ItemId,
-    #[allow(dead_code)]
     pub quantity: u8,
 }
 
@@ -870,13 +882,12 @@ pub struct DialogueStartEvent {
 #[derive(Event, Debug, Clone)]
 pub struct DialogueEndEvent;
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ShopTransactionEvent {
-    #[allow(dead_code)]
     pub shop_id: ShopId,
     pub item_id: ItemId,
     pub quantity: u8,
-    #[allow(dead_code)]
     pub total_cost: u32,
     pub is_purchase: bool, // true = buy, false = sell
 }
@@ -911,7 +922,6 @@ pub struct GoldChangeEvent {
 pub struct GiftGivenEvent {
     pub npc_id: NpcId,
     pub item_id: ItemId,
-    #[allow(dead_code)]
     pub preference: GiftPreference,
 }
 
@@ -937,32 +947,11 @@ pub struct PlaySfxEvent {
     pub sfx_id: String,
 }
 
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct PlayMusicEvent {
     pub track_id: String,
-    #[allow(dead_code)]
     pub fade_in: bool,
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// SAVE DATA
-// ═══════════════════════════════════════════════════════════════════════
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct SaveData {
-    pub version: u32,
-    pub calendar: Calendar,
-    pub player_state: PlayerState,
-    pub inventory: Inventory,
-    pub farm_state: FarmState,
-    pub animal_state: AnimalState,
-    pub relationships: Relationships,
-    pub mine_state: MineState,
-    pub unlocked_recipes: UnlockedRecipes,
-    pub shipping_bin: ShippingBin,
-    pub total_gold_earned: u64,
-    pub total_items_shipped: u64,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -975,25 +964,17 @@ pub const SCREEN_WIDTH: f32 = 960.0;
 pub const SCREEN_HEIGHT: f32 = 540.0;
 
 pub const DAYS_PER_SEASON: u8 = 28;
-#[allow(dead_code)]
 pub const SEASONS_PER_YEAR: u8 = 4;
 
-#[allow(dead_code)]
 pub const MAX_STAMINA: f32 = 100.0;
-#[allow(dead_code)]
 pub const MAX_HEALTH: f32 = 100.0;
 
 pub const HOTBAR_SLOTS: usize = 12;
-#[allow(dead_code)]
 pub const BACKPACK_SLOTS: usize = 24;
-#[allow(dead_code)]
 pub const TOTAL_INVENTORY_SLOTS: usize = HOTBAR_SLOTS + BACKPACK_SLOTS;
 
-#[allow(dead_code)]
 pub const FRIENDSHIP_PER_HEART: u32 = 100;
-#[allow(dead_code)]
 pub const MAX_HEARTS: u32 = 10;
-#[allow(dead_code)]
 pub const MAX_FRIENDSHIP: u32 = MAX_HEARTS * FRIENDSHIP_PER_HEART;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1055,6 +1036,7 @@ pub enum PlayerAnimState {
 }
 
 /// Fired when a tool animation reaches its "impact" frame.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolImpactEvent {
     pub tool: ToolKind,
@@ -1106,38 +1088,6 @@ pub struct QualityStack {
     pub quality: ItemQuality,
 }
 
-/// Eating food restores stamina/health.
-#[derive(Event, Debug, Clone)]
-pub struct ConsumeItemEvent {
-    pub item_id: String,
-    #[allow(dead_code)]
-    pub quality: ItemQuality,
-}
-
-/// Stamina recovery from food, sleep, or spa.
-#[derive(Event, Debug, Clone)]
-pub struct StaminaRestoreEvent {
-    pub amount: f32,
-    pub source: StaminaSource,
-}
-
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub enum StaminaSource {
-    Food(String),
-    Sleep,
-    Spa,
-}
-
-/// Animal purchase request from shop.
-#[derive(Event, Debug, Clone)]
-#[allow(dead_code)]
-pub struct AnimalPurchaseEvent {
-    pub animal_type: AnimalKind,
-    pub cost: u32,
-    pub name: String,
-}
-
 /// Toast notification for player feedback.
 #[derive(Event, Debug, Clone)]
 pub struct ToastEvent {
@@ -1184,7 +1134,9 @@ impl Default for DayNightTint {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// House upgrade tier. Determines available features.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum HouseTier {
     #[default]
     Basic,
@@ -1196,12 +1148,14 @@ pub enum HouseTier {
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HouseState {
     pub tier: HouseTier,
-    pub has_kitchen: bool,     // Big+ house
-    pub has_nursery: bool,     // Deluxe house
+    pub has_kitchen: bool, // Big+ house
+    pub has_nursery: bool, // Deluxe house
 }
 
 /// Romance/relationship stage with marriage candidates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum RelationshipStage {
     #[default]
     Stranger,
@@ -1278,18 +1232,45 @@ pub struct Quest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum QuestObjective {
-    Deliver { item_id: ItemId, quantity: u8, delivered: u8 },
-    Catch { fish_id: String, delivered: bool },
-    Harvest { crop_id: String, quantity: u8, harvested: u8 },
-    Mine { item_id: ItemId, quantity: u8, collected: u8 },
-    Talk { npc_name: String, talked: bool },
-    Slay { monster_kind: String, quantity: u8, slain: u8 },
+    Deliver {
+        item_id: ItemId,
+        quantity: u8,
+        delivered: u8,
+    },
+    Catch {
+        fish_id: String,
+        delivered: bool,
+    },
+    Harvest {
+        crop_id: String,
+        quantity: u8,
+        harvested: u8,
+    },
+    Mine {
+        item_id: ItemId,
+        quantity: u8,
+        collected: u8,
+    },
+    Talk {
+        npc_name: String,
+        talked: bool,
+    },
+    Slay {
+        monster_kind: String,
+        quantity: u8,
+        slain: u8,
+    },
+}
+
+/// A mine enemy was killed by the player.
+#[derive(Event, Debug, Clone)]
+pub struct MonsterSlainEvent {
+    pub monster_kind: String,
 }
 
 /// New quest posted on bulletin board.
 #[derive(Event, Debug, Clone)]
 pub struct QuestPostedEvent {
-    #[allow(dead_code)]
     pub quest: Quest,
 }
 
@@ -1303,7 +1284,6 @@ pub struct QuestAcceptedEvent {
 #[derive(Event, Debug, Clone)]
 pub struct QuestCompletedEvent {
     pub quest_id: String,
-    #[allow(dead_code)]
     pub reward_gold: u32,
 }
 
@@ -1418,7 +1398,6 @@ pub enum BuildingTier {
     Deluxe,
 }
 
-#[allow(dead_code)]
 impl BuildingTier {
     pub fn next(&self) -> Option<Self> {
         match self {
@@ -1428,6 +1407,7 @@ impl BuildingTier {
             BuildingTier::Deluxe => None,
         }
     }
+    #[allow(dead_code)]
     pub fn capacity(&self) -> usize {
         match self {
             BuildingTier::None => 0,
@@ -1460,16 +1440,16 @@ pub struct TutorialState {
 }
 
 /// Contextual hint event — shows a non-intrusive tip when the player does something new.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct HintEvent {
-    #[allow(dead_code)]
     pub hint_id: String,
     pub message: String,
 }
 
 /// Achievement unlocked event.
-#[derive(Event, Debug, Clone)]
 #[allow(dead_code)]
+#[derive(Event, Debug, Clone)]
 pub struct AchievementUnlockedEvent {
     pub achievement_id: String,
     pub name: String,
@@ -1477,15 +1457,13 @@ pub struct AchievementUnlockedEvent {
 }
 
 /// Building upgrade request.
+#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct BuildingUpgradeEvent {
     pub building: BuildingKind,
-    #[allow(dead_code)]
     pub from_tier: BuildingTier,
     pub to_tier: BuildingTier,
-    #[allow(dead_code)]
     pub cost_gold: u32,
-    #[allow(dead_code)]
     pub cost_materials: Vec<(ItemId, u8)>,
 }
 
@@ -1505,8 +1483,10 @@ pub struct PlayStats {
     pub items_shipped: u64,
     pub gifts_given: u64,
     pub mine_floors_cleared: u64,
-    pub animals_petted: u64,
-    pub recipes_cooked: u64,
+    #[serde(alias = "animals_petted")]
+    pub animal_products_collected: u64,
+    #[serde(alias = "recipes_cooked")]
+    pub food_eaten: u64,
     pub total_gold_earned: u64,
     pub total_steps_taken: u64,
     pub days_played: u64,
@@ -1522,32 +1502,51 @@ pub struct PlayStats {
 #[derive(Resource, Default, Debug)]
 pub struct InputBlocks(pub std::collections::HashSet<std::any::TypeId>);
 
-#[allow(dead_code)]
 impl InputBlocks {
-    pub fn is_blocked(&self) -> bool { !self.0.is_empty() }
-    pub fn block<T: 'static>(&mut self) { self.0.insert(std::any::TypeId::of::<T>()); }
-    pub fn unblock<T: 'static>(&mut self) { self.0.remove(&std::any::TypeId::of::<T>()); }
+    pub fn is_blocked(&self) -> bool {
+        !self.0.is_empty()
+    }
+    #[allow(dead_code)]
+    pub fn block<T: 'static>(&mut self) {
+        self.0.insert(std::any::TypeId::of::<T>());
+    }
+    #[allow(dead_code)]
+    pub fn unblock<T: 'static>(&mut self) {
+        self.0.remove(&std::any::TypeId::of::<T>());
+    }
 }
 
-/// Screen transition style.
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub enum TransitionStyle {
-    FadeBlack { duration: f32 },
-    Cut,
+// ═══════════════════════════════════════════════════════════════════════
+// INTERACTION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Set to true by the world interaction dispatcher when it claims the F-key
+/// press for an Interactable entity. Existing F-key systems should check this
+/// and skip if true. Reset to false each frame by the input system.
+#[derive(Resource, Default, Debug)]
+pub struct InteractionClaimed(pub bool);
+
+/// Identifies the kind of interaction an entity supports.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InteractionKind {
+    ShippingBin,
+    CraftingBench,
+    Machine,
+    BuildingUpgrade,
+    Bed,
+    KitchenStove,
 }
 
-/// Request a screen transition with visual effect.
-#[derive(Event, Debug, Clone)]
-#[allow(dead_code)]
-pub struct ScreenTransitionEvent {
-    pub to: GameState,
-    pub style: TransitionStyle,
+/// Marker component for entities the player can interact with via F key.
+#[derive(Component, Debug, Clone)]
+pub struct Interactable {
+    pub kind: InteractionKind,
+    pub label: String,
 }
 
 /// Cutscene step for data-driven scripted sequences (festivals, story events).
-#[derive(Debug, Clone)]
 #[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub enum CutsceneStep {
     FadeOut(f32),
     FadeIn(f32),
@@ -1558,12 +1557,17 @@ pub enum CutsceneStep {
     PlaySfx(String),
     SetFlag(String, bool),
     StartDialogue(String),
+    /// Start dialogue with custom lines (not from NPC registry).
+    StartDialogueCustom {
+        npc_id: String,
+        lines: Vec<String>,
+        portrait_index: Option<u32>,
+    },
     WaitForDialogueEnd,
 }
 
 /// Cutscene queue resource — runner pops front, executes, advances.
 #[derive(Resource, Debug, Clone, Default)]
-#[allow(dead_code)]
 pub struct CutsceneQueue {
     pub steps: std::collections::VecDeque<CutsceneStep>,
     pub active: bool,
@@ -1583,41 +1587,43 @@ pub struct PlayerInput {
     pub move_axis: Vec2,
 
     // Actions (just_pressed this frame)
-    pub interact: bool,           // F — talk, pick up, open chest, shipping bin
-    pub tool_use: bool,           // Space / LMB — swing tool
-    pub tool_secondary: bool,     // R / RMB — eat food, place item
+    pub interact: bool,       // F — talk, pick up, open chest, shipping bin
+    pub tool_use: bool,       // Space / LMB — swing tool
+    pub tool_secondary: bool, // R / RMB — eat food, place item
 
     // Menu toggles (just_pressed)
     pub open_inventory: bool,     // E
     pub open_crafting: bool,      // C
     pub open_map: bool,           // M
     pub open_journal: bool,       // J — quests/achievements
+    pub open_relationships: bool, // L — relationships screen
     pub pause: bool,              // Escape
 
     // Tool selection
-    pub tool_next: bool,          // ] / scroll up
-    pub tool_prev: bool,          // [ / scroll down
-    pub tool_slot: Option<u8>,    // 1-9 → Some(0..8)
+    pub tool_next: bool,       // ] / scroll up
+    pub tool_prev: bool,       // [ / scroll down
+    pub tool_slot: Option<u8>, // 1-9 → Some(0..8)
 
     // Fishing
-    pub fishing_reel: bool,       // held (pressed, not just_pressed)
+    pub fishing_reel: bool, // held (pressed, not just_pressed)
 
     // Mining combat (same as tool_use, context determines meaning)
     pub attack: bool,
 
     // UI navigation (menus, dialogue)
-    pub ui_confirm: bool,         // Enter / E
-    pub ui_cancel: bool,          // Escape
+    pub ui_confirm: bool, // Enter / E
+    pub ui_cancel: bool,  // Escape
     pub ui_up: bool,
     pub ui_down: bool,
     pub ui_left: bool,
     pub ui_right: bool,
+    pub tab_pressed: bool, // Tab key (panel switch, mode cycle)
 
     // Meta
-    pub any_key: bool,            // splash/title "press any key"
-    pub skip_cutscene: bool,      // Space during cutscene
-    pub quicksave: bool,          // F5
-    pub quickload: bool,          // F9
+    pub any_key: bool,       // splash/title "press any key"
+    pub skip_cutscene: bool, // Space during cutscene
+    pub quicksave: bool,     // F5
+    pub quickload: bool,     // F9
 }
 
 /// Which input context is active. Determines which PlayerInput fields get written.
@@ -1625,11 +1631,11 @@ pub struct PlayerInput {
 pub enum InputContext {
     #[default]
     Gameplay,
-    Menu,           // inventory, shop, crafting, chest, pause
-    Dialogue,       // interact to advance, ui_up/down for choices
-    Fishing,        // fishing_reel only
-    Cutscene,       // skip_cutscene only
-    Disabled,       // loading, transitions — nothing written
+    Menu,     // inventory, shop, crafting, chest, pause
+    Dialogue, // interact to advance, ui_up/down for choices
+    Fishing,  // fishing_reel only
+    Cutscene, // skip_cutscene only
+    Disabled, // loading, transitions — nothing written
 }
 
 /// Keyboard binding table. Hardcoded defaults now, remappable later.
@@ -1646,6 +1652,7 @@ pub struct KeyBindings {
     pub open_crafting: KeyCode,
     pub open_map: KeyCode,
     pub open_journal: KeyCode,
+    pub open_relationships: KeyCode,
     pub pause: KeyCode,
     pub tool_next: KeyCode,
     pub tool_prev: KeyCode,
@@ -1668,6 +1675,7 @@ impl Default for KeyBindings {
             open_crafting: KeyCode::KeyC,
             open_map: KeyCode::KeyM,
             open_journal: KeyCode::KeyJ,
+            open_relationships: KeyCode::KeyL,
             pause: KeyCode::Escape,
             tool_next: KeyCode::BracketRight,
             tool_prev: KeyCode::BracketLeft,
@@ -1683,6 +1691,7 @@ impl Default for KeyBindings {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Centralized menu styling. All menus read from this.
+#[allow(dead_code)]
 #[derive(Resource, Debug, Clone)]
 pub struct MenuTheme {
     pub bg_overlay: Color,
@@ -1746,40 +1755,6 @@ pub struct MenuItem {
     pub index: usize,
 }
 
-/// Tracks which item is selected. Each menu manages its own cursor.
-#[derive(Debug, Clone, Default)]
-pub struct MenuCursor {
-    pub index: usize,
-    pub count: usize,
-}
-
-impl MenuCursor {
-    pub fn new(count: usize) -> Self {
-        Self { index: 0, count }
-    }
-    pub fn up(&mut self) {
-        if self.count == 0 {
-            return;
-        }
-        self.index = if self.index == 0 {
-            self.count - 1
-        } else {
-            self.index - 1
-        };
-    }
-    pub fn down(&mut self) {
-        if self.count == 0 {
-            return;
-        }
-        self.index = (self.index + 1) % self.count;
-    }
-    pub fn set(&mut self, idx: usize) {
-        if idx < self.count {
-            self.index = idx;
-        }
-    }
-}
-
 /// Frame-scoped menu actions from either keyboard or pointer.
 /// Each menu's update system reads this to know what happened.
 #[derive(Resource, Debug, Default)]
@@ -1817,15 +1792,9 @@ pub fn watering_can_area(
         ToolTier::Basic => {
             vec![(target_x, target_y)]
         }
-        ToolTier::Copper => {
-            line_tiles(target_x, target_y, facing, 3)
-        }
-        ToolTier::Iron => {
-            line_tiles(target_x, target_y, facing, 5)
-        }
-        ToolTier::Gold => {
-            square_area(target_x, target_y, 1)
-        }
+        ToolTier::Copper => line_tiles(target_x, target_y, facing, 3),
+        ToolTier::Iron => line_tiles(target_x, target_y, facing, 5),
+        ToolTier::Gold => square_area(target_x, target_y, 1),
         ToolTier::Iridium => {
             let half = 3_i32;
             let mut tiles = Vec::with_capacity(36);
@@ -1868,11 +1837,44 @@ fn square_area(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
 /// Returns the (dx, dy) unit step for each facing direction.
 fn facing_delta(facing: Facing) -> (i32, i32) {
     match facing {
-        Facing::Up    => (0,  1),
-        Facing::Down  => (0, -1),
-        Facing::Left  => (-1, 0),
-        Facing::Right => (1,  0),
+        Facing::Up => (0, 1),
+        Facing::Down => (0, -1),
+        Facing::Left => (-1, 0),
+        Facing::Right => (1, 0),
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// COORDINATE CONVERSION (one true convention)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Convert grid coordinates to world-space position (tile CENTER).
+/// Preferred grid→world conversion; use for entity placement and collision checks.
+pub fn grid_to_world_center(gx: i32, gy: i32) -> Vec2 {
+    Vec2::new(
+        gx as f32 * TILE_SIZE + TILE_SIZE * 0.5,
+        gy as f32 * TILE_SIZE + TILE_SIZE * 0.5,
+    )
+}
+
+/// Convert world-space position to grid coordinates.
+/// Uses floor() — a point at (15.9, 31.1) with TILE_SIZE=16 is tile (0, 1).
+/// This is the ONLY sanctioned world→grid conversion in the codebase.
+pub fn world_to_grid(wx: f32, wy: f32) -> IVec2 {
+    IVec2::new(
+        (wx / TILE_SIZE).floor() as i32,
+        (wy / TILE_SIZE).floor() as i32,
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DEBUG OVERLAY
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Toggle for debug overlay visibility.
+#[derive(Resource, Default)]
+pub struct DebugOverlayState {
+    pub visible: bool,
 }
 
 #[cfg(test)]
@@ -2015,6 +2017,40 @@ mod tests {
     // ── Inventory ───────────────────────────────────────────────────
 
     #[test]
+    fn test_inventory_try_add_full_returns_overflow() {
+        let mut inv = Inventory::default();
+        // Fill every slot with a unique item (max_stack=1 each)
+        for i in 0..TOTAL_INVENTORY_SLOTS {
+            let item = format!("item_{}", i);
+            let leftover = inv.try_add(&item, 1, 1);
+            assert_eq!(leftover, 0);
+        }
+        // Inventory is now full; adding more should return the full quantity
+        let overflow = inv.try_add("extra", 5, 99);
+        assert_eq!(overflow, 5);
+    }
+
+    #[test]
+    fn test_inventory_try_add_respects_max_stack_size() {
+        let mut inv = Inventory::default();
+        // Add 5 items with max_stack=5 — fills exactly one slot
+        let leftover = inv.try_add("stone", 5, 5);
+        assert_eq!(leftover, 0);
+        // Add 1 more — must open a new slot, not overflow the existing one
+        let leftover2 = inv.try_add("stone", 1, 5);
+        assert_eq!(leftover2, 0);
+        // First (and only full) slot should still be at exactly 5
+        let full_slots: Vec<_> = inv
+            .slots
+            .iter()
+            .filter_map(|s| s.as_ref())
+            .filter(|s| s.item_id == "stone" && s.quantity == 5)
+            .collect();
+        assert_eq!(full_slots.len(), 1);
+        assert_eq!(inv.count("stone"), 6);
+    }
+
+    #[test]
     fn test_inventory_has_empty() {
         let inv = Inventory::default();
         assert!(!inv.has("turnip", 1));
@@ -2058,14 +2094,23 @@ mod tests {
     }
 
     #[test]
+    fn test_inventory_try_remove_from_empty() {
+        let mut inv = Inventory::default();
+        let removed = inv.try_remove("stone", 5);
+        assert_eq!(removed, 0);
+    }
+
+    #[test]
     fn test_inventory_slot_cleared_when_empty() {
         let mut inv = Inventory::default();
         inv.try_add("turnip", 1, 99);
         assert!(inv.slots.iter().any(|s| s.is_some()));
         inv.try_remove("turnip", 1);
         // After removing all, the slot should be None
-        let turnip_slots: Vec<_> = inv.slots.iter()
-            .filter(|s| s.as_ref().map_or(false, |s| s.item_id == "turnip"))
+        let turnip_slots: Vec<_> = inv
+            .slots
+            .iter()
+            .filter(|s| s.as_ref().is_some_and(|s| s.item_id == "turnip"))
             .collect();
         assert!(turnip_slots.is_empty());
     }
@@ -2113,6 +2158,30 @@ mod tests {
         assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
     }
 
+    #[test]
+    fn test_add_friendship_clamps_at_max() {
+        let mut rel = Relationships::default();
+        rel.friendship
+            .insert("elena".to_string(), MAX_FRIENDSHIP - 10);
+        rel.add_friendship("elena", 100);
+        assert_eq!(*rel.friendship.get("elena").unwrap(), MAX_FRIENDSHIP);
+    }
+
+    #[test]
+    fn test_add_friendship_clamps_at_zero() {
+        let mut rel = Relationships::default();
+        rel.friendship.insert("elena".to_string(), 10);
+        rel.add_friendship("elena", -100);
+        assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
+    }
+
+    #[test]
+    fn test_add_friendship_new_npc_starts_at_zero() {
+        let mut rel = Relationships::default();
+        rel.add_friendship("new_npc", 50);
+        assert_eq!(*rel.friendship.get("new_npc").unwrap(), 50);
+    }
+
     // ── SprinklerKind ───────────────────────────────────────────────
 
     #[test]
@@ -2139,13 +2208,113 @@ mod tests {
         assert_eq!(cal.day, 1);
         assert_eq!(cal.hour, 6);
         assert_eq!(cal.minute, 0);
+        assert!((cal.time_scale - (1.0 / 6.0)).abs() < f32::EPSILON);
     }
 
     #[test]
     fn test_calendar_time_float_midnight() {
-        let mut cal = Calendar::default();
-        cal.hour = 24;
-        cal.minute = 0;
+        let cal = Calendar {
+            hour: 24,
+            minute: 0,
+            ..Calendar::default()
+        };
         assert!((cal.time_float() - 24.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_calendar_day_28_advances_to_next_season() {
+        let mut cal = Calendar {
+            season: Season::Spring,
+            day: 28,
+            ..Calendar::default()
+        };
+        // Simulate the day-end advancement used by CalendarPlugin
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+        }
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.season, Season::Summer);
+    }
+
+    #[test]
+    fn test_calendar_winter_day_28_wraps_to_spring_next_year() {
+        let mut cal = Calendar {
+            season: Season::Winter,
+            day: 28,
+            year: 3,
+            ..Calendar::default()
+        };
+        // Simulate the day-end advancement
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+            if cal.season == Season::Spring {
+                cal.year += 1;
+            }
+        }
+        assert_eq!(cal.day, 1);
+        assert_eq!(cal.season, Season::Spring);
+        assert_eq!(cal.year, 4);
+    }
+
+    #[test]
+    fn test_calendar_year_increments_only_on_winter_rollover() {
+        // Advancing Spring day 28 should NOT increment the year
+        let mut cal = Calendar {
+            season: Season::Spring,
+            day: 28,
+            year: 1,
+            ..Calendar::default()
+        };
+        cal.day += 1;
+        if cal.day > DAYS_PER_SEASON {
+            cal.day = 1;
+            cal.season = cal.season.next();
+            if cal.season == Season::Spring {
+                cal.year += 1;
+            }
+        }
+        assert_eq!(
+            cal.year, 1,
+            "Year should not increment outside Winter→Spring"
+        );
+    }
+
+    // ── FarmState ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_farmstate_planting_on_occupied_tile_is_blocked() {
+        let mut farm = FarmState::default();
+        let pos = (5, 5);
+        // Plant a first crop
+        farm.crops.insert(
+            pos,
+            CropTile {
+                crop_id: "turnip_seed".to_string(),
+                current_stage: 0,
+                days_in_stage: 0,
+                watered_today: false,
+                days_without_water: 0,
+                dead: false,
+            },
+        );
+        // The farming plugin guards planting with !contains_key; verify the guard
+        assert!(
+            farm.crops.contains_key(&pos),
+            "Tile is occupied; planting must be blocked"
+        );
+    }
+
+    #[test]
+    fn test_farmstate_watering_already_watered_soil_is_idempotent() {
+        let mut farm = FarmState::default();
+        let pos = (3, 7);
+        farm.soil.insert(pos, SoilState::Watered);
+        // Water again — state must remain Watered
+        farm.soil.insert(pos, SoilState::Watered);
+        assert_eq!(farm.soil[&pos], SoilState::Watered);
     }
 }

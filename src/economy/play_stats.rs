@@ -4,8 +4,8 @@
 //! in the `PlayStats` resource. No game logic is changed here; this module is
 //! purely observational.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // System: crops_harvested
@@ -80,28 +80,23 @@ pub fn track_day_end(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Increments `PlayStats::gifts_given` for every `GiftGivenEvent`.
-pub fn track_gifts_given(
-    mut events: EventReader<GiftGivenEvent>,
-    mut stats: ResMut<PlayStats>,
-) {
+pub fn track_gifts_given(mut events: EventReader<GiftGivenEvent>, mut stats: ResMut<PlayStats>) {
     for _ev in events.read() {
         stats.gifts_given = stats.gifts_given.saturating_add(1);
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// System: animals_petted (proxy via AnimalProductEvent)
+// System: animal_products_collected
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Uses `AnimalProductEvent` as a proxy for animal interaction.
-/// Each product collected is treated as one animal interaction, incrementing
-/// `PlayStats::animals_petted`.
-pub fn track_animals_petted(
+/// Increments `PlayStats::animal_products_collected` on `AnimalProductEvent`.
+pub fn track_animal_products_collected(
     mut events: EventReader<AnimalProductEvent>,
     mut stats: ResMut<PlayStats>,
 ) {
     for _ev in events.read() {
-        stats.animals_petted = stats.animals_petted.saturating_add(1);
+        stats.animal_products_collected = stats.animal_products_collected.saturating_add(1);
     }
 }
 
@@ -110,29 +105,47 @@ pub fn track_animals_petted(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Increments `PlayStats::total_gold_earned` for every positive `GoldChangeEvent`.
-pub fn track_gold_earned(
-    mut events: EventReader<GoldChangeEvent>,
-    mut stats: ResMut<PlayStats>,
-) {
+pub fn track_gold_earned(mut events: EventReader<GoldChangeEvent>, mut stats: ResMut<PlayStats>) {
     for ev in events.read() {
         if ev.amount > 0 {
-            stats.total_gold_earned =
-                stats.total_gold_earned.saturating_add(ev.amount as u64);
+            stats.total_gold_earned = stats.total_gold_earned.saturating_add(ev.amount as u64);
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// System: recipes_cooked (proxy via EatFoodEvent)
+// System: food_eaten
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Uses `EatFoodEvent` as a proxy for cooking activity.
-/// Each food item consumed increments `PlayStats::recipes_cooked`.
-pub fn track_recipes_cooked(
-    mut events: EventReader<EatFoodEvent>,
-    mut stats: ResMut<PlayStats>,
-) {
+/// Increments `PlayStats::food_eaten` on `EatFoodEvent`.
+pub fn track_food_eaten(mut events: EventReader<EatFoodEvent>, mut stats: ResMut<PlayStats>) {
     for _ev in events.read() {
-        stats.recipes_cooked = stats.recipes_cooked.saturating_add(1);
+        stats.food_eaten = stats.food_eaten.saturating_add(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::shared::*;
+
+    #[test]
+    fn test_play_stats_default_all_zero() {
+        let stats = PlayStats::default();
+        assert_eq!(stats.crops_harvested, 0);
+        assert_eq!(stats.fish_caught, 0);
+        assert_eq!(stats.days_played, 0);
+        assert_eq!(stats.gifts_given, 0);
+        assert_eq!(stats.animal_products_collected, 0);
+        assert_eq!(stats.total_gold_earned, 0);
+        assert_eq!(stats.food_eaten, 0);
+        assert_eq!(stats.items_shipped, 0);
+    }
+
+    #[test]
+    fn test_play_stats_saturating_add() {
+        let mut stats = PlayStats::default();
+        stats.crops_harvested = u64::MAX;
+        stats.crops_harvested = stats.crops_harvested.saturating_add(1);
+        assert_eq!(stats.crops_harvested, u64::MAX);
     }
 }

@@ -1,5 +1,5 @@
+use super::menu_kit::{self, set_button_visual, MenuAssets};
 use super::UiFontHandle;
-use super::menu_kit::{self, MenuAssets, set_button_visual};
 use crate::save::{ActiveSaveSlot, SaveCompleteEvent, SaveRequestEvent};
 use crate::shared::*;
 use bevy::prelude::*;
@@ -51,7 +51,7 @@ pub fn spawn_pause_menu(
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
-            BackgroundColor(theme.bg_overlay),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
         ))
         .with_children(|parent| {
             // Panel
@@ -90,20 +90,26 @@ pub fn spawn_pause_menu(
                         TextColor(Color::srgb(0.95, 0.75, 0.45)),
                     ));
 
-                    // Hint
-                    menu_kit::spawn_menu_footer(
-                        panel,
-                        "Up/Down: Select | Enter: Confirm | Esc: Resume",
-                        &theme,
-                        &font,
-                    );
+                    // Controls reminder
+                    panel.spawn((
+                        Text::new(
+                            "WASD: Move | F: Interact | Space: Use Tool | I: Inventory | C: Craft | Esc: Pause",
+                        ),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 11.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgba(0.7, 0.7, 0.7, 0.8)),
+                        PickingBehavior::IGNORE,
+                    ));
                 });
         });
 }
 
 pub fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<PauseMenuState>();
 }
@@ -122,7 +128,9 @@ pub fn update_pause_menu_visuals(
         set_button_visual(&mut image_node, item.index == state.cursor);
     }
 
-    let mut text = status_query.single_mut();
+    let Ok(mut text) = status_query.get_single_mut() else {
+        return;
+    };
     text.0 = state.status_message.clone();
 }
 
@@ -142,15 +150,11 @@ pub fn pause_menu_navigation(
         }
     }
 
-    if action.move_down {
-        if state.cursor < PAUSE_OPTIONS.len() - 1 {
-            state.cursor += 1;
-        }
+    if action.move_down && state.cursor < PAUSE_OPTIONS.len() - 1 {
+        state.cursor += 1;
     }
-    if action.move_up {
-        if state.cursor > 0 {
-            state.cursor -= 1;
-        }
+    if action.move_up && state.cursor > 0 {
+        state.cursor -= 1;
     }
 
     if action.activate {

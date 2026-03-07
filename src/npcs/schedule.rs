@@ -1,8 +1,8 @@
 //! NPC schedule resolution and movement toward schedule waypoints.
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::spawning::NpcMovement;
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Given the current calendar state, return the active schedule entry for an NPC.
 pub fn current_schedule_entry(calendar: &Calendar, schedule: &NpcSchedule) -> ScheduleEntry {
@@ -11,7 +11,10 @@ pub fn current_schedule_entry(calendar: &Calendar, schedule: &NpcSchedule) -> Sc
         calendar.day_of_week(),
         DayOfWeek::Saturday | DayOfWeek::Sunday
     );
-    let is_raining = matches!(calendar.weather, Weather::Rainy | Weather::Stormy | Weather::Snowy);
+    let is_raining = matches!(
+        calendar.weather,
+        Weather::Rainy | Weather::Stormy | Weather::Snowy
+    );
     let is_festival = calendar.is_festival_day();
 
     // Priority: festival > rain > weekend > weekday
@@ -80,8 +83,9 @@ pub fn update_npc_schedules(
 
         // Only update target if on the right map
         if entry.map == current_map {
-            let target_x = entry.x as f32 * TILE_SIZE;
-            let target_y = -(entry.y as f32 * TILE_SIZE);
+            let wc = grid_to_world_center(entry.x, entry.y);
+            let target_x = wc.x;
+            let target_y = wc.y;
 
             // Only set moving if not already at target
             let dx = target_x - logical_pos.0.x;
@@ -133,20 +137,11 @@ pub fn move_npcs_toward_targets(
 /// System: periodically re-check schedule (runs every few seconds, not every frame).
 /// Uses a timer resource to avoid checking every tick.
 #[derive(Resource)]
-#[allow(dead_code)]
-pub struct ScheduleUpdateTimer(pub Timer);
+pub struct ScheduleUpdateTimer(#[allow(dead_code)] pub Timer);
 
 impl Default for ScheduleUpdateTimer {
     fn default() -> Self {
         // Check schedule every 5 real seconds (= 50 game minutes at 10x)
         Self(Timer::from_seconds(5.0, TimerMode::Repeating))
     }
-}
-
-#[allow(dead_code)]
-pub fn tick_schedule_timer(
-    time: Res<Time>,
-    mut timer: ResMut<ScheduleUpdateTimer>,
-) -> bool {
-    timer.0.tick(time.delta()).just_finished()
 }
