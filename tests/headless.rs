@@ -3394,3 +3394,421 @@ fn test_relationships_friendship_hearts() {
     rel.add_friendship("alice", 50);
     assert_eq!(rel.hearts("alice"), 3, "300 points = 3 hearts");
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SAVE ROUND-TRIP TESTS — verify serde (de)serialization of game state
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Helper: serialize a value to JSON and back, returning the deserialized copy.
+fn serde_roundtrip<T: serde::Serialize + serde::de::DeserializeOwned>(val: &T) -> T {
+    let json = serde_json::to_string(val).expect("serialize failed");
+    serde_json::from_str(&json).expect("deserialize failed")
+}
+
+#[test]
+fn test_save_roundtrip_calendar() {
+    let cal = Calendar {
+        year: 3,
+        season: Season::Fall,
+        day: 17,
+        hour: 14,
+        minute: 30,
+        weather: Weather::Stormy,
+        ..Calendar::default()
+    };
+    let restored = serde_roundtrip(&cal);
+    assert_eq!(restored.year, 3);
+    assert_eq!(restored.season, Season::Fall);
+    assert_eq!(restored.day, 17);
+    assert_eq!(restored.hour, 14);
+    assert_eq!(restored.minute, 30);
+    assert_eq!(restored.weather, Weather::Stormy);
+}
+
+#[test]
+fn test_save_roundtrip_player_state() {
+    let mut ps = PlayerState::default();
+    ps.gold = 12345;
+    ps.stamina = 50.0;
+    ps.equipped_tool = ToolKind::Pickaxe;
+    ps.tools.insert(ToolKind::Hoe, ToolTier::Gold);
+    ps.current_map = MapId::Mine;
+    ps.save_grid_x = 15;
+    ps.save_grid_y = 22;
+
+    let restored = serde_roundtrip(&ps);
+    assert_eq!(restored.gold, 12345);
+    assert!((restored.stamina - 50.0).abs() < f32::EPSILON);
+    assert_eq!(restored.equipped_tool, ToolKind::Pickaxe);
+    assert_eq!(restored.tools.get(&ToolKind::Hoe), Some(&ToolTier::Gold));
+    assert_eq!(restored.current_map, MapId::Mine);
+    assert_eq!(restored.save_grid_x, 15);
+    assert_eq!(restored.save_grid_y, 22);
+}
+
+#[test]
+fn test_save_roundtrip_inventory() {
+    let mut inv = Inventory::default();
+    inv.slots[0] = Some(InventorySlot {
+        item_id: "ancient_fruit".to_string(),
+        quantity: 5,
+    });
+    inv.slots[3] = Some(InventorySlot {
+        item_id: "gold_bar".to_string(),
+        quantity: 12,
+    });
+
+    let restored = serde_roundtrip(&inv);
+    assert!(restored.slots[0].is_some());
+    assert_eq!(restored.slots[0].as_ref().unwrap().item_id, "ancient_fruit");
+    assert_eq!(restored.slots[0].as_ref().unwrap().quantity, 5);
+    assert!(restored.slots[3].is_some());
+    assert_eq!(restored.slots[3].as_ref().unwrap().item_id, "gold_bar");
+    assert!(restored.slots[1].is_none());
+}
+
+#[test]
+fn test_save_roundtrip_quest_log() {
+    let ql = QuestLog {
+        active: vec![Quest {
+            id: "test_quest_1".to_string(),
+            title: "Deliver Turnips".to_string(),
+            description: "Bring 5 turnips to Nora.".to_string(),
+            giver: "nora".to_string(),
+            objective: QuestObjective::Deliver {
+                item_id: "turnip".to_string(),
+                quantity: 5,
+                delivered: 2,
+            },
+            reward_gold: 500,
+            reward_items: vec![("pumpkin_seeds".to_string(), 10)],
+            reward_friendship: 50,
+            days_remaining: Some(7),
+            accepted_day: (5, 0, 1),
+        }],
+        completed: vec!["intro_quest".to_string(), "fishing_tutorial".to_string()],
+    };
+
+    let restored = serde_roundtrip(&ql);
+    assert_eq!(restored.active.len(), 1);
+    assert_eq!(restored.active[0].id, "test_quest_1");
+    assert_eq!(restored.active[0].reward_gold, 500);
+    assert_eq!(restored.completed.len(), 2);
+    assert!(restored.completed.contains(&"intro_quest".to_string()));
+}
+
+#[test]
+fn test_save_roundtrip_achievements() {
+    let mut ach = Achievements::default();
+    ach.unlocked.push("first_harvest".to_string());
+    ach.unlocked.push("master_angler".to_string());
+    ach.progress.insert("crops_shipped".to_string(), 150);
+    ach.progress.insert("fish_caught".to_string(), 42);
+
+    let restored = serde_roundtrip(&ach);
+    assert_eq!(restored.unlocked.len(), 2);
+    assert!(restored.unlocked.contains(&"master_angler".to_string()));
+    assert_eq!(restored.progress.get("crops_shipped"), Some(&150));
+    assert_eq!(restored.progress.get("fish_caught"), Some(&42));
+}
+
+#[test]
+fn test_save_roundtrip_shipping_log() {
+    let mut sl = ShippingLog::default();
+    sl.shipped_items.insert("turnip".to_string(), 100);
+    sl.shipped_items.insert("pumpkin".to_string(), 25);
+    sl.shipped_items.insert("diamond".to_string(), 1);
+
+    let restored = serde_roundtrip(&sl);
+    assert_eq!(restored.shipped_items.len(), 3);
+    assert_eq!(restored.shipped_items.get("turnip"), Some(&100));
+    assert_eq!(restored.shipped_items.get("diamond"), Some(&1));
+}
+
+#[test]
+fn test_save_roundtrip_relationship_stages() {
+    let mut rs = RelationshipStages::default();
+    rs.stages
+        .insert("lily".to_string(), RelationshipStage::Dating);
+    rs.stages
+        .insert("elena".to_string(), RelationshipStage::Married);
+    rs.stages
+        .insert("old_tom".to_string(), RelationshipStage::CloseFriend);
+
+    let restored = serde_roundtrip(&rs);
+    assert_eq!(
+        restored.stages.get("lily"),
+        Some(&RelationshipStage::Dating)
+    );
+    assert_eq!(
+        restored.stages.get("elena"),
+        Some(&RelationshipStage::Married)
+    );
+    assert_eq!(
+        restored.stages.get("old_tom"),
+        Some(&RelationshipStage::CloseFriend)
+    );
+}
+
+#[test]
+fn test_save_roundtrip_marriage_state() {
+    let ms = MarriageState {
+        spouse: Some("elena".to_string()),
+        wedding_date: Some((15, 2, 2)),
+        days_married: 45,
+        spouse_happiness: 75,
+    };
+
+    let restored = serde_roundtrip(&ms);
+    assert_eq!(restored.spouse, Some("elena".to_string()));
+    assert_eq!(restored.wedding_date, Some((15, 2, 2)));
+    assert_eq!(restored.days_married, 45);
+    assert_eq!(restored.spouse_happiness, 75);
+}
+
+#[test]
+fn test_save_roundtrip_house_state() {
+    let hs = HouseState {
+        tier: HouseTier::Deluxe,
+        has_kitchen: true,
+        has_nursery: true,
+    };
+
+    let restored = serde_roundtrip(&hs);
+    assert_eq!(restored.tier, HouseTier::Deluxe);
+    assert!(restored.has_kitchen);
+    assert!(restored.has_nursery);
+}
+
+#[test]
+fn test_save_roundtrip_play_stats() {
+    let ps = PlayStats {
+        crops_harvested: 500,
+        fish_caught: 120,
+        items_shipped: 800,
+        gifts_given: 95,
+        mine_floors_cleared: 40,
+        animal_products_collected: 200,
+        food_eaten: 60,
+        total_gold_earned: 150000,
+        total_steps_taken: 50000,
+        days_played: 112,
+        festivals_attended: 4,
+    };
+
+    let restored = serde_roundtrip(&ps);
+    assert_eq!(restored.crops_harvested, 500);
+    assert_eq!(restored.fish_caught, 120);
+    assert_eq!(restored.items_shipped, 800);
+    assert_eq!(restored.total_gold_earned, 150000);
+    assert_eq!(restored.days_played, 112);
+    assert_eq!(restored.festivals_attended, 4);
+}
+
+#[test]
+fn test_save_roundtrip_fish_encyclopedia() {
+    use hearthfield::fishing::FishEncyclopedia;
+    let mut fe = FishEncyclopedia::default();
+    fe.record_catch("bass", 15, Season::Summer);
+    fe.record_catch("bass", 22, Season::Summer);
+    fe.record_catch("salmon", 18, Season::Fall);
+
+    let restored = serde_roundtrip(&fe);
+    assert_eq!(restored.entries.len(), 2);
+    let bass = restored.entries.get("bass").unwrap();
+    assert_eq!(bass.times_caught, 2);
+    let salmon = restored.entries.get("salmon").unwrap();
+    assert_eq!(salmon.times_caught, 1);
+}
+
+#[test]
+fn test_save_roundtrip_building_levels() {
+    use hearthfield::economy::buildings::BuildingLevels;
+    let mut bl = BuildingLevels::default();
+    bl.coop_tier = BuildingTier::Big;
+    bl.barn_tier = BuildingTier::Deluxe;
+
+    let restored = serde_roundtrip(&bl);
+    assert_eq!(restored.coop_tier, BuildingTier::Big);
+    assert_eq!(restored.barn_tier, BuildingTier::Deluxe);
+}
+
+#[test]
+fn test_save_roundtrip_tool_upgrade_queue() {
+    let mut tuq = ToolUpgradeQueue::default();
+    tuq.pending.push(PendingUpgrade {
+        tool: ToolKind::Pickaxe,
+        target_tier: ToolTier::Iridium,
+        days_remaining: 2,
+    });
+
+    let restored = serde_roundtrip(&tuq);
+    assert_eq!(restored.pending.len(), 1);
+    let p = &restored.pending[0];
+    assert_eq!(p.tool, ToolKind::Pickaxe);
+    assert_eq!(p.target_tier, ToolTier::Iridium);
+    assert_eq!(p.days_remaining, 2);
+}
+
+#[test]
+fn test_save_roundtrip_crop_tile() {
+    // CropTile round-trips individually (FarmState uses tuple keys
+    // which require non-JSON serializers for the full HashMap).
+    let crop = CropTile {
+        crop_id: "pumpkin".to_string(),
+        current_stage: 3,
+        days_in_stage: 2,
+        watered_today: true,
+        days_without_water: 0,
+        dead: false,
+    };
+
+    let restored = serde_roundtrip(&crop);
+    assert_eq!(restored.crop_id, "pumpkin");
+    assert_eq!(restored.current_stage, 3);
+    assert_eq!(restored.days_in_stage, 2);
+    assert!(restored.watered_today);
+    assert!(!restored.dead);
+}
+
+#[test]
+fn test_save_roundtrip_animal_state() {
+    let mut animal = AnimalState::default();
+    animal.animals.push(Animal {
+        name: "Bessie".to_string(),
+        kind: AnimalKind::Cow,
+        age: AnimalAge::Adult,
+        days_old: 30,
+        happiness: 200,
+        fed_today: false,
+        petted_today: false,
+        product_ready: true,
+    });
+
+    let restored = serde_roundtrip(&animal);
+    assert_eq!(restored.animals.len(), 1);
+    assert_eq!(restored.animals[0].name, "Bessie");
+    assert_eq!(restored.animals[0].kind, AnimalKind::Cow);
+    assert_eq!(restored.animals[0].happiness, 200);
+    assert_eq!(restored.animals[0].days_old, 30);
+}
+
+#[test]
+fn test_save_roundtrip_relationships() {
+    let mut rel = Relationships::default();
+    rel.add_friendship("margaret", 500);
+    rel.add_friendship("elena", 1000);
+    rel.gifted_today.insert("elena".to_string(), true);
+
+    let restored = serde_roundtrip(&rel);
+    assert_eq!(restored.hearts("margaret"), 5);
+    assert_eq!(restored.hearts("elena"), 10);
+    assert_eq!(restored.gifted_today.get("elena"), Some(&true));
+}
+
+#[test]
+fn test_save_roundtrip_mine_state() {
+    let mut ms = MineState::default();
+    ms.current_floor = 35;
+    ms.deepest_floor_reached = 50;
+
+    let restored = serde_roundtrip(&ms);
+    assert_eq!(restored.current_floor, 35);
+    assert_eq!(restored.deepest_floor_reached, 50);
+}
+
+#[test]
+fn test_save_roundtrip_all_resources_combined() {
+    let calendar = Calendar {
+        year: 2,
+        season: Season::Winter,
+        day: 25,
+        hour: 18,
+        minute: 45,
+        weather: Weather::Snowy,
+        ..Calendar::default()
+    };
+    let mut player_state = PlayerState::default();
+    player_state.gold = 99999;
+    player_state.tools.insert(ToolKind::Axe, ToolTier::Iridium);
+
+    let mut inventory = Inventory::default();
+    inventory.slots[0] = Some(InventorySlot {
+        item_id: "diamond".to_string(),
+        quantity: 3,
+    });
+
+    let mut quest_log = QuestLog::default();
+    quest_log.completed.push("main_quest_1".to_string());
+
+    let mut achievements = Achievements::default();
+    achievements.unlocked.push("full_shipment".to_string());
+
+    let mut play_stats = PlayStats::default();
+    play_stats.days_played = 365;
+    play_stats.total_gold_earned = 500000;
+
+    let cal_r = serde_roundtrip(&calendar);
+    let ps_r = serde_roundtrip(&player_state);
+    let inv_r = serde_roundtrip(&inventory);
+    let ql_r = serde_roundtrip(&quest_log);
+    let ach_r = serde_roundtrip(&achievements);
+    let stats_r = serde_roundtrip(&play_stats);
+
+    assert_eq!(cal_r.season, Season::Winter);
+    assert_eq!(cal_r.weather, Weather::Snowy);
+    assert_eq!(ps_r.gold, 99999);
+    assert_eq!(ps_r.tools.get(&ToolKind::Axe), Some(&ToolTier::Iridium));
+    assert!(inv_r.slots[0].is_some());
+    assert!(ql_r.completed.contains(&"main_quest_1".to_string()));
+    assert!(ach_r.unlocked.contains(&"full_shipment".to_string()));
+    assert_eq!(stats_r.days_played, 365);
+    assert_eq!(stats_r.total_gold_earned, 500000);
+}
+
+#[test]
+fn test_save_roundtrip_empty_defaults() {
+    let cal = Calendar::default();
+    let ps = PlayerState::default();
+    let inv = Inventory::default();
+    let ql = QuestLog::default();
+    let ach = Achievements::default();
+    let sl = ShippingLog::default();
+    let rs = RelationshipStages::default();
+    let ms = MarriageState::default();
+    let hs = HouseState::default();
+    let stats = PlayStats::default();
+
+    let cal_r = serde_roundtrip(&cal);
+    assert_eq!(cal_r.year, 1);
+    assert_eq!(cal_r.season, Season::Spring);
+    assert_eq!(cal_r.day, 1);
+
+    let ps_r = serde_roundtrip(&ps);
+    assert_eq!(ps_r.gold, 500);
+
+    let inv_r = serde_roundtrip(&inv);
+    assert!(inv_r.slots.iter().all(|s| s.is_none()));
+
+    let ql_r = serde_roundtrip(&ql);
+    assert!(ql_r.active.is_empty());
+    assert!(ql_r.completed.is_empty());
+
+    let ach_r = serde_roundtrip(&ach);
+    assert!(ach_r.unlocked.is_empty());
+
+    let sl_r = serde_roundtrip(&sl);
+    assert!(sl_r.shipped_items.is_empty());
+
+    let rs_r = serde_roundtrip(&rs);
+    assert!(rs_r.stages.is_empty());
+
+    let ms_r = serde_roundtrip(&ms);
+    assert!(ms_r.spouse.is_none());
+
+    let hs_r = serde_roundtrip(&hs);
+    assert!(!hs_r.has_kitchen);
+
+    let stats_r = serde_roundtrip(&stats);
+    assert_eq!(stats_r.crops_harvested, 0);
+}
