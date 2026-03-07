@@ -65,6 +65,17 @@ pub struct UnfedDays {
     pub count: u8,
 }
 
+/// Timer component driving animal walk-cycle frame advancement.
+/// Only attached to animals with dedicated sprite atlases (chicken, cow).
+#[derive(Component, Debug, Clone)]
+pub struct AnimalAnimTimer {
+    pub timer: Timer,
+    /// Number of frames per animation row.
+    pub frame_count: usize,
+    /// Current frame index within the row.
+    pub current_frame: usize,
+}
+
 /// Cached sprite atlas handles for animals with real sprite assets.
 #[derive(Resource, Default)]
 pub struct AnimalSpriteData {
@@ -132,6 +143,35 @@ pub fn load_animal_sprites(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Animal sprite animation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// System: animate animal sprites by cycling atlas frames when the animal is
+/// moving (has a wander target). When idle, snaps back to frame 0.
+/// Only affects entities that have an `AnimalAnimTimer` (chicken, cow).
+pub fn animate_animal_sprites(
+    time: Res<Time>,
+    mut query: Query<(&WanderAi, &mut Sprite, &mut AnimalAnimTimer)>,
+) {
+    for (wander, mut sprite, mut anim) in query.iter_mut() {
+        let is_moving = wander.target.is_some();
+
+        if is_moving {
+            anim.timer.tick(time.delta());
+            if anim.timer.just_finished() {
+                anim.current_frame = (anim.current_frame + 1) % anim.frame_count;
+            }
+        } else {
+            anim.current_frame = 0;
+        }
+
+        if let Some(atlas) = &mut sprite.texture_atlas {
+            atlas.index = anim.current_frame;
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Plugin
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -157,6 +197,7 @@ impl Plugin for AnimalPlugin {
                     update_floating_feedback,
                     sync_animal_state_resource,
                     update_product_indicators,
+                    animate_animal_sprites,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
