@@ -891,6 +891,259 @@ pub fn track_monster_slain(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Seasonal quest definitions — hand-crafted, posted on day 1 of each season
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Static objective description for a seasonal quest template.
+#[derive(Clone, Copy)]
+enum SeasonalObj {
+    Deliver { item_id: &'static str, quantity: u8 },
+    Harvest { crop_id: &'static str, quantity: u8 },
+    Catch { fish_id: &'static str },
+    Mine { item_id: &'static str, quantity: u8 },
+}
+
+/// A hand-crafted seasonal quest template, posted on day 1 of its season.
+struct SeasonalQuestTemplate {
+    id: &'static str,
+    title: &'static str,
+    description: &'static str,
+    giver: &'static str,
+    objective: SeasonalObj,
+    reward_gold: u32,
+    reward_items: &'static [(&'static str, u8)],
+    reward_friendship: i16,
+    /// 0 = Spring, 1 = Summer, 2 = Fall, 3 = Winter
+    season_idx: u8,
+}
+
+/// 12 hand-crafted seasonal story quests: 3 per season.
+/// These are posted automatically on day 1 of their respective season
+/// and expire on day 28 (last day of the season).
+const SEASONAL_QUESTS: &[SeasonalQuestTemplate] = &[
+    // ── SPRING ──────────────────────────────────────────────────────────────
+    SeasonalQuestTemplate {
+        id: "seasonal_spring_cleanup",
+        title: "Spring Cleanup",
+        description: "Mayor Rex is organising the annual spring cleanup. He needs 20 wood to repair fences and town structures damaged over winter. Help out and earn a reward!",
+        giver: "mayor_rex",
+        objective: SeasonalObj::Deliver { item_id: "wood", quantity: 20 },
+        reward_gold: 500,
+        reward_items: &[],
+        reward_friendship: 50,
+        season_idx: 0,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_first_harvest",
+        title: "First Harvest",
+        description: "Nora wants to see your first crop of the season. Harvest 5 turnips from your farm and show her the fruits of your labour.",
+        giver: "nora",
+        objective: SeasonalObj::Harvest { crop_id: "turnip", quantity: 5 },
+        reward_gold: 300,
+        reward_items: &[],
+        reward_friendship: 40,
+        season_idx: 0,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_fishing_apprentice",
+        title: "Fishing Apprentice",
+        description: "Sam has taken up fishing and wants a fresh bass to cook for dinner. Catch one from the river and deliver it to him.",
+        giver: "sam",
+        objective: SeasonalObj::Catch { fish_id: "bass" },
+        reward_gold: 400,
+        reward_items: &[("fiber", 10)],
+        reward_friendship: 45,
+        season_idx: 0,
+    },
+    // ── SUMMER ──────────────────────────────────────────────────────────────
+    SeasonalQuestTemplate {
+        id: "seasonal_summer_bounty",
+        title: "Summer Bounty",
+        description: "The summer harvest is in full swing! Lily wants to celebrate by collecting 10 melons for the town market stall. Ship them out for a generous reward.",
+        giver: "lily",
+        objective: SeasonalObj::Harvest { crop_id: "melon", quantity: 10 },
+        reward_gold: 800,
+        reward_items: &[],
+        reward_friendship: 50,
+        season_idx: 1,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_beach_cookout",
+        title: "Beach Cookout",
+        description: "Marco is hosting a summer beach cookout and needs 3 pizzas for the event. Bring them to him before the celebration starts!",
+        giver: "marco",
+        objective: SeasonalObj::Deliver { item_id: "pizza", quantity: 3 },
+        reward_gold: 600,
+        reward_items: &[],
+        reward_friendship: 80,
+        season_idx: 1,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_mining_expedition",
+        title: "Mining Expedition",
+        description: "Elena needs gold ore from the deeper mine levels for a new batch of tools. Dig down and bring back 5 gold ore to prove you can handle the deep mines.",
+        giver: "elena",
+        objective: SeasonalObj::Mine { item_id: "gold_ore", quantity: 5 },
+        reward_gold: 1000,
+        reward_items: &[("gold_ore", 5)],
+        reward_friendship: 60,
+        season_idx: 1,
+    },
+    // ── FALL ────────────────────────────────────────────────────────────────
+    SeasonalQuestTemplate {
+        id: "seasonal_harvest_festival_prep",
+        title: "Harvest Festival Prep",
+        description: "Margaret is baking for the autumn harvest festival and needs 5 pumpkins for her famous pumpkin pies. Deliver them before the festival begins!",
+        giver: "margaret",
+        objective: SeasonalObj::Deliver { item_id: "pumpkin", quantity: 5 },
+        reward_gold: 700,
+        reward_items: &[("cake", 1)],
+        reward_friendship: 60,
+        season_idx: 2,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_mushroom_hunt",
+        title: "Mushroom Hunt",
+        description: "Mira is looking for autumn produce from the forest and farm. Harvest 8 yams — they are perfect for her seasonal trading stock.",
+        giver: "mira",
+        objective: SeasonalObj::Harvest { crop_id: "yam", quantity: 8 },
+        reward_gold: 500,
+        reward_items: &[],
+        reward_friendship: 50,
+        season_idx: 2,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_animal_husbandry",
+        title: "Animal Husbandry",
+        description: "Nora is impressed by well-kept animals. Collect 3 wool from your livestock and deliver it — it shows your animals are healthy and thriving.",
+        giver: "nora",
+        objective: SeasonalObj::Deliver { item_id: "wool", quantity: 3 },
+        reward_gold: 600,
+        reward_items: &[],
+        reward_friendship: 60,
+        season_idx: 2,
+    },
+    // ── WINTER ──────────────────────────────────────────────────────────────
+    SeasonalQuestTemplate {
+        id: "seasonal_winter_stockpile",
+        title: "Winter Stockpile",
+        description: "The cold months are here. Mayor Rex wants to make sure the town is prepared — deliver 20 coal to keep the community warm through winter.",
+        giver: "mayor_rex",
+        objective: SeasonalObj::Deliver { item_id: "coal", quantity: 20 },
+        reward_gold: 1200,
+        reward_items: &[],
+        reward_friendship: 70,
+        season_idx: 3,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_community_bundle",
+        title: "Community Bundle",
+        description: "Elena is assembling a community workshop bundle for next year. Deliver 1 gold bar as the centrepiece of the community's collective effort.",
+        giver: "elena",
+        objective: SeasonalObj::Deliver { item_id: "gold_bar", quantity: 1 },
+        reward_gold: 1500,
+        reward_items: &[],
+        reward_friendship: 80,
+        season_idx: 3,
+    },
+    SeasonalQuestTemplate {
+        id: "seasonal_frozen_lake_fishing",
+        title: "Frozen Lake Fishing",
+        description: "Old Tom swears the winter fish taste the best. Catch a sturgeon from the frozen lake and bring it to him — he says it is the hardest catch of the year.",
+        giver: "old_tom",
+        objective: SeasonalObj::Catch { fish_id: "sturgeon" },
+        reward_gold: 800,
+        reward_items: &[("gold_ore", 2)],
+        reward_friendship: 60,
+        season_idx: 3,
+    },
+];
+
+/// Converts a `SeasonalObj` to a concrete `QuestObjective`.
+fn seasonal_obj_to_objective(obj: SeasonalObj) -> QuestObjective {
+    match obj {
+        SeasonalObj::Deliver { item_id, quantity } => QuestObjective::Deliver {
+            item_id: item_id.to_string(),
+            quantity,
+            delivered: 0,
+        },
+        SeasonalObj::Harvest { crop_id, quantity } => QuestObjective::Harvest {
+            crop_id: crop_id.to_string(),
+            quantity,
+            harvested: 0,
+        },
+        SeasonalObj::Catch { fish_id } => QuestObjective::Catch {
+            fish_id: fish_id.to_string(),
+            delivered: false,
+        },
+        SeasonalObj::Mine { item_id, quantity } => QuestObjective::Mine {
+            item_id: item_id.to_string(),
+            quantity,
+            collected: 0,
+        },
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// System 6b: post_seasonal_quests — posts SEASONAL_QUESTS on day 1 of each season
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// On day 1 of each season, posts the 3 hand-crafted seasonal quests for that
+/// season. Quests expire on day 28. Duplicates are suppressed via a
+/// `Local<Vec<String>>` tracker that stores the quest `id` of every quest
+/// already posted (persists for the lifetime of the session, keyed by season
+/// and year to allow re-posting in subsequent years).
+pub fn post_seasonal_quests(
+    calendar: Res<Calendar>,
+    mut quest_log: ResMut<QuestLog>,
+    mut posted_events: EventWriter<QuestPostedEvent>,
+    mut accepted_events: EventWriter<QuestAcceptedEvent>,
+    mut tracker: Local<Vec<String>>,
+) {
+    if calendar.day != 1 {
+        return;
+    }
+
+    let current_season_idx = season_to_idx(&calendar.season);
+
+    for tmpl in SEASONAL_QUESTS {
+        if tmpl.season_idx != current_season_idx {
+            continue;
+        }
+
+        // Build a per-year tracker key so quests repeat each year
+        let tracker_key = format!("{}_y{}", tmpl.id, calendar.year);
+        if tracker.contains(&tracker_key) {
+            continue;
+        }
+
+        // Also skip if the quest id is already active in the log
+        if quest_log.active.iter().any(|q| q.id == tmpl.id) {
+            continue;
+        }
+
+        let quest = Quest {
+            id: tmpl.id.to_string(),
+            title: tmpl.title.to_string(),
+            description: tmpl.description.to_string(),
+            giver: tmpl.giver.to_string(),
+            objective: seasonal_obj_to_objective(tmpl.objective),
+            reward_gold: tmpl.reward_gold,
+            reward_items: tmpl.reward_items.iter().map(|(id, qty)| (id.to_string(), *qty)).collect(),
+            reward_friendship: tmpl.reward_friendship,
+            days_remaining: Some(28),
+            accepted_day: (1, current_season_idx, calendar.year as u16),
+        };
+
+        tracker.push(tracker_key);
+        let quest_id = quest.id.clone();
+        posted_events.send(QuestPostedEvent { quest: quest.clone() });
+        quest_log.active.push(quest);
+        accepted_events.send(QuestAcceptedEvent { quest_id });
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // System 7: check_story_quests — hand-crafted Year 1 narrative quests
 // ─────────────────────────────────────────────────────────────────────────────
 
