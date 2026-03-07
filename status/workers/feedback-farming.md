@@ -1,39 +1,29 @@
-# Worker Report: Farming Feedback (Toasts)
+# Worker Report: Farming Feedback Toasts
 
 ## Status: COMPLETE (already implemented)
 
-## Files inspected (no modifications needed)
-- `src/farming/soil.rs` (175 lines) — Tasks 1 & 2 already present
-- `src/farming/harvest.rs` (239 lines) — Task 3 already present
-- `src/farming/events_handler.rs` (293 lines) — Task 4 already present
+All four toast feedback features were already present in the codebase. No changes were needed.
 
-## What was verified
+## Verification
 
-### Task 1: Already tilled (soil.rs:30)
-- `handle_hoe_tool_use` has `EventWriter<ToastEvent>` param (line 18)
-- Sends `ToastEvent { message: "Already tilled!".into(), duration_secs: 1.5 }` when soil already exists at position (line 30)
-- Normal tilling path continues unblocked after the guard
+- `cargo check` passes with zero errors.
 
-### Task 2: Already watered (soil.rs:100)
-- `handle_watering_can_tool_use` has `EventWriter<ToastEvent>` param (line 70)
-- Sends `ToastEvent { message: "Already watered today.".into(), duration_secs: 1.5 }` when all target tiles are already watered (line 100)
+## Feature Locations
 
-### Task 3: Harvest success (harvest.rs:86)
-- `handle_harvest_attempt` has `EventWriter<ToastEvent>` param (line 59)
-- After successful harvest, sends `ToastEvent { message: format!("Harvested {}!", crop_name), duration_secs: 2.0 }` (line 86)
-- crop_name sourced from `CropRegistry` via `def.name.clone()` in `try_harvest_at`
+| Feature | File | Lines | Toast Message |
+|---------|------|-------|---------------|
+| Already tilled | src/farming/soil.rs | 30-34 | "Already tilled!" (1.5s) |
+| Already watered | src/farming/soil.rs | 103-106 | "Already watered today." (1.5s) |
+| Harvest success | src/farming/harvest.rs | 160-164 | "Harvested {crop_name}!" (2.0s) |
+| Crop withered | src/farming/events_handler.rs | 194-199 | "Some crops have withered..." (3.0s) |
 
-### Task 4: Crop withered (events_handler.rs:200-201)
-- `on_season_change` has `EventWriter<ToastEvent>` param (line 171)
-- Uses `had_deaths` flag (line 193) to send ONE toast per season change (line 200-201)
-- Sends `ToastEvent { message: "Some crops have withered...".into(), duration_secs: 3.0 }`
+## Implementation Details
 
-## Shared type imports used
-- `ToastEvent` (shared/mod.rs:1088)
-- `PlaySfxEvent` (shared/mod.rs:940)
+- ToastEvent and PlaySfxEvent are imported via `use crate::shared::*;` in all three files.
+- EventWriter<ToastEvent> is already a parameter in all relevant system functions.
+- Season-change wither toast fires once per season change (not per crop), using a `had_deaths` flag.
+- No files were modified; no out-of-scope edits.
 
-## Validation results
-- `cargo check` — PASS (zero errors, zero warnings)
+## Validation
 
-## Known risks
-- None. All four toast feedback points were already correctly implemented.
+- cargo check: PASS
