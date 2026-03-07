@@ -51,6 +51,14 @@ impl Default for PreviousWeather {
     }
 }
 
+/// Tracks live weather particle totals so spawn logic can enforce hard caps
+/// without full-query counting every frame.
+#[derive(Resource, Debug, Default)]
+pub struct WeatherParticleCounts {
+    pub rain: usize,
+    pub snow: usize,
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════
@@ -80,8 +88,7 @@ pub fn spawn_weather_particles(
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
     camera_query: Query<&Transform, With<Camera2d>>,
-    rain_query: Query<(), With<RainDrop>>,
-    snow_query: Query<(), With<SnowFlake>>,
+    mut counts: ResMut<WeatherParticleCounts>,
 ) {
     // Don't spawn weather particles on indoor maps.
     if is_indoor_map(player_state.current_map) {
@@ -92,8 +99,8 @@ pub fn spawn_weather_particles(
         return;
     };
 
-    // Count existing particles to enforce the cap.
-    let existing = rain_query.iter().count() + snow_query.iter().count();
+    // Enforce hard cap using tracked totals.
+    let existing = counts.rain + counts.snow;
     if existing >= MAX_WEATHER_PARTICLES {
         return;
     }
@@ -140,6 +147,7 @@ pub fn spawn_weather_particles(
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
+                counts.rain += 1;
             }
         }
         Weather::Stormy => {
@@ -158,6 +166,7 @@ pub fn spawn_weather_particles(
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
+                counts.rain += 1;
             }
         }
         Weather::Snowy => {
@@ -186,6 +195,7 @@ pub fn spawn_weather_particles(
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
+                counts.snow += 1;
             }
         }
         Weather::Sunny => {
@@ -200,6 +210,7 @@ pub fn update_weather_particles(
     mut commands: Commands,
     time: Res<Time>,
     camera_query: Query<&Transform, With<Camera2d>>,
+    mut counts: ResMut<WeatherParticleCounts>,
     mut rain_query: Query<(Entity, &RainDrop, &mut Transform), Without<Camera2d>>,
     mut snow_query: Query<
         (Entity, &mut SnowFlake, &mut Transform),
@@ -220,6 +231,7 @@ pub fn update_weather_particles(
         transform.translation.y -= drop.speed * dt;
         if transform.translation.y < despawn_y {
             commands.entity(entity).despawn();
+            counts.rain = counts.rain.saturating_sub(1);
         }
     }
 
@@ -232,6 +244,7 @@ pub fn update_weather_particles(
             + (flake.elapsed * flake.drift_freq + flake.drift_phase).sin() * flake.drift_amp;
         if transform.translation.y < despawn_y {
             commands.entity(entity).despawn();
+            counts.snow = counts.snow.saturating_sub(1);
         }
     }
 }
@@ -242,6 +255,7 @@ pub fn cleanup_weather_on_change(
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
     mut prev_weather: ResMut<PreviousWeather>,
+    mut counts: ResMut<WeatherParticleCounts>,
     rain_query: Query<Entity, With<RainDrop>>,
     snow_query: Query<Entity, With<SnowFlake>>,
 ) {
@@ -256,6 +270,8 @@ pub fn cleanup_weather_on_change(
         for entity in snow_query.iter() {
             commands.entity(entity).despawn();
         }
+        counts.rain = 0;
+        counts.snow = 0;
     }
 }
 
@@ -286,6 +302,7 @@ pub fn weather_change_notification(
 /// Despawn all weather particles unconditionally (used on state exit).
 pub fn cleanup_all_weather_particles(
     mut commands: Commands,
+    mut counts: ResMut<WeatherParticleCounts>,
     rain_query: Query<Entity, With<RainDrop>>,
     snow_query: Query<Entity, With<SnowFlake>>,
 ) {
@@ -295,4 +312,6 @@ pub fn cleanup_all_weather_particles(
     for entity in snow_query.iter() {
         commands.entity(entity).despawn();
     }
+    counts.rain = 0;
+    counts.snow = 0;
 }

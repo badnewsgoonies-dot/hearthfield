@@ -1,4 +1,4 @@
-use super::menu_kit::{self, set_button_visual, MenuAssets, MenuButtonText};
+use super::menu_kit::{self, set_button_visual_animated, MenuAssets, MenuButtonText};
 use super::UiFontHandle;
 use crate::save::{
     LoadCompleteEvent, LoadRequestEvent, NewGameEvent, SaveSlotInfoCache, NUM_SAVE_SLOTS,
@@ -38,6 +38,7 @@ const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game"];
 const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
 const LOAD_MENU_OPTION_COUNT: usize = NUM_SAVE_SLOTS + 1;
 const ROOT_MENU_OPTION_COUNT: usize = MAIN_MENU_OPTIONS.len();
+const MENU_MODE_FADE_DURATION: f32 = 0.22;
 const MAIN_MENU_MAX_ITEMS: usize = if ROOT_MENU_OPTION_COUNT > LOAD_MENU_OPTION_COUNT {
     ROOT_MENU_OPTION_COUNT
 } else {
@@ -69,11 +70,13 @@ const CITY_OFFICE_TARGET: DlcLaunchTarget = DlcLaunchTarget {
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-fn sibling_dlc_binary_path(binary_stem: &str) -> Result<PathBuf, String> {
-    let current_exe = std::env::current_exe()
-        .map_err(|err| format!("Could not locate executable directory: {err}"))?;
-    let exe_dir = current_exe.parent().unwrap_or_else(|| Path::new("."));
-    Ok(exe_dir.join(format!("{binary_stem}{}", std::env::consts::EXE_SUFFIX)))
+fn sibling_dlc_binary_path(binary_stem: &str) -> PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    exe_dir.join(format!("{binary_stem}{}", std::env::consts::EXE_SUFFIX))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -83,7 +86,7 @@ fn dlc_working_dir(relative_path: &str) -> PathBuf {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn launch_dlc(target: &DlcLaunchTarget) -> Result<(), String> {
-    let binary_path = sibling_dlc_binary_path(target.binary_stem)?;
+    let binary_path = sibling_dlc_binary_path(target.binary_stem);
     let working_dir = dlc_working_dir(target.working_dir);
     if !binary_path.is_file() {
         return Err(format!(
@@ -125,6 +128,10 @@ pub fn spawn_main_menu(
         cursor: 0,
         status_message: String::new(),
         pending_load_slot: None,
+    });
+    commands.insert_resource(MainMenuVisualState {
+        previous_mode: MainMenuMode::Root,
+        transition_t: 1.0,
     });
 
     let font = font_handle.0.clone();
@@ -192,6 +199,12 @@ pub fn spawn_main_menu(
 #[derive(Component)]
 pub struct MainMenuStatusText;
 
+#[derive(Resource)]
+pub struct MainMenuVisualState {
+    pub previous_mode: MainMenuMode,
+    pub transition_t: f32,
+}
+
 fn current_option_count(mode: MainMenuMode) -> usize {
     match mode {
         MainMenuMode::Root => MAIN_MENU_OPTIONS.len(),
@@ -218,11 +231,33 @@ fn load_slot_label(slot_info: Option<&crate::save::SaveSlotInfo>) -> String {
     }
 }
 
+fn menu_option_label(
+    mode: MainMenuMode,
+    index: usize,
+    cache: Option<&SaveSlotInfoCache>,
+) -> Option<(String, bool)> {
+    match mode {
+        MainMenuMode::Root => MAIN_MENU_OPTIONS
+            .get(index)
+            .map(|label| ((*label).to_string(), true)),
+        MainMenuMode::LoadSlots => {
+            if index == LOAD_MENU_BACK_INDEX {
+                Some(("Back".to_string(), true))
+            } else {
+                let slot_info = cache.and_then(|c| c.slots.get(index));
+                let slot_exists = slot_info.map(|s| s.exists).unwrap_or(false);
+                Some((load_slot_label(slot_info), slot_exists))
+            }
+        }
+    }
+}
+
 pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<MainMenuState>();
+    commands.remove_resource::<MainMenuVisualState>();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -230,7 +265,9 @@ pub fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainM
 // ═══════════════════════════════════════════════════════════════════════
 
 pub fn update_main_menu_visuals(
+    time: Res<Time>,
     state: Option<Res<MainMenuState>>,
+    mut visual_state: Option<ResMut<MainMenuVisualState>>,
     cache: Option<Res<SaveSlotInfoCache>>,
     mut item_query: Query<(&MenuItem, &mut ImageNode, &mut Visibility)>,
     mut text_query: Query<
@@ -240,6 +277,18 @@ pub fn update_main_menu_visuals(
     mut status_query: Query<&mut Text, (With<MainMenuStatusText>, Without<MenuButtonText>)>,
 ) {
     let Some(state) = state else { return };
+    let Some(ref mut visual_state) = visual_state else {
+        return;
+    };
+    if visual_state.previous_mode != state.mode {
+        visual_state.previous_mode = state.mode;
+        visual_state.transition_t = 0.0;
+    } else {
+        visual_state.transition_t =
+            (visual_state.transition_t + time.delta_secs() / MENU_MODE_FADE_DURATION).clamp(0.0, 1.0);
+    }
+    let fade_in = visual_state.transition_t * visual_state.transition_t * (3.0 - 2.0 * visual_state.transition_t);
+    let pulse = ((time.elapsed_secs() * 4.5).sin() * 0.5 + 0.5) * 0.75;
     let option_count = current_option_count(state.mode);
 
     for (item, mut image_node, mut visibility) in &mut item_query {
@@ -248,7 +297,9 @@ pub fn update_main_menu_visuals(
             continue;
         }
         *visibility = Visibility::Visible;
-        set_button_visual(&mut image_node, item.index == state.cursor);
+        let selected = item.index == state.cursor;
+        let selected_pulse = if selected { pulse } else { 0.0 };
+        set_button_visual_animated(&mut image_node, selected, selected_pulse, 0.85 + fade_in * 0.15);
     }
 
     for (btn_text, mut text, mut color) in &mut text_query {
@@ -257,26 +308,20 @@ pub fn update_main_menu_visuals(
             continue;
         }
 
-        match state.mode {
-            MainMenuMode::Root => {
-                text.0 = MAIN_MENU_OPTIONS[btn_text.index].to_string();
-                color.0 = Color::WHITE;
-            }
-            MainMenuMode::LoadSlots => {
-                if btn_text.index == LOAD_MENU_BACK_INDEX {
-                    text.0 = "Back".to_string();
-                    color.0 = Color::WHITE;
-                } else {
-                    let slot_info = cache.as_ref().and_then(|c| c.slots.get(btn_text.index));
-                    let slot_exists = slot_info.map(|s| s.exists).unwrap_or(false);
-                    text.0 = load_slot_label(slot_info);
-                    color.0 = if slot_exists {
-                        Color::WHITE
-                    } else {
-                        Color::srgb(0.6, 0.6, 0.6)
-                    };
-                }
-            }
+        let Some((label, enabled)) = menu_option_label(state.mode, btn_text.index, cache.as_deref()) else {
+            text.0.clear();
+            continue;
+        };
+        text.0 = label;
+        let selected = btn_text.index == state.cursor;
+        let alpha = 0.75 + fade_in * 0.25;
+        color.0 = if selected {
+            let glow = 0.85 + pulse * 0.15;
+            Color::srgba(1.0, glow, 0.72, alpha)
+        } else if enabled {
+            Color::srgba(0.92, 0.92, 0.92, alpha * 0.92)
+        } else {
+            Color::srgba(0.58, 0.58, 0.58, alpha * 0.82)
         }
     }
 
@@ -436,7 +481,7 @@ mod tests {
 
     #[test]
     fn sibling_dlc_binary_path_uses_platform_suffix() {
-        let path = sibling_dlc_binary_path("skywarden").expect("path should resolve");
+        let path = sibling_dlc_binary_path("skywarden");
         let expected = format!("skywarden{}", std::env::consts::EXE_SUFFIX);
         assert_eq!(
             path.file_name().and_then(|name| name.to_str()),

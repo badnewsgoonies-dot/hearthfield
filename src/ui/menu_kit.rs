@@ -151,15 +151,28 @@ pub fn spawn_menu_footer(
 /// Updates a button's atlas index and tint based on selection state.
 /// Selected buttons get a golden-yellow tint overlay for stronger visual feedback.
 pub fn set_button_visual(image_node: &mut ImageNode, selected: bool) {
+    set_button_visual_animated(image_node, selected, 0.0, 1.0);
+}
+
+/// Animated variant of `set_button_visual` used by menus that want
+/// subtle pulse/glow and transition alpha control.
+pub fn set_button_visual_animated(
+    image_node: &mut ImageNode,
+    selected: bool,
+    pulse: f32,
+    alpha: f32,
+) {
     if let Some(ref mut atlas) = image_node.texture_atlas {
         atlas.index = if selected { BTN_SELECTED } else { BTN_NORMAL };
     }
+    let alpha = alpha.clamp(0.0, 1.0);
     // Apply a tint colour so the selected button is visually brighter.
     image_node.color = if selected {
-        // Golden-yellow highlight tint (multiplied against the atlas sprite)
-        Color::srgb(1.0, 0.92, 0.6)
+        // Golden-yellow highlight tint with a gentle pulse.
+        let brightness = 0.92 + pulse.clamp(0.0, 1.0) * 0.08;
+        Color::srgba(1.0, brightness, 0.62, alpha)
     } else {
-        Color::WHITE
+        Color::srgba(0.92, 0.92, 0.92, alpha)
     };
 }
 

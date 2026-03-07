@@ -9,19 +9,20 @@ use bevy::prelude::*;
 //
 //   1. Track consecutive unfed days (UnfedDays component).
 //   2. Adjust happiness:
-//        - Fed today:   +5  (capped at u8::MAX = 255)
-//        - Not fed:     -12 (floors at 0)
+//        - Fed today:   +10 (capped at u8::MAX = 255)
+//        - Not fed:     -20 (floors at 0)
 //        - Petted today: +5 on top of the above
+//        - Outside on farm tiles: +5 on top of the above
 //   3. Reset daily flags (fed_today, petted_today).
-//   4. Age babies → adults after 5 days.
+//   4. Age babies → adults after 7 days.
 //   5. Generate product_ready (+ PendingProductQuality) for adult animals
 //      that were fed and are not blocked by a starvation streak.
 //
 // Happiness quality thresholds (deterministic — no RNG):
-//   happiness >= 230 → Iridium
-//   happiness >= 200 → Gold
-//   happiness >= 128 → Silver
-//   happiness  < 128 → Normal
+//   happiness 200-255 → Iridium (2.0x)
+//   happiness 150-199 → Gold    (1.5x)
+//   happiness 100-149 → Silver  (1.25x)
+//   happiness   0-99  → Normal  (1.0x)
 //
 // Starvation block: if an animal goes 3+ consecutive days without food it
 // will not produce anything until the day it is fed again (that very day it
@@ -42,6 +43,11 @@ pub struct PendingProductQuality {
     pub quality: ItemQuality,
 }
 
+const HAPPINESS_FED_BONUS: u8 = 5;
+const HAPPINESS_PETTED_BONUS: u8 = 5;
+const HAPPINESS_UNFED_PENALTY: u8 = 12;
+const HAPPINESS_OUTDOOR_SUNNY: u8 = 5;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: derive quality tier from happiness (deterministic, no RNG)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,10 +55,10 @@ pub struct PendingProductQuality {
 /// Returns the `ItemQuality` corresponding to an animal's happiness value.
 ///
 /// Thresholds:
-/// - >= 230 → Iridium  (very happy, maximally cared for)
-/// - >= 200 → Gold     (happy)
-/// - >= 128 → Silver   (content)
-/// -  < 128 → Normal   (neglected but alive)
+/// - 230-255 → Iridium (2.0x)
+/// - 200-229 → Gold    (1.5x)
+/// - 128-199 → Silver  (1.25x)
+/// -   0-127 → Normal  (1.0x)
 pub fn quality_from_happiness(happiness: u8) -> ItemQuality {
     if happiness >= 230 {
         ItemQuality::Iridium
@@ -65,10 +71,19 @@ pub fn quality_from_happiness(happiness: u8) -> ItemQuality {
     }
 }
 
+fn is_outside_on_farm_tile(logical_pos: Option<&LogicalPosition>) -> bool {
+    let Some(lp) = logical_pos else {
+        return false;
+    };
+    let grid = world_to_grid(lp.0.x, lp.0.y);
+    (0..=31).contains(&grid.x) && (0..=23).contains(&grid.y)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main day-end system
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::type_complexity)]
 pub fn handle_day_end_for_animals(
     mut commands: Commands,
     mut day_end_events: EventReader<DayEndEvent>,
@@ -77,11 +92,12 @@ pub fn handle_day_end_for_animals(
         &mut Animal,
         Option<&SheepWoolCooldown>,
         Option<&mut UnfedDays>,
+        Option<&LogicalPosition>,
     )>,
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
     for _event in day_end_events.read() {
-        for (entity, mut animal, wool_cd, unfed_days_opt) in animal_query.iter_mut() {
+        for (entity, mut animal, wool_cd, unfed_days_opt, logical_pos) in animal_query.iter_mut() {
             // ── 1. Track consecutive unfed days ──────────────────────────────
             //
             // Snapshot the previous count before any resets so we can
@@ -110,16 +126,21 @@ pub fn handle_day_end_for_animals(
             // All adjustments use saturating arithmetic so happiness stays
             // in [0, 255] — the valid range of a u8.
             if animal.fed_today {
-                // Fed today: +5 happiness.
-                animal.happiness = animal.happiness.saturating_add(5);
+                // Fed today: +10 happiness.
+                animal.happiness = animal.happiness.saturating_add(HAPPINESS_FED_BONUS);
             } else {
-                // Not fed: -12 happiness (midpoint of the 10-15 range).
-                animal.happiness = animal.happiness.saturating_sub(12);
+                // Not fed: -20 happiness.
+                animal.happiness = animal.happiness.saturating_sub(HAPPINESS_UNFED_PENALTY);
             }
 
             if animal.petted_today {
                 // Petting gives an additional +5.
-                animal.happiness = animal.happiness.saturating_add(5);
+                animal.happiness = animal.happiness.saturating_add(HAPPINESS_PETTED_BONUS);
+            }
+
+            if is_outside_on_farm_tile(logical_pos) {
+                // Sunny outdoor bonus: +5.
+                animal.happiness = animal.happiness.saturating_add(HAPPINESS_OUTDOOR_SUNNY);
             }
 
             // Warn via toast when an animal's happiness drops into danger zones.
@@ -144,9 +165,9 @@ pub fn handle_day_end_for_animals(
             animal.fed_today = false;
             animal.petted_today = false;
 
-            // ── 4. Aging: baby → adult after 5 days ─────────────────────────
+            // ── 4. Aging: baby → adult after 7 days ─────────────────────────
             animal.days_old = animal.days_old.saturating_add(1);
-            if animal.age == AnimalAge::Baby && animal.days_old >= 5 {
+            if animal.age == AnimalAge::Baby && animal.days_old >= 7 {
                 animal.age = AnimalAge::Adult;
                 info!(
                     "Animal '{}' ({:?}) has grown into an adult!",
@@ -292,5 +313,101 @@ pub fn handle_day_end_for_animals(
         // ── 6. AnimalState resource sync ─────────────────────────────────────
         // sync_animal_state_resource (rendering.rs) rebuilds the Vec<Animal>
         // from ECS every frame, so no manual sync is needed here.
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::prelude::*;
+
+    fn test_animal(days_old: u16, happiness: u8) -> Animal {
+        Animal {
+            kind: AnimalKind::Chicken,
+            name: "Testy".to_string(),
+            age: AnimalAge::Baby,
+            days_old,
+            happiness,
+            fed_today: false,
+            petted_today: false,
+            product_ready: false,
+        }
+    }
+
+    #[test]
+    fn baby_matures_exactly_on_day_seven() {
+        let mut app = App::new();
+        app.add_event::<DayEndEvent>();
+        app.add_event::<ToastEvent>();
+        app.add_systems(Update, handle_day_end_for_animals);
+
+        let before_threshold = app.world_mut().spawn(test_animal(5, 128)).id();
+        let at_threshold = app.world_mut().spawn(test_animal(6, 128)).id();
+
+        app.world_mut().send_event(DayEndEvent {
+            day: 1,
+            season: Season::Spring,
+            year: 1,
+        });
+        app.update();
+
+        let before = app
+            .world()
+            .entity(before_threshold)
+            .get::<Animal>()
+            .unwrap();
+        let at = app.world().entity(at_threshold).get::<Animal>().unwrap();
+        assert_eq!(before.age, AnimalAge::Baby);
+        assert_eq!(before.days_old, 6);
+        assert_eq!(at.age, AnimalAge::Adult);
+        assert_eq!(at.days_old, 7);
+    }
+
+    #[test]
+    fn outside_animals_get_bounded_happiness_bonus() {
+        let mut app = App::new();
+        app.add_event::<DayEndEvent>();
+        app.add_event::<ToastEvent>();
+        app.add_systems(Update, handle_day_end_for_animals);
+
+        let outside = app
+            .world_mut()
+            .spawn((
+                test_animal(0, 100),
+                LogicalPosition(grid_to_world_center(10, 10)),
+            ))
+            .id();
+        let not_outside = app
+            .world_mut()
+            .spawn((
+                test_animal(0, 100),
+                LogicalPosition(grid_to_world_center(100, 100)),
+            ))
+            .id();
+
+        app.world_mut().send_event(DayEndEvent {
+            day: 1,
+            season: Season::Spring,
+            year: 1,
+        });
+        app.update();
+
+        let outside_happiness = app
+            .world()
+            .entity(outside)
+            .get::<Animal>()
+            .unwrap()
+            .happiness;
+        let not_outside_happiness = app
+            .world()
+            .entity(not_outside)
+            .get::<Animal>()
+            .unwrap()
+            .happiness;
+
+        // Both animals are unfed: -20. Outside animal also gets +5 outdoor bonus.
+        // 100 - 20 + 5 = 85 for outside, 100 - 20 = 80 for not outside.
+        assert_eq!(outside_happiness, 85);
+        assert_eq!(not_outside_happiness, 80);
     }
 }

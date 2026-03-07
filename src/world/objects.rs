@@ -706,25 +706,31 @@ pub fn seasonal_forageables(season: Season) -> Vec<(&'static str, Color)> {
 
 /// Maps a forageable item_id to an atlas index in grass_biome.png.
 fn forageable_atlas_index(item_id: &str) -> Option<usize> {
+    // grass_biome.png has 45 frames (indices 0-44). Each forageable gets a
+    // unique index so visually distinct items never share the same sprite.
     Some(match item_id {
+        // Spring forageables
         "wild_horseradish" => 3,
         "daffodil" => 4,
         "leek" => 5,
         "dandelion" => 7,
         "spring_onion" => 8,
+        // Summer forageables
         "grape" => 11,
         "spice_berry" => 12,
         "sweet_pea" => 13,
         "red_mushroom" => 14,
         "common_mushroom" => 9,
+        // Fall forageables
         "wild_plum" => 15,
         "hazelnut" => 16,
         "blackberry" => 17,
         "chanterelle" => 10,
-        "winter_root" => 16,
-        "crystal_fruit" => 13,
-        "snow_yam" => 3,
-        "crocus" => 7,
+        // Winter forageables — unique indices (previously duplicated spring/summer)
+        "snow_yam" => 18,
+        "winter_root" => 19,
+        "crocus" => 20,
+        "crystal_fruit" => 21,
         _ => return None,
     })
 }
@@ -2201,6 +2207,8 @@ pub fn spawn_interior_decorations(
                 kind: InteractionKind::Bed,
                 label: "Sleep".into(),
             },
+            YSorted,
+            LogicalPosition(Vec2::new(bed_wc.x, bed_wc.y)),
             Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
         ));
@@ -2214,6 +2222,8 @@ pub fn spawn_interior_decorations(
                 kind: InteractionKind::KitchenStove,
                 label: "Cook".into(),
             },
+            YSorted,
+            LogicalPosition(Vec2::new(stove_wc.x, stove_wc.y)),
             Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
             Visibility::default(),
         ));

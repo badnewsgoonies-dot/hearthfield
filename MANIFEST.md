@@ -3,10 +3,50 @@
 ## Current Phase: 3 (worker dispatch ready)
 
 ## Architecture
-- Orchestrator: Claude Opus (1M context, holds full codebase)
-- Workers: dispatched via `codex exec --full-auto --skip-git-repo-check`
+- Orchestrator: Claude Opus 4.6 (1M context, holds full codebase)
+- Workers: dispatched via Copilot CLI (preferred) or claude -p (fallback)
 - Coordination: frozen type contract + mechanical scope clamping + compiler gates
 - Scaffold: zero — orchestration logic lives in this conversation + disk artifacts
+
+## Copilot CLI Dispatch Recipe (VERIFIED WORKING in this container)
+```bash
+# Auth (tokens in ~/.env_tokens)
+source ~/.env_tokens
+# COPILOT_GITHUB_TOKEN must be fine-grained PAT (github_pat_...), NOT classic PAT
+
+# Orchestrator (GPT 5.4)
+copilot -p "orchestrator prompt" --model gpt-5.4 --yolo --add-dir /home/user/hearthfield
+
+# Worker (Opus 4.6 — 3 premium requests per call)
+copilot -p "$(cat objectives/{domain}.md)" --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield
+
+# Worker (Sonnet 4.6 — 1 premium request per call, cheaper)
+copilot -p "$(cat objectives/{domain}.md)" --model claude-sonnet-4.6 --yolo --add-dir /home/user/hearthfield
+
+# Parallel dispatch (max 2-3 concurrent, stagger 3s)
+copilot -p "..." --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield 2>&1 | tee status/workers/worker1.json &
+sleep 3
+copilot -p "..." --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield 2>&1 | tee status/workers/worker2.json &
+```
+
+### Available Models (copilot --model)
+claude-opus-4.6, claude-opus-4.6-fast, claude-sonnet-4.6, claude-sonnet-4.5, claude-haiku-4.5,
+gpt-5.4, gpt-5.3-codex, gpt-5.2-codex, gpt-5.2, gpt-5.1-codex, gpt-5.1, gpt-4.1,
+gemini-3-pro-preview
+
+### Auth Notes
+- `COPILOT_GITHUB_TOKEN` env var (NOT GITHUB_TOKEN or GH_TOKEN)
+- Must be fine-grained PAT with copilot scope
+- Classic PAT (ghp_...) works for git but NOT for Copilot auth
+- Tokens stored in `~/.env_tokens`
+
+### Fallback: Claude sub-agents (if Copilot network fails)
+```bash
+claude -p "$(cat objectives/{domain}.md)" \
+  --allowedTools "Read,Edit,Write,Bash,Grep,Glob" \
+  --max-turns 45 --output-format json \
+  --cwd /home/user/hearthfield
+```
 
 ## Type Contract
 - File: `src/shared/mod.rs` (2,252 lines)
@@ -81,7 +121,7 @@ cargo clippy -- -D warnings            # Lint gate
 ## Worker Dispatch Protocol
 1. Write spec → `docs/domains/{domain}.md` ✓
 2. Write objective → `objectives/{domain}.md` ✓
-3. Dispatch → `codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"`
+3. Dispatch → `source ~/.env_tokens && copilot -p "$(cat objectives/{domain}.md)" --model claude-opus-4.6 --yolo --add-dir /home/user/hearthfield`
 4. Wait for completion
 5. Clamp → `bash scripts/clamp-scope.sh src/{domain}/`
 6. Verify contract → `shasum -a 256 -c .contract.sha256`
@@ -105,3 +145,37 @@ cargo clippy -- -D warnings            # Lint gate
 - Phase 1: Domain boundaries drawn ✓
 - Phase 2: Full specs on disk for all 15 domains ✓
 - Phase 3: Worker objectives written for all 14 dispatchable domains ✓
+- Waves 5-7: Domain implementation (crafting, economy, fishing, npcs, mining, ui, animals, world, calendar, player, farming, save, data, input) ✓
+- Visual Audit: 5-worker parallel audit of all sprite/animation/z-order systems ✓
+- Visual Fix Pass 1: BottomCenter anchor, tool direction, water anim, grass variation, bed/stove y-sort, NPC face-player, portraits, forageables, floor tiles ✓
+
+## Completed Waves (Visual + Content)
+- Visual Pass 2: C1 fish sprite clamp ✓, H4 animal walk anim ✓, M4 crop growth anim ✓
+- Wave 8: C3 animal sprites (all 10 kinds) ✓, M6 water edge autotile ✓, 12 seasonal quests ✓
+- Wave 9: H6 emote procedural sprites ✓, dialogue expansion (+420 lines) ✓, M2 autotile verified ✓
+- Wave 10: dead code cleanup ✓, 21 new integration tests (88→109) ✓, WASM deploy bundle ✓
+
+## Visual Issues: ALL RESOLVED
+- H6: Replaced atlas guesses with procedural pixel sprites ✓
+- M2: Path/fence autotile verified correct (4-bit bitmask → 16 indices, 4×4 atlas) ✓
+
+## Test Coverage
+- 109 headless tests passing (0 failures, 2 ignored)
+- Coverage: calendar, player, farming, animals, world, npcs, economy, crafting, fishing, mining, save, festivals, quests
+
+## Tier Completion Status
+- Tier 0 (core loops): COMPLETE ✓
+- Tier 1 (event graph): COMPLETE ✓
+- Tier 2 (content & depth): COMPLETE ✓
+  - Dialogue: 10 NPCs × 4 tiers × 5-10 lines + seasonal + weather + gift responses
+  - Festivals: 4 seasonal events with mechanics and rewards
+  - Recipes: 40 total (25 crafting + 15 cooking, exceeds spec of 35)
+  - Mine: 20 floors, elevator, 3 enemy types, balanced combat, gem drops
+  - Quests: 12 seasonal + daily auto-generated
+  - Animals: 10 kinds with lifecycle, sprites, animation
+- Tier 3 (polish & deploy): MOSTLY COMPLETE
+  - Audio: music + 20+ SFX ✓
+  - Screen transitions: fade overlay ✓
+  - Save: 30+ resources serialized, chests, machines ✓
+  - WASM: configured, build script + index.html created ✓ (needs wasm32 target to build)
+  - Touch input: configured in index.html ✓

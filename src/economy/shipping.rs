@@ -13,7 +13,6 @@ pub struct ShipItemEvent {
     pub item_id: ItemId,
     pub quantity: u8,
     /// Quality of the shipped item. Affects sell price multiplier.
-    #[allow(dead_code)]
     pub quality: ItemQuality,
 }
 
@@ -216,7 +215,7 @@ pub fn process_shipping_bin_on_day_end(
         });
 
         sfx_writer.send(PlaySfxEvent {
-            sfx_id: "day_end_coins".to_string(),
+            sfx_id: "sell".to_string(),
         });
 
         // Clear the bin and quality tracking for the next day.

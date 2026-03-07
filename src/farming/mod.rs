@@ -46,10 +46,11 @@ pub struct CropTileEntity {
 }
 
 /// Marker component for farm object sprite entities (sprinklers, scarecrows).
-#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct FarmObjectEntity {
+    #[allow(dead_code)]
     pub grid_x: i32,
+    #[allow(dead_code)]
     pub grid_y: i32,
 }
 
@@ -206,9 +207,23 @@ impl Plugin for FarmingPlugin {
                     render::sync_crop_sprites,
                     render::sync_farm_objects_sprites,
                 )
+                    .run_if(in_farm_map)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            // ------------------------------------------------------------------
+            // Crop growth pop animation — ticks after sync sets base sizes
+            // ------------------------------------------------------------------
+            .add_systems(
+                PostUpdate,
+                render::animate_crop_growth
+                    .after(render::sync_crop_sprites)
                     .run_if(in_state(GameState::Playing)),
             );
     }
+}
+
+fn in_farm_map(player_state: Res<PlayerState>) -> bool {
+    player_state.current_map == MapId::Farm
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

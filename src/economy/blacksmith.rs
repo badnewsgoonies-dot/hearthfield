@@ -42,10 +42,11 @@ pub struct ToolUpgradeRequestEvent {
 }
 
 /// Fired when an upgrade completes (for UI notification).
-#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolUpgradeCompleteEvent {
+    #[allow(dead_code)]
     pub tool: ToolKind,
+    #[allow(dead_code)]
     pub new_tier: ToolTier,
 }
 
@@ -233,5 +234,78 @@ pub fn tick_upgrade_queue(
                 tool, new_tier
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tool_upgrade_queue_default_is_empty() {
+        let queue = ToolUpgradeQueue::default();
+        assert!(queue.pending.is_empty());
+        assert!(!queue.is_upgrading(ToolKind::Hoe));
+    }
+
+    #[test]
+    fn test_is_upgrading_returns_true_when_queued() {
+        let queue = ToolUpgradeQueue {
+            pending: vec![PendingUpgrade {
+                tool: ToolKind::Axe,
+                target_tier: ToolTier::Copper,
+                days_remaining: 2,
+            }],
+        };
+        assert!(queue.is_upgrading(ToolKind::Axe));
+        assert!(!queue.is_upgrading(ToolKind::Hoe));
+    }
+
+    #[test]
+    fn test_pending_upgrade_days_tick_down() {
+        let mut upgrade = PendingUpgrade {
+            tool: ToolKind::Pickaxe,
+            target_tier: ToolTier::Iron,
+            days_remaining: 2,
+        };
+        upgrade.days_remaining = upgrade.days_remaining.saturating_sub(1);
+        assert_eq!(upgrade.days_remaining, 1);
+        upgrade.days_remaining = upgrade.days_remaining.saturating_sub(1);
+        assert_eq!(upgrade.days_remaining, 0);
+        // Saturating sub prevents underflow
+        upgrade.days_remaining = upgrade.days_remaining.saturating_sub(1);
+        assert_eq!(upgrade.days_remaining, 0);
+    }
+
+    #[test]
+    fn test_multiple_upgrades_in_queue() {
+        let queue = ToolUpgradeQueue {
+            pending: vec![
+                PendingUpgrade {
+                    tool: ToolKind::Hoe,
+                    target_tier: ToolTier::Copper,
+                    days_remaining: 2,
+                },
+                PendingUpgrade {
+                    tool: ToolKind::WateringCan,
+                    target_tier: ToolTier::Gold,
+                    days_remaining: 1,
+                },
+            ],
+        };
+        assert!(queue.is_upgrading(ToolKind::Hoe));
+        assert!(queue.is_upgrading(ToolKind::WateringCan));
+        assert!(!queue.is_upgrading(ToolKind::Axe));
+        assert!(!queue.is_upgrading(ToolKind::Pickaxe));
+    }
+
+    #[test]
+    fn test_tool_upgrade_complete_event_fields() {
+        let ev = ToolUpgradeCompleteEvent {
+            tool: ToolKind::Pickaxe,
+            new_tier: ToolTier::Iridium,
+        };
+        assert_eq!(ev.tool, ToolKind::Pickaxe);
+        assert_eq!(ev.new_tier, ToolTier::Iridium);
     }
 }

@@ -1,31 +1,30 @@
-//! Floating emote bubbles above NPCs — uses Sprout Lands emotes.png.
+//! Floating emote bubbles above NPCs — procedural colored sprites.
 //!
 //! When an NPC reacts (gift, dialogue, etc.), a small emote sprite
 //! appears above their head, floats upward, and fades out.
 
 use crate::shared::*;
 use bevy::prelude::*;
+use bevy::image::{Image, ImageSampler};
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 
 // ═══════════════════════════════════════════════════════════════════════
-// EMOTE ATLAS
+// EMOTE SPRITE CACHE
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Lazily-loaded atlas for NPC emote sprites.
-/// emotes.png: 160×480px → 10 cols × 30 rows of 16×16 tiles (300 frames).
+/// Cached procedural emote sprite handles (generated once, reused).
 #[derive(Resource, Default)]
-pub struct EmoteAtlas {
-    pub image: Handle<Image>,
-    pub layout: Handle<TextureAtlasLayout>,
+pub struct EmoteSprites {
+    pub sprites: Vec<(EmoteKind, Handle<Image>)>,
     pub loaded: bool,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// EMOTE KINDS & INDEX MAPPING
+// EMOTE KINDS
 // ═══════════════════════════════════════════════════════════════════════
 
 /// The kind of emote to display above an NPC.
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmoteKind {
     Heart,       // loved gift
     Happy,       // liked gift
@@ -37,19 +36,125 @@ pub enum EmoteKind {
 }
 
 impl EmoteKind {
-    /// Map to an atlas index in emotes.png.
-    /// These are educated guesses for a standard Sprout Lands emote sheet.
-    pub fn atlas_index(self) -> usize {
+    /// Color for each emote type (recognizable at a glance).
+    pub fn color(self) -> Color {
         match self {
-            EmoteKind::Heart => 0,        // row 0, col 0 — heart
-            EmoteKind::Happy => 10,       // row 1, col 0 — smile
-            EmoteKind::Neutral => 30,     // row 3, col 0 — dots/neutral
-            EmoteKind::Sad => 40,         // row 4, col 0 — sad
-            EmoteKind::Angry => 50,       // row 5, col 0 — angry
-            EmoteKind::Exclamation => 20, // row 2, col 0 — exclamation
-            EmoteKind::Question => 60,    // row 6, col 0 — question
+            EmoteKind::Heart => Color::srgb(0.9, 0.15, 0.25),       // red
+            EmoteKind::Happy => Color::srgb(1.0, 0.85, 0.2),        // yellow
+            EmoteKind::Neutral => Color::srgb(0.7, 0.7, 0.7),       // gray
+            EmoteKind::Sad => Color::srgb(0.3, 0.5, 0.85),          // blue
+            EmoteKind::Angry => Color::srgb(0.85, 0.2, 0.1),        // dark red
+            EmoteKind::Exclamation => Color::srgb(1.0, 0.65, 0.0),  // orange
+            EmoteKind::Question => Color::srgb(0.4, 0.75, 1.0),     // light blue
         }
     }
+}
+
+/// Generate an 8x8 procedural emote image.
+fn make_emote_image(kind: EmoteKind) -> Image {
+    let w = 8usize;
+    let h = 8usize;
+    let mut data = vec![0u8; w * h * 4];
+    let c = kind.color().to_srgba();
+    let r = (c.red * 255.0) as u8;
+    let g = (c.green * 255.0) as u8;
+    let b = (c.blue * 255.0) as u8;
+
+    // Draw a simple shape based on emote type
+    let pattern: [[u8; 8]; 8] = match kind {
+        EmoteKind::Heart => [
+            [0,1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,0],
+            [0,0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0],
+        ],
+        EmoteKind::Happy => [
+            [0,0,1,1,1,1,0,0],
+            [0,1,0,0,0,0,1,0],
+            [1,0,1,0,0,1,0,1],
+            [1,0,0,0,0,0,0,1],
+            [1,0,1,0,0,1,0,1],
+            [1,0,0,1,1,0,0,1],
+            [0,1,0,0,0,0,1,0],
+            [0,0,1,1,1,1,0,0],
+        ],
+        EmoteKind::Sad => [
+            [0,0,1,1,1,1,0,0],
+            [0,1,0,0,0,0,1,0],
+            [1,0,1,0,0,1,0,1],
+            [1,0,0,0,0,0,0,1],
+            [1,0,0,1,1,0,0,1],
+            [1,0,1,0,0,1,0,1],
+            [0,1,0,0,0,0,1,0],
+            [0,0,1,1,1,1,0,0],
+        ],
+        EmoteKind::Angry => [
+            [1,0,0,0,0,0,0,1],
+            [0,1,0,0,0,0,1,0],
+            [0,0,1,0,0,1,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,1,0,0,1,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,1,1,0,0,0],
+        ],
+        EmoteKind::Exclamation => [
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0],
+        ],
+        EmoteKind::Question => [
+            [0,0,1,1,1,0,0,0],
+            [0,1,0,0,0,1,0,0],
+            [0,0,0,0,0,1,0,0],
+            [0,0,0,0,1,0,0,0],
+            [0,0,0,1,0,0,0,0],
+            [0,0,0,1,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,1,0,0,0,0],
+        ],
+        EmoteKind::Neutral => [
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,1,0,1,0,1,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+        ],
+    };
+
+    for (py, row) in pattern.iter().enumerate() {
+        for (px, &pixel) in row.iter().enumerate() {
+            let i = (py * w + px) * 4;
+            if pixel == 1 {
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+                data[i + 3] = 255;
+            }
+        }
+    }
+
+    let mut img = Image::new(
+        Extent3d { width: w as u32, height: h as u32, depth_or_array_layers: 1 },
+        TextureDimension::D2,
+        data,
+        TextureFormat::Rgba8UnormSrgb,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
+    img.sampler = ImageSampler::nearest();
+    img
 }
 
 impl From<GiftPreference> for EmoteKind {
@@ -87,25 +192,30 @@ pub struct EmoteBubble {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Spawn emote bubble sprites in response to NpcEmoteEvent.
+/// Uses procedural pixel-art sprites — no atlas dependency.
 pub fn spawn_emote_bubbles(
     mut commands: Commands,
     mut events: EventReader<NpcEmoteEvent>,
-    asset_server: Res<AssetServer>,
-    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
-    mut atlas: ResMut<EmoteAtlas>,
+    mut images: ResMut<Assets<Image>>,
+    mut emote_sprites: ResMut<EmoteSprites>,
     npc_query: Query<(&Npc, &Transform)>,
 ) {
-    // Lazy-load the emotes atlas
-    if !atlas.loaded {
-        atlas.image = asset_server.load("ui/emotes.png");
-        atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
-            UVec2::new(16, 16),
-            10,
-            30,
-            None,
-            None,
-        ));
-        atlas.loaded = true;
+    // Generate emote images once
+    if !emote_sprites.loaded {
+        let kinds = [
+            EmoteKind::Heart,
+            EmoteKind::Happy,
+            EmoteKind::Neutral,
+            EmoteKind::Sad,
+            EmoteKind::Angry,
+            EmoteKind::Exclamation,
+            EmoteKind::Question,
+        ];
+        for kind in kinds {
+            let handle = images.add(make_emote_image(kind));
+            emote_sprites.sprites.push((kind, handle));
+        }
+        emote_sprites.loaded = true;
     }
 
     for event in events.read() {
@@ -118,13 +228,14 @@ pub fn spawn_emote_bubbles(
         let npc_pos = transform.translation;
         let emote_y = npc_pos.y + 20.0; // above head
 
-        let mut sprite = Sprite::from_atlas_image(
-            atlas.image.clone(),
-            TextureAtlas {
-                layout: atlas.layout.clone(),
-                index: event.emote.atlas_index(),
-            },
-        );
+        let image_handle = emote_sprites
+            .sprites
+            .iter()
+            .find(|(k, _)| *k == event.emote)
+            .map(|(_, h)| h.clone())
+            .unwrap_or_default();
+
+        let mut sprite = Sprite::from_image(image_handle);
         sprite.custom_size = Some(Vec2::splat(12.0));
 
         commands.spawn((

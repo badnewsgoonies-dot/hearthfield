@@ -17,7 +17,7 @@ use crate::shared::*;
 
 use super::maps::WorldObjectKind;
 use super::objects::{WorldObject, WorldObjectData};
-use super::MapTile;
+use super::{MapTile, WaterEdgeOverlay};
 
 // ═══════════════════════════════════════════════════════════════════════
 // RESOURCES
@@ -124,7 +124,7 @@ fn object_tint(season: Season) -> Color {
 pub fn apply_seasonal_tint(
     calendar: Res<Calendar>,
     mut tint_applied: ResMut<SeasonalTintApplied>,
-    mut tile_query: Query<&mut Sprite, (With<MapTile>, Without<WorldObject>)>,
+    mut tile_query: Query<&mut Sprite, (With<MapTile>, Without<WorldObject>, Without<WaterEdgeOverlay>)>,
     mut object_query: Query<(&mut Sprite, &WorldObjectData), (With<WorldObject>, Without<MapTile>)>,
 ) {
     let current_season = calendar.season;

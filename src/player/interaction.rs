@@ -1,131 +1,182 @@
 use super::CollisionMap;
 use crate::shared::*;
+use crate::world::map_data::{EdgeTarget, MapRegistry};
 use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Map Transition Detection
+// Map Transition Detection (data-driven via MapRegistry)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Map edge boundaries and target transitions.
-/// In a full implementation the world domain would provide these via a
-/// resource; here we define default map sizes per MapId so the player
-/// can trigger transitions by walking to the edge.
-fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
-    // (min_x, max_x, min_y, max_y) — must match generate_*() in world/maps.rs
-    match map {
-        MapId::Farm => (0, 31, 0, 23),         // 32×24
-        MapId::Town => (0, 27, 0, 21),         // 28×22
-        MapId::Beach => (0, 19, 0, 13),        // 20×14
-        MapId::Forest => (0, 21, 0, 17),       // 22×18
-        MapId::MineEntrance => (0, 13, 0, 11), // 14×12
-        MapId::Mine => (0, 23, 0, 23),         // 24×24
-        MapId::PlayerHouse => (0, 15, 0, 15),  // 16×16
-        MapId::GeneralStore => (0, 11, 0, 11), // 12×12
-        MapId::AnimalShop => (0, 11, 0, 11),   // 12×12
-        MapId::Blacksmith => (0, 11, 0, 11),   // 12×12
+/// Map edge boundaries derived from `MapRegistry`.
+/// Falls back to hardcoded defaults if the map is not in the registry.
+fn map_bounds_from_registry(map: &MapId, registry: &MapRegistry) -> (i32, i32, i32, i32) {
+    if let Some(data) = registry.maps.get(map) {
+        (0, data.width as i32 - 1, 0, data.height as i32 - 1)
+    } else {
+        map_bounds_hardcoded(map)
     }
 }
 
-/// Determine which map the player should transition to when they walk
-/// off a given edge. Returns `None` if no transition applies.
-fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
-    let (min_x, max_x, min_y, max_y) = map_bounds(map);
+/// Hardcoded fallback for map bounds (kept for safety).
+fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
+    match map {
+        MapId::Farm => (0, 31, 0, 23),
+        MapId::Town => (0, 27, 0, 21),
+        MapId::Beach => (0, 19, 0, 13),
+        MapId::Forest => (0, 21, 0, 17),
+        MapId::MineEntrance => (0, 13, 0, 11),
+        MapId::Mine => (0, 23, 0, 23),
+        MapId::PlayerHouse => (0, 15, 0, 15),
+        MapId::GeneralStore => (0, 11, 0, 11),
+        MapId::AnimalShop => (0, 11, 0, 11),
+        MapId::Blacksmith => (0, 11, 0, 11),
+    }
+}
+
+/// Resolve an edge target to concrete (x, y) coordinates.
+fn resolve_edge_target(
+    target: &EdgeTarget,
+    target_map: MapId,
+    gx: i32,
+    gy: i32,
+    registry: &MapRegistry,
+) -> (i32, i32) {
+    match target {
+        EdgeTarget::ClampX(fixed_y) => {
+            let (_, max_x, _, _) = map_bounds_from_registry(&target_map, registry);
+            (gx.clamp(0, max_x), *fixed_y)
+        }
+        EdgeTarget::ClampY(fixed_x) => {
+            let (_, _, _, max_y) = map_bounds_from_registry(&target_map, registry);
+            (*fixed_x, gy.clamp(0, max_y))
+        }
+        EdgeTarget::Fixed(fx, fy) => (*fx, *fy),
+    }
+}
+
+/// Data-driven transition check: doors first, then edge boundaries.
+/// Falls back to the hardcoded `edge_transition_hardcoded` if the map
+/// is not present in the registry.
+fn edge_transition_from_registry(
+    map: &MapId,
+    gx: i32,
+    gy: i32,
+    registry: &MapRegistry,
+) -> Option<(MapId, i32, i32)> {
+    let Some(data) = registry.maps.get(map) else {
+        return edge_transition_hardcoded(map, gx, gy);
+    };
+
+    // ── Door triggers (checked BEFORE edge boundaries) ──
+    for door in &data.doors {
+        if (door.x_min..=door.x_max).contains(&gx) && gy == door.y {
+            return Some((door.to_map, door.to_x, door.to_y));
+        }
+    }
+
+    // NOTE: MapData.transitions are zone-based triggers kept for
+    // documentation / future use.  Actual game transitions are driven
+    // entirely by doors (above) and edge boundaries (below), matching
+    // the original hardcoded logic.
+
+    // ── Edge boundaries ──
+    let (min_x, max_x, min_y, max_y) = (0, data.width as i32 - 1, 0, data.height as i32 - 1);
+
+    if gy >= max_y {
+        if let Some((target_map, ref target)) = data.edges.north {
+            let (tx, ty) = resolve_edge_target(target, target_map, gx, gy, registry);
+            return Some((target_map, tx, ty));
+        }
+    }
+    if gy <= min_y {
+        if let Some((target_map, ref target)) = data.edges.south {
+            let (tx, ty) = resolve_edge_target(target, target_map, gx, gy, registry);
+            return Some((target_map, tx, ty));
+        }
+    }
+    if gx >= max_x {
+        if let Some((target_map, ref target)) = data.edges.east {
+            let (tx, ty) = resolve_edge_target(target, target_map, gx, gy, registry);
+            return Some((target_map, tx, ty));
+        }
+    }
+    if gx <= min_x {
+        if let Some((target_map, ref target)) = data.edges.west {
+            let (tx, ty) = resolve_edge_target(target, target_map, gx, gy, registry);
+            return Some((target_map, tx, ty));
+        }
+    }
+
+    None
+}
+
+/// Hardcoded fallback — the original edge_transition logic, preserved for
+/// use when no RON data is available.
+fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
+    let (min_x, max_x, min_y, max_y) = map_bounds_hardcoded(map);
 
     // ── Door-entry zone checks (BEFORE edge checks) ──────────────────
-    // These trigger when the player walks onto a building door tile
-    // within a map, NOT at map edges.
-
-    // Farm: Player House door at (15-16, 2) — south edge of building footprint
     if *map == MapId::Farm && (15..=16).contains(&gx) && gy == 2 {
         return Some((MapId::PlayerHouse, 8, 14));
     }
-
-    // Town: General Store door at (5-6, 2)
     if *map == MapId::Town && (5..=6).contains(&gx) && gy == 2 {
         return Some((MapId::GeneralStore, 6, 10));
     }
-
-    // Town: Animal Shop door at (22-23, 2)
     if *map == MapId::Town && (22..=23).contains(&gx) && gy == 2 {
         return Some((MapId::AnimalShop, 6, 10));
     }
-
-    // Town: Blacksmith door at (22-23, 13)
     if *map == MapId::Town && (22..=23).contains(&gx) && gy == 13 {
         return Some((MapId::Blacksmith, 6, 10));
     }
 
     // ── Edge-boundary transitions ────────────────────────────────────
-
-    // Farm exits (32x24)
     if *map == MapId::Farm {
-        // South edge → Town (28x22)
         if gy <= min_y {
             return Some((MapId::Town, gx.clamp(0, 27), 20));
         }
-        // East edge → Forest (22x18)
         if gx >= max_x {
             return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
-        // North edge → nothing (mountain boundary)
-        // West edge → Beach (20x14)
         if gx <= min_x {
-            return Some((MapId::Beach, 18, gy.clamp(0, 13)));
+            return Some((MapId::MineEntrance, 12, 6));
         }
     }
-
-    // Town exits (28x22)
     if *map == MapId::Town {
-        // North edge → Farm (32x24)
         if gy >= max_y {
             return Some((MapId::Farm, gx.clamp(0, 31), 1));
         }
-        // South edge → Beach (20x14) — spawn on sand (y=7), not ocean
         if gy <= min_y {
             return Some((MapId::Beach, gx.clamp(0, 19), 7));
         }
-        // East edge → Forest (22x18)
         if gx >= max_x {
             return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
     }
-
-    // Beach exits (20x14)
     if *map == MapId::Beach {
-        // North edge → Town (28x22)
         if gy >= max_y {
             return Some((MapId::Town, gx.clamp(0, 27), 1));
         }
-        // East edge → Farm (32x24)
         if gx >= max_x {
             return Some((MapId::Farm, 1, gy.clamp(0, 23)));
         }
     }
-
-    // Forest exits (22x18)
     if *map == MapId::Forest {
-        // West edge → Farm (32x24)
         if gx <= min_x {
             return Some((MapId::Farm, 30, gy.clamp(0, 23)));
         }
-        // North edge → MineEntrance (14x12)
         if gy >= max_y {
             return Some((MapId::MineEntrance, 7, 1));
         }
     }
-
-    // MineEntrance exits (14x12)
     if *map == MapId::MineEntrance {
-        // South edge → Forest (22x18)
         if gy <= min_y {
             return Some((MapId::Forest, 11, 16));
         }
+        if (6..=7).contains(&gx) && (1..=2).contains(&gy) {
+            return Some((MapId::Mine, 8, 14));
+        }
     }
-
-    // Interior rooms — exit through front door (y=max wall) → appropriate outdoor map
     if *map == MapId::PlayerHouse && gy >= max_y {
-        // Land on the farmhouse path outside the door, not inside the
-        // building footprint or directly on the re-entry trigger.
         return Some((MapId::Farm, 16, 3));
     }
     if *map == MapId::GeneralStore && gy >= max_y {
@@ -145,20 +196,39 @@ fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
 mod tests {
     use super::*;
 
+    /// Build a minimal registry for tests using the hardcoded generators.
+    fn test_registry() -> MapRegistry {
+        crate::world::map_data::build_map_registry()
+    }
+
     #[test]
     fn player_house_exit_lands_on_farm_path_outside_door_trigger() {
+        let reg = test_registry();
         assert_eq!(
-            edge_transition(&MapId::PlayerHouse, 8, 15),
+            edge_transition_from_registry(&MapId::PlayerHouse, 8, 15, &reg),
             Some((MapId::Farm, 16, 3))
         );
     }
 
     #[test]
     fn farmhouse_path_tile_does_not_immediately_reenter_house() {
-        assert_eq!(edge_transition(&MapId::Farm, 16, 3), None);
+        let reg = test_registry();
         assert_eq!(
-            edge_transition(&MapId::Farm, 16, 2),
+            edge_transition_from_registry(&MapId::Farm, 16, 3, &reg),
+            None
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Farm, 16, 2, &reg),
             Some((MapId::PlayerHouse, 8, 14))
+        );
+    }
+
+    #[test]
+    fn farm_west_edge_routes_toward_mine_path_not_beach() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Farm, 0, 10, &reg),
+            Some((MapId::MineEntrance, 12, 6))
         );
     }
 }
@@ -169,13 +239,14 @@ pub fn map_transition_check(
     player_state: Res<PlayerState>,
     query: Query<&GridPosition, With<Player>>,
     mut map_events: EventWriter<MapTransitionEvent>,
+    registry: Res<MapRegistry>,
 ) {
     let Ok(grid_pos) = query.get_single() else {
         return;
     };
 
     if let Some((to_map, to_x, to_y)) =
-        edge_transition(&player_state.current_map, grid_pos.x, grid_pos.y)
+        edge_transition_from_registry(&player_state.current_map, grid_pos.x, grid_pos.y, &registry)
     {
         map_events.send(MapTransitionEvent { to_map, to_x, to_y });
     }
@@ -190,6 +261,7 @@ pub fn handle_map_transition(
     mut collision_map: ResMut<CollisionMap>,
     mut camera_snap: ResMut<super::CameraSnap>,
     mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
+    registry: Res<MapRegistry>,
 ) {
     // Process only the most recent transition (in case multiple fire).
     let Some(ev) = events.read().last() else {
@@ -219,7 +291,7 @@ pub fn handle_map_transition(
     collision_map.solid_tiles.clear();
 
     // Update bounds for the new map.
-    let (min_x, max_x, min_y, max_y) = map_bounds(&ev.to_map);
+    let (min_x, max_x, min_y, max_y) = map_bounds_from_registry(&ev.to_map, &registry);
     collision_map.bounds = (min_x, max_x, min_y, max_y);
 }
 

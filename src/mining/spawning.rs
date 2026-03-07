@@ -106,6 +106,7 @@ pub fn spawn_mine_floor(
         floor: floor_num,
         total_rocks: rock_count,
         rocks_remaining: rock_count,
+        rocks_broken_this_floor: 0,
         ladder_revealed: !blueprint.ladder_hidden,
         player_grid_x: blueprint.spawn_pos.0,
         player_grid_y: blueprint.spawn_pos.1,
@@ -162,11 +163,14 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlas: &Min
     }
 }
 
+const ROCK_IRIDIUM_COLOR: Color = Color::srgb(0.40, 0.20, 0.60);
+
 fn rock_color(drop_item: &str) -> Color {
     match drop_item {
         "copper_ore" => ROCK_COPPER_COLOR,
         "iron_ore" => ROCK_IRON_COLOR,
         "gold_ore" => ROCK_GOLD_COLOR,
+        "iridium_ore" => ROCK_IRIDIUM_COLOR,
         "diamond" | "ruby" | "emerald" | "quartz" | "amethyst" => ROCK_GEM_COLOR,
         _ => ROCK_STONE_COLOR,
     }
@@ -177,6 +181,7 @@ fn rock_atlas_index(drop_item: &str) -> usize {
         "copper_ore" => 8,
         "iron_ore" => 9,
         "gold_ore" => 11,
+        "iridium_ore" => 10,
         "diamond" => 22,
         "ruby" => 19,
         "emerald" => 20,
