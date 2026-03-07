@@ -24,7 +24,6 @@ pub struct EmoteSprites {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// The kind of emote to display above an NPC.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmoteKind {
     Heart,       // loved gift

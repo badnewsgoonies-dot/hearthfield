@@ -46,10 +46,11 @@ pub struct CropTileEntity {
 }
 
 /// Marker component for farm object sprite entities (sprinklers, scarecrows).
-#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct FarmObjectEntity {
+    #[allow(dead_code)]
     pub grid_x: i32,
+    #[allow(dead_code)]
     pub grid_y: i32,
 }
 
