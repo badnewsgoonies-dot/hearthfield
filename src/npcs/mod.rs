@@ -20,7 +20,7 @@ pub mod spawning;
 
 use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
-use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteAtlas, NpcEmoteEvent};
+use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, NpcEmoteEvent};
 use gifts::{handle_gift_input, handle_gifts};
 use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
 use quests::{
@@ -52,7 +52,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<GiftDecayTracker>()
             .init_resource::<WeddingTimer>()
             .init_resource::<FarmVisitTracker>()
-            .init_resource::<EmoteAtlas>()
+            .init_resource::<EmoteSprites>()
             .add_event::<NpcEmoteEvent>();
 
         // NPC data is populated by DataPlugin during OnEnter(Loading).

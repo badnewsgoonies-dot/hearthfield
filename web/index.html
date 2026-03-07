@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hearthfield</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #loading {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #1a1a2e; color: #e8d5b7; font-family: monospace;
+            z-index: 100;
+        }
+        #loading h1 { font-size: 2em; margin-bottom: 0.5em; letter-spacing: 0.1em; }
+        #loading .subtitle { font-size: 0.9em; color: #8b7355; margin-bottom: 2em; }
+        .progress-bar {
+            width: 300px; height: 8px; background: #2a2a4e;
+            border-radius: 4px; overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%; height: 100%; background: #7cb342;
+            border-radius: 4px; transition: width 0.3s;
+        }
+        #status { margin-top: 1em; font-size: 0.8em; color: #6a6a8e; }
+        #error {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #1a1a2e; color: #e57373;
+            font-family: monospace; padding: 2em;
+            z-index: 200;
+        }
+        #error h2 { margin-bottom: 1em; }
+        #error pre { white-space: pre-wrap; color: #aaa; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h1>Hearthfield</h1>
+        <div class="subtitle">A farming & life simulator</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div id="status">Loading...</div>
+    </div>
+    <div id="error">
+        <h2>Failed to load</h2>
+        <pre id="error-details"></pre>
+    </div>
+
+    <script type="module">
+        const progress = document.getElementById('progress');
+        const status = document.getElementById('status');
+
+        function setProgress(pct, msg) {
+            progress.style.width = pct + '%';
+            status.textContent = msg;
+        }
+
+        function showError(err) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error');
+            errorDiv.style.display = 'block';
+            document.getElementById('error-details').textContent = String(err);
+        }
+
+        // Prevent touch scrolling/zooming on mobile
+        document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+        document.addEventListener('gesturestart', e => e.preventDefault());
+
+        async function run() {
+            try {
+                setProgress(10, 'Fetching WASM module...');
+                const init = await import('./pkg/hearthfield.js');
+
+                setProgress(40, 'Initializing WASM...');
+                await init.default();
+
+                setProgress(80, 'Starting game...');
+
+                // Give Bevy a frame to initialize before hiding the loading screen
+                requestAnimationFrame(() => {
+                    setProgress(100, 'Ready!');
+                    setTimeout(() => {
+                        document.getElementById('loading').style.display = 'none';
+                    }, 300);
+                });
+            } catch (err) {
+                console.error('Failed to start Hearthfield:', err);
+                showError(err);
+            }
+        }
+
+        run();
+    </script>
+</body>
+</html>
