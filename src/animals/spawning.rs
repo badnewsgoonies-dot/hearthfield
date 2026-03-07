@@ -1,4 +1,4 @@
-use super::{AnimalSpriteData, WanderAi};
+use super::{AnimalAnimTimer, AnimalSpriteData, WanderAi};
 use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
@@ -388,6 +388,25 @@ pub fn handle_animal_purchase(
                 },
             ))
             .id();
+
+        // Attach animation timer for animals with dedicated sprite sheets.
+        match kind {
+            AnimalKind::Chicken => {
+                commands.entity(entity).insert(AnimalAnimTimer {
+                    timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+                    frame_count: 4, // 4 frames per row in chicken atlas
+                    current_frame: 0,
+                });
+            }
+            AnimalKind::Cow => {
+                commands.entity(entity).insert(AnimalAnimTimer {
+                    timer: Timer::from_seconds(0.25, TimerMode::Repeating),
+                    frame_count: 3, // 3 frames per row in cow atlas
+                    current_frame: 0,
+                });
+            }
+            _ => {}
+        }
 
         // Spawn a "name tag" text as a child entity.
         commands.entity(entity).with_children(|parent| {

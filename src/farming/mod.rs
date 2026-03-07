@@ -208,6 +208,15 @@ impl Plugin for FarmingPlugin {
                 )
                     .run_if(in_farm_map)
                     .run_if(in_state(GameState::Playing)),
+            )
+            // ------------------------------------------------------------------
+            // Crop growth pop animation — ticks after sync sets base sizes
+            // ------------------------------------------------------------------
+            .add_systems(
+                PostUpdate,
+                render::animate_crop_growth
+                    .after(render::sync_crop_sprites)
+                    .run_if(in_state(GameState::Playing)),
             );
     }
 }

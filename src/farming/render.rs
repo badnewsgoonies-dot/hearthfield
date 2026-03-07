@@ -13,6 +13,22 @@ use crate::shared::*;
 use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Crop growth pop animation component
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Tracks the last-known growth stage for a crop entity and drives a brief
+/// scale "pop" animation (0.8× → 1.0×) over 0.3 s whenever the stage advances.
+#[derive(Component, Debug, Clone)]
+pub struct CropGrowthAnim {
+    pub timer: Timer,
+    pub last_known_stage: u8,
+    pub animating: bool,
+    /// The base sprite size (before animation scaling) — stored when animation
+    /// starts so we can multiply without frame-over-frame compounding.
+    pub base_size: f32,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Atlas index helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -194,7 +210,7 @@ pub fn sync_crop_sprites(
     farm_state: Res<FarmState>,
     crop_registry: Res<CropRegistry>,
     atlases: Res<FarmingAtlases>,
-    mut crop_query: Query<(&CropTileEntity, &mut Sprite, &mut CropTile)>,
+    mut crop_query: Query<(&CropTileEntity, &mut Sprite, &mut CropTile, Option<&mut CropGrowthAnim>)>,
 ) {
     // Incremental short-circuit for unchanged state/defs/atlas handles.
     if !farm_state.is_changed() && !crop_registry.is_changed() && !atlases.is_changed() {
@@ -202,9 +218,41 @@ pub fn sync_crop_sprites(
     }
 
     // ── Update existing entities ──────────────────────────────────────────────
-    for (tile, mut sprite, mut crop_component) in crop_query.iter_mut() {
+    for (tile, mut sprite, mut crop_component, growth_anim) in crop_query.iter_mut() {
         let pos = (tile.grid_x, tile.grid_y);
         if let Some(crop) = farm_state.crops.get(&pos) {
+            // Detect stage advancement and trigger growth pop animation.
+            if let Some(mut anim) = growth_anim {
+                if crop.current_stage > anim.last_known_stage {
+                    anim.last_known_stage = crop.current_stage;
+                    anim.timer.reset();
+                    anim.animating = true;
+                    // Snapshot the base size that sync_crop_sprites will set below.
+                    let is_mature_now = crop_registry
+                        .crops
+                        .get(&crop.crop_id)
+                        .map(|d| crop.current_stage >= d.growth_days.len() as u8)
+                        .unwrap_or(false);
+                    anim.base_size = if is_mature_now {
+                        TILE_SIZE * 0.95
+                    } else {
+                        TILE_SIZE * 0.8
+                    };
+                }
+            } else {
+                // First time seeing this entity — insert the anim component
+                // with last_known_stage matching current so no spurious pop.
+                let entity = farm_entities.crop_entities.get(&pos).copied();
+                if let Some(e) = entity {
+                    commands.entity(e).insert(CropGrowthAnim {
+                        timer: Timer::from_seconds(0.3, TimerMode::Once),
+                        last_known_stage: crop.current_stage,
+                        animating: false,
+                        base_size: TILE_SIZE * 0.8,
+                    });
+                }
+            }
+
             // Sync the component data.
             *crop_component = crop.clone();
 
@@ -293,6 +341,15 @@ pub fn sync_crop_sprites(
 
         let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
 
+        // Pre-build the growth anim component — last_known_stage matches current
+        // so newly spawned crops do NOT trigger a spurious pop animation.
+        let growth_anim = CropGrowthAnim {
+            timer: Timer::from_seconds(0.3, TimerMode::Once),
+            last_known_stage: crop.current_stage,
+            animating: false,
+            base_size: TILE_SIZE * 0.8,
+        };
+
         let entity = if atlases.loaded && !crop.dead {
             // Preferred path: texture atlas sprite.
             let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
@@ -311,6 +368,7 @@ pub fn sync_crop_sprites(
                         grid_y: pos.1,
                     },
                     crop,
+                    growth_anim,
                 ))
                 .id()
         } else {
@@ -337,6 +395,7 @@ pub fn sync_crop_sprites(
                         grid_y: pos.1,
                     },
                     crop,
+                    growth_anim,
                 ))
                 .id()
         };
@@ -355,6 +414,44 @@ pub fn sync_crop_sprites(
     for pos in stale {
         if let Some(entity) = farm_entities.crop_entities.remove(&pos) {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Crop growth pop animation system
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Tick the growth-pop animation timer and interpolate sprite scale.
+///
+/// When `CropGrowthAnim.animating` is true the sprite scales from 0.8× to 1.0×
+/// over the timer duration (0.3 s).  The multiplier is applied on top of the
+/// base custom_size that `sync_crop_sprites` already set, using the stored
+/// `base_size` to avoid frame-over-frame compounding.
+pub fn animate_crop_growth(
+    time: Res<Time>,
+    mut query: Query<(&mut CropGrowthAnim, &mut Sprite)>,
+) {
+    for (mut anim, mut sprite) in query.iter_mut() {
+        if !anim.animating {
+            continue;
+        }
+
+        anim.timer.tick(time.delta());
+
+        // Lerp from 0.8 to 1.0 over the timer duration.
+        let t = anim.timer.fraction();
+        let scale_factor = 0.8 + 0.2 * t;
+
+        // Apply the pop multiplier on the stored base size (set by sync_crop_sprites
+        // when the animation was triggered).
+        let scaled = anim.base_size * scale_factor;
+        sprite.custom_size = Some(Vec2::splat(scaled));
+
+        if anim.timer.finished() {
+            anim.animating = false;
+            // Restore exact base size to avoid floating-point drift.
+            sprite.custom_size = Some(Vec2::splat(anim.base_size));
         }
     }
 }
