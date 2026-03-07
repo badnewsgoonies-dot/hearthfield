@@ -25,7 +25,8 @@ use gifts::{handle_gift_input, handle_gifts};
 use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
 use quests::{
     check_story_quests, expire_quests, handle_quest_accepted, handle_quest_completed,
-    log_quest_posted, post_daily_quests, track_monster_slain, track_quest_progress,
+    log_quest_posted, post_daily_quests, post_seasonal_quests, track_monster_slain,
+    track_quest_progress,
 };
 use romance::{
     handle_bouquet, handle_proposal, handle_spouse_action, handle_wedding, spouse_daily_action,
@@ -120,6 +121,7 @@ impl Plugin for NpcPlugin {
                 handle_spouse_action,
                 update_spouse_happiness,
                 post_daily_quests,
+                post_seasonal_quests,
                 check_story_quests,
                 log_quest_posted,
                 handle_quest_accepted,
