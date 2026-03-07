@@ -41,6 +41,13 @@ use hearthfield::npcs::romance::{
 };
 use hearthfield::shared::*;
 use hearthfield::world::objects::seasonal_forageables;
+use hearthfield::calendar::festivals::{
+    check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
+};
+use hearthfield::crafting::food_buff_for_item;
+use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
+use hearthfield::fishing::legendaries::{is_legendary, legendary_fish_defs};
+use hearthfield::fishing::skill::{xp_for_rarity, FishingSkill};
 use std::collections::HashMap;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2967,4 +2974,423 @@ fn test_walk_atlas_all_directions() {
     // Left row 3
     assert_eq!(left + frame0, 12);
     assert_eq!(left + frame3, 15);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Festival System
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_festival_check_activates_egg_festival() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Set calendar to Spring 13 (Egg Festival)
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Spring;
+        cal.day = 13;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active,
+        Some(FestivalKind::EggFestival),
+        "Spring 13 should activate Egg Festival"
+    );
+    assert!(!festival.started, "Festival should not be started yet");
+}
+
+#[test]
+fn test_festival_check_activates_winter_star() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Winter;
+        cal.day = 25;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active,
+        Some(FestivalKind::WinterStar),
+        "Winter 25 should activate Winter Star"
+    );
+}
+
+#[test]
+fn test_festival_no_activation_on_normal_day() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Spring;
+        cal.day = 5;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active, None,
+        "Spring 5 is not a festival day"
+    );
+}
+
+#[test]
+fn test_festival_cleanup_on_day_end() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        cleanup_festival_on_day_end.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Set an active festival
+    {
+        let mut festival = app.world_mut().resource_mut::<FestivalState>();
+        festival.active = Some(FestivalKind::Luau);
+        festival.started = true;
+        festival.score = 42;
+        festival.items_collected = 3;
+    }
+
+    send_day_end(&mut app, 11, Season::Summer, 1);
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(festival.active, None, "Festival should be cleared after day end");
+    assert!(!festival.started, "Festival started should be reset");
+    assert_eq!(festival.score, 0, "Festival score should be reset");
+    assert_eq!(festival.items_collected, 0, "Festival items_collected should be reset");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Crafting Machine Outputs (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_furnace_smelts_ores() {
+    let result = resolve_machine_output(MachineType::Furnace, "copper_ore");
+    assert_eq!(result, Some(("copper_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "iron_ore");
+    assert_eq!(result, Some(("iron_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "gold_ore");
+    assert_eq!(result, Some(("gold_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "iridium_ore");
+    assert_eq!(result, Some(("iridium_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "quartz");
+    assert_eq!(result, Some(("refined_quartz".to_string(), 1)));
+}
+
+#[test]
+fn test_furnace_rejects_unknown_input() {
+    let result = resolve_machine_output(MachineType::Furnace, "parsnip");
+    assert_eq!(result, None, "Furnace should not accept parsnip");
+}
+
+#[test]
+fn test_preserves_jar_makes_jelly_and_pickles() {
+    let result = resolve_machine_output(MachineType::PreservesJar, "blueberry");
+    assert_eq!(result, Some(("blueberry_jelly".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::PreservesJar, "turnip");
+    assert_eq!(result, Some(("pickled_turnip".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::PreservesJar, "pumpkin");
+    assert_eq!(result, Some(("pickled_pumpkin".to_string(), 1)));
+}
+
+#[test]
+fn test_machine_processing_hours() {
+    assert!((MachineType::Furnace.processing_hours() - 0.5).abs() < f32::EPSILON);
+    assert!((MachineType::PreservesJar.processing_hours() - 4.0).abs() < f32::EPSILON);
+    assert!((MachineType::CheesePress.processing_hours() - 3.0).abs() < f32::EPSILON);
+    assert!((MachineType::Keg.processing_hours() - 72.0).abs() < f32::EPSILON);
+    assert!((MachineType::OilMaker.processing_hours() - 24.0).abs() < f32::EPSILON);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Animal Lifecycle
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_animal_happiness_clamps_to_zero() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        handle_day_end_for_animals.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Animal with very low happiness, unfed
+    let animal_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Chicken,
+            name: "Sad".to_string(),
+            age: AnimalAge::Adult,
+            days_old: 10,
+            happiness: 5, // will drop by 12 when unfed -> should clamp to 0
+            fed_today: false,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
+
+    send_day_end(&mut app, 1, Season::Spring, 1);
+    app.update();
+
+    let animal = app.world().entity(animal_id).get::<Animal>().unwrap();
+    assert_eq!(
+        animal.happiness, 0,
+        "Happiness should clamp to 0, not underflow"
+    );
+}
+
+#[test]
+fn test_baby_animal_stays_baby_before_threshold() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        handle_day_end_for_animals.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    let baby_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Cow,
+            name: "BabyCow".to_string(),
+            age: AnimalAge::Baby,
+            days_old: 3, // will become 4, still baby (needs 7+)
+            happiness: 100,
+            fed_today: true,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
+
+    send_day_end(&mut app, 2, Season::Spring, 1);
+    app.update();
+
+    let animal = app.world().entity(baby_id).get::<Animal>().unwrap();
+    assert_eq!(animal.age, AnimalAge::Baby, "Should still be a baby at 4 days old");
+    assert_eq!(animal.days_old, 4);
+    assert!(!animal.product_ready, "Baby should not produce");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Fishing Skill (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_fishing_skill_xp_for_rarity_values() {
+    assert_eq!(xp_for_rarity(Rarity::Common), 3);
+    assert_eq!(xp_for_rarity(Rarity::Uncommon), 8);
+    assert_eq!(xp_for_rarity(Rarity::Rare), 15);
+    assert_eq!(xp_for_rarity(Rarity::Legendary), 25);
+}
+
+#[test]
+fn test_fishing_skill_level_up_progression() {
+    let mut skill = FishingSkill::default();
+    assert_eq!(skill.level, 0);
+
+    // Catch enough common fish to reach level 1 (need 10 XP, common = 3 each)
+    skill.add_catch_xp(Rarity::Common);
+    skill.add_catch_xp(Rarity::Common);
+    skill.add_catch_xp(Rarity::Common);
+    skill.add_catch_xp(Rarity::Common);
+    // 4 * 3 = 12 XP >= 10 threshold
+    assert_eq!(skill.level, 1, "Should be level 1 after 12 XP");
+    assert_eq!(skill.total_catches, 4);
+
+    // Bar size at level 1: 40 + 3*1 = 43
+    assert!((skill.bar_size_px() - 43.0).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_fishing_skill_max_level_bonuses_capped() {
+    let mut skill = FishingSkill { xp: 10_000, ..FishingSkill::default() };
+    skill.recalculate();
+
+    assert_eq!(skill.level, 10);
+    assert!(
+        (skill.bite_speed_bonus - FishingSkill::MAX_BITE_SPEED).abs() < f32::EPSILON,
+        "Bite speed bonus should cap at MAX_BITE_SPEED"
+    );
+    assert!(
+        (skill.catch_zone_bonus - FishingSkill::MAX_CATCH_ZONE).abs() < f32::EPSILON,
+        "Catch zone bonus should cap at MAX_CATCH_ZONE"
+    );
+}
+
+#[test]
+fn test_fishing_skill_bar_size_scales_with_level() {
+    let mut skill = FishingSkill::default();
+    // Level 0: 40px base
+    assert!((skill.bar_size_px() - 40.0).abs() < f32::EPSILON);
+
+    // Level 5: 40 + 3*5 = 55px
+    skill.xp = 200;
+    skill.recalculate();
+    assert_eq!(skill.level, 5);
+    assert!((skill.bar_size_px() - 55.0).abs() < f32::EPSILON);
+
+    // Level 10: 40 + 3*10 = 70px
+    skill.xp = 1500;
+    skill.recalculate();
+    assert_eq!(skill.level, 10);
+    assert!((skill.bar_size_px() - 70.0).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_legendary_fish_identification() {
+    let defs = legendary_fish_defs();
+    assert!(!defs.is_empty(), "Should have at least one legendary fish definition");
+
+    // All legendary defs should be identified as legendary
+    for def in &defs {
+        assert!(
+            is_legendary(&def.id),
+            "{} should be identified as legendary",
+            def.id
+        );
+    }
+
+    // Non-legendary fish should not be legendary
+    assert!(!is_legendary("sardine"), "sardine should not be legendary");
+    assert!(!is_legendary("carp"), "carp should not be legendary");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Mining Floor Generation (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_mine_state_default_values() {
+    let mine = MineState::default();
+    assert_eq!(mine.current_floor, 0, "Default mine floor should be 0 (not in mine)");
+    assert_eq!(mine.deepest_floor_reached, 0, "Default deepest floor should be 0");
+    assert!(mine.elevator_floors.is_empty(), "Default elevator floors should be empty");
+}
+
+#[test]
+fn test_mine_elevator_unlocks_every_5_floors() {
+    let mine = MineState {
+        deepest_floor_reached: 5,
+        elevator_floors: vec![0, 5], // 0 = surface, 5 = first elevator stop
+        ..MineState::default()
+    };
+
+    assert!(
+        mine.elevator_floors.contains(&5),
+        "Elevator should have floor 5 unlocked"
+    );
+    assert!(
+        !mine.elevator_floors.contains(&3),
+        "Elevator should NOT have floor 3 (not a multiple of 5)"
+    );
+
+    // Simulate reaching floor 10
+    let mine2 = MineState {
+        deepest_floor_reached: 10,
+        elevator_floors: vec![0, 5, 10],
+        ..MineState::default()
+    };
+
+    assert!(
+        mine2.elevator_floors.contains(&10),
+        "Elevator should have floor 10 unlocked"
+    );
+    assert_eq!(mine2.elevator_floors.len(), 3, "Should have 3 stops: 0, 5, 10");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Inventory Operations (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_inventory_add_and_count() {
+    let mut inv = Inventory::default();
+    let leftover = inv.try_add("wood", 10, 99);
+    assert_eq!(leftover, 0, "Should add all 10 wood with no leftover");
+    assert_eq!(inv.count("wood"), 10);
+    assert!(inv.has("wood", 10));
+    assert!(!inv.has("wood", 11));
+}
+
+#[test]
+fn test_inventory_remove() {
+    let mut inv = Inventory::default();
+    inv.try_add("stone", 20, 99);
+    let removed = inv.try_remove("stone", 15);
+    assert_eq!(removed, 15, "Should remove 15 stone");
+    assert_eq!(inv.count("stone"), 5, "Should have 5 stone remaining");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Food Buff Lookup (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_food_buff_known_items() {
+    let buff = food_buff_for_item("fried_egg");
+    assert!(buff.is_some(), "fried_egg should grant a buff");
+    let buff = buff.unwrap();
+    assert_eq!(buff.buff_type, BuffType::Farming);
+    assert!((buff.magnitude - 1.2).abs() < f32::EPSILON);
+
+    let buff = food_buff_for_item("fish_stew").unwrap();
+    assert_eq!(buff.buff_type, BuffType::Fishing);
+
+    let no_buff = food_buff_for_item("stone");
+    assert!(no_buff.is_none(), "stone should not grant a food buff");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Relationships (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_relationships_friendship_hearts() {
+    let mut rel = Relationships::default();
+    assert_eq!(rel.hearts("alice"), 0, "Unknown NPC should have 0 hearts");
+
+    rel.add_friendship("alice", 250);
+    assert_eq!(rel.hearts("alice"), 2, "250 points = 2 hearts");
+
+    rel.add_friendship("alice", 50);
+    assert_eq!(rel.hearts("alice"), 3, "300 points = 3 hearts");
 }
