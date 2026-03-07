@@ -149,11 +149,10 @@ cargo clippy -- -D warnings            # Lint gate
 - Visual Audit: 5-worker parallel audit of all sprite/animation/z-order systems ✓
 - Visual Fix Pass 1: BottomCenter anchor, tool direction, water anim, grass variation, bed/stove y-sort, NPC face-player, portraits, forageables, floor tiles ✓
 
+## Completed Waves (Visual + Content)
+- Visual Pass 2: C1 fish sprite clamp ✓, H4 animal walk anim ✓, M4 crop growth anim ✓
+- Wave 8: C3 animal sprites (all 10 kinds) ✓, M6 water edge autotile ✓, 12 seasonal quests ✓
+
 ## Remaining Visual Issues (from status/workers/visual_audit_report.md)
-- C1: Fish sprite_index OOB (indices 48-52 for 48-frame atlas) — no render consumer yet
-- C3: 8/10 animal types have no dedicated sprites (colored rectangles or tinted humans)
-- H4: No animal animation system
 - H6: Emote atlas indices are guesses
 - M2: Path/fence autotile bitmask assumption unverified
-- M4: Crop growth has no animation (instant jump between stages)
-- M6: No water edge transitions
