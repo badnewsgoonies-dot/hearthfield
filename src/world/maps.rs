@@ -4,6 +4,7 @@
 //! Maps also include transition zones and object spawn points.
 
 use crate::shared::*;
+use serde::{Deserialize, Serialize};
 
 /// Complete definition of a game map.
 #[derive(Debug, Clone)]
@@ -43,7 +44,7 @@ pub struct ObjectPlacement {
 }
 
 /// The types of world objects that can exist on maps.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WorldObjectKind {
     Tree,
     Pine,

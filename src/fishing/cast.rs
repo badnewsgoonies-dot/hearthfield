@@ -94,7 +94,7 @@ pub fn handle_tool_use_for_fishing(
             .unwrap_or(false);
         if !is_water {
             toast_events.send(ToastEvent {
-                message: "You need to cast into water!".into(),
+                message: "Can't fish here.".into(),
                 duration_secs: 2.0,
             });
             continue;
