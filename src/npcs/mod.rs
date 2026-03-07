@@ -20,12 +20,13 @@ pub mod spawning;
 
 use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
-use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteAtlas, NpcEmoteEvent};
+use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, NpcEmoteEvent};
 use gifts::{handle_gift_input, handle_gifts};
 use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
 use quests::{
     check_story_quests, expire_quests, handle_quest_accepted, handle_quest_completed,
-    log_quest_posted, post_daily_quests, track_monster_slain, track_quest_progress,
+    log_quest_posted, post_daily_quests, post_seasonal_quests, track_monster_slain,
+    track_quest_progress,
 };
 use romance::{
     handle_bouquet, handle_proposal, handle_spouse_action, handle_wedding, spouse_daily_action,
@@ -51,7 +52,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<GiftDecayTracker>()
             .init_resource::<WeddingTimer>()
             .init_resource::<FarmVisitTracker>()
-            .init_resource::<EmoteAtlas>()
+            .init_resource::<EmoteSprites>()
             .add_event::<NpcEmoteEvent>();
 
         // NPC data is populated by DataPlugin during OnEnter(Loading).
@@ -74,15 +75,23 @@ impl Plugin for NpcPlugin {
         app.add_systems(
             Update,
             handle_npc_interaction
+                .in_set(UpdatePhase::Intent)
                 .run_if(in_state(GameState::Playing))
                 .before(crate::player::interact_dispatch::dispatch_world_interaction),
+        );
+
+        // Deterministic schedule resolution cadence.
+        app.add_systems(
+            FixedUpdate,
+            update_npc_schedules
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
         );
 
         // Playing-state systems: core NPC behaviour
         app.add_systems(
             Update,
             (
-                update_npc_schedules,
                 move_npcs_toward_targets,
                 animate_npc_sprites,
                 handle_gift_input,
@@ -95,6 +104,7 @@ impl Plugin for NpcPlugin {
                 animate_emote_bubbles,
                 reset_daily_talks,
             )
+                .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -111,6 +121,7 @@ impl Plugin for NpcPlugin {
                 handle_spouse_action,
                 update_spouse_happiness,
                 post_daily_quests,
+                post_seasonal_quests,
                 check_story_quests,
                 log_quest_posted,
                 handle_quest_accepted,
@@ -119,6 +130,7 @@ impl Plugin for NpcPlugin {
                 handle_quest_completed,
                 expire_quests,
             )
+                .in_set(UpdatePhase::Reactions)
                 .run_if(in_state(GameState::Playing)),
         );
     }

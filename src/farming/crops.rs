@@ -31,8 +31,8 @@ pub fn detect_seed_use(
         return;
     }
 
-    // Interact key: F
-    if !player_input.interact {
+    // Interact key (F) or tool-use key (Space) — both plant seeds.
+    if !player_input.interact && !player_input.tool_use {
         return;
     }
 

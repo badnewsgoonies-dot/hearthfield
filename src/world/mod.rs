@@ -15,6 +15,7 @@ use crate::shared::*;
 
 pub mod chests;
 pub mod lighting;
+pub mod map_data;
 pub mod maps;
 pub mod objects;
 pub mod seasonal;
@@ -25,6 +26,7 @@ use lighting::{
     despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
     update_lightning_flash, LightningFlash,
 };
+use map_data::MapRegistry;
 use maps::{generate_map, MapDef};
 use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, handle_weed_scythe,
@@ -39,7 +41,7 @@ use seasonal::{
 };
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
-    update_weather_particles, weather_change_notification, PreviousWeather,
+    update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -50,7 +52,8 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<WorldMap>()
+        app.insert_resource(map_data::build_map_registry())
+            .init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
@@ -59,10 +62,13 @@ impl Plugin for WorldPlugin {
             .init_resource::<chests::ChestSpriteData>()
             .init_resource::<SeasonalTintApplied>()
             .init_resource::<LeafSpawnAccumulator>()
+            .init_resource::<WaterAnimationTimer>()
+            .init_resource::<WaterEdgePhase>()
             // Day/night + weather resources
             .init_resource::<DayNightTint>()
             .init_resource::<LightningFlash>()
             .init_resource::<PreviousWeather>()
+            .init_resource::<WeatherParticleCounts>()
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
@@ -87,6 +93,15 @@ impl Plugin for WorldPlugin {
                     chests::place_chest,
                     chests::interact_with_chest,
                     chests::close_chest_on_escape,
+                    // Weed scythe clearing
+                    handle_weed_scythe,
+                )
+                    .in_set(UpdatePhase::Simulation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
                     // Seasonal tinting and leaf particles
                     apply_seasonal_tint,
                     spawn_falling_leaves,
@@ -99,11 +114,12 @@ impl Plugin for WorldPlugin {
                     update_weather_particles,
                     cleanup_weather_on_change,
                     weather_change_notification,
-                    // Weed scythe clearing
-                    handle_weed_scythe,
                     // Forageable sparkle particles
                     update_forage_sparkles,
+                    // Water tile animation
+                    animate_water_tiles,
                 )
+                    .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
             )
             .add_systems(
@@ -118,14 +134,25 @@ impl Plugin for WorldPlugin {
                     spawn_interior_decorations,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
+                )
+                    .in_set(UpdatePhase::Simulation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
                     // Subtle pulse on nearby interactable objects
                     highlight_nearby_interactables,
                 )
+                    .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
             )
             // Listen for day-end events (forageable respawn + weed spawning) in any state
             // so we don't miss the event
-            .add_systems(Update, (handle_day_end_forageables, spawn_daily_weeds))
+            .add_systems(
+                Update,
+                (handle_day_end_forageables, spawn_daily_weeds).in_set(UpdatePhase::Reactions),
+            )
             // Listen for season changes for visual updates + tree regrowth.
             // This handles season-switch atlas swaps (index-based).
             // apply_seasonal_tint handles multiplicative colour tinting.
@@ -135,7 +162,8 @@ impl Plugin for WorldPlugin {
                     handle_season_change,
                     regrow_trees_on_season_change,
                     update_tree_sprites_on_season_change,
-                ),
+                )
+                    .in_set(UpdatePhase::Reactions),
             )
             // Y-sort + pixel-snap: runs after all movement, writes Transform
             .add_systems(PostUpdate, ysort::sync_position_and_ysort);
@@ -303,17 +331,21 @@ fn tile_atlas_info(
         // Different rows could represent seasonal variants; for now we pick
         // a reasonable base index per season.
         TileKind::Grass => {
-            // Row 0 = basic grass. Index 5 is middle of the first row.
-            let index = match _season {
-                Season::Spring => 5,  // lush green center
-                Season::Summer => 16, // row 1, col 5 — slightly different shade
-                Season::Fall => 27,   // row 2, col 5
-                Season::Winter => 38, // row 3, col 5
+            // Use positional hash for visual variety across the grass tileset.
+            // grass.png is 11 cols x 7 rows = 77 frames. Each season gets a row
+            // band of ~11 frames. We pick from 4 variants per season using a
+            // deterministic hash of (x, y) so it's stable without runtime cost.
+            let variant = (x.wrapping_mul(7).wrapping_add(y.wrapping_mul(13))) % 4;
+            let season_base = match _season {
+                Season::Spring => 4,  // row 0, starting at col 4
+                Season::Summer => 15, // row 1, starting at col 4
+                Season::Fall => 26,   // row 2, starting at col 4
+                Season::Winter => 37, // row 3, starting at col 4
             };
             Some((
                 atlases.grass_image.clone(),
                 atlases.grass_layout.clone(),
-                index,
+                season_base + variant,
             ))
         }
 
@@ -338,11 +370,11 @@ fn tile_atlas_info(
             46,
         )),
 
-        // Stone: use tilled_dirt.png with a stone-looking tile (index 22, row 2 col 0).
-        TileKind::Stone => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 22)),
+        // Stone: use hills.png for a proper rocky/stone texture (index 0, top-left).
+        TileKind::Stone => Some((atlases.hills_image.clone(), atlases.hills_layout.clone(), 0)),
 
-        // Wood floor: tilled_dirt.png with a wood-colored tile (index 33, row 3 col 0).
-        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 33)),
+        // Wood floor: tilled_dirt.png with a plank-like tile (index 6, row 0 col 6).
+        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 6)),
 
         TileKind::Path => {
             let mut mask: u8 = 0;
@@ -469,6 +501,34 @@ impl Default for CurrentMapId {
 #[derive(Component, Debug)]
 pub struct MapTile;
 
+/// Marker component for water tile sprites (for animation cycling).
+#[derive(Component, Debug)]
+pub struct WaterTile;
+
+/// Bitmask indicating which edges of a water tile border non-water tiles.
+/// bit 0 = north, bit 1 = east, bit 2 = south, bit 3 = west.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct WaterEdgeMask(#[allow(dead_code)] pub u8);
+
+/// Marker component for water edge overlay sprites.
+/// Tagged with MapTile so they despawn with the map.
+#[derive(Component, Debug)]
+pub struct WaterEdgeOverlay;
+
+/// Timer resource for water tile animation (cycles 4 frames).
+#[derive(Resource)]
+pub struct WaterAnimationTimer(pub Timer);
+
+impl Default for WaterAnimationTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.5, TimerMode::Repeating))
+    }
+}
+
+/// Tracks the current animation phase (0-3) for water edge overlay alpha pulsing.
+#[derive(Resource, Default)]
+pub struct WaterEdgePhase(pub u8);
+
 // ═══════════════════════════════════════════════════════════════════════
 // TILE COLORS (fallback for Void tiles and season change)
 // ═══════════════════════════════════════════════════════════════════════
@@ -527,8 +587,14 @@ fn load_map(
     day: u8,
     atlases: &TerrainAtlases,
     object_atlases: &objects::ObjectAtlases,
+    registry: &MapRegistry,
 ) {
-    let map_def = generate_map(map_id);
+    // Prefer data-driven map from registry; fall back to hardcoded generator.
+    let map_def = if let Some(data) = registry.maps.get(&map_id) {
+        map_data::map_data_to_map_def(data)
+    } else {
+        generate_map(map_id)
+    };
 
     // Update tracking
     current_map_id.map_id = map_id;
@@ -632,7 +698,7 @@ fn spawn_tile_sprites(
             ) {
                 Some((image, layout, index)) => {
                     // Use texture atlas sprite
-                    commands.spawn((
+                    let mut entity_cmd = commands.spawn((
                         {
                             let mut sprite =
                                 Sprite::from_atlas_image(image, TextureAtlas { layout, index });
@@ -646,6 +712,14 @@ fn spawn_tile_sprites(
                         )),
                         MapTile,
                     ));
+                    // Tag water tiles for animation cycling and spawn edge overlays
+                    if tile == TileKind::Water {
+                        let mask = water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
+                        entity_cmd.insert((WaterTile, WaterEdgeMask(mask)));
+                        if mask != 0 {
+                            spawn_water_edge_overlays(commands, x, y, mask, season);
+                        }
+                    }
                 }
                 None => {
                     // Void tile: use plain colored sprite (no texture needed)
@@ -668,6 +742,84 @@ fn spawn_tile_sprites(
     }
 }
 
+
+/// Compute the water edge bitmask for the tile at (x, y).
+/// bit 0 = north (y+1), bit 1 = east (x+1), bit 2 = south (y-1), bit 3 = west (x-1).
+/// A bit is set when the neighbor in that direction is non-water (or out of bounds).
+fn water_edge_mask(x: usize, y: usize, tiles: &[TileKind], width: usize, height: usize) -> u8 {
+    let mut mask: u8 = 0;
+    let is_non_water = |nx: i32, ny: i32| -> bool {
+        if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+            return true;
+        }
+        tiles[ny as usize * width + nx as usize] != TileKind::Water
+    };
+    if is_non_water(x as i32, y as i32 + 1) { mask |= 0b0001; } // north
+    if is_non_water(x as i32 + 1, y as i32) { mask |= 0b0010; } // east
+    if is_non_water(x as i32, y as i32 - 1) { mask |= 0b0100; } // south
+    if is_non_water(x as i32 - 1, y as i32) { mask |= 0b1000; } // west
+    mask
+}
+
+/// Spawn semi-transparent overlay sprites on the edges of a water tile that
+/// border non-water tiles. Each overlay is a thin stripe of water colour
+/// with alpha so it blends softly against the adjacent land tile.
+fn spawn_water_edge_overlays(
+    commands: &mut Commands,
+    x: usize,
+    y: usize,
+    mask: u8,
+    season: Season,
+) {
+    let cx = x as f32 * TILE_SIZE;
+    let cy = y as f32 * TILE_SIZE;
+    let z = Z_GROUND + 0.1;
+
+    let water_color = {
+        let base = match season {
+            Season::Spring => Color::srgb(0.14, 0.35, 0.57),
+            Season::Summer => Color::srgb(0.16, 0.38, 0.55),
+            Season::Fall => Color::srgb(0.12, 0.30, 0.50),
+            Season::Winter => Color::srgb(0.35, 0.50, 0.65),
+        };
+        let [r, g, b, _] = base.to_srgba().to_f32_array();
+        Color::srgba(r, g, b, 0.40)
+    };
+
+    let half = TILE_SIZE / 2.0;
+    let edge_thick = 4.0;
+    let edge_offset = half - edge_thick / 2.0;
+
+    if mask & 0b0001 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(TILE_SIZE, edge_thick)), ..default() },
+            Transform::from_translation(Vec3::new(cx, cy + edge_offset, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+    if mask & 0b0010 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(edge_thick, TILE_SIZE)), ..default() },
+            Transform::from_translation(Vec3::new(cx + edge_offset, cy, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+    if mask & 0b0100 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(TILE_SIZE, edge_thick)), ..default() },
+            Transform::from_translation(Vec3::new(cx, cy - edge_offset, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+    if mask & 0b1000 != 0 {
+        commands.spawn((
+            Sprite { color: water_color, custom_size: Some(Vec2::new(edge_thick, TILE_SIZE)), ..default() },
+            Transform::from_translation(Vec3::new(cx - edge_offset, cy, z)),
+            MapTile, WaterEdgeOverlay,
+        ));
+    }
+}
+
 /// Despawn all map tiles and world objects.
 fn despawn_map(
     commands: &mut Commands,
@@ -679,6 +831,33 @@ fn despawn_map(
     }
     for entity in object_query.iter() {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+/// Animate water tiles by cycling through 4 atlas frames, and pulse edge overlay alpha.
+fn animate_water_tiles(
+    time: Res<Time>,
+    mut timer: ResMut<WaterAnimationTimer>,
+    mut phase: ResMut<WaterEdgePhase>,
+    mut water_query: Query<&mut Sprite, With<WaterTile>>,
+    mut overlay_query: Query<&mut Sprite, (With<WaterEdgeOverlay>, Without<WaterTile>)>,
+) {
+    // Alpha values for the 4 phases: ramp up then back down for a gentle pulse.
+    const EDGE_ALPHAS: [f32; 4] = [0.30, 0.40, 0.50, 0.40];
+
+    timer.0.tick(time.delta());
+    if timer.0.just_finished() {
+        for mut sprite in water_query.iter_mut() {
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = (atlas.index + 1) % 4;
+            }
+        }
+        phase.0 = (phase.0 + 1) % 4;
+        let alpha = EDGE_ALPHAS[phase.0 as usize];
+        for mut sprite in overlay_query.iter_mut() {
+            let [r, g, b, _] = sprite.color.to_srgba().to_f32_array();
+            sprite.color = Color::srgba(r, g, b, alpha);
+        }
     }
 }
 
@@ -700,6 +879,7 @@ fn spawn_initial_map(
     mut object_atlases: ResMut<objects::ObjectAtlases>,
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
     existing_tiles: Query<Entity, With<MapTile>>,
+    registry: Res<MapRegistry>,
 ) {
     // Guard against re-entry (e.g. Playing → Cutscene → Playing).
     if !existing_tiles.is_empty() {
@@ -726,6 +906,7 @@ fn spawn_initial_map(
         calendar.day,
         &terrain_atlases,
         &object_atlases,
+        &registry,
     );
 }
 
@@ -744,6 +925,7 @@ fn handle_map_transition(
     mut terrain_atlases: ResMut<TerrainAtlases>,
     mut object_atlases: ResMut<objects::ObjectAtlases>,
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
+    registry: Res<MapRegistry>,
 ) {
     for event in events.read() {
         // Don't transition to the same map
@@ -777,6 +959,7 @@ fn handle_map_transition(
             calendar.day,
             &terrain_atlases,
             &object_atlases,
+            &registry,
         );
     }
 }
@@ -831,6 +1014,8 @@ pub fn sync_collision_map(
     }
 }
 
+type SeasonTileQuery<'w, 's> = Query<'w, 's, (&'static Transform, &'static mut Sprite), (With<MapTile>, Without<WaterEdgeOverlay>)>;
+
 /// Handle SeasonChangeEvent: update tile sprites for the new season.
 /// For atlas-based tiles, we swap the atlas index to the seasonal variant.
 /// For Void tiles (plain colored), we leave them as-is.
@@ -840,7 +1025,7 @@ pub fn sync_collision_map(
 /// indices have been updated).
 fn handle_season_change(
     mut season_events: EventReader<SeasonChangeEvent>,
-    mut tile_query: Query<(&Transform, &mut Sprite), With<MapTile>>,
+    mut tile_query: SeasonTileQuery,
     world_map: Res<WorldMap>,
     terrain_atlases: Res<TerrainAtlases>,
     mut tint_applied: ResMut<SeasonalTintApplied>,

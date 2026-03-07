@@ -1,3 +1,7 @@
+use super::{
+    calendar_screen::CalendarOverlayState, settings_screen::SettingsOverlayState,
+    stats_screen::StatsOverlayState,
+};
 use crate::shared::*;
 use bevy::prelude::*;
 
@@ -23,8 +27,14 @@ pub fn gameplay_state_transitions(
     input: Res<PlayerInput>,
     state: Res<State<GameState>>,
     mut next: ResMut<NextState<GameState>>,
+    calendar_overlay: Res<CalendarOverlayState>,
+    stats_overlay: Res<StatsOverlayState>,
+    settings_overlay: Res<SettingsOverlayState>,
 ) {
     if *state.get() != GameState::Playing {
+        return;
+    }
+    if calendar_overlay.visible || stats_overlay.visible || settings_overlay.visible {
         return;
     }
     if input.pause {
@@ -32,9 +42,6 @@ pub fn gameplay_state_transitions(
     }
     if input.open_inventory {
         next.set(GameState::Inventory);
-    }
-    if input.open_crafting {
-        next.set(GameState::Crafting);
     }
     if input.open_journal {
         next.set(GameState::Journal);

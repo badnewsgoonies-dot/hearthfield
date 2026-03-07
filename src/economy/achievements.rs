@@ -465,3 +465,343 @@ pub fn track_achievement_progress(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_achievement_count_at_least_20() {
+        assert!(
+            ACHIEVEMENTS.len() >= 20,
+            "Spec requires 20+ achievements, found {}",
+            ACHIEVEMENTS.len()
+        );
+    }
+
+    #[test]
+    fn test_achievement_count_exactly_30() {
+        assert_eq!(ACHIEVEMENTS.len(), 30);
+    }
+
+    #[test]
+    fn test_all_achievement_ids_unique() {
+        let mut ids = std::collections::HashSet::new();
+        for def in ACHIEVEMENTS {
+            assert!(
+                ids.insert(def.id),
+                "Duplicate achievement id: {}",
+                def.id
+            );
+        }
+    }
+
+    #[test]
+    fn test_all_achievements_have_nonempty_fields() {
+        for def in ACHIEVEMENTS {
+            assert!(!def.id.is_empty(), "Achievement has empty id");
+            assert!(!def.name.is_empty(), "Achievement '{}' has empty name", def.id);
+            assert!(
+                !def.description.is_empty(),
+                "Achievement '{}' has empty description",
+                def.id
+            );
+        }
+    }
+
+    #[test]
+    fn test_evaluate_condition_first_harvest() {
+        let mut stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mine = MineState::default();
+        let achievements = Achievements::default();
+        let house = HouseState::default();
+        let farm = FarmState::default();
+
+        // Not yet earned
+        assert!(!evaluate_condition(
+            "first_harvest",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+
+        // Earned after 1 crop
+        stats.crops_harvested = 1;
+        assert!(evaluate_condition(
+            "first_harvest",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+
+    #[test]
+    fn test_evaluate_condition_green_thumb() {
+        let mut stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mine = MineState::default();
+        let achievements = Achievements::default();
+        let house = HouseState::default();
+        let farm = FarmState::default();
+
+        stats.crops_harvested = 99;
+        assert!(!evaluate_condition(
+            "green_thumb",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+
+        stats.crops_harvested = 100;
+        assert!(evaluate_condition(
+            "green_thumb",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+
+    #[test]
+    fn test_evaluate_condition_millionaire() {
+        let stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let mut player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mine = MineState::default();
+        let achievements = Achievements::default();
+        let house = HouseState::default();
+        let farm = FarmState::default();
+
+        player.gold = 999_999;
+        assert!(!evaluate_condition(
+            "millionaire",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+
+        player.gold = 1_000_000;
+        assert!(evaluate_condition(
+            "millionaire",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+
+    #[test]
+    fn test_evaluate_condition_spelunker() {
+        let stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mut mine = MineState::default();
+        let achievements = Achievements::default();
+        let house = HouseState::default();
+        let farm = FarmState::default();
+
+        mine.deepest_floor_reached = 9;
+        assert!(!evaluate_condition(
+            "spelunker",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+
+        mine.deepest_floor_reached = 10;
+        assert!(evaluate_condition(
+            "spelunker",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+
+    #[test]
+    fn test_evaluate_condition_home_sweet_home() {
+        let stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mine = MineState::default();
+        let achievements = Achievements::default();
+        let mut house = HouseState::default();
+        let farm = FarmState::default();
+
+        house.tier = HouseTier::Big;
+        assert!(!evaluate_condition(
+            "home_sweet_home",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+
+        house.tier = HouseTier::Deluxe;
+        assert!(evaluate_condition(
+            "home_sweet_home",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+
+    #[test]
+    fn test_evaluate_condition_completionist() {
+        let stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mine = MineState::default();
+        let mut achievements = Achievements::default();
+        let house = HouseState::default();
+        let farm = FarmState::default();
+
+        // Need 25 non-completionist achievements unlocked
+        for i in 0..24 {
+            achievements.unlocked.push(format!("ach_{}", i));
+        }
+        assert!(!evaluate_condition(
+            "completionist",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+
+        achievements.unlocked.push("ach_24".to_string());
+        assert!(evaluate_condition(
+            "completionist",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+
+    #[test]
+    fn test_evaluate_condition_unknown_returns_false() {
+        let stats = PlayStats::default();
+        let relationships = Relationships::default();
+        let player = PlayerState::default();
+        let calendar = Calendar::default();
+        let animals = AnimalState::default();
+        let marriage = MarriageState::default();
+        let mine = MineState::default();
+        let achievements = Achievements::default();
+        let house = HouseState::default();
+        let farm = FarmState::default();
+
+        assert!(!evaluate_condition(
+            "totally_made_up",
+            &stats,
+            &relationships,
+            &player,
+            &calendar,
+            &animals,
+            &marriage,
+            &mine,
+            &achievements,
+            &house,
+            &farm,
+        ));
+    }
+}

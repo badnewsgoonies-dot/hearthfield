@@ -177,6 +177,7 @@ pub fn spawn_npcs_for_map(
             },
         );
         sprite.custom_size = Some(Vec2::new(48.0, 48.0));
+        sprite.anchor = bevy::sprite::Anchor::BottomCenter;
 
         let entity = commands
             .spawn((
@@ -213,7 +214,7 @@ pub fn spawn_npcs_for_map(
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 14.0, 0.1),
+                Transform::from_xyz(0.0, 38.0, 0.1),
             ));
         });
 

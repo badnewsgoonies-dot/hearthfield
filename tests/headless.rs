@@ -41,6 +41,13 @@ use hearthfield::npcs::romance::{
 };
 use hearthfield::shared::*;
 use hearthfield::world::objects::seasonal_forageables;
+use hearthfield::calendar::festivals::{
+    check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
+};
+use hearthfield::crafting::food_buff_for_item;
+use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
+use hearthfield::fishing::legendaries::{is_legendary, legendary_fish_defs};
+use hearthfield::fishing::skill::{xp_for_rarity, FishingSkill};
 use std::collections::HashMap;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -716,7 +723,7 @@ fn test_baby_animal_grows_to_adult() {
             kind: AnimalKind::Chicken,
             name: "Chick".to_string(),
             age: AnimalAge::Baby,
-            days_old: 4, // will become 5 after day end → adult
+            days_old: 6, // will become 7 after day end → adult
             happiness: 150,
             fed_today: true,
             petted_today: false,
@@ -732,9 +739,9 @@ fn test_baby_animal_grows_to_adult() {
     assert_eq!(
         animal.age,
         AnimalAge::Adult,
-        "Baby should grow to adult after 5 days"
+        "Baby should grow to adult after 7 days"
     );
-    assert_eq!(animal.days_old, 5);
+    assert_eq!(animal.days_old, 7);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1086,6 +1093,8 @@ fn test_farming_day_end_system() {
                 dead: false,
             },
         );
+        // Prevent random crow attacks from making this system-level test flaky.
+        fs.objects.insert((4, 4), FarmObject::Scarecrow);
     }
 
     // Set tracked weather to sunny
@@ -2965,4 +2974,841 @@ fn test_walk_atlas_all_directions() {
     // Left row 3
     assert_eq!(left + frame0, 12);
     assert_eq!(left + frame3, 15);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Festival System
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_festival_check_activates_egg_festival() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Set calendar to Spring 13 (Egg Festival)
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Spring;
+        cal.day = 13;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active,
+        Some(FestivalKind::EggFestival),
+        "Spring 13 should activate Egg Festival"
+    );
+    assert!(!festival.started, "Festival should not be started yet");
+}
+
+#[test]
+fn test_festival_check_activates_winter_star() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Winter;
+        cal.day = 25;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active,
+        Some(FestivalKind::WinterStar),
+        "Winter 25 should activate Winter Star"
+    );
+}
+
+#[test]
+fn test_festival_no_activation_on_normal_day() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Spring;
+        cal.day = 5;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active, None,
+        "Spring 5 is not a festival day"
+    );
+}
+
+#[test]
+fn test_festival_cleanup_on_day_end() {
+    let mut app = build_test_app();
+    app.init_resource::<FestivalState>();
+    app.add_systems(
+        Update,
+        cleanup_festival_on_day_end.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Set an active festival
+    {
+        let mut festival = app.world_mut().resource_mut::<FestivalState>();
+        festival.active = Some(FestivalKind::Luau);
+        festival.started = true;
+        festival.score = 42;
+        festival.items_collected = 3;
+    }
+
+    send_day_end(&mut app, 11, Season::Summer, 1);
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(festival.active, None, "Festival should be cleared after day end");
+    assert!(!festival.started, "Festival started should be reset");
+    assert_eq!(festival.score, 0, "Festival score should be reset");
+    assert_eq!(festival.items_collected, 0, "Festival items_collected should be reset");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Crafting Machine Outputs (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_furnace_smelts_ores() {
+    let result = resolve_machine_output(MachineType::Furnace, "copper_ore");
+    assert_eq!(result, Some(("copper_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "iron_ore");
+    assert_eq!(result, Some(("iron_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "gold_ore");
+    assert_eq!(result, Some(("gold_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "iridium_ore");
+    assert_eq!(result, Some(("iridium_bar".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::Furnace, "quartz");
+    assert_eq!(result, Some(("refined_quartz".to_string(), 1)));
+}
+
+#[test]
+fn test_furnace_rejects_unknown_input() {
+    let result = resolve_machine_output(MachineType::Furnace, "parsnip");
+    assert_eq!(result, None, "Furnace should not accept parsnip");
+}
+
+#[test]
+fn test_preserves_jar_makes_jelly_and_pickles() {
+    let result = resolve_machine_output(MachineType::PreservesJar, "blueberry");
+    assert_eq!(result, Some(("blueberry_jelly".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::PreservesJar, "turnip");
+    assert_eq!(result, Some(("pickled_turnip".to_string(), 1)));
+
+    let result = resolve_machine_output(MachineType::PreservesJar, "pumpkin");
+    assert_eq!(result, Some(("pickled_pumpkin".to_string(), 1)));
+}
+
+#[test]
+fn test_machine_processing_hours() {
+    assert!((MachineType::Furnace.processing_hours() - 0.5).abs() < f32::EPSILON);
+    assert!((MachineType::PreservesJar.processing_hours() - 4.0).abs() < f32::EPSILON);
+    assert!((MachineType::CheesePress.processing_hours() - 3.0).abs() < f32::EPSILON);
+    assert!((MachineType::Keg.processing_hours() - 72.0).abs() < f32::EPSILON);
+    assert!((MachineType::OilMaker.processing_hours() - 24.0).abs() < f32::EPSILON);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Animal Lifecycle
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_animal_happiness_clamps_to_zero() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        handle_day_end_for_animals.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Animal with very low happiness, unfed
+    let animal_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Chicken,
+            name: "Sad".to_string(),
+            age: AnimalAge::Adult,
+            days_old: 10,
+            happiness: 5, // will drop by 12 when unfed -> should clamp to 0
+            fed_today: false,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
+
+    send_day_end(&mut app, 1, Season::Spring, 1);
+    app.update();
+
+    let animal = app.world().entity(animal_id).get::<Animal>().unwrap();
+    assert_eq!(
+        animal.happiness, 0,
+        "Happiness should clamp to 0, not underflow"
+    );
+}
+
+#[test]
+fn test_baby_animal_stays_baby_before_threshold() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        handle_day_end_for_animals.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    let baby_id = app
+        .world_mut()
+        .spawn(Animal {
+            kind: AnimalKind::Cow,
+            name: "BabyCow".to_string(),
+            age: AnimalAge::Baby,
+            days_old: 3, // will become 4, still baby (needs 7+)
+            happiness: 100,
+            fed_today: true,
+            petted_today: false,
+            product_ready: false,
+        })
+        .id();
+
+    send_day_end(&mut app, 2, Season::Spring, 1);
+    app.update();
+
+    let animal = app.world().entity(baby_id).get::<Animal>().unwrap();
+    assert_eq!(animal.age, AnimalAge::Baby, "Should still be a baby at 4 days old");
+    assert_eq!(animal.days_old, 4);
+    assert!(!animal.product_ready, "Baby should not produce");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Fishing Skill (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_fishing_skill_xp_for_rarity_values() {
+    assert_eq!(xp_for_rarity(Rarity::Common), 3);
+    assert_eq!(xp_for_rarity(Rarity::Uncommon), 8);
+    assert_eq!(xp_for_rarity(Rarity::Rare), 15);
+    assert_eq!(xp_for_rarity(Rarity::Legendary), 25);
+}
+
+#[test]
+fn test_fishing_skill_level_up_progression() {
+    let mut skill = FishingSkill::default();
+    assert_eq!(skill.level, 0);
+
+    // Catch enough common fish to reach level 1 (need 10 XP, common = 3 each)
+    skill.add_catch_xp(Rarity::Common);
+    skill.add_catch_xp(Rarity::Common);
+    skill.add_catch_xp(Rarity::Common);
+    skill.add_catch_xp(Rarity::Common);
+    // 4 * 3 = 12 XP >= 10 threshold
+    assert_eq!(skill.level, 1, "Should be level 1 after 12 XP");
+    assert_eq!(skill.total_catches, 4);
+
+    // Bar size at level 1: 40 + 3*1 = 43
+    assert!((skill.bar_size_px() - 43.0).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_fishing_skill_max_level_bonuses_capped() {
+    let mut skill = FishingSkill { xp: 10_000, ..FishingSkill::default() };
+    skill.recalculate();
+
+    assert_eq!(skill.level, 10);
+    assert!(
+        (skill.bite_speed_bonus - FishingSkill::MAX_BITE_SPEED).abs() < f32::EPSILON,
+        "Bite speed bonus should cap at MAX_BITE_SPEED"
+    );
+    assert!(
+        (skill.catch_zone_bonus - FishingSkill::MAX_CATCH_ZONE).abs() < f32::EPSILON,
+        "Catch zone bonus should cap at MAX_CATCH_ZONE"
+    );
+}
+
+#[test]
+fn test_fishing_skill_bar_size_scales_with_level() {
+    let mut skill = FishingSkill::default();
+    // Level 0: 40px base
+    assert!((skill.bar_size_px() - 40.0).abs() < f32::EPSILON);
+
+    // Level 5: 40 + 3*5 = 55px
+    skill.xp = 200;
+    skill.recalculate();
+    assert_eq!(skill.level, 5);
+    assert!((skill.bar_size_px() - 55.0).abs() < f32::EPSILON);
+
+    // Level 10: 40 + 3*10 = 70px
+    skill.xp = 1500;
+    skill.recalculate();
+    assert_eq!(skill.level, 10);
+    assert!((skill.bar_size_px() - 70.0).abs() < f32::EPSILON);
+}
+
+#[test]
+fn test_legendary_fish_identification() {
+    let defs = legendary_fish_defs();
+    assert!(!defs.is_empty(), "Should have at least one legendary fish definition");
+
+    // All legendary defs should be identified as legendary
+    for def in &defs {
+        assert!(
+            is_legendary(&def.id),
+            "{} should be identified as legendary",
+            def.id
+        );
+    }
+
+    // Non-legendary fish should not be legendary
+    assert!(!is_legendary("sardine"), "sardine should not be legendary");
+    assert!(!is_legendary("carp"), "carp should not be legendary");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Mining Floor Generation (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_mine_state_default_values() {
+    let mine = MineState::default();
+    assert_eq!(mine.current_floor, 0, "Default mine floor should be 0 (not in mine)");
+    assert_eq!(mine.deepest_floor_reached, 0, "Default deepest floor should be 0");
+    assert!(mine.elevator_floors.is_empty(), "Default elevator floors should be empty");
+}
+
+#[test]
+fn test_mine_elevator_unlocks_every_5_floors() {
+    let mine = MineState {
+        deepest_floor_reached: 5,
+        elevator_floors: vec![0, 5], // 0 = surface, 5 = first elevator stop
+        ..MineState::default()
+    };
+
+    assert!(
+        mine.elevator_floors.contains(&5),
+        "Elevator should have floor 5 unlocked"
+    );
+    assert!(
+        !mine.elevator_floors.contains(&3),
+        "Elevator should NOT have floor 3 (not a multiple of 5)"
+    );
+
+    // Simulate reaching floor 10
+    let mine2 = MineState {
+        deepest_floor_reached: 10,
+        elevator_floors: vec![0, 5, 10],
+        ..MineState::default()
+    };
+
+    assert!(
+        mine2.elevator_floors.contains(&10),
+        "Elevator should have floor 10 unlocked"
+    );
+    assert_eq!(mine2.elevator_floors.len(), 3, "Should have 3 stops: 0, 5, 10");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Inventory Operations (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_inventory_add_and_count() {
+    let mut inv = Inventory::default();
+    let leftover = inv.try_add("wood", 10, 99);
+    assert_eq!(leftover, 0, "Should add all 10 wood with no leftover");
+    assert_eq!(inv.count("wood"), 10);
+    assert!(inv.has("wood", 10));
+    assert!(!inv.has("wood", 11));
+}
+
+#[test]
+fn test_inventory_remove() {
+    let mut inv = Inventory::default();
+    inv.try_add("stone", 20, 99);
+    let removed = inv.try_remove("stone", 15);
+    assert_eq!(removed, 15, "Should remove 15 stone");
+    assert_eq!(inv.count("stone"), 5, "Should have 5 stone remaining");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Food Buff Lookup (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_food_buff_known_items() {
+    let buff = food_buff_for_item("fried_egg");
+    assert!(buff.is_some(), "fried_egg should grant a buff");
+    let buff = buff.unwrap();
+    assert_eq!(buff.buff_type, BuffType::Farming);
+    assert!((buff.magnitude - 1.2).abs() < f32::EPSILON);
+
+    let buff = food_buff_for_item("fish_stew").unwrap();
+    assert_eq!(buff.buff_type, BuffType::Fishing);
+
+    let no_buff = food_buff_for_item("stone");
+    assert!(no_buff.is_none(), "stone should not grant a food buff");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEW TESTS: Relationships (pure function)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_relationships_friendship_hearts() {
+    let mut rel = Relationships::default();
+    assert_eq!(rel.hearts("alice"), 0, "Unknown NPC should have 0 hearts");
+
+    rel.add_friendship("alice", 250);
+    assert_eq!(rel.hearts("alice"), 2, "250 points = 2 hearts");
+
+    rel.add_friendship("alice", 50);
+    assert_eq!(rel.hearts("alice"), 3, "300 points = 3 hearts");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SAVE ROUND-TRIP TESTS — verify serde (de)serialization of game state
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Helper: serialize a value to JSON and back, returning the deserialized copy.
+fn serde_roundtrip<T: serde::Serialize + serde::de::DeserializeOwned>(val: &T) -> T {
+    let json = serde_json::to_string(val).expect("serialize failed");
+    serde_json::from_str(&json).expect("deserialize failed")
+}
+
+#[test]
+fn test_save_roundtrip_calendar() {
+    let cal = Calendar {
+        year: 3,
+        season: Season::Fall,
+        day: 17,
+        hour: 14,
+        minute: 30,
+        weather: Weather::Stormy,
+        ..Calendar::default()
+    };
+    let restored = serde_roundtrip(&cal);
+    assert_eq!(restored.year, 3);
+    assert_eq!(restored.season, Season::Fall);
+    assert_eq!(restored.day, 17);
+    assert_eq!(restored.hour, 14);
+    assert_eq!(restored.minute, 30);
+    assert_eq!(restored.weather, Weather::Stormy);
+}
+
+#[test]
+fn test_save_roundtrip_player_state() {
+    let mut ps = PlayerState::default();
+    ps.gold = 12345;
+    ps.stamina = 50.0;
+    ps.equipped_tool = ToolKind::Pickaxe;
+    ps.tools.insert(ToolKind::Hoe, ToolTier::Gold);
+    ps.current_map = MapId::Mine;
+    ps.save_grid_x = 15;
+    ps.save_grid_y = 22;
+
+    let restored = serde_roundtrip(&ps);
+    assert_eq!(restored.gold, 12345);
+    assert!((restored.stamina - 50.0).abs() < f32::EPSILON);
+    assert_eq!(restored.equipped_tool, ToolKind::Pickaxe);
+    assert_eq!(restored.tools.get(&ToolKind::Hoe), Some(&ToolTier::Gold));
+    assert_eq!(restored.current_map, MapId::Mine);
+    assert_eq!(restored.save_grid_x, 15);
+    assert_eq!(restored.save_grid_y, 22);
+}
+
+#[test]
+fn test_save_roundtrip_inventory() {
+    let mut inv = Inventory::default();
+    inv.slots[0] = Some(InventorySlot {
+        item_id: "ancient_fruit".to_string(),
+        quantity: 5,
+    });
+    inv.slots[3] = Some(InventorySlot {
+        item_id: "gold_bar".to_string(),
+        quantity: 12,
+    });
+
+    let restored = serde_roundtrip(&inv);
+    assert!(restored.slots[0].is_some());
+    assert_eq!(restored.slots[0].as_ref().unwrap().item_id, "ancient_fruit");
+    assert_eq!(restored.slots[0].as_ref().unwrap().quantity, 5);
+    assert!(restored.slots[3].is_some());
+    assert_eq!(restored.slots[3].as_ref().unwrap().item_id, "gold_bar");
+    assert!(restored.slots[1].is_none());
+}
+
+#[test]
+fn test_save_roundtrip_quest_log() {
+    let ql = QuestLog {
+        active: vec![Quest {
+            id: "test_quest_1".to_string(),
+            title: "Deliver Turnips".to_string(),
+            description: "Bring 5 turnips to Nora.".to_string(),
+            giver: "nora".to_string(),
+            objective: QuestObjective::Deliver {
+                item_id: "turnip".to_string(),
+                quantity: 5,
+                delivered: 2,
+            },
+            reward_gold: 500,
+            reward_items: vec![("pumpkin_seeds".to_string(), 10)],
+            reward_friendship: 50,
+            days_remaining: Some(7),
+            accepted_day: (5, 0, 1),
+        }],
+        completed: vec!["intro_quest".to_string(), "fishing_tutorial".to_string()],
+    };
+
+    let restored = serde_roundtrip(&ql);
+    assert_eq!(restored.active.len(), 1);
+    assert_eq!(restored.active[0].id, "test_quest_1");
+    assert_eq!(restored.active[0].reward_gold, 500);
+    assert_eq!(restored.completed.len(), 2);
+    assert!(restored.completed.contains(&"intro_quest".to_string()));
+}
+
+#[test]
+fn test_save_roundtrip_achievements() {
+    let mut ach = Achievements::default();
+    ach.unlocked.push("first_harvest".to_string());
+    ach.unlocked.push("master_angler".to_string());
+    ach.progress.insert("crops_shipped".to_string(), 150);
+    ach.progress.insert("fish_caught".to_string(), 42);
+
+    let restored = serde_roundtrip(&ach);
+    assert_eq!(restored.unlocked.len(), 2);
+    assert!(restored.unlocked.contains(&"master_angler".to_string()));
+    assert_eq!(restored.progress.get("crops_shipped"), Some(&150));
+    assert_eq!(restored.progress.get("fish_caught"), Some(&42));
+}
+
+#[test]
+fn test_save_roundtrip_shipping_log() {
+    let mut sl = ShippingLog::default();
+    sl.shipped_items.insert("turnip".to_string(), 100);
+    sl.shipped_items.insert("pumpkin".to_string(), 25);
+    sl.shipped_items.insert("diamond".to_string(), 1);
+
+    let restored = serde_roundtrip(&sl);
+    assert_eq!(restored.shipped_items.len(), 3);
+    assert_eq!(restored.shipped_items.get("turnip"), Some(&100));
+    assert_eq!(restored.shipped_items.get("diamond"), Some(&1));
+}
+
+#[test]
+fn test_save_roundtrip_relationship_stages() {
+    let mut rs = RelationshipStages::default();
+    rs.stages
+        .insert("lily".to_string(), RelationshipStage::Dating);
+    rs.stages
+        .insert("elena".to_string(), RelationshipStage::Married);
+    rs.stages
+        .insert("old_tom".to_string(), RelationshipStage::CloseFriend);
+
+    let restored = serde_roundtrip(&rs);
+    assert_eq!(
+        restored.stages.get("lily"),
+        Some(&RelationshipStage::Dating)
+    );
+    assert_eq!(
+        restored.stages.get("elena"),
+        Some(&RelationshipStage::Married)
+    );
+    assert_eq!(
+        restored.stages.get("old_tom"),
+        Some(&RelationshipStage::CloseFriend)
+    );
+}
+
+#[test]
+fn test_save_roundtrip_marriage_state() {
+    let ms = MarriageState {
+        spouse: Some("elena".to_string()),
+        wedding_date: Some((15, 2, 2)),
+        days_married: 45,
+        spouse_happiness: 75,
+    };
+
+    let restored = serde_roundtrip(&ms);
+    assert_eq!(restored.spouse, Some("elena".to_string()));
+    assert_eq!(restored.wedding_date, Some((15, 2, 2)));
+    assert_eq!(restored.days_married, 45);
+    assert_eq!(restored.spouse_happiness, 75);
+}
+
+#[test]
+fn test_save_roundtrip_house_state() {
+    let hs = HouseState {
+        tier: HouseTier::Deluxe,
+        has_kitchen: true,
+        has_nursery: true,
+    };
+
+    let restored = serde_roundtrip(&hs);
+    assert_eq!(restored.tier, HouseTier::Deluxe);
+    assert!(restored.has_kitchen);
+    assert!(restored.has_nursery);
+}
+
+#[test]
+fn test_save_roundtrip_play_stats() {
+    let ps = PlayStats {
+        crops_harvested: 500,
+        fish_caught: 120,
+        items_shipped: 800,
+        gifts_given: 95,
+        mine_floors_cleared: 40,
+        animal_products_collected: 200,
+        food_eaten: 60,
+        total_gold_earned: 150000,
+        total_steps_taken: 50000,
+        days_played: 112,
+        festivals_attended: 4,
+    };
+
+    let restored = serde_roundtrip(&ps);
+    assert_eq!(restored.crops_harvested, 500);
+    assert_eq!(restored.fish_caught, 120);
+    assert_eq!(restored.items_shipped, 800);
+    assert_eq!(restored.total_gold_earned, 150000);
+    assert_eq!(restored.days_played, 112);
+    assert_eq!(restored.festivals_attended, 4);
+}
+
+#[test]
+fn test_save_roundtrip_fish_encyclopedia() {
+    use hearthfield::fishing::FishEncyclopedia;
+    let mut fe = FishEncyclopedia::default();
+    fe.record_catch("bass", 15, Season::Summer);
+    fe.record_catch("bass", 22, Season::Summer);
+    fe.record_catch("salmon", 18, Season::Fall);
+
+    let restored = serde_roundtrip(&fe);
+    assert_eq!(restored.entries.len(), 2);
+    let bass = restored.entries.get("bass").unwrap();
+    assert_eq!(bass.times_caught, 2);
+    let salmon = restored.entries.get("salmon").unwrap();
+    assert_eq!(salmon.times_caught, 1);
+}
+
+#[test]
+fn test_save_roundtrip_building_levels() {
+    use hearthfield::economy::buildings::BuildingLevels;
+    let mut bl = BuildingLevels::default();
+    bl.coop_tier = BuildingTier::Big;
+    bl.barn_tier = BuildingTier::Deluxe;
+
+    let restored = serde_roundtrip(&bl);
+    assert_eq!(restored.coop_tier, BuildingTier::Big);
+    assert_eq!(restored.barn_tier, BuildingTier::Deluxe);
+}
+
+#[test]
+fn test_save_roundtrip_tool_upgrade_queue() {
+    let mut tuq = ToolUpgradeQueue::default();
+    tuq.pending.push(PendingUpgrade {
+        tool: ToolKind::Pickaxe,
+        target_tier: ToolTier::Iridium,
+        days_remaining: 2,
+    });
+
+    let restored = serde_roundtrip(&tuq);
+    assert_eq!(restored.pending.len(), 1);
+    let p = &restored.pending[0];
+    assert_eq!(p.tool, ToolKind::Pickaxe);
+    assert_eq!(p.target_tier, ToolTier::Iridium);
+    assert_eq!(p.days_remaining, 2);
+}
+
+#[test]
+fn test_save_roundtrip_crop_tile() {
+    // CropTile round-trips individually (FarmState uses tuple keys
+    // which require non-JSON serializers for the full HashMap).
+    let crop = CropTile {
+        crop_id: "pumpkin".to_string(),
+        current_stage: 3,
+        days_in_stage: 2,
+        watered_today: true,
+        days_without_water: 0,
+        dead: false,
+    };
+
+    let restored = serde_roundtrip(&crop);
+    assert_eq!(restored.crop_id, "pumpkin");
+    assert_eq!(restored.current_stage, 3);
+    assert_eq!(restored.days_in_stage, 2);
+    assert!(restored.watered_today);
+    assert!(!restored.dead);
+}
+
+#[test]
+fn test_save_roundtrip_animal_state() {
+    let mut animal = AnimalState::default();
+    animal.animals.push(Animal {
+        name: "Bessie".to_string(),
+        kind: AnimalKind::Cow,
+        age: AnimalAge::Adult,
+        days_old: 30,
+        happiness: 200,
+        fed_today: false,
+        petted_today: false,
+        product_ready: true,
+    });
+
+    let restored = serde_roundtrip(&animal);
+    assert_eq!(restored.animals.len(), 1);
+    assert_eq!(restored.animals[0].name, "Bessie");
+    assert_eq!(restored.animals[0].kind, AnimalKind::Cow);
+    assert_eq!(restored.animals[0].happiness, 200);
+    assert_eq!(restored.animals[0].days_old, 30);
+}
+
+#[test]
+fn test_save_roundtrip_relationships() {
+    let mut rel = Relationships::default();
+    rel.add_friendship("margaret", 500);
+    rel.add_friendship("elena", 1000);
+    rel.gifted_today.insert("elena".to_string(), true);
+
+    let restored = serde_roundtrip(&rel);
+    assert_eq!(restored.hearts("margaret"), 5);
+    assert_eq!(restored.hearts("elena"), 10);
+    assert_eq!(restored.gifted_today.get("elena"), Some(&true));
+}
+
+#[test]
+fn test_save_roundtrip_mine_state() {
+    let mut ms = MineState::default();
+    ms.current_floor = 35;
+    ms.deepest_floor_reached = 50;
+
+    let restored = serde_roundtrip(&ms);
+    assert_eq!(restored.current_floor, 35);
+    assert_eq!(restored.deepest_floor_reached, 50);
+}
+
+#[test]
+fn test_save_roundtrip_all_resources_combined() {
+    let calendar = Calendar {
+        year: 2,
+        season: Season::Winter,
+        day: 25,
+        hour: 18,
+        minute: 45,
+        weather: Weather::Snowy,
+        ..Calendar::default()
+    };
+    let mut player_state = PlayerState::default();
+    player_state.gold = 99999;
+    player_state.tools.insert(ToolKind::Axe, ToolTier::Iridium);
+
+    let mut inventory = Inventory::default();
+    inventory.slots[0] = Some(InventorySlot {
+        item_id: "diamond".to_string(),
+        quantity: 3,
+    });
+
+    let mut quest_log = QuestLog::default();
+    quest_log.completed.push("main_quest_1".to_string());
+
+    let mut achievements = Achievements::default();
+    achievements.unlocked.push("full_shipment".to_string());
+
+    let mut play_stats = PlayStats::default();
+    play_stats.days_played = 365;
+    play_stats.total_gold_earned = 500000;
+
+    let cal_r = serde_roundtrip(&calendar);
+    let ps_r = serde_roundtrip(&player_state);
+    let inv_r = serde_roundtrip(&inventory);
+    let ql_r = serde_roundtrip(&quest_log);
+    let ach_r = serde_roundtrip(&achievements);
+    let stats_r = serde_roundtrip(&play_stats);
+
+    assert_eq!(cal_r.season, Season::Winter);
+    assert_eq!(cal_r.weather, Weather::Snowy);
+    assert_eq!(ps_r.gold, 99999);
+    assert_eq!(ps_r.tools.get(&ToolKind::Axe), Some(&ToolTier::Iridium));
+    assert!(inv_r.slots[0].is_some());
+    assert!(ql_r.completed.contains(&"main_quest_1".to_string()));
+    assert!(ach_r.unlocked.contains(&"full_shipment".to_string()));
+    assert_eq!(stats_r.days_played, 365);
+    assert_eq!(stats_r.total_gold_earned, 500000);
+}
+
+#[test]
+fn test_save_roundtrip_empty_defaults() {
+    let cal = Calendar::default();
+    let ps = PlayerState::default();
+    let inv = Inventory::default();
+    let ql = QuestLog::default();
+    let ach = Achievements::default();
+    let sl = ShippingLog::default();
+    let rs = RelationshipStages::default();
+    let ms = MarriageState::default();
+    let hs = HouseState::default();
+    let stats = PlayStats::default();
+
+    let cal_r = serde_roundtrip(&cal);
+    assert_eq!(cal_r.year, 1);
+    assert_eq!(cal_r.season, Season::Spring);
+    assert_eq!(cal_r.day, 1);
+
+    let ps_r = serde_roundtrip(&ps);
+    assert_eq!(ps_r.gold, 500);
+
+    let inv_r = serde_roundtrip(&inv);
+    assert!(inv_r.slots.iter().all(|s| s.is_none()));
+
+    let ql_r = serde_roundtrip(&ql);
+    assert!(ql_r.active.is_empty());
+    assert!(ql_r.completed.is_empty());
+
+    let ach_r = serde_roundtrip(&ach);
+    assert!(ach_r.unlocked.is_empty());
+
+    let sl_r = serde_roundtrip(&sl);
+    assert!(sl_r.shipped_items.is_empty());
+
+    let rs_r = serde_roundtrip(&rs);
+    assert!(rs_r.stages.is_empty());
+
+    let ms_r = serde_roundtrip(&ms);
+    assert!(ms_r.spouse.is_none());
+
+    let hs_r = serde_roundtrip(&hs);
+    assert!(!hs_r.has_kitchen);
+
+    let stats_r = serde_roundtrip(&stats);
+    assert_eq!(stats_r.crops_harvested, 0);
 }

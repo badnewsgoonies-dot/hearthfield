@@ -15,7 +15,8 @@ impl Plugin for InputPlugin {
                 process_touch_input,
                 manage_input_context,
             )
-                .chain(),
+                .chain()
+                .in_set(UpdatePhase::Input),
         );
     }
 }

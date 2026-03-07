@@ -25,7 +25,10 @@ pub fn camera_follow_player(
     };
 
     let target_x = logical_pos.0.x.round();
-    let target_y = logical_pos.0.y.round();
+    // Offset camera upward by half the player sprite height (24px) so the
+    // player appears centered on screen. LogicalPosition is at the feet
+    // because player sprite uses BottomCenter anchor.
+    let target_y = logical_pos.0.y.round() + 24.0;
 
     // Snap if countdown active or if camera is very far from target (teleport)
     let dx = (target_x - cam_tf.translation.x).abs();

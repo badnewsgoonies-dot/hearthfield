@@ -12,8 +12,10 @@ use crate::shared::*;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const BITE_TIMER_MIN: f32 = 2.0;
-const BITE_TIMER_MAX: f32 = 8.0;
+/// Base bite wait time in seconds (spec: 3.0 + random(0.0, 7.0) - 0.5 per level).
+const BITE_TIMER_BASE: f32 = 3.0;
+/// Random range added to base bite wait.
+const BITE_TIMER_RANDOM_MAX: f32 = 7.0;
 const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
 
 // ─── Bait helpers ─────────────────────────────────────────────────────────────
@@ -92,7 +94,7 @@ pub fn handle_tool_use_for_fishing(
             .unwrap_or(false);
         if !is_water {
             toast_events.send(ToastEvent {
-                message: "You need to cast into water!".into(),
+                message: "Can't fish here.".into(),
                 duration_secs: 2.0,
             });
             continue;
@@ -124,19 +126,19 @@ pub fn handle_tool_use_for_fishing(
             .unwrap_or(ToolTier::Basic);
 
         // Compute bite timer:
-        //  1. Start with a random base in [BITE_TIMER_MIN, BITE_TIMER_MAX].
-        //  2. Apply bait multiplier (type-specific).
-        //  3. Apply fishing skill bite-speed bonus.
+        //  Spec formula: 3.0 + random(0.0, 7.0) - 0.5 per level
+        //  Then apply bait multiplier.
         let mut rng = rand::thread_rng();
-        let base_wait = rng.gen_range(BITE_TIMER_MIN..BITE_TIMER_MAX);
+        let random_component: f32 = rng.gen_range(0.0..BITE_TIMER_RANDOM_MAX);
+        let level_reduction = skill.bite_wait_reduction();
+        let base_wait = BITE_TIMER_BASE + random_component - level_reduction;
 
         let bait_mult = match &bait_id {
             Some(id) => bait_bite_multiplier(id),
             None => 1.0,
         };
-        let wait_after_bait = base_wait * bait_mult;
         // Clamp to a minimum of 0.5s so max bait+skill never yields an instant bite.
-        let wait = skill.apply_bite_speed(wait_after_bait).max(0.5);
+        let wait = (base_wait * bait_mult).max(0.5);
 
         // Update fishing state
         fishing_state.phase = FishingPhase::WaitingForBite;
@@ -282,8 +284,8 @@ pub fn handle_bite_reaction_window(
             // Try legendary table first for accuracy
             let legendary_difficulty = super::legendaries::LEGENDARY_FISH
                 .iter()
-                .find(|&&(id, _, _, _, _)| id == fish_id)
-                .map(|&(_, _, _, diff, _)| diff);
+                .find(|&&(id, _, _, _, _, _)| id == fish_id)
+                .map(|&(_, _, _, diff, _, _)| diff);
 
             legendary_difficulty.unwrap_or_else(|| {
                 fish_registry
