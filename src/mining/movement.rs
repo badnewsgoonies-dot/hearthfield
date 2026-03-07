@@ -6,9 +6,9 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
-use super::floor_gen::{MINE_WIDTH, MINE_HEIGHT};
+use super::floor_gen::{MINE_HEIGHT, MINE_WIDTH};
+use crate::shared::*;
 
 /// Timer resource to prevent movement from being too fast (grid-based).
 #[derive(Resource, Debug)]
@@ -25,6 +25,7 @@ impl Default for MineMoveCooldown {
 }
 
 /// System: handle player movement on the mine grid.
+#[allow(clippy::too_many_arguments)]
 pub fn mine_player_movement(
     time: Res<Time>,
     player_input: Res<PlayerInput>,
@@ -71,7 +72,7 @@ pub fn mine_player_movement(
     let new_y = active_floor.player_grid_y + dy;
 
     // Bounds check (walls)
-    if new_x < 1 || new_x >= MINE_WIDTH - 1 || new_y < 0 || new_y >= MINE_HEIGHT - 1 {
+    if !(1..MINE_WIDTH - 1).contains(&new_x) || !(0..MINE_HEIGHT - 1).contains(&new_y) {
         return;
     }
 
@@ -96,6 +97,7 @@ pub fn mine_player_movement(
 
 /// System: when the player presses the action key (Space or E), generate a ToolUseEvent
 /// targeting the tile the player is facing. Uses the currently equipped tool.
+#[allow(clippy::too_many_arguments)]
 pub fn mine_player_action(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,

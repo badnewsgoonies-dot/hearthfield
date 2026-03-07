@@ -1,6 +1,6 @@
 use crate::shared::*;
 
-/// Populate the FishRegistry with all 20 fish species.
+/// Populate the FishRegistry with all 28 fish species.
 ///
 /// Each fish has:
 ///   - location: where in the world it can be caught
@@ -12,7 +12,6 @@ use crate::shared::*;
 pub fn populate_fish(registry: &mut FishRegistry) {
     let fish: Vec<FishDef> = vec![
         // ── Common Ocean Fish ─────────────────────────────────────────────────────
-
         FishDef {
             id: "sardine".into(),
             name: "Sardine".into(),
@@ -23,9 +22,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.15,
             sell_price: 40,
-            sprite_index: 50,
+            sprite_index: 23,
         },
-
         FishDef {
             id: "herring".into(),
             name: "Herring".into(),
@@ -36,11 +34,9 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.12,
             sell_price: 30,
-            sprite_index: 51,
+            sprite_index: 17,
         },
-
         // ── River Fish ────────────────────────────────────────────────────────────
-
         FishDef {
             id: "bass".into(),
             name: "Bass".into(),
@@ -51,9 +47,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.40,
             sell_price: 100,
-            sprite_index: 52,
+            sprite_index: 21,
         },
-
         FishDef {
             id: "trout".into(),
             name: "Trout".into(),
@@ -64,9 +59,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.30,
             sell_price: 65,
-            sprite_index: 53,
+            sprite_index: 19,
         },
-
         FishDef {
             id: "salmon".into(),
             name: "Salmon".into(),
@@ -77,9 +71,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.50,
             sell_price: 150,
-            sprite_index: 54,
+            sprite_index: 22,
         },
-
         FishDef {
             id: "catfish".into(),
             name: "Catfish".into(),
@@ -90,11 +83,9 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.55,
             sell_price: 200,
-            sprite_index: 55,
+            sprite_index: 20,
         },
-
         // ── Pond Fish ─────────────────────────────────────────────────────────────
-
         FishDef {
             id: "carp".into(),
             name: "Carp".into(),
@@ -106,9 +97,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.10,
             sell_price: 30,
-            sprite_index: 56,
+            sprite_index: 16,
         },
-
         FishDef {
             id: "pike".into(),
             name: "Pike".into(),
@@ -119,9 +109,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.60,
             sell_price: 100,
-            sprite_index: 57,
+            sprite_index: 24,
         },
-
         FishDef {
             id: "perch".into(),
             name: "Perch".into(),
@@ -132,9 +121,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.20,
             sell_price: 55,
-            sprite_index: 58,
+            sprite_index: 18,
         },
-
         FishDef {
             id: "eel".into(),
             name: "Eel".into(),
@@ -145,11 +133,9 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.70,
             sell_price: 85,
-            sprite_index: 59,
+            sprite_index: 27,
         },
-
         // ── Ocean Fish ────────────────────────────────────────────────────────────
-
         FishDef {
             id: "tuna".into(),
             name: "Tuna".into(),
@@ -160,9 +146,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.55,
             sell_price: 275,
-            sprite_index: 60,
+            sprite_index: 25,
         },
-
         FishDef {
             id: "swordfish".into(),
             name: "Swordfish".into(),
@@ -173,9 +158,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.75,
             sell_price: 350,
-            sprite_index: 61,
+            sprite_index: 26,
         },
-
         FishDef {
             id: "sturgeon".into(),
             name: "Sturgeon".into(),
@@ -186,9 +170,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.78,
             sell_price: 200,
-            sprite_index: 62,
+            sprite_index: 30,
         },
-
         FishDef {
             id: "pufferfish".into(),
             name: "Pufferfish".into(),
@@ -199,9 +182,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.50,
             sell_price: 200,
-            sprite_index: 63,
+            sprite_index: 29,
         },
-
         FishDef {
             id: "octopus".into(),
             name: "Octopus".into(),
@@ -212,9 +194,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.65,
             sell_price: 150,
-            sprite_index: 64,
+            sprite_index: 45,
         },
-
         FishDef {
             id: "squid".into(),
             name: "Squid".into(),
@@ -225,11 +206,9 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.30,
             sell_price: 80,
-            sprite_index: 65,
+            sprite_index: 46,
         },
-
         // ── Legendary & Rare Fish ──────────────────────────────────────────────────
-
         FishDef {
             id: "anglerfish".into(),
             name: "Anglerfish".into(),
@@ -240,9 +219,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.80,
             sell_price: 900,
-            sprite_index: 66,
+            sprite_index: 28,
         },
-
         FishDef {
             id: "legend_fish".into(),
             name: "Legend".into(),
@@ -253,9 +231,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.95,
             sell_price: 5000,
-            sprite_index: 67,
+            sprite_index: 31,
         },
-
         FishDef {
             id: "glacier_fish".into(),
             name: "Glacier Fish".into(),
@@ -266,9 +243,8 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.90,
             sell_price: 1000,
-            sprite_index: 68,
+            sprite_index: 47,
         },
-
         FishDef {
             id: "crimson_fish".into(),
             name: "Crimsonfish".into(),
@@ -279,7 +255,105 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.88,
             sell_price: 1500,
-            sprite_index: 69,
+            sprite_index: 44,
+        },
+        // ── Pond Fish ────────────────────────────────────────────────────────
+        FishDef {
+            id: "goldfish".into(),
+            name: "Goldfish".into(),
+            location: FishLocation::Pond,
+            seasons: vec![Season::Spring, Season::Summer, Season::Fall, Season::Winter],
+            time_range: (6.0, 22.0),
+            weather_required: None,
+            rarity: Rarity::Common,
+            difficulty: 0.10,
+            sell_price: 30,
+            sprite_index: 45,
+        },
+        FishDef {
+            id: "sunfish".into(),
+            name: "Sunfish".into(),
+            location: FishLocation::Pond,
+            seasons: vec![Season::Spring, Season::Summer],
+            time_range: (8.0, 18.0),
+            weather_required: None,
+            rarity: Rarity::Common,
+            difficulty: 0.18,
+            sell_price: 45,
+            sprite_index: 46,
+        },
+        FishDef {
+            id: "bullhead".into(),
+            name: "Bullhead".into(),
+            location: FishLocation::Pond,
+            seasons: vec![Season::Fall, Season::Winter],
+            time_range: (6.0, 22.0),
+            weather_required: None,
+            rarity: Rarity::Uncommon,
+            difficulty: 0.25,
+            sell_price: 75,
+            sprite_index: 47,
+        },
+        FishDef {
+            id: "koi".into(),
+            name: "Koi".into(),
+            location: FishLocation::Pond,
+            seasons: vec![Season::Spring, Season::Summer],
+            time_range: (6.0, 20.0),
+            weather_required: None,
+            rarity: Rarity::Rare,
+            difficulty: 0.40,
+            sell_price: 150,
+            sprite_index: 32,
+        },
+        // ── Mine Pool Fish ───────────────────────────────────────────────────
+        FishDef {
+            id: "ghostfish".into(),
+            name: "Ghostfish".into(),
+            location: FishLocation::MinePool,
+            seasons: vec![Season::Spring, Season::Summer, Season::Fall, Season::Winter],
+            time_range: (0.0, 24.0),
+            weather_required: None,
+            rarity: Rarity::Uncommon,
+            difficulty: 0.30,
+            sell_price: 90,
+            sprite_index: 33,
+        },
+        FishDef {
+            id: "stonefish".into(),
+            name: "Stonefish".into(),
+            location: FishLocation::MinePool,
+            seasons: vec![Season::Spring, Season::Summer, Season::Fall, Season::Winter],
+            time_range: (0.0, 24.0),
+            weather_required: None,
+            rarity: Rarity::Rare,
+            difficulty: 0.55,
+            sell_price: 200,
+            sprite_index: 34,
+        },
+        FishDef {
+            id: "ice_pip".into(),
+            name: "Ice Pip".into(),
+            location: FishLocation::MinePool,
+            seasons: vec![Season::Spring, Season::Summer, Season::Fall, Season::Winter],
+            time_range: (0.0, 24.0),
+            weather_required: None,
+            rarity: Rarity::Rare,
+            difficulty: 0.65,
+            sell_price: 300,
+            sprite_index: 35,
+        },
+        FishDef {
+            id: "lava_eel".into(),
+            name: "Lava Eel".into(),
+            location: FishLocation::MinePool,
+            seasons: vec![Season::Spring, Season::Summer, Season::Fall, Season::Winter],
+            time_range: (0.0, 24.0),
+            weather_required: None,
+            rarity: Rarity::Legendary,
+            difficulty: 0.80,
+            sell_price: 700,
+            sprite_index: 36,
         },
     ];
 

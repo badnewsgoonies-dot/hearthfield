@@ -3,12 +3,12 @@
 //! Uses the same 4×4 spritesheet layout as the player character:
 //!   Row 0 (indices 0-3):  Walk down
 //!   Row 1 (indices 4-7):  Walk up
-//!   Row 2 (indices 8-11): Walk right
-//!   Row 3 (indices 12-15): Walk left
+//!   Row 2 (indices 8-11): Walk left
+//!   Row 3 (indices 12-15): Walk right
 
-use bevy::prelude::*;
-use crate::shared::*;
 use super::spawning::NpcMovement;
+use crate::shared::*;
+use bevy::prelude::*;
 
 /// Timer component driving NPC walk-cycle frame advancement.
 #[derive(Component, Debug, Clone)]
@@ -26,7 +26,15 @@ pub struct NpcAnimationTimer {
 /// direction.
 pub fn animate_npc_sprites(
     time: Res<Time>,
-    mut query: Query<(&NpcMovement, &LogicalPosition, &mut Sprite, &mut NpcAnimationTimer), With<Npc>>,
+    mut query: Query<
+        (
+            &NpcMovement,
+            &LogicalPosition,
+            &mut Sprite,
+            &mut NpcAnimationTimer,
+        ),
+        With<Npc>,
+    >,
 ) {
     for (movement, logical_pos, mut sprite, mut anim) in query.iter_mut() {
         // Determine facing from movement vector (current pos → target)
@@ -34,9 +42,15 @@ pub fn animate_npc_sprites(
         let dy = movement.target_y - logical_pos.0.y;
 
         let base: usize = if dx.abs() > dy.abs() {
-            if dx > 0.0 { 8 } else { 12 } // Right : Left
+            if dx > 0.0 {
+                12
+            } else {
+                8
+            } // Right (row 3) : Left (row 2)
+        } else if dy > 0.0 {
+            4 // Up
         } else {
-            if dy > 0.0 { 4 } else { 0 } // Up : Down
+            0 // Down
         };
 
         if movement.is_moving {

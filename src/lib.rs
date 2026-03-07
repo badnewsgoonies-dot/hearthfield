@@ -5,18 +5,18 @@
 //! tests can import game types, systems, and resources without needing a
 //! window or GPU.
 
-pub mod shared;
-pub mod input;
-pub mod calendar;
-pub mod player;
-pub mod farming;
 pub mod animals;
-pub mod world;
-pub mod npcs;
-pub mod economy;
+pub mod calendar;
 pub mod crafting;
-pub mod fishing;
-pub mod mining;
-pub mod ui;
-pub mod save;
 pub mod data;
+pub mod economy;
+pub mod farming;
+pub mod fishing;
+pub mod input;
+pub mod mining;
+pub mod npcs;
+pub mod player;
+pub mod save;
+pub mod shared;
+pub mod ui;
+pub mod world;

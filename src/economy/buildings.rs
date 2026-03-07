@@ -1,8 +1,9 @@
 //! Building upgrade system — handles construction requests and timed completion
 //! for House, Coop, Barn, and Silo upgrades.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cost definitions
@@ -10,7 +11,10 @@ use crate::shared::*;
 
 /// Returns `(gold_cost, Vec<(material_item_id, quantity)>)` for upgrading a
 /// building *to* the given tier. Returns `(0, vec![])` for invalid combinations.
-fn upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'static str, u8)>) {
+pub fn upgrade_cost(
+    building: BuildingKind,
+    to_tier: BuildingTier,
+) -> (u32, Vec<(&'static str, u8)>) {
     match (building, to_tier) {
         // House upgrades (starts at Basic by default, upgrades to Big then Deluxe)
         (BuildingKind::House, BuildingTier::Big) => (10_000, vec![("wood", 200)]),
@@ -38,7 +42,7 @@ fn upgrade_cost(building: BuildingKind, to_tier: BuildingTier) -> (u32, Vec<(&'s
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Tracks the current tier of each farm building and any upgrade in progress.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BuildingLevels {
     pub coop_tier: BuildingTier,
     pub barn_tier: BuildingTier,
@@ -59,7 +63,7 @@ pub struct BuildingLevels {
 /// On failure: sends a toast with the reason for denial.
 pub fn handle_building_upgrade_request(
     mut events: EventReader<BuildingUpgradeEvent>,
-    mut player_state: ResMut<PlayerState>,
+    player_state: ResMut<PlayerState>,
     mut inventory: ResMut<Inventory>,
     mut building_levels: ResMut<BuildingLevels>,
     mut gold_writer: EventWriter<GoldChangeEvent>,
@@ -122,8 +126,7 @@ pub fn handle_building_upgrade_request(
 
         // ── All checks passed ──────────────────────────────────────────────
 
-        // Deduct gold (saturating_sub guards against underflow).
-        player_state.gold = player_state.gold.saturating_sub(gold_cost);
+        // Deduct gold via event (applied by apply_gold_changes).
         gold_writer.send(GoldChangeEvent {
             amount: -(gold_cost as i32),
             reason: format!("{:?} upgrade to {:?}", ev.building, ev.to_tier),
@@ -176,20 +179,18 @@ pub fn tick_building_upgrade(
         if let Some((building, target_tier)) = finished {
             // Apply the upgrade based on building kind.
             match building {
-                BuildingKind::House => {
-                    match target_tier {
-                        BuildingTier::Big => {
-                            house_state.tier = HouseTier::Big;
-                            house_state.has_kitchen = true;
-                        }
-                        BuildingTier::Deluxe => {
-                            house_state.tier = HouseTier::Deluxe;
-                            house_state.has_kitchen = true;
-                            house_state.has_nursery = true;
-                        }
-                        _ => {}
+                BuildingKind::House => match target_tier {
+                    BuildingTier::Big => {
+                        house_state.tier = HouseTier::Big;
+                        house_state.has_kitchen = true;
                     }
-                }
+                    BuildingTier::Deluxe => {
+                        house_state.tier = HouseTier::Deluxe;
+                        house_state.has_kitchen = true;
+                        house_state.has_nursery = true;
+                    }
+                    _ => {}
+                },
                 BuildingKind::Coop => {
                     animal_state.has_coop = true;
                     animal_state.coop_level = match target_tier {

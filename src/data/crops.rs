@@ -14,7 +14,6 @@ use crate::shared::*;
 pub fn populate_crops(registry: &mut CropRegistry) {
     let crops: Vec<CropDef> = vec![
         // ── Spring Crops ────────────────────────────────────────────────────────
-
         CropDef {
             id: "turnip".into(),
             name: "Turnip".into(),
@@ -29,7 +28,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             // Sprite stage indices in the crop atlas: 4 growth frames + 1 harvest frame
             sprite_stages: vec![0, 1, 2, 3],
         },
-
         CropDef {
             id: "potato".into(),
             name: "Potato".into(),
@@ -43,7 +41,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 80,
             sprite_stages: vec![10, 11, 12, 13],
         },
-
         CropDef {
             id: "cauliflower".into(),
             name: "Cauliflower".into(),
@@ -57,7 +54,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 175,
             sprite_stages: vec![20, 21, 22, 23, 24],
         },
-
         CropDef {
             id: "strawberry".into(),
             name: "Strawberry".into(),
@@ -71,9 +67,7 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 120,
             sprite_stages: vec![30, 31, 32, 33],
         },
-
         // ── Summer Crops ────────────────────────────────────────────────────────
-
         CropDef {
             id: "melon".into(),
             name: "Melon".into(),
@@ -87,7 +81,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 250,
             sprite_stages: vec![40, 41, 42, 43, 44],
         },
-
         CropDef {
             id: "tomato".into(),
             name: "Tomato".into(),
@@ -101,7 +94,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 60,
             sprite_stages: vec![50, 51, 52, 53, 54],
         },
-
         CropDef {
             id: "blueberry".into(),
             name: "Blueberry".into(),
@@ -115,7 +107,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 50,
             sprite_stages: vec![60, 61, 62, 63, 64],
         },
-
         CropDef {
             id: "corn".into(),
             name: "Corn".into(),
@@ -130,9 +121,7 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 50,
             sprite_stages: vec![70, 71, 72, 73, 74, 75],
         },
-
         // ── Fall Crops ───────────────────────────────────────────────────────────
-
         CropDef {
             id: "eggplant".into(),
             name: "Eggplant".into(),
@@ -146,7 +135,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 60,
             sprite_stages: vec![80, 81, 82, 83, 84],
         },
-
         CropDef {
             id: "pumpkin".into(),
             name: "Pumpkin".into(),
@@ -160,7 +148,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 320,
             sprite_stages: vec![90, 91, 92, 93, 94],
         },
-
         CropDef {
             id: "cranberry".into(),
             name: "Cranberry".into(),
@@ -174,7 +161,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 75,
             sprite_stages: vec![100, 101, 102, 103],
         },
-
         CropDef {
             id: "yam".into(),
             name: "Yam".into(),
@@ -188,9 +174,7 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 160,
             sprite_stages: vec![110, 111, 112, 113, 114],
         },
-
         // ── Any-Season Crops ─────────────────────────────────────────────────────
-
         CropDef {
             id: "wheat".into(),
             name: "Wheat".into(),
@@ -205,7 +189,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 25,
             sprite_stages: vec![120, 121, 122, 123],
         },
-
         CropDef {
             id: "coffee".into(),
             name: "Coffee".into(),
@@ -220,7 +203,6 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 150,
             sprite_stages: vec![130, 131, 132, 133, 134],
         },
-
         CropDef {
             id: "ancient_fruit".into(),
             name: "Ancient Fruit".into(),

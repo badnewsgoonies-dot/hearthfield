@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // CRAFTING UI STATE
@@ -60,10 +60,6 @@ pub struct OpenCraftingEvent {
     pub cooking_mode: bool,
 }
 
-/// Send to close the crafting UI and return to Playing.
-#[derive(Event, Debug, Clone)]
-pub struct CloseCraftingEvent;
-
 /// Send to request crafting a recipe. UI sends this when the player confirms.
 #[derive(Event, Debug, Clone)]
 pub struct CraftItemEvent {
@@ -118,24 +114,9 @@ pub fn handle_open_crafting(
     }
 }
 
-/// Runs in Crafting — listens for CloseCraftingEvent and returns to Playing.
-pub fn handle_close_crafting(
-    mut events: EventReader<CloseCraftingEvent>,
-    mut next_state: ResMut<NextState<GameState>>,
-    player_input: Res<PlayerInput>,
-) {
-    // Close on explicit event OR on Escape key
-    let esc_pressed = player_input.ui_cancel;
-    let has_event = events.read().next().is_some();
-
-    if esc_pressed || has_event {
-        info!("Closing crafting UI");
-        next_state.set(GameState::Playing);
-    }
-}
-
 /// Runs in Crafting (non-cooking mode) — processes a CraftItemEvent.
 /// Validates ingredients, consumes them, produces the result item.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_craft_item(
     mut events: EventReader<CraftItemEvent>,
     mut inventory: ResMut<Inventory>,
@@ -145,6 +126,8 @@ pub fn handle_craft_item(
     mut ui_state: ResMut<CraftingUiState>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut achievements: ResMut<Achievements>,
 ) {
     // Also handle keyboard input for navigation and confirming craft
     // (The UI plugin handles the actual rendering; we only handle logic here)
@@ -177,6 +160,10 @@ pub fn handle_craft_item(
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
+            toast_events.send(ToastEvent {
+                message: "Missing ingredients!".into(),
+                duration_secs: 2.0,
+            });
             continue;
         }
 
@@ -192,7 +179,10 @@ pub fn handle_craft_item(
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
         if leftover > 0 {
             // Inventory full — refund ingredients
-            warn!("Inventory full after crafting '{}' — refunding materials", recipe.name);
+            warn!(
+                "Inventory full after crafting '{}' — refunding materials",
+                recipe.name
+            );
             refund_ingredients(&mut inventory, recipe, &item_registry);
             ui_state.set_feedback("Inventory is full!".to_string());
             continue;
@@ -203,6 +193,10 @@ pub fn handle_craft_item(
             item_id: recipe.result.clone(),
             quantity: recipe.result_quantity,
         });
+        *achievements
+            .progress
+            .entry("crafts".to_string())
+            .or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
             format!("Crafted {} x{}", recipe.name, recipe.result_quantity)
@@ -214,6 +208,10 @@ pub fn handle_craft_item(
 
         sfx_events.send(PlaySfxEvent {
             sfx_id: "craft_success".to_string(),
+        });
+        toast_events.send(ToastEvent {
+            message: format!("{} crafted!", recipe.name),
+            duration_secs: 2.0,
         });
     }
 }
@@ -265,6 +263,37 @@ pub fn consume_ingredients(inventory: &mut Inventory, recipe: &Recipe) {
             );
         }
     }
+}
+
+/// Opens crafting when C is pressed (unless holding a chest on the farm,
+/// since the chest-placement system in world/chests.rs also reads open_crafting).
+pub fn trigger_crafting_key(
+    player_input: Res<PlayerInput>,
+    player_state: Res<PlayerState>,
+    inventory: Res<Inventory>,
+    input_blocks: Res<InputBlocks>,
+    mut events: EventWriter<OpenCraftingEvent>,
+) {
+    if input_blocks.is_blocked() || !player_input.open_crafting {
+        return;
+    }
+
+    // Don't open crafting if holding a chest on the farm (chest placement wins).
+    if player_state.current_map == MapId::Farm {
+        let holding_chest = inventory
+            .slots
+            .get(inventory.selected_slot)
+            .and_then(|s| s.as_ref())
+            .map(|slot| slot.item_id == "chest")
+            .unwrap_or(false);
+        if holding_chest {
+            return;
+        }
+    }
+
+    events.send(OpenCraftingEvent {
+        cooking_mode: false,
+    });
 }
 
 /// Refund all ingredients back to inventory after a failed craft.

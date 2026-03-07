@@ -79,6 +79,41 @@
 
         .hidden { opacity: 0; pointer-events: none; }
 
+        /* Error overlay */
+        #error-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(20, 10, 30, 0.95);
+            color: #ff6b6b;
+            font-family: monospace;
+            font-size: 13px;
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #error-overlay h2 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        #error-overlay .error-msg {
+            background: #1a0a2e;
+            border: 1px solid #ff6b6b44;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            color: #ffaaaa;
+        }
+        #error-overlay .hint {
+            color: #aaa;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
         @supports (-webkit-touch-callout: none) {
             html, body { height: -webkit-fill-available; }
             #game-container { height: -webkit-fill-available; }
@@ -96,6 +131,61 @@
         <canvas id="game-canvas"></canvas>
     </div>
 
+    <div id="error-overlay">
+        <h2>Hearthfield Error</h2>
+        <div id="error-messages"></div>
+        <p class="hint">Screenshot this and share for debugging.<br>
+        Try refreshing or opening on a desktop browser.</p>
+    </div>
+
+    <script>
+        // Error capture (runs before anything else)
+        const errorOverlay = document.getElementById('error-overlay');
+        const errorMessages = document.getElementById('error-messages');
+        let errorCount = 0;
+
+        function showError(msg) {
+            if (msg && msg.includes('Using exceptions for control flow')) return;
+            errorCount++;
+            if (errorCount > 20) return;
+            errorOverlay.style.display = 'block';
+            const div = document.createElement('div');
+            div.className = 'error-msg';
+            div.textContent = msg;
+            errorMessages.appendChild(div);
+        }
+
+        const origError = console.error;
+        console.error = function() {
+            origError.apply(console, arguments);
+            const msg = Array.from(arguments).map(a => {
+                if (a instanceof Error) return a.message + '\n' + (a.stack || '');
+                if (typeof a === 'object') {
+                    try { return JSON.stringify(a, null, 2); } catch { return String(a); }
+                }
+                return String(a);
+            }).join(' ');
+            showError(msg);
+        };
+
+        window.addEventListener('error', (e) => {
+            showError('JS Error: ' + e.message + '\n  at ' + e.filename + ':' + e.lineno);
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            const reason = e.reason;
+            let msg = 'Unhandled rejection: ';
+            if (reason instanceof Error) {
+                msg += reason.message + '\n' + (reason.stack || '');
+            } else if (typeof reason === 'string') {
+                msg += reason;
+            } else {
+                msg += JSON.stringify(reason);
+            }
+            showError(msg);
+        });
+    </script>
+
     <script type="module">
         const loadingBar = document.getElementById('loading-bar');
         const loadingText = document.getElementById('loading-text');
@@ -104,27 +194,51 @@
         loadingText.textContent = 'Downloading game...';
         loadingBar.style.width = '10%';
 
-        import init from './hearthfield.js';
+        try {
+            loadingText.textContent = 'Importing module...';
+            loadingBar.style.width = '20%';
+            const module = await import('./hearthfield.js');
 
-        loadingText.textContent = 'Starting engine...';
-        loadingBar.style.width = '50%';
+            loadingText.textContent = 'Compiling WASM...';
+            loadingBar.style.width = '40%';
 
-        init().then(() => {
+            const timeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('WASM initialization timed out (60s). Your device may not support this game.')), 60000)
+            );
+
+            loadingText.textContent = 'Starting Bevy engine...';
+            loadingBar.style.width = '50%';
+
+            await Promise.race([module.default(), timeout]);
+
             loadingBar.style.width = '100%';
             loadingText.textContent = 'Ready!';
             setTimeout(() => loadingScreen.classList.add('hidden'), 300);
-        }).catch(err => {
-            loadingText.textContent = 'Error: ' + err.message;
-            loadingBar.style.background = '#c44';
-            console.error(err);
-        });
+        } catch (err) {
+            // Bevy/winit uses throw for control flow in WASM — not a real error
+            if (err && String(err).includes('Using exceptions for control flow')) {
+                loadingBar.style.width = '100%';
+                loadingText.textContent = 'Ready!';
+                setTimeout(() => loadingScreen.classList.add('hidden'), 300);
+            } else {
+                loadingText.textContent = 'Error: ' + err.message;
+                loadingBar.style.background = '#c44';
+                loadingBar.style.width = '100%';
+                console.error('Hearthfield load failed:', err);
 
-        // Prevent iOS Safari gestures that break the game
+                const hint = document.createElement('p');
+                hint.style.cssText = 'margin-top:1em;font-size:0.8em;opacity:0.6;max-width:80%;text-align:center;';
+                hint.textContent = 'Try refreshing, or open on a desktop browser. Mobile devices may have memory limitations with large WASM games.';
+                loadingScreen.appendChild(hint);
+            }
+        }
+
+        // Prevent iOS Safari gestures
         document.addEventListener('gesturestart', e => e.preventDefault());
         document.addEventListener('gesturechange', e => e.preventDefault());
         document.addEventListener('gestureend', e => e.preventDefault());
 
-        // iOS audio unlock — WebAudio needs a user gesture to start
+        // iOS audio unlock
         let audioUnlocked = false;
         function unlockAudio() {
             if (audioUnlocked) return;

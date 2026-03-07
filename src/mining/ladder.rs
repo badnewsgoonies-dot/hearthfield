@@ -6,10 +6,11 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
+use crate::shared::*;
 
 /// System: detect when the player stands on the revealed ladder and descend.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_ladder_interaction(
     mut mine_state: ResMut<MineState>,
     mut active_floor: ResMut<ActiveFloor>,
@@ -19,6 +20,8 @@ pub fn handle_ladder_interaction(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut tool_use_events: EventReader<ToolUseEvent>,
 ) {
     if !in_mine.0 || !active_floor.spawned {
         return;
@@ -33,6 +36,12 @@ pub fn handle_ladder_interaction(
         return;
     }
 
+    // Guard: if a tool action (rock-breaking or combat) was consumed this frame,
+    // the tool_use key was already claimed — don't simultaneously descend.
+    if tool_use_events.read().next().is_some() {
+        return;
+    }
+
     let px = active_floor.player_grid_x;
     let py = active_floor.player_grid_y;
 
@@ -43,6 +52,13 @@ pub fn handle_ladder_interaction(
 
             // Cap at floor 20
             if next_floor > 20 {
+                sfx_events.send(PlaySfxEvent {
+                    sfx_id: "ui_deny".to_string(),
+                });
+                toast_events.send(ToastEvent {
+                    message: "You've reached the deepest floor.".to_string(),
+                    duration_secs: 2.0,
+                });
                 return;
             }
 
@@ -52,13 +68,18 @@ pub fn handle_ladder_interaction(
 
             mine_state.current_floor = next_floor;
 
+            toast_events.send(ToastEvent {
+                message: format!("Floor {}", next_floor),
+                duration_secs: 1.5,
+            });
+
             // Track deepest floor
             if next_floor > mine_state.deepest_floor_reached {
                 mine_state.deepest_floor_reached = next_floor;
             }
 
             // Unlock elevator every 5 floors
-            if next_floor % 5 == 0 && !mine_state.elevator_floors.contains(&next_floor) {
+            if next_floor.is_multiple_of(5) && !mine_state.elevator_floors.contains(&next_floor) {
                 mine_state.elevator_floors.push(next_floor);
                 mine_state.elevator_floors.sort();
             }
@@ -74,6 +95,7 @@ pub fn handle_ladder_interaction(
 }
 
 /// System: detect when the player steps on the exit tile to leave the mine.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_mine_exit(
     mut mine_state: ResMut<MineState>,
     mut active_floor: ResMut<ActiveFloor>,
@@ -115,8 +137,8 @@ pub fn handle_mine_exit(
             // Transition back to mine entrance
             map_events.send(MapTransitionEvent {
                 to_map: MapId::MineEntrance,
-                to_x: 12,
-                to_y: 12,
+                to_x: 7,
+                to_y: 4,
             });
 
             return;
@@ -130,6 +152,7 @@ pub fn handle_mine_exit(
 /// For simplicity, pressing number keys 1-4 selects elevator stops.
 /// The elevator UI is managed by the UI domain; here we just handle the
 /// selection input when ElevatorUiOpen is true.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_elevator_selection(
     mut mine_state: ResMut<MineState>,
     mut floor_req: ResMut<FloorSpawnRequest>,
@@ -157,21 +180,9 @@ pub fn handle_elevator_selection(
             // Key 1 → floor 1 (ground)
             selected_floor = Some(1);
         }
-        Some(1) => {
-            // Key 2 → first elevator stop
-            if let Some(&floor) = mine_state.elevator_floors.get(0) {
-                selected_floor = Some(floor);
-            }
-        }
-        Some(2) => {
-            // Key 3 → second elevator stop
-            if let Some(&floor) = mine_state.elevator_floors.get(1) {
-                selected_floor = Some(floor);
-            }
-        }
-        Some(3) => {
-            // Key 4 → third elevator stop
-            if let Some(&floor) = mine_state.elevator_floors.get(2) {
+        Some(n) if n >= 1 => {
+            // Keys 2-8 → elevator stops 0-6
+            if let Some(&floor) = mine_state.elevator_floors.get((n - 1) as usize) {
                 selected_floor = Some(floor);
             }
         }

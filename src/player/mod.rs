@@ -1,12 +1,14 @@
-mod movement;
-mod tools;
 mod camera;
+pub mod interact_dispatch;
 mod interaction;
+pub mod item_use;
+mod movement;
 mod spawn;
 pub mod tool_anim;
+mod tools;
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 pub struct PlayerPlugin;
 
@@ -15,13 +17,29 @@ impl Plugin for PlayerPlugin {
         // -- Local resources --
         app.init_resource::<ToolCooldown>();
         app.init_resource::<CollisionMap>();
+        app.init_resource::<CameraSnap>();
         app.init_resource::<PlayerSpriteData>();
         app.init_resource::<ActionSpriteData>();
 
         // -- Spawn player when we enter Playing --
         app.add_systems(
             OnEnter(GameState::Playing),
-            spawn::spawn_player,
+            (spawn::spawn_player, interaction::grant_starter_items),
+        );
+
+        // -- Interaction dispatchers: run BEFORE all legacy F-key systems --
+        app.add_systems(
+            Update,
+            interact_dispatch::dispatch_world_interaction
+                .before(interaction::item_pickup_check)
+                .in_set(UpdatePhase::Intent)
+                .run_if(in_state(GameState::Playing)),
+        );
+        app.add_systems(
+            Update,
+            item_use::dispatch_item_use
+                .in_set(UpdatePhase::Intent)
+                .run_if(in_state(GameState::Playing)),
         );
 
         // -- Systems that run every frame while Playing --
@@ -31,26 +49,36 @@ impl Plugin for PlayerPlugin {
                 // tool_use sets ToolUse anim state; must run before movement reads it
                 tools::tool_use.before(movement::player_movement),
                 movement::player_movement,
+                movement::footstep_sfx.after(movement::player_movement),
                 movement::animate_player_sprite,
                 tool_anim::animate_tool_use.after(movement::player_movement),
+                tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),
                 tools::tool_cycle,
                 tools::stamina_drain_handler,
+                tools::stamina_low_warning,
                 interaction::item_pickup_check,
                 interaction::add_items_to_inventory,
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
-                interaction::handle_stamina_restore,
-                interaction::handle_consume_item,
                 interaction::check_stamina_consequences,
-                camera::camera_follow_player,
             )
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
+        );
+        app.add_systems(
+            Update,
+            camera::camera_follow_player
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::Playing)),
         );
 
-        // -- DayEnd handling runs regardless of sub-state so we never miss it --
+        // -- DayEnd handling: only runs in Playing state to ensure world/NPC
+        // handlers (also gated on Playing) process the MapTransitionEvent --
         app.add_systems(
             Update,
-            interaction::handle_day_end,
+            interaction::handle_day_end
+                .in_set(UpdatePhase::Reactions)
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }
@@ -126,6 +154,17 @@ pub struct CollisionMap {
     pub initialised: bool,
 }
 
+/// When set, camera_follow_player snaps instantly instead of lerping.
+/// Uses a 2-frame countdown so the snap survives system ordering races
+/// between the world map loader and the camera on the transition frame.
+#[derive(Resource, Default)]
+pub struct CameraSnap {
+    /// Frames remaining before snap fires. 0 = no snap pending.
+    /// Set to 2 by handle_map_transition; camera decrements each frame
+    /// and snaps when it reaches 1 (ensuring WorldMap is updated).
+    pub frames_remaining: u8,
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers shared across sub-modules
 // ═══════════════════════════════════════════════════════════════════════════
@@ -140,22 +179,6 @@ pub fn stamina_cost(tool: &ToolKind) -> f32 {
         ToolKind::FishingRod => 4.0,
         ToolKind::Scythe => 2.0,
     }
-}
-
-/// Convert world-space pixel coordinates to grid position.
-pub fn world_to_grid(x: f32, y: f32) -> (i32, i32) {
-    (
-        (x / TILE_SIZE).floor() as i32,
-        (y / TILE_SIZE).floor() as i32,
-    )
-}
-
-/// Convert grid coordinates to world-space pixel position (tile center).
-pub fn grid_to_world(gx: i32, gy: i32) -> (f32, f32) {
-    (
-        gx as f32 * TILE_SIZE + TILE_SIZE * 0.5,
-        gy as f32 * TILE_SIZE + TILE_SIZE * 0.5,
-    )
 }
 
 /// The ordered list of tools for cycling with Q/E.

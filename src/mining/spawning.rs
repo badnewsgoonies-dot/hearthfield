@@ -2,9 +2,54 @@
 
 use bevy::prelude::*;
 
-use crate::shared::*;
 use super::components::*;
-use super::floor_gen::{self, FloorBlueprint, MINE_WIDTH, MINE_HEIGHT};
+use super::floor_gen::{self, FloorBlueprint, MINE_HEIGHT, MINE_WIDTH};
+use crate::shared::*;
+
+#[derive(Resource, Default)]
+pub struct MiningAtlas {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+#[derive(Resource, Default)]
+pub struct EnemyAtlas {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+pub fn load_mining_atlas(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas: ResMut<MiningAtlas>,
+    mut enemy_atlas: ResMut<EnemyAtlas>,
+) {
+    if !atlas.loaded {
+        atlas.image = asset_server.load("sprites/mining_atlas.png");
+        atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            8,
+            6,
+            None,
+            None,
+        ));
+        atlas.loaded = true;
+    }
+    if !enemy_atlas.loaded {
+        enemy_atlas.image = asset_server.load("sprites/mine_enemies.png");
+        // 48x16, 3 cols x 1 row: [0] Green Slime, [1] Bat, [2] Rock Crab
+        enemy_atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            3,
+            1,
+            None,
+            None,
+        ));
+        enemy_atlas.loaded = true;
+    }
+}
 
 /// Color palette for mine visuals.
 const FLOOR_COLOR: Color = Color::srgb(0.15, 0.12, 0.18);
@@ -14,12 +59,9 @@ const ROCK_COPPER_COLOR: Color = Color::srgb(0.72, 0.45, 0.20);
 const ROCK_IRON_COLOR: Color = Color::srgb(0.55, 0.55, 0.60);
 const ROCK_GOLD_COLOR: Color = Color::srgb(0.85, 0.75, 0.20);
 const ROCK_GEM_COLOR: Color = Color::srgb(0.60, 0.20, 0.80);
-const LADDER_COLOR: Color = Color::srgb(0.65, 0.50, 0.25);
+const LADDER_COLOR: Color = Color::srgb(0.75, 0.60, 0.30);
 const LADDER_HIDDEN_COLOR: Color = Color::srgb(0.15, 0.12, 0.18); // same as floor when hidden
-const EXIT_COLOR: Color = Color::srgb(0.30, 0.55, 0.30);
-const SLIME_COLOR: Color = Color::srgb(0.20, 0.80, 0.25);
-const BAT_COLOR: Color = Color::srgb(0.50, 0.30, 0.20);
-const CRAB_COLOR: Color = Color::srgb(0.55, 0.55, 0.55);
+const EXIT_COLOR: Color = Color::srgb(0.40, 0.70, 0.40);
 
 /// System: detects when a floor spawn is requested and carries it out.
 pub fn spawn_mine_floor(
@@ -27,6 +69,8 @@ pub fn spawn_mine_floor(
     mut floor_req: ResMut<FloorSpawnRequest>,
     mut active_floor: ResMut<ActiveFloor>,
     existing: Query<Entity, With<MineFloorEntity>>,
+    atlas: Res<MiningAtlas>,
+    enemy_atlas: Res<EnemyAtlas>,
 ) {
     if !floor_req.pending {
         return;
@@ -42,26 +86,27 @@ pub fn spawn_mine_floor(
     let blueprint = floor_gen::generate_floor(floor_num);
 
     // Spawn floor tiles
-    spawn_tiles(&mut commands, &blueprint);
+    spawn_tiles(&mut commands, &blueprint, &atlas);
 
     // Spawn rocks
     let rock_count = blueprint.rocks.len();
-    spawn_rocks(&mut commands, &blueprint);
+    spawn_rocks(&mut commands, &blueprint, &atlas);
 
     // Spawn enemies
-    spawn_enemies(&mut commands, &blueprint);
+    spawn_enemies(&mut commands, &blueprint, &enemy_atlas);
 
     // Spawn ladder
-    spawn_ladder(&mut commands, &blueprint);
+    spawn_ladder(&mut commands, &blueprint, &atlas);
 
     // Spawn exit tile (bottom center)
-    spawn_exit(&mut commands);
+    spawn_exit(&mut commands, &atlas);
 
     // Update active floor tracking
     *active_floor = ActiveFloor {
         floor: floor_num,
         total_rocks: rock_count,
         rocks_remaining: rock_count,
+        rocks_broken_this_floor: 0,
         ladder_revealed: !blueprint.ladder_hidden,
         player_grid_x: blueprint.spawn_pos.0,
         player_grid_y: blueprint.spawn_pos.1,
@@ -69,20 +114,46 @@ pub fn spawn_mine_floor(
     };
 }
 
-fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint) {
+fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlas: &MiningAtlas) {
     for y in 0..MINE_HEIGHT {
         for x in 0..MINE_WIDTH {
             let is_wall = x == 0 || x == MINE_WIDTH - 1 || y == MINE_HEIGHT - 1;
-            let color = if is_wall { WALL_COLOR } else { FLOOR_COLOR };
             let world_x = x as f32 * TILE_SIZE;
             let world_y = y as f32 * TILE_SIZE;
 
-            commands.spawn((
+            // Subtle checkerboard: every other tile gets a slight brightness bump
+            let checker_bright = (x + y) % 2 == 0;
+            let sprite = if atlas.loaded {
+                let idx = if is_wall { 3 } else { 0 };
+                let mut s = Sprite::from_atlas_image(
+                    atlas.image.clone(),
+                    TextureAtlas {
+                        layout: atlas.layout.clone(),
+                        index: idx,
+                    },
+                );
+                s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+                if !is_wall && checker_bright {
+                    s.color = Color::srgb(1.02, 1.02, 1.02);
+                }
+                s
+            } else {
+                let color = if is_wall {
+                    WALL_COLOR
+                } else if checker_bright {
+                    Color::srgb(0.15 + 0.02, 0.12 + 0.02, 0.18 + 0.02)
+                } else {
+                    FLOOR_COLOR
+                };
                 Sprite {
                     color,
                     custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
                     ..default()
-                },
+                }
+            };
+
+            commands.spawn((
+                sprite,
                 Transform::from_xyz(world_x, world_y, 0.0),
                 MineFloorEntity,
                 MineTile,
@@ -92,31 +163,67 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint) {
     }
 }
 
+const ROCK_IRIDIUM_COLOR: Color = Color::srgb(0.40, 0.20, 0.60);
+
 fn rock_color(drop_item: &str) -> Color {
     match drop_item {
         "copper_ore" => ROCK_COPPER_COLOR,
         "iron_ore" => ROCK_IRON_COLOR,
         "gold_ore" => ROCK_GOLD_COLOR,
+        "iridium_ore" => ROCK_IRIDIUM_COLOR,
         "diamond" | "ruby" | "emerald" | "quartz" | "amethyst" => ROCK_GEM_COLOR,
         _ => ROCK_STONE_COLOR,
     }
 }
 
-fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint) {
+fn rock_atlas_index(drop_item: &str) -> usize {
+    match drop_item {
+        "copper_ore" => 8,
+        "iron_ore" => 9,
+        "gold_ore" => 11,
+        "iridium_ore" => 10,
+        "diamond" => 22,
+        "ruby" => 19,
+        "emerald" => 20,
+        "quartz" => 16,
+        "amethyst" => 17,
+        _ => 0,
+    }
+}
+
+fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint, atlas: &MiningAtlas) {
     for rock_bp in &blueprint.rocks {
-        let color = rock_color(&rock_bp.drop_item);
         let world_x = rock_bp.x as f32 * TILE_SIZE;
         let world_y = rock_bp.y as f32 * TILE_SIZE;
 
-        commands.spawn((
+        let sprite = if atlas.loaded {
+            let idx = rock_atlas_index(&rock_bp.drop_item);
+            let mut s = Sprite::from_atlas_image(
+                atlas.image.clone(),
+                TextureAtlas {
+                    layout: atlas.layout.clone(),
+                    index: idx,
+                },
+            );
+            s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+            s
+        } else {
+            let color = rock_color(&rock_bp.drop_item);
             Sprite {
                 color,
                 custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
                 ..default()
-            },
+            }
+        };
+
+        commands.spawn((
+            sprite,
             Transform::from_xyz(world_x, world_y, 1.0),
             MineFloorEntity,
-            MineGridPos { x: rock_bp.x, y: rock_bp.y },
+            MineGridPos {
+                x: rock_bp.x,
+                y: rock_bp.y,
+            },
             MineRock {
                 health: rock_bp.health,
                 drop_item: rock_bp.drop_item.clone(),
@@ -126,12 +233,12 @@ fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint) {
     }
 }
 
-fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint) {
+fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint, enemy_atlas: &EnemyAtlas) {
     for enemy_bp in &blueprint.enemies {
-        let color = match enemy_bp.kind {
-            MineEnemy::GreenSlime => SLIME_COLOR,
-            MineEnemy::Bat => BAT_COLOR,
-            MineEnemy::RockCrab => CRAB_COLOR,
+        let atlas_index = match enemy_bp.kind {
+            MineEnemy::GreenSlime => 0,
+            MineEnemy::Bat => 1,
+            MineEnemy::RockCrab => 2,
         };
         let world_x = enemy_bp.x as f32 * TILE_SIZE;
         let world_y = enemy_bp.y as f32 * TILE_SIZE;
@@ -144,14 +251,19 @@ fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint) {
         };
 
         commands.spawn((
-            Sprite {
-                color,
-                custom_size: Some(Vec2::new(TILE_SIZE - 2.0, TILE_SIZE - 2.0)),
-                ..default()
-            },
-            Transform::from_xyz(world_x, world_y, 2.0),
+            Sprite::from_atlas_image(
+                enemy_atlas.image.clone(),
+                TextureAtlas {
+                    layout: enemy_atlas.layout.clone(),
+                    index: atlas_index,
+                },
+            ),
+            Transform::from_xyz(world_x, world_y, 2.0).with_scale(Vec3::splat(1.2)),
             MineFloorEntity,
-            MineGridPos { x: enemy_bp.x, y: enemy_bp.y },
+            MineGridPos {
+                x: enemy_bp.x,
+                y: enemy_bp.y,
+            },
             MineMonster {
                 kind: enemy_bp.kind,
                 health: enemy_bp.health,
@@ -169,21 +281,35 @@ fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint) {
     }
 }
 
-fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint) {
-    let color = if blueprint.ladder_hidden {
-        LADDER_HIDDEN_COLOR
-    } else {
-        LADDER_COLOR
-    };
+fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint, atlas: &MiningAtlas) {
     let world_x = blueprint.ladder_pos.0 as f32 * TILE_SIZE;
     let world_y = blueprint.ladder_pos.1 as f32 * TILE_SIZE;
 
-    commands.spawn((
+    let sprite = if atlas.loaded && !blueprint.ladder_hidden {
+        let mut s = Sprite::from_atlas_image(
+            atlas.image.clone(),
+            TextureAtlas {
+                layout: atlas.layout.clone(),
+                index: 45,
+            },
+        );
+        s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+        s
+    } else {
+        let color = if blueprint.ladder_hidden {
+            LADDER_HIDDEN_COLOR
+        } else {
+            LADDER_COLOR
+        };
         Sprite {
             color,
             custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
             ..default()
-        },
+        }
+    };
+
+    commands.spawn((
+        sprite,
         Transform::from_xyz(world_x, world_y, 0.5),
         MineFloorEntity,
         MineGridPos {
@@ -196,20 +322,38 @@ fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint) {
     ));
 }
 
-fn spawn_exit(commands: &mut Commands) {
+fn spawn_exit(commands: &mut Commands, atlas: &MiningAtlas) {
     // Exit is at bottom center (x=12, y=0)
     let exit_x = (MINE_WIDTH / 2) as f32 * TILE_SIZE;
     let exit_y = 0.0;
 
-    commands.spawn((
+    let sprite = if atlas.loaded {
+        let mut s = Sprite::from_atlas_image(
+            atlas.image.clone(),
+            TextureAtlas {
+                layout: atlas.layout.clone(),
+                index: 45,
+            },
+        );
+        s.custom_size = Some(Vec2::new(TILE_SIZE * 2.0, TILE_SIZE));
+        s.color = EXIT_COLOR;
+        s
+    } else {
         Sprite {
             color: EXIT_COLOR,
             custom_size: Some(Vec2::new(TILE_SIZE * 2.0, TILE_SIZE)),
             ..default()
-        },
+        }
+    };
+
+    commands.spawn((
+        sprite,
         Transform::from_xyz(exit_x, exit_y, 0.5),
         MineFloorEntity,
-        MineGridPos { x: MINE_WIDTH / 2, y: 0 },
+        MineGridPos {
+            x: MINE_WIDTH / 2,
+            y: 0,
+        },
         MineExit,
     ));
 }

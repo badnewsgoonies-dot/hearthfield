@@ -1,19 +1,20 @@
 //! Map transition and day-end event handlers for the NPC domain.
 
-use bevy::prelude::*;
+use super::spawning::{spawn_npcs_for_map, NpcMapTag, NpcSpriteData, SpawnedNpcs};
 use crate::shared::*;
-use std::collections::HashMap;
-use super::spawning::{SpawnedNpcs, NpcMapTag, NpcSpriteData, spawn_npcs_for_map};
+use bevy::prelude::*;
+use std::collections::{HashMap, HashSet};
 
 /// NPC-domain resource tracking how many consecutive days each NPC has gone without a gift.
 /// When this counter exceeds 7, friendship starts decaying.
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GiftDecayTracker {
     /// NpcId → number of consecutive days without a gift
     pub days_since_gift: HashMap<NpcId, u32>,
 }
 
 /// System: handle MapTransitionEvent — despawn old map NPCs, spawn new map NPCs.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_map_transition(
     mut commands: Commands,
     mut transition_reader: EventReader<MapTransitionEvent>,
@@ -27,13 +28,15 @@ pub fn handle_map_transition(
 ) {
     for event in transition_reader.read() {
         // Despawn all currently loaded NPC entities
-        let mut despawned_entities = Vec::new();
+        let mut despawned_entities = HashSet::new();
         for (entity, _tag) in npc_map_tags.iter() {
             commands.entity(entity).despawn_recursive();
-            despawned_entities.push(entity);
+            despawned_entities.insert(entity);
         }
         // Clear the tracking map
-        spawned.entities.retain(|_, e| !despawned_entities.contains(e));
+        spawned
+            .entities
+            .retain(|_, e| !despawned_entities.contains(e));
 
         // Spawn NPCs that belong to the new map
         spawn_npcs_for_map(
@@ -67,7 +70,8 @@ pub fn handle_day_end(
         let npc_ids: Vec<NpcId> = npc_registry.npcs.keys().cloned().collect();
 
         for npc_id in &npc_ids {
-            let gifted_today = relationships.gifted_today
+            let gifted_today = relationships
+                .gifted_today
                 .get(npc_id.as_str())
                 .copied()
                 .unwrap_or(false);
@@ -77,14 +81,16 @@ pub fn handle_day_end(
                 decay_tracker.days_since_gift.insert(npc_id.clone(), 0);
             } else {
                 // No gift today — increment counter
-                let days = decay_tracker.days_since_gift
+                let days = decay_tracker
+                    .days_since_gift
                     .entry(npc_id.clone())
                     .or_insert(0);
                 *days += 1;
 
                 // Apply decay if counter has exceeded the grace period of 7 days
                 if *days > 7 {
-                    let before = relationships.friendship
+                    let before = relationships
+                        .friendship
                         .get(npc_id.as_str())
                         .copied()
                         .unwrap_or(0);
@@ -94,16 +100,19 @@ pub fn handle_day_end(
                         relationships.add_friendship(npc_id, -2);
 
                         // Notify the player if a significant friendship threshold was crossed
-                        let after = relationships.friendship
+                        let after = relationships
+                            .friendship
                             .get(npc_id.as_str())
                             .copied()
                             .unwrap_or(0);
 
                         // Warn when a heart is lost (crossed a 100-point boundary)
-                        let hearts_before = (before / 100).min(10);
-                        let hearts_after = (after / 100).min(10);
+                        let hearts_before = (before / FRIENDSHIP_PER_HEART).min(MAX_HEARTS);
+                        let hearts_after = (after / FRIENDSHIP_PER_HEART).min(MAX_HEARTS);
                         if hearts_after < hearts_before {
-                            let npc_name = npc_registry.npcs.get(npc_id.as_str())
+                            let npc_name = npc_registry
+                                .npcs
+                                .get(npc_id.as_str())
                                 .map(|d| d.name.as_str())
                                 .unwrap_or(npc_id.as_str());
                             toast_writer.send(ToastEvent {

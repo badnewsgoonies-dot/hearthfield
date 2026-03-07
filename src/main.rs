@@ -1,46 +1,78 @@
-mod shared;
-mod input;
-mod calendar;
-mod player;
-mod farming;
 mod animals;
-mod world;
-mod npcs;
-mod economy;
+mod calendar;
 mod crafting;
-mod fishing;
-mod mining;
-mod ui;
-mod save;
 mod data;
+mod economy;
+mod farming;
+mod fishing;
+mod input;
+mod mining;
+mod npcs;
+mod player;
+mod save;
+mod shared;
+mod ui;
+mod world;
 
+use bevy::asset::AssetMetaCheck;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::PathBuf;
 
 use shared::*;
 
 fn main() {
+    #[cfg(not(target_arch = "wasm32"))]
+    let asset_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .to_string_lossy()
+        .into_owned();
+
+    let default_plugins = DefaultPlugins
+        .set(AssetPlugin {
+            meta_check: AssetMetaCheck::Never,
+            #[cfg(not(target_arch = "wasm32"))]
+            file_path: asset_path,
+            ..default()
+        })
+        .set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Hearthfield".into(),
+                resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
+                present_mode: PresentMode::AutoVsync,
+                resizable: true,
+                #[cfg(target_arch = "wasm32")]
+                canvas: Some("#game-canvas".into()),
+                #[cfg(target_arch = "wasm32")]
+                fit_canvas_to_parent: true,
+                ..default()
+            }),
+            ..default()
+        })
+        .set(ImagePlugin::default_nearest());
+
     App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Hearthfield".into(),
-                        resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
-                        present_mode: PresentMode::AutoVsync,
-                        resizable: true,
-                        #[cfg(target_arch = "wasm32")]
-                        canvas: Some("#game-canvas".into()),
-                        #[cfg(target_arch = "wasm32")]
-                        fit_canvas_to_parent: true,
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(ImagePlugin::default_nearest()),
-        )
+        .add_plugins(default_plugins)
+        // Clear color (dark navy, close to HTML background)
+        .insert_resource(ClearColor(Color::srgb(0.15, 0.22, 0.12)))
+        // Fixed timestep for deterministic simulation islands.
+        .insert_resource(Time::<Fixed>::from_hz(5.0))
         // Game state
         .init_state::<GameState>()
+        // Shared update-phase ordering
+        .configure_sets(
+            Update,
+            (
+                UpdatePhase::Input,
+                UpdatePhase::Intent,
+                UpdatePhase::Simulation,
+                UpdatePhase::Reactions,
+                UpdatePhase::Presentation,
+            )
+                .chain(),
+        )
         // Shared resources
         .init_resource::<Calendar>()
         .init_resource::<PlayerState>()
@@ -71,6 +103,7 @@ fn main() {
         .init_resource::<TutorialState>()
         .init_resource::<PlayStats>()
         .init_resource::<InputBlocks>()
+        .init_resource::<InteractionClaimed>()
         .init_resource::<CutsceneQueue>()
         // Input & menu abstraction
         .init_resource::<PlayerInput>()
@@ -110,8 +143,8 @@ fn main() {
         .add_event::<HintEvent>()
         .add_event::<AchievementUnlockedEvent>()
         .add_event::<BuildingUpgradeEvent>()
-        .add_event::<ScreenTransitionEvent>()
         .add_event::<ToolImpactEvent>()
+        .add_event::<ToastEvent>()
         // Input plugin (before all domain plugins)
         .add_plugins(input::InputPlugin)
         // Domain plugins
@@ -138,6 +171,7 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera2d,
         Msaa::Off,
+        Tonemapping::None,
         Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)),
     ));
 }

@@ -5,10 +5,10 @@
 //! The world domain owns `ChestInteraction` which tracks the currently open
 //! chest entity. We import it so the UI knows which chest to display.
 
-use bevy::prelude::*;
+use super::UiFontHandle;
 use crate::shared::*;
 use crate::world::chests::ChestInteraction;
-use super::UiFontHandle;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -46,7 +46,7 @@ pub struct ChestUiState {
     pub cursor: usize,
 }
 
-const VISIBLE_SLOTS: usize = 12;
+const VISIBLE_SLOTS: usize = 36;
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN
@@ -71,7 +71,7 @@ fn spawn_chest_ui(commands: &mut Commands, font: Handle<Font>) {
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.55)),
-            GlobalZIndex(100),
+            GlobalZIndex(50),
         ))
         .with_children(|root| {
             // Two panels side by side
@@ -93,9 +93,7 @@ fn spawn_chest_ui(commands: &mut Commands, font: Handle<Font>) {
 
             // Hint text
             root.spawn((
-                Text::new(
-                    "Tab: Switch panel | Up/Down: Select | Enter: Transfer | Esc: Close",
-                ),
+                Text::new("Tab: Switch panel | Up/Down: Select | Enter: Transfer | Esc: Close"),
                 TextFont {
                     font,
                     font_size: 11.0,
@@ -230,7 +228,7 @@ fn spawn_chest_panel(parent: &mut ChildBuilder, font: Handle<Font>) {
 
 fn despawn_chest_ui(commands: &mut Commands, query: &Query<Entity, With<ChestScreenRoot>>) {
     for entity in query.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<ChestUiState>();
 }
@@ -399,8 +397,8 @@ pub fn handle_chest_input(
         return;
     };
 
-    // Tab: switch panels (Tab is mapped to ui_left in Gameplay context)
-    if player_input.ui_left {
+    // Tab: switch panels
+    if player_input.tab_pressed {
         ui_state.on_chest_side = !ui_state.on_chest_side;
         ui_state.cursor = 0;
     }

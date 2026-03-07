@@ -8,25 +8,27 @@
 //!
 //! | Bait / Condition | Treasure chance |
 //! |------------------|-----------------|
-//! | No bait          | 5%              |
-//! | Generic bait     | 5%              |
-//! | wild_bait        | 10%             |
-//! | magnet_bait      | 20%             |
+//! | No bait          | 10%             |
+//! | Generic bait     | 10%             |
+//! | wild_bait        | 15%             |
+//! | magnet_bait      | 25%             |
 
 use bevy::prelude::*;
 
+use super::treasure::{
+    check_and_grant_treasure, BASE_TREASURE_CHANCE, MAGNET_BAIT_EXTRA_CHANCE,
+    WILD_BAIT_EXTRA_CHANCE,
+};
+use super::{FishEncyclopedia, FishingPhase, FishingState};
 use crate::shared::*;
-use super::{FishingPhase, FishingState, FishEncyclopedia};
-use super::treasure::{check_and_grant_treasure, BASE_TREASURE_CHANCE, WILD_BAIT_EXTRA_CHANCE};
 
 // ─── catch_fish ───────────────────────────────────────────────────────────────
 
 /// Called when the player successfully catches a fish.
 ///
-/// `bait_equipped` indicates whether any bait was used this cast, which affects
-/// the treasure discovery chance. The specific bait type is not threaded through
-/// here; callers that know the exact bait ID should adjust `treasure_chance`
-/// before calling or use `catch_fish_with_bait_id` instead.
+/// `bait_id` is the specific bait item ID used for this cast (e.g. "wild_bait"),
+/// or `None` if no bait was equipped. This determines the treasure bonus.
+#[allow(clippy::too_many_arguments)]
 pub fn catch_fish(
     fishing_state: &mut FishingState,
     next_state: &mut NextState<GameState>,
@@ -40,7 +42,7 @@ pub fn catch_fish(
     calendar: &Calendar,
     toast_events: &mut EventWriter<ToastEvent>,
     gold_events: &mut EventWriter<GoldChangeEvent>,
-    bait_equipped: bool,
+    bait_id: Option<&str>,
 ) {
     // Determine what was caught
     let fish_id = fishing_state
@@ -64,6 +66,17 @@ pub fn catch_fish(
     item_pickup_events.send(ItemPickupEvent {
         item_id: valid_id.clone(),
         quantity: 1,
+    });
+
+    // Toast for the catch
+    let catch_name = fish_registry
+        .fish
+        .get(&valid_id)
+        .map(|f| f.name.clone())
+        .unwrap_or_else(|| valid_id.clone());
+    toast_events.send(ToastEvent {
+        message: format!("Caught a {}!", catch_name),
+        duration_secs: 2.5,
     });
 
     // ── Fish Encyclopedia ──────────────────────────────────────────────────
@@ -101,18 +114,13 @@ pub fn catch_fish(
 
     // ── Treasure Chest ────────────────────────────────────────────────────
     // Bait affects treasure probability:
-    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)
-    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)
-    //   - any other bait has no extra treasure bonus
-    // Since we don't have the specific bait_id here, we apply a conservative
-    // flat bonus when `bait_equipped` is true. Systems that know the exact
-    // bait type should call `check_and_grant_treasure` directly with the
-    // adjusted chance.
-    let treasure_chance = if bait_equipped {
-        // Default bait bonus: apply WILD_BAIT rate as a conservative bonus.
-        BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE
-    } else {
-        BASE_TREASURE_CHANCE
+    //   - magnet_bait adds +15% (MAGNET_BAIT_EXTRA_CHANCE)  → 25% total
+    //   - wild_bait adds +5% (WILD_BAIT_EXTRA_CHANCE)       → 15% total
+    //   - any other bait / no bait: base rate only           → 10% total
+    let treasure_chance = match bait_id {
+        Some("magnet_bait") => BASE_TREASURE_CHANCE + MAGNET_BAIT_EXTRA_CHANCE,
+        Some("wild_bait") => BASE_TREASURE_CHANCE + WILD_BAIT_EXTRA_CHANCE,
+        _ => BASE_TREASURE_CHANCE,
     };
 
     check_and_grant_treasure(

@@ -3,8 +3,8 @@
 //! Players can place storage chests on the farm map and interact with them
 //! to open a split-view inventory/chest UI.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // COMPONENTS & RESOURCES
@@ -35,6 +35,10 @@ impl ChestInteraction {
         self.entity.is_some()
     }
 }
+
+/// InputBlocks tag used while the chest overlay is open.
+#[derive(Debug)]
+struct ChestOverlayInputBlock;
 
 // ═══════════════════════════════════════════════════════════════════════
 // CHEST SPRITE LOADING
@@ -70,6 +74,7 @@ pub fn load_chest_sprites(
 /// Listens for the C key while the player has a "chest" item in their
 /// selected hotbar slot. Places a chest entity on the target tile
 /// (player position + facing direction) if the tile is valid.
+#[allow(clippy::too_many_arguments)]
 pub fn place_chest(
     player_input: Res<PlayerInput>,
     input_blocks: Res<InputBlocks>,
@@ -104,7 +109,8 @@ pub fn place_chest(
 
     // Check if selected hotbar slot contains a "chest" item.
     let selected = inventory.selected_slot;
-    let has_chest_item = if let Some(ref slot) = inventory.slots.get(selected).and_then(|s| s.as_ref()) {
+    let has_chest_item = if let Some(slot) = inventory.slots.get(selected).and_then(|s| s.as_ref())
+    {
         slot.item_id == "chest"
     } else {
         false
@@ -119,28 +125,38 @@ pub fn place_chest(
         return;
     };
 
-    let px = (transform.translation.x / TILE_SIZE).floor() as i32;
-    let py = (transform.translation.y / TILE_SIZE).floor() as i32;
+    let pg = world_to_grid(transform.translation.x, transform.translation.y);
+    let px = pg.x;
+    let py = pg.y;
     let (dx, dy) = facing_offset(&movement.facing);
     let target_x = px + dx;
     let target_y = py + dy;
 
     // Check target tile is not occupied by a crop.
     if farm_state.crops.contains_key(&(target_x, target_y)) {
-        info!("[Chest] Cannot place chest — tile ({}, {}) has a crop", target_x, target_y);
+        info!(
+            "[Chest] Cannot place chest — tile ({}, {}) has a crop",
+            target_x, target_y
+        );
         return;
     }
 
     // Check target tile is not occupied by a farm object.
     if farm_state.objects.contains_key(&(target_x, target_y)) {
-        info!("[Chest] Cannot place chest — tile ({}, {}) has an object", target_x, target_y);
+        info!(
+            "[Chest] Cannot place chest — tile ({}, {}) has an object",
+            target_x, target_y
+        );
         return;
     }
 
     // Check no existing chest at that position.
     for chest in chest_query.iter() {
         if chest.grid_pos == (target_x, target_y) {
-            info!("[Chest] Cannot place chest — tile ({}, {}) already has a chest", target_x, target_y);
+            info!(
+                "[Chest] Cannot place chest — tile ({}, {}) already has a chest",
+                target_x, target_y
+            );
             return;
         }
     }
@@ -202,11 +218,12 @@ pub fn place_chest(
 /// open the chest by setting ChestInteraction.entity.
 pub fn interact_with_chest(
     player_input: Res<PlayerInput>,
-    input_blocks: Res<InputBlocks>,
+    mut input_blocks: ResMut<InputBlocks>,
     mut chest_interaction: ResMut<ChestInteraction>,
     player_query: Query<&Transform, With<Player>>,
     chest_query: Query<(Entity, &Transform), With<ChestMarker>>,
     player_state: Res<PlayerState>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     // Don't open another chest if one is already open.
     if chest_interaction.is_open() {
@@ -222,8 +239,12 @@ pub fn interact_with_chest(
         return;
     }
 
-    // Must be on the farm map (chests only placed there).
-    if player_state.current_map != MapId::Farm {
+    if interaction_claimed.0 {
+        return;
+    }
+
+    // Must be on the farm map or player house.
+    if player_state.current_map != MapId::Farm && player_state.current_map != MapId::PlayerHouse {
         return;
     }
 
@@ -239,15 +260,14 @@ pub fn interact_with_chest(
     for (entity, chest_transform) in chest_query.iter() {
         let chest_pos = chest_transform.translation.truncate();
         let dist = player_pos.distance(chest_pos);
-        if dist <= interact_range {
-            if closest.map_or(true, |(_, d)| dist < d) {
-                closest = Some((entity, dist));
-            }
+        if dist <= interact_range && closest.is_none_or(|(_, d)| dist < d) {
+            closest = Some((entity, dist));
         }
     }
 
     if let Some((entity, _)) = closest {
         chest_interaction.entity = Some(entity);
+        input_blocks.block::<ChestOverlayInputBlock>();
         info!("[Chest] Opened chest {:?}", entity);
     }
 }
@@ -256,6 +276,7 @@ pub fn interact_with_chest(
 /// by clearing the `ChestInteraction` resource.
 pub fn close_chest_on_escape(
     player_input: Res<PlayerInput>,
+    mut input_blocks: ResMut<InputBlocks>,
     mut chest_interaction: ResMut<ChestInteraction>,
 ) {
     if !chest_interaction.is_open() {
@@ -265,6 +286,7 @@ pub fn close_chest_on_escape(
     if player_input.ui_cancel {
         info!("[Chest] Closed chest {:?}", chest_interaction.entity);
         chest_interaction.entity = None;
+        input_blocks.unblock::<ChestOverlayInputBlock>();
     }
 }
 

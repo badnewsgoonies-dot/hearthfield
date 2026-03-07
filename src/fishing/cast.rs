@@ -3,17 +3,19 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::shared::*;
-use super::{Bobber, FishingPhase, FishingState, FishingMinigameState, TackleKind};
 use super::fish_select::select_fish;
+use super::legendaries::is_legendary;
 use super::resolve::end_fishing_escape;
 use super::skill::FishingSkill;
-use super::legendaries::is_legendary;
+use super::{Bobber, FishingMinigameState, FishingPhase, FishingState, TackleKind};
+use crate::shared::*;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const BITE_TIMER_MIN: f32 = 2.0;
-const BITE_TIMER_MAX: f32 = 8.0;
+/// Base bite wait time in seconds (spec: 3.0 + random(0.0, 7.0) - 0.5 per level).
+const BITE_TIMER_BASE: f32 = 3.0;
+/// Random range added to base bite wait.
+const BITE_TIMER_RANDOM_MAX: f32 = 7.0;
 const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
 
 // ─── Bait helpers ─────────────────────────────────────────────────────────────
@@ -27,13 +29,15 @@ const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
 /// | worm_bait     | 0.75       | 25% faster bite                           |
 /// | magnet_bait   | 1.00       | Normal speed — bonus is treasure chance   |
 /// | wild_bait     | 0.70       | 30% faster bite + 15% double-catch chance |
-/// | (generic bait)| 0.50       | 50% faster bite                           |
+/// | (generic bait)| 0.85       | 15% faster bite                           |
+/// | (unknown)     | 1.00       | No speed bonus                            |
 pub fn bait_bite_multiplier(bait_id: &str) -> f32 {
     match bait_id {
-        "worm_bait"   => 0.75,
+        "worm_bait" => 0.75,
         "magnet_bait" => 1.00, // magnet bait benefits treasure, not speed
-        "wild_bait"   => 0.70,
-        _             => 0.50, // any other bait (generic "bait") = 50% faster
+        "wild_bait" => 0.70,
+        "bait" => 0.85, // generic bait = moderate 15% faster
+        _ => 1.00,      // unknown bait IDs get no speed bonus
     }
 }
 
@@ -55,6 +59,7 @@ fn detect_bait(inventory: &Inventory) -> Option<String> {
 
 /// Listen for ToolUseEvent with FishingRod.
 /// When the player uses the fishing rod, start the fishing sequence.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_tool_use_for_fishing(
     mut tool_events: EventReader<ToolUseEvent>,
     mut fishing_state: ResMut<FishingState>,
@@ -64,7 +69,9 @@ pub fn handle_tool_use_for_fishing(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut item_removed_events: EventWriter<ItemRemovedEvent>,
     skill: Res<FishingSkill>,
-    _toast_events: EventWriter<ToastEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    fishing_atlas: Res<super::FishingAtlas>,
+    world_map: Res<crate::world::WorldMap>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::FishingRod {
@@ -78,6 +85,20 @@ pub fn handle_tool_use_for_fishing(
 
         let target_x = event.target_x;
         let target_y = event.target_y;
+
+        // Guard: target tile must be water
+        let is_water = world_map
+            .map_def
+            .as_ref()
+            .map(|md| md.get_tile(target_x, target_y) == TileKind::Water)
+            .unwrap_or(false);
+        if !is_water {
+            toast_events.send(ToastEvent {
+                message: "You need to cast into water!".into(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
 
         // Detect bait type — priority ordering is handled inside detect_bait
         let bait_id = detect_bait(&inventory);
@@ -105,28 +126,27 @@ pub fn handle_tool_use_for_fishing(
             .unwrap_or(ToolTier::Basic);
 
         // Compute bite timer:
-        //  1. Start with a random base in [BITE_TIMER_MIN, BITE_TIMER_MAX].
-        //  2. Apply bait multiplier (type-specific).
-        //  3. Apply fishing skill bite-speed bonus.
+        //  Spec formula: 3.0 + random(0.0, 7.0) - 0.5 per level
+        //  Then apply bait multiplier.
         let mut rng = rand::thread_rng();
-        let base_wait = rng.gen_range(BITE_TIMER_MIN..BITE_TIMER_MAX);
+        let random_component: f32 = rng.gen_range(0.0..BITE_TIMER_RANDOM_MAX);
+        let level_reduction = skill.bite_wait_reduction();
+        let base_wait = BITE_TIMER_BASE + random_component - level_reduction;
 
         let bait_mult = match &bait_id {
             Some(id) => bait_bite_multiplier(id),
             None => 1.0,
         };
-        let wait_after_bait = base_wait * bait_mult;
         // Clamp to a minimum of 0.5s so max bait+skill never yields an instant bite.
-        let wait = skill.apply_bite_speed(wait_after_bait).max(0.5);
+        let wait = (base_wait * bait_mult).max(0.5);
 
         // Update fishing state
         fishing_state.phase = FishingPhase::WaitingForBite;
         fishing_state.bobber_tile = (target_x, target_y);
-        fishing_state.bobber_pos = Vec2::new(
-            target_x as f32 * TILE_SIZE,
-            target_y as f32 * TILE_SIZE,
-        );
+        fishing_state.bobber_pos =
+            Vec2::new(target_x as f32 * TILE_SIZE, target_y as f32 * TILE_SIZE);
         fishing_state.bite_timer = Some(Timer::from_seconds(wait, TimerMode::Once));
+        fishing_state.bait_id = bait_id.clone();
         fishing_state.bait_equipped = bait_equipped;
         fishing_state.tackle_equipped = tackle_equipped;
         fishing_state.tackle_kind = tackle_kind;
@@ -136,11 +156,13 @@ pub fn handle_tool_use_for_fishing(
         let bobber_world_x = target_x as f32 * TILE_SIZE;
         let bobber_world_y = target_y as f32 * TILE_SIZE;
         commands.spawn((
-            Sprite {
-                color: Color::srgb(0.9, 0.2, 0.2), // Red bobber (placeholder)
-                custom_size: Some(Vec2::new(6.0, 8.0)),
-                ..default()
-            },
+            Sprite::from_atlas_image(
+                fishing_atlas.image.clone(),
+                TextureAtlas {
+                    layout: fishing_atlas.layout.clone(),
+                    index: 2, // Bobber sprite
+                },
+            ),
             Transform::from_translation(Vec3::new(bobber_world_x, bobber_world_y, Z_EFFECTS)),
             Bobber {
                 bob_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
@@ -217,6 +239,7 @@ pub fn update_bite_timer(
 
 /// Handle the reaction window: player must press Space to start the minigame.
 /// If the reaction window expires, the fish escapes.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_bite_reaction_window(
     mut fishing_state: ResMut<FishingState>,
     mut minigame_state: ResMut<FishingMinigameState>,
@@ -229,6 +252,7 @@ pub fn handle_bite_reaction_window(
     bobber_query: Query<Entity, With<Bobber>>,
     mut commands: Commands,
     skill: Res<FishingSkill>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     if fishing_state.phase != FishingPhase::BitePending {
         return;
@@ -260,8 +284,8 @@ pub fn handle_bite_reaction_window(
             // Try legendary table first for accuracy
             let legendary_difficulty = super::legendaries::LEGENDARY_FISH
                 .iter()
-                .find(|&&(id, _, _, _, _)| id == fish_id)
-                .map(|&(_, _, _, diff, _)| diff);
+                .find(|&&(id, _, _, _, _, _)| id == fish_id)
+                .map(|&(_, _, _, diff, _, _)| diff);
 
             legendary_difficulty.unwrap_or_else(|| {
                 fish_registry
@@ -287,6 +311,10 @@ pub fn handle_bite_reaction_window(
         next_state.set(GameState::Fishing);
     } else if reaction_expired {
         // Fish got away — too slow
+        toast_events.send(ToastEvent {
+            message: "The fish got away!".into(),
+            duration_secs: 2.0,
+        });
         let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
         let fs: &mut FishingState = &mut fishing_state;
         let ns: &mut NextState<GameState> = &mut next_state;
@@ -360,16 +388,17 @@ mod tests {
 
     #[test]
     fn test_bait_bite_multiplier_generic() {
-        // Any unrecognized bait defaults to 0.50
-        assert!((bait_bite_multiplier("bait") - 0.50).abs() < f32::EPSILON);
-        assert!((bait_bite_multiplier("some_other_bait") - 0.50).abs() < f32::EPSILON);
+        // Generic "bait" gets moderate 15% speed bonus
+        assert!((bait_bite_multiplier("bait") - 0.85).abs() < f32::EPSILON);
+        // Unknown bait IDs get no speed bonus
+        assert!((bait_bite_multiplier("some_other_bait") - 1.00).abs() < f32::EPSILON);
     }
 
     #[test]
     fn test_wild_bait_double_catch_roll_returns_bool() {
         // Just verify it returns a bool and doesn't panic
         let result = wild_bait_double_catch_roll();
-        assert!(result || !result);
+        let _ = result; // just verify it returns without panic
     }
 
     #[test]
@@ -386,4 +415,3 @@ mod tests {
         assert!(trues < 3000, "Too many double catches: {}", trues);
     }
 }
-

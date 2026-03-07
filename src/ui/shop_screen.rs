@@ -1,5 +1,8 @@
-use bevy::prelude::*;
+use super::hud::ItemAtlasData;
+use super::UiFontHandle;
+use crate::economy::blacksmith::ToolUpgradeRequestEvent;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
@@ -36,7 +39,25 @@ pub struct ShopItemPrice {
 }
 
 #[derive(Component)]
+pub struct ShopItemIcon {
+    pub index: usize,
+}
+
+#[derive(Component)]
 pub struct ShopHintText;
+
+/// Display data for a single tool upgrade option in the Blacksmith upgrade mode.
+pub struct ToolUpgradeDisplayEntry {
+    pub tool: ToolKind,
+    pub current_tier: ToolTier,
+    pub target_tier: ToolTier,
+    pub gold_cost: u32,
+    pub bar_name: String,
+    pub bar_qty: u8,
+    pub can_afford: bool,
+    pub has_bars: bool,
+    pub is_upgrading: bool,
+}
 
 /// Tracks which shop is open, selection, and buy/sell mode
 #[derive(Resource)]
@@ -44,16 +65,21 @@ pub struct ShopUiState {
     pub shop_id: ShopId,
     pub cursor: usize,
     pub is_buy_mode: bool,
+    /// True when the Blacksmith upgrade tab is active.
+    pub upgrade_mode: bool,
     /// Cached list of available items (filtered by season for buy mode)
     pub buy_items: Vec<ShopListing>,
     /// Player items available to sell
     pub sell_items: Vec<(ItemId, String, u32, u8)>, // id, name, sell_price, quantity
+    /// Upgrade entries (only populated for ShopId::Blacksmith)
+    pub upgrade_entries: Vec<ToolUpgradeDisplayEntry>,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // SPAWN / DESPAWN
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_shop_screen(
     mut commands: Commands,
     shop_data: Res<ShopData>,
@@ -61,11 +87,13 @@ pub fn spawn_shop_screen(
     player: Res<PlayerState>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
+    active_shop: Res<crate::economy::shop::ActiveShop>,
+    upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
+    atlas_data: Res<ItemAtlasData>,
+    font_handle: Res<UiFontHandle>,
 ) {
-    // Determine which shop to open — default to GeneralStore
-    // Other domains set the shop_id via a resource before transitioning state.
-    // We'll check if ShopUiState already exists (set by another domain).
-    let shop_id = ShopId::GeneralStore;
+    // Use the shop_id set by the economy system when opening the shop.
+    let shop_id = active_shop.shop_id.unwrap_or(ShopId::GeneralStore);
 
     let buy_items: Vec<ShopListing> = shop_data
         .listings
@@ -76,18 +104,27 @@ pub fn spawn_shop_screen(
         .filter(|listing| {
             listing
                 .season_available
-                .map_or(true, |s| s == calendar.season)
+                .is_none_or(|s| s == calendar.season)
         })
         .collect();
 
     let sell_items = build_sell_list(&inventory, &item_registry);
 
+    // Build upgrade entries when at the Blacksmith.
+    let upgrade_entries = if shop_id == ShopId::Blacksmith {
+        build_upgrade_entries(&player, &inventory, &upgrade_queue)
+    } else {
+        Vec::new()
+    };
+
     commands.insert_resource(ShopUiState {
         shop_id,
         cursor: 0,
         is_buy_mode: true,
+        upgrade_mode: false,
         buy_items: buy_items.clone(),
         sell_items: sell_items.clone(),
+        upgrade_entries,
     });
 
     commands
@@ -122,20 +159,19 @@ pub fn spawn_shop_screen(
                 .with_children(|panel| {
                     // Title row
                     panel
-                        .spawn((
-                            Node {
-                                width: Val::Percent(100.0),
-                                flex_direction: FlexDirection::Row,
-                                justify_content: JustifyContent::SpaceBetween,
-                                align_items: AlignItems::Center,
-                                ..default()
-                            },
-                        ))
+                        .spawn((Node {
+                            width: Val::Percent(100.0),
+                            flex_direction: FlexDirection::Row,
+                            justify_content: JustifyContent::SpaceBetween,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },))
                         .with_children(|title_row| {
                             title_row.spawn((
                                 ShopTitle,
                                 Text::new("GENERAL STORE"),
                                 TextFont {
+                                    font: font_handle.0.clone(),
                                     font_size: 22.0,
                                     ..default()
                                 },
@@ -146,6 +182,7 @@ pub fn spawn_shop_screen(
                                 ShopGoldDisplay,
                                 Text::new(format!("{} G", player.gold)),
                                 TextFont {
+                                    font: font_handle.0.clone(),
                                     font_size: 18.0,
                                     ..default()
                                 },
@@ -158,6 +195,7 @@ pub fn spawn_shop_screen(
                         ShopModeText,
                         Text::new("[Tab] Mode: BUY"),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 14.0,
                             ..default()
                         },
@@ -194,10 +232,32 @@ pub fn spawn_shop_screen(
                                     BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.6)),
                                 ))
                                 .with_children(|row| {
+                                    // Item icon
+                                    if atlas_data.loaded {
+                                        row.spawn((
+                                            ShopItemIcon { index: i },
+                                            ImageNode {
+                                                image: atlas_data.image.clone(),
+                                                texture_atlas: Some(TextureAtlas {
+                                                    layout: atlas_data.layout.clone(),
+                                                    index: 0,
+                                                }),
+                                                ..default()
+                                            },
+                                            Node {
+                                                width: Val::Px(22.0),
+                                                height: Val::Px(22.0),
+                                                margin: UiRect::right(Val::Px(4.0)),
+                                                ..default()
+                                            },
+                                            Visibility::Hidden,
+                                        ));
+                                    }
                                     row.spawn((
                                         ShopItemName { index: i },
                                         Text::new(""),
                                         TextFont {
+                                            font: font_handle.0.clone(),
                                             font_size: 14.0,
                                             ..default()
                                         },
@@ -207,6 +267,7 @@ pub fn spawn_shop_screen(
                                         ShopItemPrice { index: i },
                                         Text::new(""),
                                         TextFont {
+                                            font: font_handle.0.clone(),
                                             font_size: 14.0,
                                             ..default()
                                         },
@@ -219,8 +280,11 @@ pub fn spawn_shop_screen(
                     // Hint text
                     panel.spawn((
                         ShopHintText,
-                        Text::new("Up/Down: Select | Enter: Buy | Tab: Toggle Buy/Sell | Esc: Close"),
+                        Text::new(
+                            "Up/Down: Select | Enter: Confirm | Tab: Toggle Mode | Esc: Close",
+                        ),
                         TextFont {
+                            font: font_handle.0.clone(),
                             font_size: 11.0,
                             ..default()
                         },
@@ -235,30 +299,69 @@ fn build_sell_list(
     item_registry: &ItemRegistry,
 ) -> Vec<(ItemId, String, u32, u8)> {
     let mut result = Vec::new();
-    for slot in &inventory.slots {
-        if let Some(ref s) = slot {
-            // Check if we already have this item in the sell list
-            if result.iter().any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &s.item_id) {
-                continue;
-            }
-            let name = item_registry
-                .get(&s.item_id)
-                .map(|d| d.name.clone())
-                .unwrap_or_else(|| s.item_id.clone());
-            let price = item_registry.get(&s.item_id).map(|d| d.sell_price).unwrap_or(1);
-            let total_qty = inventory.count(&s.item_id) as u8;
-            result.push((s.item_id.clone(), name, price, total_qty));
+    for slot in inventory.slots.iter().flatten() {
+        // Check if we already have this item in the sell list
+        if result
+            .iter()
+            .any(|(id, _, _, _): &(ItemId, String, u32, u8)| id == &slot.item_id)
+        {
+            continue;
         }
+        let name = item_registry
+            .get(&slot.item_id)
+            .map(|d| d.name.clone())
+            .unwrap_or_else(|| slot.item_id.clone());
+        let price = item_registry
+            .get(&slot.item_id)
+            .map(|d| d.sell_price)
+            .unwrap_or(1);
+        let total_qty = inventory.count(&slot.item_id) as u8;
+        result.push((slot.item_id.clone(), name, price, total_qty));
     }
     result
 }
 
-pub fn despawn_shop_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<ShopScreenRoot>>,
-) {
+fn build_upgrade_entries(
+    player: &PlayerState,
+    inventory: &Inventory,
+    queue: &crate::economy::blacksmith::ToolUpgradeQueue,
+) -> Vec<ToolUpgradeDisplayEntry> {
+    let upgradeable = [
+        ToolKind::Hoe,
+        ToolKind::WateringCan,
+        ToolKind::Axe,
+        ToolKind::Pickaxe,
+        ToolKind::FishingRod,
+    ];
+    upgradeable
+        .iter()
+        .filter_map(|&tool| {
+            let current_tier = *player.tools.get(&tool)?;
+            let target_tier = current_tier.next()?;
+            let gold_cost = target_tier.upgrade_cost();
+            let bar_qty = current_tier.upgrade_bars_needed();
+            let bar_id = current_tier.upgrade_bar_item()?;
+            let can_afford = player.gold >= gold_cost;
+            let has_bars = inventory.has(bar_id, bar_qty);
+            let is_upgrading = queue.is_upgrading(tool);
+            Some(ToolUpgradeDisplayEntry {
+                tool,
+                current_tier,
+                target_tier,
+                gold_cost,
+                bar_name: bar_id.replace('_', " "),
+                bar_qty,
+                can_afford,
+                has_bars,
+                is_upgrading,
+            })
+        })
+        .collect()
+}
+
+pub fn despawn_shop_screen(mut commands: Commands, query: Query<Entity, With<ShopScreenRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn();
+        commands.entity(entity).despawn_recursive();
     }
     commands.remove_resource::<ShopUiState>();
 }
@@ -267,15 +370,39 @@ pub fn despawn_shop_screen(
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn update_shop_display(
     ui_state: Option<Res<ShopUiState>>,
     item_registry: Res<ItemRegistry>,
     player: Res<PlayerState>,
     mut gold_query: Query<&mut Text, With<ShopGoldDisplay>>,
-    mut mode_query: Query<&mut Text, (With<ShopModeText>, Without<ShopGoldDisplay>, Without<ShopItemName>, Without<ShopItemPrice>)>,
-    mut name_query: Query<(&ShopItemName, &mut Text), (Without<ShopGoldDisplay>, Without<ShopModeText>, Without<ShopItemPrice>)>,
-    mut price_query: Query<(&ShopItemPrice, &mut Text, &mut TextColor), (Without<ShopGoldDisplay>, Without<ShopModeText>, Without<ShopItemName>)>,
+    mut mode_query: Query<
+        &mut Text,
+        (
+            With<ShopModeText>,
+            Without<ShopGoldDisplay>,
+            Without<ShopItemName>,
+            Without<ShopItemPrice>,
+        ),
+    >,
+    mut name_query: Query<
+        (&ShopItemName, &mut Text),
+        (
+            Without<ShopGoldDisplay>,
+            Without<ShopModeText>,
+            Without<ShopItemPrice>,
+        ),
+    >,
+    mut price_query: Query<
+        (&ShopItemPrice, &mut Text, &mut TextColor),
+        (
+            Without<ShopGoldDisplay>,
+            Without<ShopModeText>,
+            Without<ShopItemName>,
+        ),
+    >,
     mut row_query: Query<(&ShopListItem, &mut BackgroundColor)>,
+    mut icon_query: Query<(&ShopItemIcon, &mut ImageNode, &mut Visibility)>,
 ) {
     let Some(ui_state) = ui_state else { return };
 
@@ -286,7 +413,9 @@ pub fn update_shop_display(
 
     // Mode
     for mut text in &mut mode_query {
-        if ui_state.is_buy_mode {
+        if ui_state.upgrade_mode {
+            **text = "[Tab] Mode: UPGRADE".to_string();
+        } else if ui_state.is_buy_mode {
             **text = "[Tab] Mode: BUY".to_string();
         } else {
             **text = "[Tab] Mode: SELL".to_string();
@@ -294,7 +423,44 @@ pub fn update_shop_display(
     }
 
     // Items list
-    if ui_state.is_buy_mode {
+    if ui_state.upgrade_mode {
+        for (name_comp, mut text) in &mut name_query {
+            let idx = name_comp.index;
+            if idx < ui_state.upgrade_entries.len() {
+                let entry = &ui_state.upgrade_entries[idx];
+                let status = if entry.is_upgrading {
+                    " [IN PROGRESS]"
+                } else {
+                    ""
+                };
+                **text = format!(
+                    "{:?}: {:?} → {:?}{}",
+                    entry.tool, entry.current_tier, entry.target_tier, status
+                );
+            } else {
+                **text = String::new();
+            }
+        }
+        for (price_comp, mut text, mut color) in &mut price_query {
+            let idx = price_comp.index;
+            if idx < ui_state.upgrade_entries.len() {
+                let entry = &ui_state.upgrade_entries[idx];
+                **text = format!(
+                    "{}G + {}x {}",
+                    entry.gold_cost, entry.bar_qty, entry.bar_name
+                );
+                if entry.is_upgrading {
+                    *color = TextColor(Color::srgb(0.6, 0.6, 0.6));
+                } else if entry.can_afford && entry.has_bars {
+                    *color = TextColor(Color::srgb(0.5, 0.9, 0.5));
+                } else {
+                    *color = TextColor(Color::srgb(0.8, 0.3, 0.3));
+                }
+            } else {
+                **text = String::new();
+            }
+        }
+    } else if ui_state.is_buy_mode {
         for (name_comp, mut text) in &mut name_query {
             let idx = name_comp.index;
             if idx < ui_state.buy_items.len() {
@@ -345,6 +511,31 @@ pub fn update_shop_display(
         }
     }
 
+    // Update item icons
+    for (icon, mut img, mut vis) in &mut icon_query {
+        let idx = icon.index;
+        let item_id: Option<&str> = if ui_state.upgrade_mode {
+            None // No item icon for tool upgrades
+        } else if ui_state.is_buy_mode {
+            ui_state.buy_items.get(idx).map(|l| l.item_id.as_str())
+        } else {
+            ui_state
+                .sell_items
+                .get(idx)
+                .map(|(id, _, _, _)| id.as_str())
+        };
+        if let Some(id) = item_id {
+            if let Some(def) = item_registry.get(id) {
+                if let Some(ref mut atlas) = img.texture_atlas {
+                    atlas.index = def.sprite_index as usize;
+                }
+                *vis = Visibility::Inherited;
+                continue;
+            }
+        }
+        *vis = Visibility::Hidden;
+    }
+
     // Highlight cursor row
     for (item, mut bg) in &mut row_query {
         if item.index == ui_state.cursor {
@@ -355,6 +546,7 @@ pub fn update_shop_display(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn shop_navigation(
     action: Res<MenuAction>,
     player_input: Res<PlayerInput>,
@@ -362,41 +554,73 @@ pub fn shop_navigation(
     mut player: ResMut<PlayerState>,
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
+    upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
     mut tx_events: EventWriter<ShopTransactionEvent>,
+    mut upgrade_events: EventWriter<ToolUpgradeRequestEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
-    let Some(ref mut ui_state) = ui_state else { return };
+    let Some(ref mut ui_state) = ui_state else {
+        return;
+    };
 
-    let max_items = if ui_state.is_buy_mode {
+    let max_items = if ui_state.upgrade_mode {
+        ui_state.upgrade_entries.len()
+    } else if ui_state.is_buy_mode {
         ui_state.buy_items.len()
     } else {
         ui_state.sell_items.len()
     };
 
     // Navigation
-    if action.move_down {
-        if max_items > 0 && ui_state.cursor < max_items - 1 {
-            ui_state.cursor += 1;
-        }
+    if action.move_down && max_items > 0 && ui_state.cursor < max_items - 1 {
+        ui_state.cursor += 1;
     }
-    if action.move_up {
-        if ui_state.cursor > 0 {
-            ui_state.cursor -= 1;
-        }
+    if action.move_up && ui_state.cursor > 0 {
+        ui_state.cursor -= 1;
     }
 
-    // Toggle buy/sell (Tab is mapped to open_inventory in menu context)
-    if player_input.open_inventory {
-        ui_state.is_buy_mode = !ui_state.is_buy_mode;
-        ui_state.cursor = 0;
-        // Refresh sell list
-        if !ui_state.is_buy_mode {
-            ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+    // Cycle modes: Tab
+    // Blacksmith: buy → sell → upgrade → buy
+    // Other shops: buy ↔ sell
+    if player_input.tab_pressed {
+        if ui_state.shop_id == ShopId::Blacksmith {
+            if ui_state.is_buy_mode && !ui_state.upgrade_mode {
+                // buy → sell
+                ui_state.is_buy_mode = false;
+                ui_state.upgrade_mode = false;
+                ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+            } else if !ui_state.is_buy_mode && !ui_state.upgrade_mode {
+                // sell → upgrade
+                ui_state.upgrade_mode = true;
+                ui_state.upgrade_entries =
+                    build_upgrade_entries(&player, &inventory, &upgrade_queue);
+            } else {
+                // upgrade → buy
+                ui_state.upgrade_mode = false;
+                ui_state.is_buy_mode = true;
+            }
+        } else {
+            ui_state.is_buy_mode = !ui_state.is_buy_mode;
+            if !ui_state.is_buy_mode {
+                ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+            }
         }
+        ui_state.cursor = 0;
     }
 
     // Execute transaction
     if action.activate {
-        if ui_state.is_buy_mode {
+        if ui_state.upgrade_mode {
+            // Upgrade
+            if ui_state.cursor < ui_state.upgrade_entries.len() {
+                let tool = ui_state.upgrade_entries[ui_state.cursor].tool;
+                upgrade_events.send(ToolUpgradeRequestEvent { tool });
+                // Refresh entries after submitting request
+                ui_state.upgrade_entries =
+                    build_upgrade_entries(&player, &inventory, &upgrade_queue);
+            }
+        } else if ui_state.is_buy_mode {
             // Buy
             if ui_state.cursor < ui_state.buy_items.len() {
                 let listing = ui_state.buy_items[ui_state.cursor].clone();
@@ -415,7 +639,29 @@ pub fn shop_navigation(
                             total_cost: listing.price,
                             is_purchase: true,
                         });
+                        sfx_events.send(PlaySfxEvent {
+                            sfx_id: "sfx_coin_single1".into(),
+                        });
+                        // Refresh sell list so it reflects the newly added item
+                        ui_state.sell_items = build_sell_list(&inventory, &item_registry);
+                    } else {
+                        inventory.try_remove(&listing.item_id, 1);
+                        toast_events.send(ToastEvent {
+                            message: "Inventory is full!".into(),
+                            duration_secs: 2.0,
+                        });
+                        sfx_events.send(PlaySfxEvent {
+                            sfx_id: "error".into(),
+                        });
                     }
+                } else {
+                    toast_events.send(ToastEvent {
+                        message: "Not enough gold!".into(),
+                        duration_secs: 2.0,
+                    });
+                    sfx_events.send(PlaySfxEvent {
+                        sfx_id: "error".into(),
+                    });
                 }
             }
         } else {
@@ -431,6 +677,9 @@ pub fn shop_navigation(
                         quantity: 1,
                         total_cost: price,
                         is_purchase: false,
+                    });
+                    sfx_events.send(PlaySfxEvent {
+                        sfx_id: "sfx_coin_single1".into(),
                     });
                     // Refresh sell list
                     ui_state.sell_items = build_sell_list(&inventory, &item_registry);

@@ -1,171 +1,203 @@
-# CLAUDE.md — Hearthfield Build Orchestrator
+# CLAUDE.md — Hearthfield Orchestrator
 
-You are building Hearthfield, a Harvest Moon-style farming simulator in Rust with Bevy.
+## Your Role
 
-## What Already Exists
+You are the ORCHESTRATOR. You hold the entire Hearthfield codebase in your 1M token context window. You never write implementation code yourself. You define what gets built, draw scope boundaries, validate results, and dispatch sub-agents for all implementation work via `codex exec`.
 
-- `GAME_SPEC.md` — full game design (READ THIS FIRST)
-- `src/shared/mod.rs` — **the type contract** (components, resources, events, states)
-- `src/main.rs` — plugin registration and wiring (DO NOT MODIFY)
-- `Cargo.toml` — dependencies
+You have read "The Model Is the Orchestrator" (THE_MODEL_IS_THE_ORCHESTRATOR.md). That paper's findings are your operating constraints. You are the system it describes.
 
-## Architecture
+## Project Overview
 
-Every domain is a Bevy plugin. Domains communicate ONLY through:
+Hearthfield is a Harvest Moon-style farming simulator in Rust with Bevy 0.15.
+- ~41,000 LOC across 15 domain directories + shared types + tests
+- Plugin-per-domain architecture with a shared type contract
+- `src/shared/mod.rs` is THE CONTRACT (2,246 lines) — frozen, checksummed
+- Each domain: `src/{domain}/mod.rs` exports a `{Domain}Plugin`
+- `src/main.rs` wires all plugins — order matters
+- `tests/headless.rs` is the integration test suite (2,585 lines)
 
-1. **Shared Resources** (defined in `crate::shared`)
-2. **Events** (defined in `crate::shared`)
-3. **State transitions** (via `NextState<GameState>`)
+## Domains (15)
 
-**No domain imports from any other domain.** Only `use crate::shared::*;`
+| Domain | Path | ~LOC | Key Responsibility |
+|--------|------|------|--------------------|
+| animals | src/animals/ | 1,476 | Livestock lifecycle, products, feeding |
+| calendar | src/calendar/ | 1,449 | Day/season cycle, festivals |
+| crafting | src/crafting/ | 2,394 | Recipes, cooking, machines, buffs |
+| data | src/data/ | 4,870 | Static data tables (crops, fish, items, NPCs, recipes, shops) |
+| economy | src/economy/ | 2,210 | Gold, shops, shipping, achievements, tool upgrades |
+| farming | src/farming/ | 2,121 | Crop planting, watering, harvest, soil, sprinklers |
+| fishing | src/fishing/ | 2,369 | Cast/bite/minigame/resolve loop, skill, legendaries |
+| input | src/input/ | 186 | Input mapping |
+| mining | src/mining/ | 1,905 | Mine floors, rock breaking, combat, ladder transitions |
+| npcs | src/npcs/ | 3,895 | Dialogue, gifts, quests, romance, schedules, spawning |
+| player | src/player/ | 1,433 | Movement, camera, tools, interaction dispatch |
+| save | src/save/ | 860 | Serialization/deserialization of full game state |
+| shared | src/shared/ | 2,246 | THE TYPE CONTRACT — all cross-domain types |
+| ui | src/ui/ | 6,298 | HUD, menus, inventory, crafting screen, dialogue box, minimap |
+| world | src/world/ | 4,692 | Maps, lighting, weather, objects, chests, seasonal |
 
-## Asset Setup
-
-Before building, ensure assets are downloaded and placed:
-
-```
-assets/
-  sprites/          (Sprout Lands sprite sheets)
-  ui/               (Sprout Lands UI pack)
-  tilesets/          (terrain tiles per season)
-  audio/
-    music/
-    sfx/
-```
-
-If assets aren't present, use placeholder colored sprites (like Vale Village) and mark with TODO comments.
-
-## Build Order
-
-### Phase 1: Data Layer
-
-Create `src/data/mod.rs` — loads all registries (items, crops, fish, recipes, NPCs, shops).
-This populates ItemRegistry, CropRegistry, FishRegistry, RecipeRegistry, NpcRegistry, ShopData.
-Build as DataPlugin that runs in OnEnter(GameState::Loading).
-
-### Phase 2: Domain Plugins (PARALLEL — flat dispatch)
-
-Dispatch 12 workers simultaneously. Each worker:
-
-1. Reads GAME_SPEC.md for their domain
-2. Reads src/shared/mod.rs for the type contract
-3. Creates src/{domain}/mod.rs exporting a {Domain}Plugin
-4. Implements real game logic, NOT stubs
-5. Uses `use crate::shared::*;` for all cross-domain types
-6. Registers systems with appropriate state guards
+## Build Commands (Gates)
 
 ```bash
-for domain in calendar player farming animals world npcs economy crafting fishing mining ui save; do
-  codex exec --full-auto --skip-git-repo-check -c model_reasoning_effort=\"high\" \
-    "You are building the ${domain} domain for Hearthfield, a Harvest Moon farming sim in Rust/Bevy.
-
-Read these files first:
-- $(pwd)/GAME_SPEC.md (full game design)
-- $(pwd)/src/shared/mod.rs (type contract — ALL shared types)
-- $(pwd)/src/main.rs (see how your plugin is registered)
-
-Create: $(pwd)/src/${domain}/mod.rs (and any sub-modules you need in src/${domain}/)
-
-Your plugin struct must be: pub struct ${Domain}Plugin;
-Import shared types with: use crate::shared::*;
-DO NOT modify any file outside src/${domain}/.
-DO NOT import from any other domain (only crate::shared).
-
-Write REAL implementations with game logic. Not stubs. Not TODOs.
-Use Bevy ECS patterns: systems, queries, resources, events.
-Guard gameplay systems with .run_if(in_state(GameState::Playing)) or appropriate state.
-Read events from shared:: and write events to shared:: for cross-domain communication.
-
-If sprites/assets aren't available, use Sprite::from_color() placeholders." &
-  sleep 3
-done
-wait
+cargo check                          # Type-check (fast, ~10s)
+cargo test --test headless           # Integration tests (no GPU)
+cargo clippy -- -D warnings          # Lint gate
+shasum -a 256 -c .contract.sha256    # Contract integrity
 ```
 
-### Phase 3: Data Population
+All four must pass after every worker. This is non-negotiable.
 
-After domains are built, create `src/data/` with actual game data:
+## Research-Derived Operating Constraints
 
-- `src/data/items.rs` — all item definitions (seeds, crops, fish, minerals, food, etc.)
-- `src/data/crops.rs` — crop growth definitions
-- `src/data/fish.rs` — fish species
-- `src/data/recipes.rs` — crafting and cooking recipes
-- `src/data/npcs.rs` — NPC definitions, schedules, gift preferences
-- `src/data/shops.rs` — shop inventories
-- `src/data/maps.rs` — tilemap definitions for each area
+These are not suggestions. They are empirically validated with controlled experiments.
 
-### Phase 4: Compile & Fix
+### 1. You Are the Orchestrator, Not the Implementer
+You dispatch sub-agents. You never write Rust code. If you catch yourself writing `fn`, `struct`, `impl`, or any implementation — stop. Write a worker spec instead and dispatch it.
 
+### 2. Mechanical Scope Enforcement (Section 4.4: 0/20 prompt vs 20/20 mechanical)
+NEVER tell a worker to "only edit src/X/". It will fail 100% of the time under compiler pressure. Instead:
+- Let the worker edit anything it wants
+- After completion, run: `bash scripts/clamp-scope.sh src/{domain}/`
+- This reverts all out-of-scope edits automatically
+
+### 3. Specs on Disk, Not in Prompts (Section 7.4 + Appendix C)
+Delegation compression destroys quantities. Put full specs at `docs/domains/{domain}.md`. Worker objectives at `objectives/{domain}.md`. Workers read from disk. The spec must include:
+- Exact file paths the worker owns
+- All types to import from `src/shared/mod.rs` (by name)
+- Quantitative targets with specific numbers
+- Constants and formulas with values
+- Validation: what "done" means (specific commands to run)
+- "Does NOT handle" section (explicit boundaries)
+
+### 4. Type Contract Is Frozen (Section 4.2)
+`src/shared/mod.rs` is checksummed. No worker modifies it. Contract changes happen only in integration phases. Verify with `shasum -a 256 -c .contract.sha256` before and after every worker.
+
+### 5. Minimize Your Turns (Section 4.1.1: Statefulness Premium)
+~95% of your cost is re-reading conversation history. Make each turn count. Don't narrate. Don't ask clarifying questions when the answer is in context. Execute.
+
+### 6. Compaction Insurance (Section 4.3)
+Update MANIFEST.md after every completed domain with: current phase, completed domains (with commits), in-progress domain, blockers, key decisions. Write worker reports to `status/workers/{domain}.md`. If you lose context, recover from these files.
+
+## Worker Dispatch
+
+Two dispatch backends are available. Use whichever is functional in the current environment.
+
+### Option A: Codex CLI (preferred when available)
 ```bash
-cargo check 2>&1 | head -100
+codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
+```
+Stagger launches by ~3 seconds to avoid rate limits. Workers run fully autonomous.
+
+### Option B: Claude Nested Orchestrator (recommended, compaction-safe)
+Sub-agents CANNOT spawn sub-agents (the Task/Agent tool is excluded from sub-agent tool sets).
+The workaround: sub-agents CAN use Bash, so they dispatch workers via `claude -p`.
+
+```
+You (chat) → Orchestrator sub-agent (Agent tool, general-purpose)
+                → Workers (claude -p via Bash, parallel)
 ```
 
-Fix any compilation errors. Common issues:
+**Dispatch an orchestrator sub-agent** with:
+- The list of domains for this wave
+- Instructions to launch workers via `claude -p` through Bash
+- Instructions to validate, clamp scope, run gates, commit
 
-- Missing mod declarations (add `mod {submodule};` in domain mod.rs)
-- Import paths (should all be `use crate::shared::*;`)
-- Bevy API mismatches (check Bevy 0.15 API)
-
-### Phase 5: Integration Test
-
+The orchestrator sub-agent launches each worker like:
 ```bash
-cargo run
+claude -p "$(cat objectives/{domain}.md)" \
+  --allowedTools "Read,Edit,Write,Bash,Grep,Glob" \
+  --max-turns 40 \
+  --output-format json \
+  --cwd /home/user/hearthfield \
+  2>&1 | tee status/workers/{domain}_output.json
 ```
 
-Should show: window opens, loading state, transition to playing, camera renders.
+Key flags for workers:
+- `--allowedTools` — scope what the worker can do
+- `--max-turns` — prevent runaway (30-50 typical)
+- `--output-format json` — structured result with cost/tokens
+- `--cwd` — ensure correct working directory
+- `--append-system-prompt` — add domain constraints without losing defaults
 
-## Domain Reference
+After each worker: `bash scripts/clamp-scope.sh src/{domain}/`, verify contract, run gates.
 
-| Domain   | Plugin Struct  | Primary Responsibility                       |
-|----------|----------------|----------------------------------------------|
-| calendar | CalendarPlugin | Time progression, day/season events          |
-| player   | PlayerPlugin   | Movement, tool use, stamina, collision       |
-| farming  | FarmingPlugin  | Soil tilling, crop growth, harvest           |
-| animals  | AnimalPlugin   | Animal care, products, buildings             |
-| world    | WorldPlugin    | Tilemap loading, rendering, transitions      |
-| npcs     | NpcPlugin      | NPC spawning, schedules, dialogue, gifts     |
-| economy  | EconomyPlugin  | Shops, shipping bin, gold transactions       |
-| crafting | CraftingPlugin | Crafting bench, cooking, processing machines |
-| fishing  | FishingPlugin  | Casting, minigame, catch resolution          |
-| mining   | MiningPlugin   | Mine floors, rocks, monsters, loot           |
-| ui       | UiPlugin       | HUD, inventory screen, menus, dialogue box   |
-| save     | SavePlugin     | Save/load, autosave on sleep                 |
+**Why this works:** The orchestrator holds full wave context in its own window, survives chat compaction, and can retry failed workers. Workers start fresh (no context inheritance from `-p`), which is fine because specs are on disk.
 
-## Critical Integration Points
+**Cost note:** Each `-p` invocation carries ~20K token overhead. Reserve for genuinely multi-step domain work. For small fixes, the orchestrator should just do it directly via Bash/Edit.
 
-### DayEndEvent Flow (most important event in the game)
+### Option C: Claude Direct Workers (flat, no compaction safety)
+Dispatch worker sub-agents directly from chat via the Agent tool:
 
-When player sleeps, CalendarPlugin sends DayEndEvent. Every domain listens:
+```
+You (chat, acting as orchestrator) → Worker sub-agents (Agent tool, parallel, run_in_background)
+```
 
-- **farming**: advance crop growth, reset watered status, check for withering
-- **animals**: check if fed, produce products, advance age
-- **economy**: sell shipping bin contents, add gold
-- **npcs**: reset gifted_today flags
-- **calendar**: advance day, check season change, roll weather
-- **save**: autosave
+Fast and cheap (no `-p` overhead), but breaks on compaction — chat loses orchestrator state. Use MANIFEST.md and `status/workers/` to recover. Best for small waves (1-2 domains).
 
-### Tool Use Flow
+### Option D: GitHub Copilot CLI
+```bash
+gh copilot -p "$(cat objectives/{domain}.md)" --yolo --add-dir /home/user/hearthfield
+```
+Same protocol as Codex — stagger launches, clamp scope after completion.
 
-PlayerPlugin sends ToolUseEvent with target tile coordinates:
+### Option E: Codex CLI + Claude Orchestrator
+Same as Option B, but workers use `codex exec` instead of `claude -p`:
+```bash
+codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
+```
+The orchestrator sub-agent dispatches via Bash. Useful when Codex sandbox works but you still want compaction-safe orchestration.
 
-- **farming**: hoe → till soil, watering can → water soil
-- **world**: axe → chop tree/stump, pickaxe → break rock
-- **mining**: pickaxe → break mine rocks
-- **fishing**: fishing rod → start fishing minigame
+## Worker Spec Template (objectives/{domain}.md)
 
-### Map Transition Flow
+```markdown
+# Worker: {DOMAIN}
 
-PlayerPlugin or WorldPlugin sends MapTransitionEvent:
+## Scope (mechanically enforced — your edits outside this path will be reverted)
+You may only modify files under: src/{domain}/
+Out-of-scope edits will be silently reverted after you finish.
 
-- **world**: despawn current map, load new map
-- **player**: reposition player at target coordinates
-- **npcs**: spawn/despawn NPCs for new map
-- **ui**: screen transition effect
+## Required reading (read these files from disk before writing any code)
+1. GAME_SPEC.md
+2. docs/domains/{domain}.md
+3. src/shared/mod.rs (the type contract — import from here, do not redefine)
 
-## Rules
+## Required imports (use exactly, do not redefine locally)
+- [List specific types, enums, components, events from shared/mod.rs]
 
-- ALL leaf workers use codex with reasoning=high
-- DO NOT modify src/shared/mod.rs or src/main.rs after initial setup
-- Each domain owns ONLY its own directory
-- Test with `cargo check` after each phase
-- Record: file count, LOC, compile errors per phase
+## Deliverables
+- [Specific files, exports, features]
+
+## Quantitative targets (non-negotiable)
+- [Exact counts, constants, formulas with values]
+
+## Validation (run before reporting done)
+```
+cargo check
+cargo test --test headless
+cargo clippy -- -D warnings
+```
+Done = all three commands pass with zero errors and zero warnings.
+
+## When done
+Write completion report to status/workers/{domain}.md containing:
+- Files created/modified (with line counts)
+- What was implemented
+- Quantitative targets hit (with actual counts)
+- Shared type imports used
+- Validation results (pass/fail)
+- Known risks for integration
+```
+
+## Domain Cycle (repeat for each domain)
+
+1. Write spec → `docs/domains/{domain}.md`
+2. Write objective → `objectives/{domain}.md`
+3. Dispatch → `codex exec --full-auto --skip-git-repo-check`
+4. Wait for completion
+5. Clamp → `bash scripts/clamp-scope.sh src/{domain}/`
+6. Verify contract → `shasum -a 256 -c .contract.sha256`
+7. Run gates → `cargo check && cargo test --test headless && cargo clippy -- -D warnings`
+8. If gates fail → dispatch fix worker (same allowlist), clamp, re-gate (max 10 passes)
+9. Write report → `status/workers/{domain}.md`
+10. Commit → descriptive message
+11. Update MANIFEST.md

@@ -6,8 +6,8 @@
 //! Scoring: up to 21 points across 8 categories. Candle count is determined by
 //! point thresholds: 0-5 = 1 candle, 6-10 = 2, 11-15 = 3, 16-21 = 4.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 use super::gold::EconomyStats;
 use super::stats::HarvestStats;
@@ -42,7 +42,10 @@ pub fn check_evaluation_trigger(
     }
 
     if calendar.year >= 3 && calendar.season == Season::Spring && calendar.day == 1 {
-        info!("[Evaluation] Year {} Spring Day 1 detected — firing EvaluationTriggerEvent.", calendar.year);
+        info!(
+            "[Evaluation] Year {} Spring Day 1 detected — firing EvaluationTriggerEvent.",
+            calendar.year
+        );
         trigger_events.send(EvaluationTriggerEvent);
     }
 }
@@ -52,6 +55,7 @@ pub fn check_evaluation_trigger(
 ///
 /// Also handles re-evaluation: if already evaluated, compares candle count and
 /// toasts whether the player gained candles since last time.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_evaluation(
     mut trigger_events: EventReader<EvaluationTriggerEvent>,
     mut eval_score: ResMut<EvaluationScore>,
@@ -67,12 +71,15 @@ pub fn handle_evaluation(
     quest_log: Res<QuestLog>,
     unlocked_recipes: Res<UnlockedRecipes>,
     player_state: Res<PlayerState>,
+    play_stats: Res<PlayStats>,
+    shipping_log: Res<ShippingLog>,
 ) {
     for _ev in trigger_events.read() {
         let previous_candles = eval_score.candles_lit;
         let was_evaluated = eval_score.evaluated;
 
-        let mut categories: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut categories: std::collections::HashMap<String, u32> =
+            std::collections::HashMap::new();
         let mut total = 0u32;
 
         // ── Earnings (4 points) ───────────────────────────────────────────────
@@ -131,17 +138,15 @@ pub fn handle_evaluation(
 
         // ── Skills (4 points) ─────────────────────────────────────────────────
         // 50+ crops harvested total (sum all crop counts in HarvestStats)
-        let total_crops_harvested: u32 = harvest_stats.crops.values().map(|(count, _)| *count).sum();
+        let total_crops_harvested: u32 =
+            harvest_stats.crops.values().map(|(count, _)| *count).sum();
         if total_crops_harvested >= 50 {
             categories.insert("skills_crops_50".to_string(), 1);
             total += 1;
         }
 
-        // 100+ fish caught — HarvestStats doesn't track fish directly.
-        // We check total_items_shipped as a rough proxy; if zero, we skip (safe default).
-        // TODO: Add fish_caught counter to HarvestStats or FishingStats when fishing domain expands.
-        // For now, we default to 0 fish caught so the point is not awarded until data is available.
-        let fish_caught: u32 = 0; // placeholder — real data not yet tracked
+        // 100+ fish caught
+        let fish_caught: u32 = play_stats.fish_caught as u32;
         if fish_caught >= 100 {
             categories.insert("skills_fish_100".to_string(), 1);
             total += 1;
@@ -180,10 +185,8 @@ pub fn handle_evaluation(
         }
 
         // ── Collection (1 point) ──────────────────────────────────────────────
-        // 30+ unique items shipped — total_items_shipped is used as a proxy.
-        // TODO: Track unique item IDs shipped in EconomyStats for precise counting.
-        // Using total_items_shipped >= 30 as a safe stand-in; overestimates but not punitive.
-        if economy_stats.total_items_shipped >= 30 {
+        // 30+ unique items shipped
+        if shipping_log.shipped_items.len() >= 30 {
             categories.insert("collection_unique_30".to_string(), 1);
             total += 1;
         }
@@ -251,37 +254,57 @@ pub fn handle_evaluation(
         } else {
             // First evaluation.
             toast_events.send(ToastEvent {
-                message: format!(
-                    "Evaluation: {} points — {} candle(s) lit!",
-                    total, candles
-                ),
+                message: format!("Evaluation: {} points — {} candle(s) lit!", total, candles),
                 duration_secs: 6.0,
             });
         }
     }
 }
 
-/// Allows the player to manually re-trigger the evaluation at any point after the
-/// first evaluation by sending another `EvaluationTriggerEvent`.
-///
-/// This system does not fire any events itself — it simply resets `evaluated` to
-/// `false` so that `check_evaluation_trigger` can fire again *if* the calendar
-/// conditions still match, OR so that an external UI system can send
-/// `EvaluationTriggerEvent` directly.  In practice, the UI domain is expected to
-/// send the event; this system exists as documentation of the contract and to
-/// ensure the flag can be toggled without modifying `shared/mod.rs`.
-///
-/// NOTE: Currently this system is a no-op stub included to satisfy the re-evaluation
-/// contract described in the task.  A real re-evaluation is started by any system
-/// (typically the UI shrine interaction) that sends `EvaluationTriggerEvent` — the
-/// `handle_evaluation` system handles both first and subsequent evaluations cleanly.
-#[allow(dead_code)]
-#[allow(dead_code)]
-pub fn re_evaluate(
-    // No inputs required — the re-eval is driven by sending EvaluationTriggerEvent
-    // from outside (e.g., the UI domain when the player interacts with the shrine).
-) {
-    // Intentionally empty: re-evaluation is handled in handle_evaluation which
-    // already compares previous_candles with the new score.  The caller need only
-    // fire EvaluationTriggerEvent at any time.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_points_to_candles_low() {
+        assert_eq!(points_to_candles(0), 1);
+        assert_eq!(points_to_candles(3), 1);
+        assert_eq!(points_to_candles(5), 1);
+    }
+
+    #[test]
+    fn test_points_to_candles_medium() {
+        assert_eq!(points_to_candles(6), 2);
+        assert_eq!(points_to_candles(8), 2);
+        assert_eq!(points_to_candles(10), 2);
+    }
+
+    #[test]
+    fn test_points_to_candles_high() {
+        assert_eq!(points_to_candles(11), 3);
+        assert_eq!(points_to_candles(13), 3);
+        assert_eq!(points_to_candles(15), 3);
+    }
+
+    #[test]
+    fn test_points_to_candles_max() {
+        assert_eq!(points_to_candles(16), 4);
+        assert_eq!(points_to_candles(18), 4);
+        assert_eq!(points_to_candles(21), 4);
+    }
+
+    #[test]
+    fn test_points_to_candles_above_max() {
+        // Even if somehow more than 21 points, still 4 candles
+        assert_eq!(points_to_candles(50), 4);
+    }
+
+    #[test]
+    fn test_evaluation_score_default() {
+        let score = EvaluationScore::default();
+        assert_eq!(score.total_points, 0);
+        assert_eq!(score.candles_lit, 0);
+        assert!(!score.evaluated);
+        assert!(score.categories.is_empty());
+    }
 }

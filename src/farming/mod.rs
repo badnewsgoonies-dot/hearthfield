@@ -9,17 +9,25 @@
 //! - Added `track_day_weather` system that runs BEFORE `on_day_end` each frame to
 //!   keep the snapshot current.  This avoids a cross-domain import.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
-mod soil;
 pub mod crops;
+pub mod events_handler;
 mod harvest;
 mod render;
-pub mod events_handler;
+mod soil;
 mod sprinkler;
 pub mod sprinklers;
-use sprinklers::{handle_place_sprinkler, auto_water_sprinklers, remove_sprinkler};
+use sprinklers::{auto_water_sprinklers, handle_place_sprinkler, remove_sprinkler};
+
+/// Event to place a farm object (fence, scarecrow, etc.) at a grid position.
+#[derive(Event, Debug, Clone)]
+pub struct PlaceFarmObjectEvent {
+    pub item_id: String,
+    pub grid_x: i32,
+    pub grid_y: i32,
+}
 
 // Internal re-exports used by Bevy queries from outside the module (not currently needed).
 
@@ -37,6 +45,15 @@ pub struct CropTileEntity {
     pub grid_y: i32,
 }
 
+/// Marker component for farm object sprite entities (sprinklers, scarecrows).
+#[derive(Component, Debug, Clone)]
+pub struct FarmObjectEntity {
+    #[allow(dead_code)]
+    pub grid_x: i32,
+    #[allow(dead_code)]
+    pub grid_y: i32,
+}
+
 /// Tracks which soil/crop entities exist keyed by grid position.
 /// This lets systems find ECS entities for a given tile quickly.
 #[derive(Resource, Default, Debug)]
@@ -45,6 +62,8 @@ pub struct FarmEntities {
     pub soil_entities: std::collections::HashMap<(i32, i32), Entity>,
     /// (x, y) -> crop entity
     pub crop_entities: std::collections::HashMap<(i32, i32), Entity>,
+    /// (x, y) -> farm object entity (sprinklers, scarecrows)
+    pub object_entities: std::collections::HashMap<(i32, i32), Entity>,
 }
 
 /// Holds the texture atlas handles for farming sprites (soil tiles and plant stages).
@@ -120,20 +139,17 @@ impl Plugin for FarmingPlugin {
             .add_event::<HarvestAttemptEvent>()
             .add_event::<PlantSeedEvent>()
             .add_event::<MorningSprinklerEvent>()
+            .add_event::<PlaceFarmObjectEvent>()
             // ------------------------------------------------------------------
             // Atlas loading — runs once on first Playing frame
             // ------------------------------------------------------------------
-            .add_systems(
-                OnEnter(GameState::Playing),
-                load_farming_atlases,
-            )
+            .add_systems(OnEnter(GameState::Playing), load_farming_atlases)
             // ------------------------------------------------------------------
             // Weather tracking — must run BEFORE day-end processing
             // ------------------------------------------------------------------
             .add_systems(
                 First,
-                events_handler::track_day_weather
-                    .run_if(in_state(GameState::Playing)),
+                events_handler::track_day_weather.run_if(in_state(GameState::Playing)),
             )
             // ------------------------------------------------------------------
             // Systems that run during Playing
@@ -156,6 +172,10 @@ impl Plugin for FarmingPlugin {
                     handle_place_sprinkler,
                     // Sprinkler removal (pickaxe on a sprinkler tile)
                     remove_sprinkler,
+                    // Farm object placement (fence, scarecrow)
+                    handle_place_farm_object,
+                    // Harvest particle animation
+                    harvest::update_harvest_particles,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -165,6 +185,8 @@ impl Plugin for FarmingPlugin {
             .add_systems(
                 Update,
                 (
+                    // Fire MorningSprinklerEvent so apply_sprinklers can run.
+                    events_handler::send_morning_sprinkler_event,
                     // Legacy FarmObject::Sprinkler — basic 3×3 watering
                     sprinkler::apply_sprinklers,
                     // Phase 4 kind-aware sprinkler auto-watering
@@ -172,6 +194,7 @@ impl Plugin for FarmingPlugin {
                     events_handler::on_day_end,
                     events_handler::on_season_change,
                 )
+                    .chain()
                     .run_if(in_state(GameState::Playing)),
             )
             // ------------------------------------------------------------------
@@ -182,10 +205,25 @@ impl Plugin for FarmingPlugin {
                 (
                     render::sync_soil_sprites,
                     render::sync_crop_sprites,
+                    render::sync_farm_objects_sprites,
                 )
+                    .run_if(in_farm_map)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            // ------------------------------------------------------------------
+            // Crop growth pop animation — ticks after sync sets base sizes
+            // ------------------------------------------------------------------
+            .add_systems(
+                PostUpdate,
+                render::animate_crop_growth
+                    .after(render::sync_crop_sprites)
                     .run_if(in_state(GameState::Playing)),
             );
     }
+}
+
+fn in_farm_map(player_state: Res<PlayerState>) -> bool {
+    player_state.current_map == MapId::Farm
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -234,15 +272,6 @@ fn load_farming_atlases(
 // Shared helpers used across submodules
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Convert a grid position to a world-space translation (centre of tile).
-pub fn grid_to_world(x: i32, y: i32) -> Vec3 {
-    Vec3::new(
-        x as f32 * TILE_SIZE,
-        y as f32 * TILE_SIZE,
-        Z_FARM_OVERLAY,
-    )
-}
-
 /// Check whether the given CropDef can grow in this season.
 pub fn crop_can_grow_in_season(def: &CropDef, season: Season) -> bool {
     def.seasons.is_empty() || def.seasons.contains(&season)
@@ -263,4 +292,66 @@ pub fn crop_stage_color(stage: u8, total_stages: u8, dead: bool) -> Color {
     let g = 0.65 + 0.15 * progress;
     let b = 0.2 * (1.0 - progress);
     Color::srgb(r.clamp(0.0, 1.0), g.clamp(0.0, 1.0), b.clamp(0.0, 1.0))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Farm object placement handler
+// ─────────────────────────────────────────────────────────────────────────────
+
+pub fn handle_place_farm_object(
+    mut events: EventReader<PlaceFarmObjectEvent>,
+    mut farm_state: ResMut<FarmState>,
+    mut inventory: ResMut<Inventory>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
+    player_state: Res<PlayerState>,
+) {
+    for ev in events.read() {
+        if player_state.current_map != MapId::Farm {
+            toast_events.send(ToastEvent {
+                message: "You can only place this on the farm.".into(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
+
+        let pos = (ev.grid_x, ev.grid_y);
+
+        if farm_state.objects.contains_key(&pos) {
+            toast_events.send(ToastEvent {
+                message: "That tile is already occupied.".into(),
+                duration_secs: 2.0,
+            });
+            continue;
+        }
+
+        if !inventory.has(&ev.item_id, 1) {
+            continue;
+        }
+
+        let farm_obj = match ev.item_id.as_str() {
+            "fence" => FarmObject::Fence,
+            "scarecrow" => FarmObject::Scarecrow,
+            _ => {
+                warn!("PlaceFarmObjectEvent: unknown item '{}'", ev.item_id);
+                continue;
+            }
+        };
+
+        inventory.try_remove(&ev.item_id, 1);
+        farm_state.objects.insert(pos, farm_obj);
+
+        let label = match ev.item_id.as_str() {
+            "fence" => "Fence",
+            "scarecrow" => "Scarecrow",
+            _ => "Object",
+        };
+        toast_events.send(ToastEvent {
+            message: format!("{} placed.", label),
+            duration_secs: 2.0,
+        });
+        sfx_events.send(PlaySfxEvent {
+            sfx_id: "place_object".to_string(),
+        });
+    }
 }

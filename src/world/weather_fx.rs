@@ -51,12 +51,28 @@ impl Default for PreviousWeather {
     }
 }
 
+/// Tracks live weather particle totals so spawn logic can enforce hard caps
+/// without full-query counting every frame.
+#[derive(Resource, Debug, Default)]
+pub struct WeatherParticleCounts {
+    pub rain: usize,
+    pub snow: usize,
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Maximum number of weather particles alive at once to prevent performance issues.
 const MAX_WEATHER_PARTICLES: usize = 600;
+
+/// Returns true if the given map is indoors (no weather particles).
+fn is_indoor_map(map_id: MapId) -> bool {
+    matches!(
+        map_id,
+        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+    )
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // SYSTEMS
@@ -70,16 +86,21 @@ const MAX_WEATHER_PARTICLES: usize = 600;
 pub fn spawn_weather_particles(
     mut commands: Commands,
     calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
     camera_query: Query<&Transform, With<Camera2d>>,
-    rain_query: Query<(), With<RainDrop>>,
-    snow_query: Query<(), With<SnowFlake>>,
+    mut counts: ResMut<WeatherParticleCounts>,
 ) {
+    // Don't spawn weather particles on indoor maps.
+    if is_indoor_map(player_state.current_map) {
+        return;
+    }
+
     let Ok(cam_tf) = camera_query.get_single() else {
         return;
     };
 
-    // Count existing particles to enforce the cap.
-    let existing = rain_query.iter().count() + snow_query.iter().count();
+    // Enforce hard cap using tracked totals.
+    let existing = counts.rain + counts.snow;
     if existing >= MAX_WEATHER_PARTICLES {
         return;
     }
@@ -120,12 +141,13 @@ pub fn spawn_weather_particles(
                 commands.spawn((
                     RainDrop { speed },
                     Sprite {
-                        color: Color::srgba(0.5, 0.6, 1.0, 0.6),
-                        custom_size: Some(Vec2::new(1.0, 6.0)),
+                        color: Color::srgba(0.5, 0.6, 1.0, 0.75),
+                        custom_size: Some(Vec2::new(2.0, 8.0)),
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
+                counts.rain += 1;
             }
         }
         Weather::Stormy => {
@@ -138,12 +160,13 @@ pub fn spawn_weather_particles(
                 commands.spawn((
                     RainDrop { speed },
                     Sprite {
-                        color: Color::srgba(0.4, 0.5, 0.9, 0.7),
-                        custom_size: Some(Vec2::new(1.0, 6.0)),
+                        color: Color::srgba(0.4, 0.5, 0.9, 0.8),
+                        custom_size: Some(Vec2::new(2.5, 8.0)),
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
+                counts.rain += 1;
             }
         }
         Weather::Snowy => {
@@ -167,11 +190,12 @@ pub fn spawn_weather_particles(
                     },
                     Sprite {
                         color: Color::srgba(1.0, 1.0, 1.0, 0.7),
-                        custom_size: Some(Vec2::new(3.0, 3.0)),
+                        custom_size: Some(Vec2::new(4.0, 4.0)),
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
+                counts.snow += 1;
             }
         }
         Weather::Sunny => {
@@ -181,10 +205,12 @@ pub fn spawn_weather_particles(
 }
 
 /// Move weather particles each frame and despawn those that fall below the camera.
+#[allow(clippy::type_complexity)]
 pub fn update_weather_particles(
     mut commands: Commands,
     time: Res<Time>,
     camera_query: Query<&Transform, With<Camera2d>>,
+    mut counts: ResMut<WeatherParticleCounts>,
     mut rain_query: Query<(Entity, &RainDrop, &mut Transform), Without<Camera2d>>,
     mut snow_query: Query<
         (Entity, &mut SnowFlake, &mut Transform),
@@ -205,6 +231,7 @@ pub fn update_weather_particles(
         transform.translation.y -= drop.speed * dt;
         if transform.translation.y < despawn_y {
             commands.entity(entity).despawn();
+            counts.rain = counts.rain.saturating_sub(1);
         }
     }
 
@@ -213,23 +240,29 @@ pub fn update_weather_particles(
         flake.elapsed += dt;
         transform.translation.y -= flake.speed * dt;
         // Lateral sine-wave drift
-        transform.translation.x =
-            flake.origin_x + (flake.elapsed * flake.drift_freq + flake.drift_phase).sin() * flake.drift_amp;
+        transform.translation.x = flake.origin_x
+            + (flake.elapsed * flake.drift_freq + flake.drift_phase).sin() * flake.drift_amp;
         if transform.translation.y < despawn_y {
             commands.entity(entity).despawn();
+            counts.snow = counts.snow.saturating_sub(1);
         }
     }
 }
 
-/// When weather changes or when leaving Playing state, despawn all weather particles.
+/// When weather changes or when on an indoor map, despawn all weather particles.
 pub fn cleanup_weather_on_change(
     mut commands: Commands,
     calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
     mut prev_weather: ResMut<PreviousWeather>,
+    mut counts: ResMut<WeatherParticleCounts>,
     rain_query: Query<Entity, With<RainDrop>>,
     snow_query: Query<Entity, With<SnowFlake>>,
 ) {
-    if calendar.weather != prev_weather.weather {
+    let should_cleanup =
+        calendar.weather != prev_weather.weather || is_indoor_map(player_state.current_map);
+
+    if should_cleanup {
         prev_weather.weather = calendar.weather;
         for entity in rain_query.iter() {
             commands.entity(entity).despawn();
@@ -237,12 +270,39 @@ pub fn cleanup_weather_on_change(
         for entity in snow_query.iter() {
             commands.entity(entity).despawn();
         }
+        counts.rain = 0;
+        counts.snow = 0;
+    }
+}
+
+/// Send a toast notification when the weather changes (rain starts, stops, etc).
+pub fn weather_change_notification(
+    calendar: Res<Calendar>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut prev_weather: Local<Option<Weather>>,
+) {
+    let current = calendar.weather;
+    if Some(current) != *prev_weather {
+        if prev_weather.is_some() {
+            let msg = match current {
+                Weather::Rainy => "It started raining.",
+                Weather::Stormy => "A storm is rolling in!",
+                Weather::Snowy => "It's starting to snow.",
+                Weather::Sunny => "The skies have cleared up.",
+            };
+            toast_events.send(ToastEvent {
+                message: msg.into(),
+                duration_secs: 3.0,
+            });
+        }
+        *prev_weather = Some(current);
     }
 }
 
 /// Despawn all weather particles unconditionally (used on state exit).
 pub fn cleanup_all_weather_particles(
     mut commands: Commands,
+    mut counts: ResMut<WeatherParticleCounts>,
     rain_query: Query<Entity, With<RainDrop>>,
     snow_query: Query<Entity, With<SnowFlake>>,
 ) {
@@ -252,4 +312,6 @@ pub fn cleanup_all_weather_particles(
     for entity in snow_query.iter() {
         commands.entity(entity).despawn();
     }
+    counts.rain = 0;
+    counts.snow = 0;
 }

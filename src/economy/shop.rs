@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Resources
@@ -14,33 +14,15 @@ pub struct ActiveShop {
 }
 
 /// A single entry in the current shop, enriched with item info for the UI.
-#[derive(Debug, Clone)]
 #[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub struct ActiveListing {
     pub item_id: ItemId,
     pub display_name: String,
     pub price: u32,
-    pub sell_price: u32,   // what the player would receive if they sell it back
+    pub sell_price: u32, // what the player would receive if they sell it back
     pub sprite_index: u32,
-    pub can_afford: bool,  // cached against current gold — UI re-reads per frame
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Events (internal — used to drive transactions from UI input)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Fired by the UI when the player confirms a purchase.
-#[derive(Event, Debug, Clone)]
-pub struct BuyRequestEvent {
-    pub item_id: ItemId,
-    pub quantity: u8,
-}
-
-/// Fired by the UI when the player confirms selling an item from inventory.
-#[derive(Event, Debug, Clone)]
-pub struct SellRequestEvent {
-    pub item_id: ItemId,
-    pub quantity: u8,
+    pub can_afford: bool, // cached against current gold — UI re-reads per frame
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,6 +32,7 @@ pub struct SellRequestEvent {
 /// Detects MapTransitionEvents for shop maps and:
 ///   1. Transitions GameState to GameState::Shop
 ///   2. Populates ActiveShop with season-filtered listings
+#[allow(clippy::too_many_arguments)]
 pub fn on_enter_shop(
     mut map_events: EventReader<MapTransitionEvent>,
     shop_data: Res<ShopData>,
@@ -105,201 +88,6 @@ pub fn refresh_shop_affordability(
     }
 }
 
-/// Processes BuyRequestEvents — the core purchase flow.
-pub fn handle_buy(
-    mut buy_events: EventReader<BuyRequestEvent>,
-    mut player_state: ResMut<PlayerState>,
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
-    active_shop: Res<ActiveShop>,
-    mut gold_writer: EventWriter<GoldChangeEvent>,
-    mut pickup_writer: EventWriter<ItemPickupEvent>,
-    mut transaction_writer: EventWriter<ShopTransactionEvent>,
-    mut sfx_writer: EventWriter<PlaySfxEvent>,
-) {
-    let shop_id = match active_shop.shop_id {
-        Some(id) => id,
-        None => return,
-    };
-
-    for ev in buy_events.read() {
-        // Validate item exists in registry.
-        let item_def = match item_registry.get(&ev.item_id) {
-            Some(def) => def,
-            None => {
-                warn!("[Economy] Buy failed — unknown item '{}'", ev.item_id);
-                continue;
-            }
-        };
-
-        // Find price from active listing (not from item_def.buy_price directly,
-        // so shop-specific overrides work).
-        let price_per_unit = match active_shop
-            .listings
-            .iter()
-            .find(|l| l.item_id == ev.item_id)
-        {
-            Some(listing) => listing.price,
-            None => {
-                warn!(
-                    "[Economy] Buy failed — '{}' not in current shop listing",
-                    ev.item_id
-                );
-                continue;
-            }
-        };
-
-        let quantity = ev.quantity.max(1);
-        let total_cost = price_per_unit.saturating_mul(quantity as u32);
-
-        // Check affordability.
-        if player_state.gold < total_cost {
-            info!(
-                "[Economy] Cannot afford {} × '{}' (need {}g, have {}g)",
-                quantity, ev.item_id, total_cost, player_state.gold
-            );
-            sfx_writer.send(PlaySfxEvent {
-                sfx_id: "ui_deny".to_string(),
-            });
-            continue;
-        }
-
-        // Check inventory space.
-        let leftover = {
-            // We do a dry-run using a clone — the real add happens below.
-            let mut inv_clone = inventory.clone();
-            inv_clone.try_add(&ev.item_id, quantity, item_def.stack_size)
-        };
-        if leftover > 0 {
-            info!(
-                "[Economy] Not enough inventory space to buy {} × '{}'",
-                quantity, ev.item_id
-            );
-            sfx_writer.send(PlaySfxEvent {
-                sfx_id: "ui_deny".to_string(),
-            });
-            continue;
-        }
-
-        // All checks passed — commit the transaction.
-        player_state.gold -= total_cost;
-        inventory.try_add(&ev.item_id, quantity, item_def.stack_size);
-
-        gold_writer.send(GoldChangeEvent {
-            // We already deducted gold manually above; this event is for tracking & UI only.
-            // Send 0 here to avoid double-deduction — the actual deduction is above.
-            // NOTE: Gold is already applied directly; the event is purely informational.
-            amount: -(total_cost as i32),
-            reason: format!("Bought {} × {}", quantity, item_def.name),
-        });
-
-        pickup_writer.send(ItemPickupEvent {
-            item_id: ev.item_id.clone(),
-            quantity,
-        });
-
-        transaction_writer.send(ShopTransactionEvent {
-            shop_id,
-            item_id: ev.item_id.clone(),
-            quantity,
-            total_cost,
-            is_purchase: true,
-        });
-
-        sfx_writer.send(PlaySfxEvent {
-            sfx_id: "shop_buy".to_string(),
-        });
-
-        info!(
-            "[Economy] Bought {} × '{}' for {}g. Remaining gold: {}g",
-            quantity, ev.item_id, total_cost, player_state.gold
-        );
-    }
-}
-
-/// Processes SellRequestEvents — selling inventory items for gold.
-pub fn handle_sell(
-    mut sell_events: EventReader<SellRequestEvent>,
-    mut player_state: ResMut<PlayerState>,
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
-    active_shop: Res<ActiveShop>,
-    mut gold_writer: EventWriter<GoldChangeEvent>,
-    mut removed_writer: EventWriter<ItemRemovedEvent>,
-    mut transaction_writer: EventWriter<ShopTransactionEvent>,
-    mut sfx_writer: EventWriter<PlaySfxEvent>,
-) {
-    let shop_id = match active_shop.shop_id {
-        Some(id) => id,
-        None => return,
-    };
-
-    for ev in sell_events.read() {
-        let item_def = match item_registry.get(&ev.item_id) {
-            Some(def) => def,
-            None => {
-                warn!("[Economy] Sell failed — unknown item '{}'", ev.item_id);
-                continue;
-            }
-        };
-
-        let quantity = ev.quantity.max(1);
-
-        // Verify the player actually has enough of the item.
-        if !inventory.has(&ev.item_id, quantity) {
-            warn!(
-                "[Economy] Sell failed — not enough '{}' in inventory (have {}, want {})",
-                ev.item_id,
-                inventory.count(&ev.item_id),
-                quantity
-            );
-            continue;
-        }
-
-        // Shops in Hearthfield buy items at their base sell_price.
-        let price_per_unit = item_def.sell_price;
-        let total_earned = price_per_unit.saturating_mul(quantity as u32);
-
-        // Commit.
-        let removed = inventory.try_remove(&ev.item_id, quantity);
-        if removed < quantity {
-            warn!(
-                "[Economy] Partial sell: only removed {} of {}",
-                removed, quantity
-            );
-        }
-
-        player_state.gold = player_state.gold.saturating_add(total_earned);
-
-        gold_writer.send(GoldChangeEvent {
-            amount: total_earned as i32,
-            reason: format!("Sold {} × {}", removed, item_def.name),
-        });
-
-        removed_writer.send(ItemRemovedEvent {
-            item_id: ev.item_id.clone(),
-            quantity: removed,
-        });
-
-        transaction_writer.send(ShopTransactionEvent {
-            shop_id,
-            item_id: ev.item_id.clone(),
-            quantity: removed,
-            total_cost: total_earned,
-            is_purchase: false,
-        });
-
-        sfx_writer.send(PlaySfxEvent {
-            sfx_id: "shop_sell".to_string(),
-        });
-
-        info!(
-            "[Economy] Sold {} × '{}' for {}g. New balance: {}g",
-            removed, ev.item_id, total_earned, player_state.gold
-        );
-    }
-}
-
 /// Called when the player exits the shop (e.g., walks out, presses Escape).
 /// Returns game state to Playing and clears the active shop.
 pub fn on_exit_shop(
@@ -319,8 +107,155 @@ pub fn on_exit_shop(
     }
 }
 
+/// Updates EconomyStats directly for shop transactions without sending
+/// GoldChangeEvent. The shop UI already mutates player.gold directly for
+/// immediate feedback; sending GoldChangeEvent would cause apply_gold_changes
+/// to modify gold a second time (double deduction bug).
+pub fn handle_shop_transaction_gold(
+    mut tx_events: EventReader<ShopTransactionEvent>,
+    mut stats: ResMut<super::gold::EconomyStats>,
+) {
+    for ev in tx_events.read() {
+        if ev.is_purchase {
+            stats.total_gold_spent = stats.total_gold_spent.saturating_add(ev.total_cost as u64);
+            info!(
+                "[Economy] Shop buy stats: {} for {}g. Total spent: {}g",
+                ev.item_id, ev.total_cost, stats.total_gold_spent
+            );
+        } else {
+            stats.total_gold_earned = stats.total_gold_earned.saturating_add(ev.total_cost as u64);
+            info!(
+                "[Economy] Shop sell stats: {} for {}g. Total earned: {}g",
+                ev.item_id, ev.total_cost, stats.total_gold_earned
+            );
+        }
+        stats.total_transactions += 1;
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// Buy / Sell Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Result of a shop transaction attempt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransactionResult {
+    /// Transaction succeeded. Contains the total cost (positive) or revenue (positive).
+    Success { total: u32 },
+    /// Player cannot afford the purchase.
+    InsufficientGold { need: u32, have: u32 },
+    /// Inventory is full — cannot add the purchased item.
+    InventoryFull,
+    /// Player does not have enough of the item to sell.
+    InsufficientItems { need: u8, have: u8 },
+    /// Item not found in the item registry.
+    UnknownItem,
+}
+
+/// Attempts to buy `quantity` of `item_id` at `price_per_unit` from a shop.
+///
+/// On success:
+///   - Deducts gold from `PlayerState`
+///   - Adds the item to `Inventory`
+///   - Fires a `ShopTransactionEvent` (is_purchase = true)
+///   - Fires a `GoldChangeEvent` (negative)
+///
+/// Returns a `TransactionResult` describing success or failure reason.
+///
+/// Note: This function mutates state directly for immediate UI feedback.
+/// The `GoldChangeEvent` is NOT sent (to avoid double-deduction — see
+/// `handle_shop_transaction_gold` which tracks stats separately).
+#[allow(dead_code)]
+pub fn try_buy(
+    item_id: &str,
+    quantity: u8,
+    price_per_unit: u32,
+    player_state: &mut PlayerState,
+    inventory: &mut Inventory,
+    item_registry: &ItemRegistry,
+) -> TransactionResult {
+    // Validate item exists.
+    let item_def = match item_registry.get(item_id) {
+        Some(def) => def,
+        None => return TransactionResult::UnknownItem,
+    };
+
+    let max_cost = price_per_unit.saturating_mul(quantity as u32);
+
+    // Check gold.
+    if player_state.gold < max_cost {
+        return TransactionResult::InsufficientGold {
+            need: max_cost,
+            have: player_state.gold,
+        };
+    }
+
+    // Add to inventory. try_add returns the number of items that
+    // could NOT be added (remaining). If remaining == quantity, nothing was added.
+    let remaining = inventory.try_add(item_id, quantity, item_def.stack_size);
+    if remaining == quantity {
+        return TransactionResult::InventoryFull;
+    }
+    // If partially added, we charge only for what was actually added.
+    let actually_added = quantity - remaining;
+    let total_cost = price_per_unit.saturating_mul(actually_added as u32);
+
+    // Deduct gold.
+    player_state.gold = player_state.gold.saturating_sub(total_cost);
+
+    TransactionResult::Success { total: total_cost }
+}
+
+/// Attempts to sell `quantity` of `item_id` from the player's inventory.
+///
+/// On success:
+///   - Removes the item from `Inventory`
+///   - Adds gold to `PlayerState`
+///
+/// The sell price comes from the item's `sell_price` in the registry, modified
+/// by the optional quality multiplier.
+///
+/// Returns a `TransactionResult` describing success or failure reason.
+#[allow(dead_code)]
+pub fn try_sell(
+    item_id: &str,
+    quantity: u8,
+    quality: crate::shared::ItemQuality,
+    player_state: &mut PlayerState,
+    inventory: &mut Inventory,
+    item_registry: &ItemRegistry,
+) -> TransactionResult {
+    // Validate item exists.
+    let item_def = match item_registry.get(item_id) {
+        Some(def) => def,
+        None => return TransactionResult::UnknownItem,
+    };
+
+    // Check inventory.
+    let held = inventory.count(item_id);
+    if held < quantity as u32 {
+        return TransactionResult::InsufficientItems {
+            need: quantity,
+            have: held.min(255) as u8,
+        };
+    }
+
+    let quality_adjusted = (item_def.sell_price as f32 * quality.sell_multiplier()) as u32;
+    let total_revenue = quality_adjusted.saturating_mul(quantity as u32);
+
+    // Remove from inventory.
+    inventory.try_remove(item_id, quantity);
+
+    // Add gold.
+    player_state.gold = player_state.gold.saturating_add(total_revenue);
+
+    TransactionResult::Success {
+        total: total_revenue,
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Listing Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn build_listings(
@@ -339,9 +274,7 @@ fn build_listings(
         .iter()
         .filter(|listing| {
             // Keep items that are always available OR available this season.
-            listing
-                .season_available
-                .map_or(true, |s| s == current_season)
+            listing.season_available.is_none_or(|s| s == current_season)
         })
         .filter_map(|listing| {
             let def = item_registry.get(&listing.item_id)?;
@@ -355,4 +288,194 @@ fn build_listings(
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_registry(items: &[(&str, u32, u32)]) -> ItemRegistry {
+        let mut registry = ItemRegistry::default();
+        for &(id, sell_price, stack) in items {
+            registry.items.insert(
+                id.to_string(),
+                ItemDef {
+                    id: id.to_string(),
+                    name: id.to_string(),
+                    description: String::new(),
+                    category: ItemCategory::Crop,
+                    sell_price,
+                    buy_price: None,
+                    stack_size: stack as u8,
+                    edible: false,
+                    energy_restore: 0.0,
+                    sprite_index: 0,
+                },
+            );
+        }
+        registry
+    }
+
+    fn default_player(gold: u32) -> PlayerState {
+        let mut ps = PlayerState::default();
+        ps.gold = gold;
+        ps
+    }
+
+    #[test]
+    fn test_try_buy_success() {
+        let registry = make_registry(&[("seeds", 20, 99)]);
+        let mut player = default_player(500);
+        let mut inv = Inventory::default();
+
+        let result = try_buy("seeds", 5, 20, &mut player, &mut inv, &registry);
+        assert_eq!(result, TransactionResult::Success { total: 100 });
+        assert_eq!(player.gold, 400);
+        assert_eq!(inv.count("seeds"), 5);
+    }
+
+    #[test]
+    fn test_try_buy_insufficient_gold() {
+        let registry = make_registry(&[("seeds", 20, 99)]);
+        let mut player = default_player(50);
+        let mut inv = Inventory::default();
+
+        let result = try_buy("seeds", 5, 20, &mut player, &mut inv, &registry);
+        assert_eq!(
+            result,
+            TransactionResult::InsufficientGold {
+                need: 100,
+                have: 50
+            }
+        );
+        assert_eq!(player.gold, 50); // unchanged
+    }
+
+    #[test]
+    fn test_try_buy_unknown_item() {
+        let registry = ItemRegistry::default();
+        let mut player = default_player(500);
+        let mut inv = Inventory::default();
+
+        let result = try_buy("nonexistent", 1, 10, &mut player, &mut inv, &registry);
+        assert_eq!(result, TransactionResult::UnknownItem);
+    }
+
+    #[test]
+    fn test_try_sell_success() {
+        let registry = make_registry(&[("turnip", 60, 99)]);
+        let mut player = default_player(100);
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 10, 99);
+
+        let result = try_sell(
+            "turnip",
+            3,
+            ItemQuality::Normal,
+            &mut player,
+            &mut inv,
+            &registry,
+        );
+        assert_eq!(result, TransactionResult::Success { total: 180 });
+        assert_eq!(player.gold, 280);
+        assert_eq!(inv.count("turnip"), 7);
+    }
+
+    #[test]
+    fn test_try_sell_quality_multiplier() {
+        let registry = make_registry(&[("turnip", 100, 99)]);
+        let mut player = default_player(0);
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 2, 99);
+
+        // Gold quality = 1.5x multiplier
+        let result = try_sell(
+            "turnip",
+            1,
+            ItemQuality::Gold,
+            &mut player,
+            &mut inv,
+            &registry,
+        );
+        assert_eq!(result, TransactionResult::Success { total: 150 });
+        assert_eq!(player.gold, 150);
+    }
+
+    #[test]
+    fn test_try_sell_iridium_quality() {
+        let registry = make_registry(&[("turnip", 100, 99)]);
+        let mut player = default_player(0);
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 1, 99);
+
+        // Iridium quality = 2.0x
+        let result = try_sell(
+            "turnip",
+            1,
+            ItemQuality::Iridium,
+            &mut player,
+            &mut inv,
+            &registry,
+        );
+        assert_eq!(result, TransactionResult::Success { total: 200 });
+    }
+
+    #[test]
+    fn test_try_sell_insufficient_items() {
+        let registry = make_registry(&[("turnip", 60, 99)]);
+        let mut player = default_player(100);
+        let mut inv = Inventory::default();
+        inv.try_add("turnip", 2, 99);
+
+        let result = try_sell(
+            "turnip",
+            5,
+            ItemQuality::Normal,
+            &mut player,
+            &mut inv,
+            &registry,
+        );
+        assert_eq!(
+            result,
+            TransactionResult::InsufficientItems { need: 5, have: 2 }
+        );
+        assert_eq!(player.gold, 100); // unchanged
+    }
+
+    #[test]
+    fn test_try_sell_unknown_item() {
+        let registry = ItemRegistry::default();
+        let mut player = default_player(100);
+        let mut inv = Inventory::default();
+
+        let result = try_sell(
+            "ghost_item",
+            1,
+            ItemQuality::Normal,
+            &mut player,
+            &mut inv,
+            &registry,
+        );
+        assert_eq!(result, TransactionResult::UnknownItem);
+    }
+
+    #[test]
+    fn test_active_listing_can_afford() {
+        let listing = ActiveListing {
+            item_id: "seeds".to_string(),
+            display_name: "Seeds".to_string(),
+            price: 100,
+            sell_price: 50,
+            sprite_index: 0,
+            can_afford: true,
+        };
+        assert!(listing.can_afford);
+    }
+
+    #[test]
+    fn test_active_shop_default() {
+        let shop = ActiveShop::default();
+        assert!(shop.shop_id.is_none());
+        assert!(shop.listings.is_empty());
+    }
 }

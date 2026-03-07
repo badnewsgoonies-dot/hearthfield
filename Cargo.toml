@@ -1,10 +1,44 @@
+[workspace]
+members = [".", "dlc/pilot", "dlc/city"]
+resolver = "2"
+
 [package]
 name = "hearthfield"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.15"
+bevy = { version = "0.15", default-features = false, features = [
+    # Core engine
+    "bevy_asset",
+    "bevy_color",
+    "bevy_state",
+    "multi_threaded",
+    # Rendering pipeline (2D)
+    "bevy_render",
+    "bevy_core_pipeline",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_ui",
+    # Pipeline requirements (needed even with Tonemapping::None)
+    "tonemapping_luts",
+    "ktx2",
+    "zstd",
+    # Windowing
+    "bevy_winit",
+    "x11",
+    # Audio
+    "bevy_audio",
+    "vorbis",
+    # Gamepad support (native; WASM uses browser Gamepad API via winit)
+    "bevy_gilrs",
+    # Image format
+    "png",
+    # WASM support
+    "webgl2",
+    # Font fallback
+    "default_font",
+]}
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rand = "0.8"
@@ -24,4 +58,4 @@ inherits = "release"
 opt-level = "z"
 lto = true
 codegen-units = 1
-strip = true
+# Note: strip=true removes wasm-bindgen custom sections; do NOT enable for WASM

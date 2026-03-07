@@ -1,21 +1,57 @@
 use bevy::prelude::*;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::shared::*;
 
 // ─── Sub-modules ────────────────────────────────────────────────────────────
-mod cast;
 mod bite;
+mod cast;
 mod fish_select;
+pub mod legendaries;
 mod minigame;
 mod render;
 mod resolve;
 pub mod skill;
 pub mod treasure;
-pub mod legendaries;
 
 // ─── Plugin ─────────────────────────────────────────────────────────────────
+
+/// Cached sprite atlas handles for fishing-related sprites (fish, rods, etc.)
+#[derive(Resource, Default)]
+pub struct FishingAtlas {
+    pub loaded: bool,
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+}
+
+/// Loads the fishing sprite atlas on first entry into Playing state.
+fn load_fishing_atlas(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlas: ResMut<FishingAtlas>,
+) {
+    if atlas.loaded {
+        return;
+    }
+    // fishing_atlas.png: 128x96, 8 cols x 6 rows of 16x16 tiles (48 sprites)
+    // Row 0: rod, old rod, bobber, hook, worm bait, spinner lure, tackle box, bucket
+    // Row 1: net, crab trap, cooler, treasure chest, wooden crate, splash, ripple, fish shadow
+    // Row 2: carp(16), bluegill(17), perch(18), trout(19), catfish(20), bass(21), salmon(22), sardine(23)
+    // Row 3: red snapper(24), tuna(25), swordfish(26), eel(27), anglerfish(28), pufferfish(29), koi(30), goldfish(31)
+    // Row 4: seaweed(32), coral(33), shell(34), pearl(35), starfish(36), driftwood(37), message bottle(38), old boot(39)
+    // Row 5: ancient coin(40), sunken key(41), fish bone(42), crab(43), lobster(44), octopus(45), squid(46), jellyfish(47)
+    atlas.image = asset_server.load("sprites/fishing_atlas.png");
+    atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        8,
+        6,
+        None,
+        None,
+    ));
+    atlas.loaded = true;
+}
 
 pub struct FishingPlugin;
 
@@ -27,6 +63,7 @@ impl Plugin for FishingPlugin {
             .init_resource::<FishingMinigameState>()
             .init_resource::<FishEncyclopedia>()
             .init_resource::<skill::FishingSkill>()
+            .init_resource::<FishingAtlas>()
             // Internal events
             .add_event::<skill::FishingLevelUpEvent>()
             // Systems that run in Playing state (cast detection)
@@ -55,11 +92,11 @@ impl Plugin for FishingPlugin {
             // that ItemPickupEvent written this frame are available).
             .add_systems(
                 PostUpdate,
-                skill::update_fishing_skill.run_if(
-                    in_state(GameState::Playing).or(in_state(GameState::Fishing)),
-                ),
+                (skill::update_fishing_skill, skill::track_fishing_level_up)
+                    .run_if(in_state(GameState::Playing).or(in_state(GameState::Fishing))),
             )
             // Setup/teardown on state transitions
+            .add_systems(OnEnter(GameState::Playing), load_fishing_atlas)
             .add_systems(OnEnter(GameState::Fishing), render::spawn_minigame_ui)
             .add_systems(OnExit(GameState::Fishing), render::despawn_minigame_ui)
             // Minigame visual updates (color feedback on progress bar)
@@ -70,9 +107,8 @@ impl Plugin for FishingPlugin {
             // Bobber animation runs in both Playing (while waiting for bite) and Fishing
             .add_systems(
                 Update,
-                render::animate_bobber.run_if(
-                    in_state(GameState::Playing).or(in_state(GameState::Fishing)),
-                ),
+                render::animate_bobber
+                    .run_if(in_state(GameState::Playing).or(in_state(GameState::Fishing))),
             )
             // Escape key to cancel fishing (in Playing state while waiting)
             .add_systems(
@@ -85,7 +121,7 @@ impl Plugin for FishingPlugin {
 // ─── Fish Encyclopedia Resource ──────────────────────────────────────────────
 
 /// Tracks every species the player has ever caught.
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FishEncyclopedia {
     /// fish_id → CaughtFishEntry
     pub entries: HashMap<String, CaughtFishEntry>,
@@ -111,16 +147,9 @@ impl FishEncyclopedia {
             true
         }
     }
-
-    /// How many unique species have been caught.
-    #[allow(dead_code)]
-    pub fn unique_species(&self) -> usize {
-        self.entries.len()
-    }
 }
 
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaughtFishEntry {
     pub fish_id: String,
     pub times_caught: u32,
@@ -144,29 +173,7 @@ pub enum TackleKind {
     LeadBobber,
 }
 
-impl TackleKind {
-    /// Derive tackle kind from an inventory item ID.
-    #[allow(dead_code)]
-    pub fn from_item_id(id: &str) -> Self {
-        match id {
-            "spinner" => TackleKind::Spinner,
-            "trap_bobber" => TackleKind::TrapBobber,
-            "lead_bobber" => TackleKind::LeadBobber,
-            _ => TackleKind::None,
-        }
-    }
-
-    /// User-facing description of the tackle effect.
-    #[allow(dead_code)]
-    pub fn effect_description(self) -> Option<&'static str> {
-        match self {
-            TackleKind::None => None,
-            TackleKind::Spinner => Some("Spinner: larger fish zone"),
-            TackleKind::TrapBobber => Some("Trap Bobber: slower progress drain"),
-            TackleKind::LeadBobber => Some("Lead Bobber: slower catch bar fall"),
-        }
-    }
-}
+impl TackleKind {}
 
 // ─── Fishing State Resource ──────────────────────────────────────────────────
 
@@ -196,7 +203,10 @@ pub struct FishingState {
     pub reaction_timer: Option<Timer>,
     /// The fish that has been selected for this cast.
     pub selected_fish_id: Option<ItemId>,
-    /// Whether bait is currently equipped.
+    /// The specific bait item ID used for this cast (e.g. "wild_bait", "magnet_bait").
+    /// `None` means no bait was equipped.
+    pub bait_id: Option<String>,
+    /// Whether bait is currently equipped (derived from bait_id for convenience).
     pub bait_equipped: bool,
     /// Whether tackle is currently equipped (any kind).
     pub tackle_equipped: bool,
@@ -215,6 +225,7 @@ impl Default for FishingState {
             bite_timer: None,
             reaction_timer: None,
             selected_fish_id: None,
+            bait_id: None,
             bait_equipped: false,
             tackle_equipped: false,
             tackle_kind: TackleKind::None,
@@ -229,6 +240,11 @@ impl FishingState {
         self.bite_timer = None;
         self.reaction_timer = None;
         self.selected_fish_id = None;
+        self.bait_id = None;
+        self.bait_equipped = false;
+        self.tackle_equipped = false;
+        self.tackle_kind = TackleKind::None;
+        self.rod_tier = ToolTier::Basic;
     }
 }
 
@@ -292,12 +308,6 @@ impl Default for FishingMinigameState {
 }
 
 impl FishingMinigameState {
-    /// Set up the minigame without skill bonuses applied (kept for compatibility).
-    #[allow(dead_code)]
-    pub fn setup(&mut self, difficulty: f32, rod_tier: ToolTier, tackle_kind: TackleKind) {
-        self.setup_with_skill(difficulty, rod_tier, tackle_kind, &skill::FishingSkill::default());
-    }
-
     /// Set up the minigame incorporating the player's fishing skill bonuses.
     ///
     /// `FishingSkill::catch_zone_bonus` expands the catch bar so experienced
@@ -332,7 +342,13 @@ impl FishingMinigameState {
             _ => base_fish_zone,
         };
 
-        // Catch bar size: base 12.5 per half (25 total).
+        // Catch bar size: spec formula = 40px base + 3px per skill level.
+        // The bar size is in pixels; we convert to 0-100 scale half-height.
+        // The minigame bar is 200 screen-pixels tall mapping to 0-100 range,
+        // so 1 unit = 2 pixels. Bar size in units = bar_size_px / 2.0.
+        let bar_px = fishing_skill.bar_size_px();
+        let base_half = bar_px / 2.0 / 2.0; // half-height in 0-100 units
+
         // Rod tier grants a small size bonus.
         let tier_bonus = match rod_tier {
             ToolTier::Basic => 1.0,
@@ -341,17 +357,14 @@ impl FishingMinigameState {
             ToolTier::Gold => 1.15,
             ToolTier::Iridium => 1.20,
         };
-        // Generic tackle bonus (any tackle = +25% catch bar) is kept for non-Spinner tackle.
-        // Spinner's benefit is the fish zone, not the catch bar.
+        // Tackle bar bonus.
         let catch_bar_tackle_bonus = match tackle_kind {
             TackleKind::None => 1.0,
-            TackleKind::Spinner => 1.0,    // Spinner helps via fish zone instead
+            TackleKind::Spinner => 1.0, // Spinner helps via fish zone instead
             TackleKind::TrapBobber => 1.0, // TrapBobber helps via drain rate instead
-            TackleKind::LeadBobber => 1.25, // LeadBobber was the old generic +25%
+            TackleKind::LeadBobber => 1.25, // LeadBobber gets +25% catch bar
         };
-        // Apply fishing skill catch_zone_bonus on top of tackle and tier.
-        let skill_bonus = 1.0 + fishing_skill.catch_zone_bonus;
-        self.catch_bar_half = 12.5 * catch_bar_tackle_bonus * tier_bonus * skill_bonus;
+        self.catch_bar_half = base_half * catch_bar_tackle_bonus * tier_bonus;
 
         // Trap Bobber: slow progress drain rate (stored on minigame state for
         // update_progress to read at runtime).
@@ -390,7 +403,12 @@ impl FishingMinigameState {
             // Too short to be meaningful — don't award perfect bonus
             return false;
         }
-        let ratio = self.overlap_time_total / self.minigame_total_time;
+        let total_time = self.minigame_total_time;
+        let ratio = if total_time > 0.0 {
+            self.overlap_time_total / total_time
+        } else {
+            0.0
+        };
         ratio >= 0.90
     }
 }

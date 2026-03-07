@@ -1,9 +1,6 @@
-use bevy::prelude::*;
+use super::CollisionMap;
 use crate::shared::*;
-use super::{grid_to_world, CollisionMap};
-
-// Default energy restored by an edible item when no registry entry is found.
-const DEFAULT_FOOD_ENERGY: f32 = 20.0;
+use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Map Transition Detection
@@ -14,17 +11,18 @@ const DEFAULT_FOOD_ENERGY: f32 = 20.0;
 /// resource; here we define default map sizes per MapId so the player
 /// can trigger transitions by walking to the edge.
 fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
+    // (min_x, max_x, min_y, max_y) — must match generate_*() in world/maps.rs
     match map {
-        MapId::Farm => (0, 63, 0, 63),
-        MapId::Town => (0, 47, 0, 47),
-        MapId::Beach => (0, 31, 0, 31),
-        MapId::Forest => (0, 39, 0, 39),
-        MapId::MineEntrance => (0, 23, 0, 23),
-        MapId::Mine => (0, 23, 0, 23),
-        MapId::PlayerHouse => (0, 11, 0, 11),
-        MapId::GeneralStore => (0, 11, 0, 11),
-        MapId::AnimalShop => (0, 11, 0, 11),
-        MapId::Blacksmith => (0, 11, 0, 11),
+        MapId::Farm => (0, 31, 0, 23),         // 32×24
+        MapId::Town => (0, 27, 0, 21),         // 28×22
+        MapId::Beach => (0, 19, 0, 13),        // 20×14
+        MapId::Forest => (0, 21, 0, 17),       // 22×18
+        MapId::MineEntrance => (0, 13, 0, 11), // 14×12
+        MapId::Mine => (0, 23, 0, 23),         // 24×24
+        MapId::PlayerHouse => (0, 15, 0, 15),  // 16×16
+        MapId::GeneralStore => (0, 11, 0, 11), // 12×12
+        MapId::AnimalShop => (0, 11, 0, 11),   // 12×12
+        MapId::Blacksmith => (0, 11, 0, 11),   // 12×12
     }
 }
 
@@ -33,86 +31,148 @@ fn map_bounds(map: &MapId) -> (i32, i32, i32, i32) {
 fn edge_transition(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i32, i32)> {
     let (min_x, max_x, min_y, max_y) = map_bounds(map);
 
-    // Farm exits
+    // ── Door-entry zone checks (BEFORE edge checks) ──────────────────
+    // These trigger when the player walks onto a building door tile
+    // within a map, NOT at map edges.
+
+    // Farm: Player House door at (15-16, 2) — south edge of building footprint
+    if *map == MapId::Farm && (15..=16).contains(&gx) && gy == 2 {
+        return Some((MapId::PlayerHouse, 8, 14));
+    }
+
+    // Town: General Store door at (5-6, 2)
+    if *map == MapId::Town && (5..=6).contains(&gx) && gy == 2 {
+        return Some((MapId::GeneralStore, 6, 10));
+    }
+
+    // Town: Animal Shop door at (22-23, 2)
+    if *map == MapId::Town && (22..=23).contains(&gx) && gy == 2 {
+        return Some((MapId::AnimalShop, 6, 10));
+    }
+
+    // Town: Blacksmith door at (22-23, 13)
+    if *map == MapId::Town && (22..=23).contains(&gx) && gy == 13 {
+        return Some((MapId::Blacksmith, 6, 10));
+    }
+
+    // ── Edge-boundary transitions ────────────────────────────────────
+
+    // Farm exits (32x24)
     if *map == MapId::Farm {
-        // South edge → Town
+        // South edge → Town (28x22)
         if gy <= min_y {
-            return Some((MapId::Town, gx.clamp(0, 47), 46));
+            return Some((MapId::Town, gx.clamp(0, 27), 20));
         }
-        // East edge → Forest
+        // East edge → Forest (22x18)
         if gx >= max_x {
-            return Some((MapId::Forest, 1, gy.clamp(0, 39)));
+            return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
         // North edge → nothing (mountain boundary)
-        // West edge → Beach
+        // West edge → MineEntrance (matches world/maps.rs path-to-mine layout)
         if gx <= min_x {
-            return Some((MapId::Beach, 30, gy.clamp(0, 31)));
+            return Some((MapId::MineEntrance, 12, 6));
         }
     }
 
-    // Town exits
+    // Town exits (28x22)
     if *map == MapId::Town {
-        // North edge → Farm
+        // North edge → Farm (32x24)
         if gy >= max_y {
-            return Some((MapId::Farm, gx.clamp(0, 63), 1));
+            return Some((MapId::Farm, gx.clamp(0, 31), 1));
         }
-        // South edge → Beach
+        // South edge → Beach (20x14) — spawn on sand (y=7), not ocean
         if gy <= min_y {
-            return Some((MapId::Beach, gx.clamp(0, 31), 30));
+            return Some((MapId::Beach, gx.clamp(0, 19), 7));
         }
-        // East edge → Forest
+        // East edge → Forest (22x18)
         if gx >= max_x {
-            return Some((MapId::Forest, 1, gy.clamp(0, 39)));
+            return Some((MapId::Forest, 1, gy.clamp(0, 17)));
         }
     }
 
-    // Beach exits
+    // Beach exits (20x14)
     if *map == MapId::Beach {
-        // North edge → Town
+        // North edge → Town (28x22)
         if gy >= max_y {
-            return Some((MapId::Town, gx.clamp(0, 47), 1));
+            return Some((MapId::Town, gx.clamp(0, 27), 1));
         }
-        // East edge → Farm
+        // East edge → Farm (32x24)
         if gx >= max_x {
-            return Some((MapId::Farm, 1, gy.clamp(0, 63)));
+            return Some((MapId::Farm, 1, gy.clamp(0, 23)));
         }
     }
 
-    // Forest exits
+    // Forest exits (22x18)
     if *map == MapId::Forest {
-        // West edge → Farm
+        // West edge → Farm (32x24)
         if gx <= min_x {
-            return Some((MapId::Farm, 62, gy.clamp(0, 63)));
+            return Some((MapId::Farm, 30, gy.clamp(0, 23)));
         }
-        // North edge → MineEntrance
+        // North edge → MineEntrance (14x12)
         if gy >= max_y {
-            return Some((MapId::MineEntrance, 12, 1));
+            return Some((MapId::MineEntrance, 7, 1));
         }
     }
 
-    // MineEntrance exits
+    // MineEntrance exits (14x12)
     if *map == MapId::MineEntrance {
-        // South edge → Forest
+        // South edge → Forest (22x18)
         if gy <= min_y {
-            return Some((MapId::Forest, 20, 38));
+            return Some((MapId::Forest, 11, 16));
+        }
+        // Cave entrance (top center, tiles 6-7 at y=1-2) → Mine floor 1 (24x24)
+        if (6..=7).contains(&gx) && (1..=2).contains(&gy) {
+            return Some((MapId::Mine, 8, 14));
         }
     }
 
-    // Interior rooms — exit through south edge → appropriate outdoor map
-    if *map == MapId::PlayerHouse && gy <= min_y {
-        return Some((MapId::Farm, 10, 9));
+    // Interior rooms — exit through front door (y=max wall) → appropriate outdoor map
+    if *map == MapId::PlayerHouse && gy >= max_y {
+        // Land on the farmhouse path outside the door, not inside the
+        // building footprint or directly on the re-entry trigger.
+        return Some((MapId::Farm, 16, 3));
     }
-    if *map == MapId::GeneralStore && gy <= min_y {
-        return Some((MapId::Town, 24, 20));
+    if *map == MapId::GeneralStore && gy >= max_y {
+        return Some((MapId::Town, 6, 8));
     }
-    if *map == MapId::AnimalShop && gy <= min_y {
-        return Some((MapId::Town, 10, 20));
+    if *map == MapId::AnimalShop && gy >= max_y {
+        return Some((MapId::Town, 22, 8));
     }
-    if *map == MapId::Blacksmith && gy <= min_y {
-        return Some((MapId::Town, 38, 20));
+    if *map == MapId::Blacksmith && gy >= max_y {
+        return Some((MapId::Town, 22, 18));
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn player_house_exit_lands_on_farm_path_outside_door_trigger() {
+        assert_eq!(
+            edge_transition(&MapId::PlayerHouse, 8, 15),
+            Some((MapId::Farm, 16, 3))
+        );
+    }
+
+    #[test]
+    fn farmhouse_path_tile_does_not_immediately_reenter_house() {
+        assert_eq!(edge_transition(&MapId::Farm, 16, 3), None);
+        assert_eq!(
+            edge_transition(&MapId::Farm, 16, 2),
+            Some((MapId::PlayerHouse, 8, 14))
+        );
+    }
+
+    #[test]
+    fn farm_west_edge_routes_toward_mine_path_not_beach() {
+        assert_eq!(
+            edge_transition(&MapId::Farm, 0, 10),
+            Some((MapId::MineEntrance, 12, 6))
+        );
+    }
 }
 
 /// Check whether the player has reached a map edge and send a
@@ -129,11 +189,7 @@ pub fn map_transition_check(
     if let Some((to_map, to_x, to_y)) =
         edge_transition(&player_state.current_map, grid_pos.x, grid_pos.y)
     {
-        map_events.send(MapTransitionEvent {
-            to_map,
-            to_x,
-            to_y,
-        });
+        map_events.send(MapTransitionEvent { to_map, to_x, to_y });
     }
 }
 
@@ -144,6 +200,7 @@ pub fn handle_map_transition(
     mut events: EventReader<MapTransitionEvent>,
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
+    mut camera_snap: ResMut<super::CameraSnap>,
     mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
 ) {
     // Process only the most recent transition (in case multiple fire).
@@ -159,21 +216,23 @@ pub fn handle_map_transition(
     player_state.current_map = ev.to_map;
 
     // Reposition player to the target tile.
-    let (wx, wy) = grid_to_world(ev.to_x, ev.to_y);
-    logical_pos.0.x = wx;
-    logical_pos.0.y = wy;
+    let wc = grid_to_world_center(ev.to_x, ev.to_y);
+    logical_pos.0.x = wc.x;
+    logical_pos.0.y = wc.y;
     grid_pos.x = ev.to_x;
     grid_pos.y = ev.to_y;
 
+    // Tell camera to snap instantly instead of lerping.
+    camera_snap.frames_remaining = 3;
+
     // Invalidate the collision map — the world domain will re-populate it
-    // for the new map.
+    // for the new map via sync_collision_map when WorldMap updates.
     collision_map.initialised = false;
     collision_map.solid_tiles.clear();
 
     // Update bounds for the new map.
     let (min_x, max_x, min_y, max_y) = map_bounds(&ev.to_map);
     collision_map.bounds = (min_x, max_x, min_y, max_y);
-    collision_map.initialised = true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -189,6 +248,7 @@ pub fn item_pickup_check(
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
     input_blocks: Res<InputBlocks>,
+    interaction_claimed: Res<InteractionClaimed>,
 ) {
     if input_blocks.is_blocked() {
         return;
@@ -196,6 +256,10 @@ pub fn item_pickup_check(
 
     // Manual interaction pickup on F key
     if !player_input.interact {
+        return;
+    }
+
+    if interaction_claimed.0 {
         return;
     }
 
@@ -237,6 +301,7 @@ pub fn add_items_to_inventory(
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
 ) {
     for ev in pickup_events.read() {
         let max_stack = item_registry
@@ -248,11 +313,16 @@ pub fn add_items_to_inventory(
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "item_pickup".to_string(),
             });
-            info!(
-                "[Player] Picked up {} × '{}'",
-                ev.quantity, ev.item_id
-            );
+            info!("[Player] Picked up {} × '{}'", ev.quantity, ev.item_id);
         } else {
+            let name = item_registry
+                .get(&ev.item_id)
+                .map(|d| d.name.as_str())
+                .unwrap_or(&ev.item_id);
+            toast_events.send(ToastEvent {
+                message: format!("Inventory full! Couldn't pick up {}.", name),
+                duration_secs: 3.0,
+            });
             info!(
                 "[Player] Inventory full — could not pick up {} × '{}' ({} dropped)",
                 ev.quantity, ev.item_id, remaining
@@ -278,11 +348,18 @@ pub fn handle_day_end(
         // Restore stamina fully.
         player_state.stamina = player_state.max_stamina;
 
+        // If the player is in the mine, the mining domain handles the transition
+        // (with gold penalty and partial health restore). Skip here.
+        let in_mine = player_state.current_map == MapId::Mine;
+        if in_mine {
+            return;
+        }
+
         // Restore health fully.
         player_state.health = player_state.max_health;
 
-        let bed_gx = 5;
-        let bed_gy = 8;
+        let bed_gx = 12;
+        let bed_gy = 4;
 
         // Send MapTransitionEvent so the world domain loads PlayerHouse tiles.
         if player_state.current_map != MapId::PlayerHouse {
@@ -297,84 +374,12 @@ pub fn handle_day_end(
         player_state.current_map = MapId::PlayerHouse;
 
         if let Ok((mut logical_pos, mut grid_pos)) = query.get_single_mut() {
-            let (wx, wy) = grid_to_world(bed_gx, bed_gy);
-            logical_pos.0.x = wx;
-            logical_pos.0.y = wy;
+            let wc = grid_to_world_center(bed_gx, bed_gy);
+            logical_pos.0.x = wc.x;
+            logical_pos.0.y = wc.y;
             grid_pos.x = bed_gx;
             grid_pos.y = bed_gy;
         }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Stamina Recovery
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// Reads `StaminaRestoreEvent` and applies stamina recovery to the player,
-/// capped at `max_stamina`.
-pub fn handle_stamina_restore(
-    mut events: EventReader<StaminaRestoreEvent>,
-    mut player_state: ResMut<PlayerState>,
-) {
-    for ev in events.read() {
-        let before = player_state.stamina;
-        player_state.stamina =
-            (player_state.stamina + ev.amount).min(player_state.max_stamina);
-        let gained = player_state.stamina - before;
-        info!(
-            "[Player] Stamina restored {:.1} (source: {:?}) — now {:.1}/{:.1}",
-            gained, ev.source, player_state.stamina, player_state.max_stamina
-        );
-    }
-}
-
-/// Reads `ConsumeItemEvent`, looks the item up in the `ItemRegistry`, removes
-/// it from inventory, and fires a `StaminaRestoreEvent` for the appropriate
-/// energy value.
-pub fn handle_consume_item(
-    mut events: EventReader<ConsumeItemEvent>,
-    mut inventory: ResMut<Inventory>,
-    item_registry: Res<ItemRegistry>,
-    mut stamina_restore_events: EventWriter<StaminaRestoreEvent>,
-    mut sfx_events: EventWriter<PlaySfxEvent>,
-) {
-    for ev in events.read() {
-        // Look up item definition to get the energy restore value.
-        let energy_value = if let Some(def) = item_registry.get(&ev.item_id) {
-            if def.edible {
-                def.energy_restore
-            } else {
-                // Item exists but is not edible — skip.
-                info!("[Player] Tried to consume non-edible item '{}'", ev.item_id);
-                continue;
-            }
-        } else {
-            // Item not in registry; apply a default for any unknown food-like item.
-            DEFAULT_FOOD_ENERGY
-        };
-
-        // Remove one from inventory.
-        let removed = inventory.try_remove(&ev.item_id, 1);
-        if removed == 0 {
-            info!("[Player] Cannot consume '{}' — not in inventory", ev.item_id);
-            continue;
-        }
-
-        // Send stamina restore event.
-        stamina_restore_events.send(StaminaRestoreEvent {
-            amount: energy_value,
-            source: StaminaSource::Food(ev.item_id.clone()),
-        });
-
-        // Play eat sound effect.
-        sfx_events.send(PlaySfxEvent {
-            sfx_id: "eat".to_string(),
-        });
-
-        info!(
-            "[Player] Consumed '{}' — restoring {:.1} stamina",
-            ev.item_id, energy_value
-        );
     }
 }
 
@@ -404,4 +409,32 @@ pub fn check_stamina_consequences(
         // Reset the flag once stamina is restored (e.g. after sleep).
         *has_passed_out = false;
     }
+}
+
+/// Grant starter items on first entering Playing state (inventory is empty).
+/// The intro dialogue mentions "seeds in your pack" so we deliver on that promise.
+pub fn grant_starter_items(mut inventory: ResMut<Inventory>, item_registry: Res<ItemRegistry>) {
+    // Only grant if inventory is completely empty (fresh game, not a load).
+    let has_items = inventory.slots.iter().any(|s| s.is_some());
+    if has_items {
+        return;
+    }
+
+    let starters = [
+        ("turnip_seeds", 15u8), // Spring crop — enough for a starter plot
+        ("potato_seeds", 5),    // Second spring crop
+        ("wood", 20),           // For crafting a chest or fence
+        ("stone", 15),          // Basic materials
+        ("bread", 3),           // Food to restore stamina on Day 1
+    ];
+
+    for (item_id, qty) in &starters {
+        let max_stack = item_registry
+            .get(item_id)
+            .map(|def| def.stack_size)
+            .unwrap_or(99);
+        inventory.try_add(item_id, *qty, max_stack);
+    }
+
+    info!("Granted starter items to new player");
 }

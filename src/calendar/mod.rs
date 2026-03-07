@@ -58,19 +58,12 @@ impl Plugin for CalendarPlugin {
             // Core time tick — only runs while Playing and NOT paused
             .add_systems(
                 Update,
-                (
-                    tick_time,
-                    detect_festival_day,
-                )
+                (tick_time, detect_festival_day)
                     .run_if(in_state(GameState::Playing))
                     .run_if(time_not_paused),
             )
             // Manual sleep trigger — player presses B on Farm or in PlayerHouse
-            .add_systems(
-                Update,
-                trigger_sleep
-                    .run_if(in_state(GameState::Playing)),
-            )
+            .add_systems(Update, trigger_sleep.run_if(in_state(GameState::Playing)))
             // Day-end processing runs inside Playing state (but
             // the event can also be sent by the sleep system or the 2 AM auto-trigger)
             .add_systems(
@@ -79,6 +72,13 @@ impl Plugin for CalendarPlugin {
                     .run_if(in_state(GameState::Playing))
                     .after(tick_time)
                     .after(trigger_sleep),
+            )
+            // Late-night warnings
+            .add_systems(
+                Update,
+                time_warnings
+                    .run_if(in_state(GameState::Playing))
+                    .after(tick_time),
             )
             // Festival systems — all run in Playing state
             .add_systems(
@@ -108,8 +108,10 @@ fn time_not_paused(calendar: Res<Calendar>) -> bool {
 
 fn resume_time(mut calendar: ResMut<Calendar>) {
     calendar.time_paused = false;
-    info!("[Calendar] Time resumed — {}:{:02} Day {} {:?} Year {}",
-        calendar.hour, calendar.minute, calendar.day, calendar.season, calendar.year);
+    info!(
+        "[Calendar] Time resumed — {}:{:02} Day {} {:?} Year {}",
+        calendar.hour, calendar.minute, calendar.day, calendar.season, calendar.year
+    );
 }
 
 fn pause_time(mut calendar: ResMut<Calendar>) {
@@ -119,23 +121,49 @@ fn pause_time(mut calendar: ResMut<Calendar>) {
 
 // ─── Manual sleep trigger ────────────────────────────────────────────────────
 
-/// Allows the player to end the day by pressing B while on the Farm or in the
+/// Allows the player to end the day by pressing F near their bed in the
 /// PlayerHouse.  This is the primary way to trigger sleep before the forced
 /// 2 AM rollover.  Sends a DayEndEvent which process_day_end will pick up to
 /// advance the calendar, and all other domains (farming, economy, etc.) will
 /// process their end-of-day logic.
-fn trigger_sleep(
+pub fn trigger_sleep(
     player_input: Res<PlayerInput>,
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
     mut day_end_events: EventWriter<DayEndEvent>,
+    interaction_claimed: Res<InteractionClaimed>,
+    mut cutscene_queue: ResMut<CutsceneQueue>,
+    player_query: Query<&GridPosition, With<Player>>,
 ) {
     if !player_input.interact {
         return;
     }
 
-    // Only allow sleeping at home or on the farm.
-    if !matches!(player_state.current_map, MapId::Farm | MapId::PlayerHouse) {
+    if interaction_claimed.0 {
+        return;
+    }
+
+    // Only allow sleeping in the player's house, near the bed.
+    if player_state.current_map != MapId::PlayerHouse {
+        return;
+    }
+
+    // Bed tiles at (12,3) and (13,3) — sleep within 2 tiles.
+    const BED_X: i32 = 12;
+    const BED_Y: i32 = 3;
+    const MAX_DIST: i32 = 2;
+    if let Ok(gp) = player_query.get_single() {
+        let dx = (gp.x - BED_X).abs();
+        let dy = (gp.y - BED_Y).abs();
+        if dx > MAX_DIST || dy > MAX_DIST {
+            return;
+        }
+    } else {
+        return;
+    }
+
+    // Don't allow sleeping while a cutscene is already running.
+    if cutscene_queue.active {
         return;
     }
 
@@ -144,46 +172,120 @@ fn trigger_sleep(
         calendar.hour, calendar.minute, calendar.day, calendar.season, calendar.year
     );
 
+    // Compute next day label BEFORE sending DayEndEvent (calendar not yet advanced).
+    let next_day = if calendar.day >= DAYS_PER_SEASON {
+        1
+    } else {
+        calendar.day + 1
+    };
+    let next_season = if calendar.day >= DAYS_PER_SEASON {
+        calendar.season.next()
+    } else {
+        calendar.season
+    };
+    let next_year = if calendar.day >= DAYS_PER_SEASON && matches!(calendar.season, Season::Winter)
+    {
+        calendar.year + 1
+    } else {
+        calendar.year
+    };
+
+    // Send DayEndEvent — all backend systems (farming, economy, etc.) process
+    // their end-of-day logic this frame, while we're still in Playing state.
     day_end_events.send(DayEndEvent {
         day: calendar.day,
         season: calendar.season,
         year: calendar.year,
     });
+
+    // Build sleep transition cutscene.
+    let day_label = format!("Day {} - {:?}, Year {}", next_day, next_season, next_year);
+    let mut steps = std::collections::VecDeque::new();
+    steps.push_back(CutsceneStep::FadeOut(1.0));
+    steps.push_back(CutsceneStep::Wait(0.5));
+
+    // Season change announcement.
+    if calendar.day >= DAYS_PER_SEASON {
+        steps.push_back(CutsceneStep::ShowText(
+            format!("{:?} has arrived!", next_season),
+            3.0,
+        ));
+    }
+
+    steps.push_back(CutsceneStep::ShowText(day_label, 2.5));
+    steps.push_back(CutsceneStep::FadeIn(1.5));
+
+    cutscene_queue.steps = steps;
+    // NOTE: Don't set active or change state here. The DayEndEvent must
+    // be processed by all Playing-gated readers this frame first.
+    // activate_pending_cutscene (PostUpdate) will detect the non-empty
+    // queue and transition to Cutscene after all readers have run.
 }
 
 // ─── Main time-tick system ────────────────────────────────────────────────────
 
 /// Accumulates real delta-seconds and converts them to in-game minutes.
 ///
-/// Default time_scale = 10.0, meaning 1 real second = 10 game-minutes.
+/// Default time_scale = 1/6, meaning 1 real minute = 10 game-minutes.
 /// One game-minute triggers when:
-///     elapsed_real_seconds >= (60.0 / time_scale)
-/// At default that's every 6 real seconds = 1 game-hour.
+///     elapsed_real_seconds >= (1.0 / time_scale)
+/// At default that's every 6 real seconds = 1 game-minute.
 ///
 /// Day spans 6:00 AM → 26:00 (2:00 AM next day) = 20 game-hours = 1200 min.
-/// At time_scale 10 that's 120 real seconds (2 real minutes) per game-day.
+/// At time_scale 1/6 that's 7200 real seconds (120 real minutes) per game-day.
 fn tick_time(
     time: Res<Time>,
     mut calendar: ResMut<Calendar>,
     mut day_end_writer: EventWriter<DayEndEvent>,
     mut prev_weather: ResMut<PreviousDayWeather>,
+    mut cutscene_queue: ResMut<CutsceneQueue>,
 ) {
     let delta = time.delta_secs();
     calendar.elapsed_real_seconds += delta;
 
     // How many real seconds equal one game-minute?
-    // time_scale game-minutes per real-second → 1 game-minute = 1/time_scale real-seconds
-    // Guard against zero / negative time_scale
     let secs_per_game_minute = if calendar.time_scale > 0.0 {
         1.0 / calendar.time_scale
     } else {
-        1.0 / 10.0
+        1.0 / (1.0 / 6.0)
     };
+
+    // Record state before advancing so we can detect auto-2AM rollover.
+    let day_before = calendar.day;
+    let season_before = calendar.season;
 
     // Advance as many game-minutes as have accumulated
     while calendar.elapsed_real_seconds >= secs_per_game_minute {
         calendar.elapsed_real_seconds -= secs_per_game_minute;
         advance_one_minute(&mut calendar, &mut day_end_writer, &mut prev_weather);
+    }
+
+    // If the day changed during this tick (auto 2AM rollover), build a
+    // cutscene transition so the player sees a day card instead of the
+    // calendar silently advancing.
+    if calendar.day != day_before && !cutscene_queue.active {
+        let day_label = format!(
+            "Day {} - {:?}, Year {}",
+            calendar.day, calendar.season, calendar.year
+        );
+        let mut steps = std::collections::VecDeque::new();
+        steps.push_back(CutsceneStep::FadeOut(1.0));
+        steps.push_back(CutsceneStep::Wait(0.5));
+
+        if calendar.season != season_before {
+            steps.push_back(CutsceneStep::ShowText(
+                format!("{:?} has arrived!", calendar.season),
+                3.0,
+            ));
+        }
+
+        steps.push_back(CutsceneStep::ShowText(day_label, 2.5));
+        steps.push_back(CutsceneStep::FadeIn(1.5));
+
+        cutscene_queue.steps = steps;
+        // Don't activate or change state here — same rationale as
+        // trigger_sleep. activate_pending_cutscene handles this in
+        // PostUpdate after all DayEndEvent readers have run.
     }
 }
 
@@ -432,12 +534,47 @@ fn detect_festival_day(
 
     // Play festival music
     sfx_writer.send(PlayMusicEvent {
-        track_id: format!("festival_{}", festival_name.to_lowercase().replace(' ', "_")),
+        track_id: format!(
+            "festival_{}",
+            festival_name.to_lowercase().replace(' ', "_")
+        ),
         fade_in: true,
     });
 }
 
 // ─── Weather rolling ──────────────────────────────────────────────────────────
+
+/// Warn the player when it gets late. Uses Local flags to fire each warning only once per day.
+fn time_warnings(
+    calendar: Res<Calendar>,
+    mut toast_events: EventWriter<ToastEvent>,
+    mut warned_10pm: Local<bool>,
+    mut warned_midnight: Local<bool>,
+    mut last_day: Local<u8>,
+) {
+    // Reset warnings on new day
+    if calendar.day != *last_day {
+        *warned_10pm = false;
+        *warned_midnight = false;
+        *last_day = calendar.day;
+    }
+
+    if calendar.hour >= 22 && !*warned_10pm {
+        *warned_10pm = true;
+        toast_events.send(ToastEvent {
+            message: "It's getting late. Head home and get some rest!".into(),
+            duration_secs: 4.0,
+        });
+    }
+
+    if calendar.hour >= 24 && !*warned_midnight {
+        *warned_midnight = true;
+        toast_events.send(ToastEvent {
+            message: "You're exhausted! Get to bed before you collapse!".into(),
+            duration_secs: 4.0,
+        });
+    }
+}
 
 /// Rolls a weather result for the given season using weighted probabilities.
 ///
@@ -554,10 +691,11 @@ mod tests {
 
     #[test]
     fn test_is_festival_day() {
-        let mut cal = Calendar::default();
-
-        cal.season = Season::Spring;
-        cal.day = 13;
+        let mut cal = Calendar {
+            season: Season::Spring,
+            day: 13,
+            ..Default::default()
+        };
         assert!(cal.is_festival_day());
 
         cal.season = Season::Summer;
@@ -587,16 +725,28 @@ mod tests {
 
     #[test]
     fn test_time_float() {
-        let mut cal = Calendar::default();
-        cal.hour = 14;
-        cal.minute = 30;
+        let cal = Calendar {
+            hour: 14,
+            minute: 30,
+            ..Default::default()
+        };
         assert!((cal.time_float() - 14.5).abs() < 0.001);
     }
 
     #[test]
+    fn test_default_time_scale_matches_spec_pacing() {
+        let cal = Calendar::default();
+        assert!((cal.time_scale - (1.0 / 6.0)).abs() < f32::EPSILON);
+        let secs_per_game_minute = 1.0 / cal.time_scale;
+        assert!((secs_per_game_minute - 6.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
     fn test_day_advancement_within_season() {
-        let mut cal = Calendar::default();
-        cal.day = 5;
+        let mut cal = Calendar {
+            day: 5,
+            ..Default::default()
+        };
         // Simulate day end: advance day within season
         cal.day += 1;
         assert_eq!(cal.day, 6);
@@ -605,9 +755,11 @@ mod tests {
 
     #[test]
     fn test_season_change_at_day_28() {
-        let mut cal = Calendar::default();
-        cal.day = 28;
-        cal.season = Season::Spring;
+        let mut cal = Calendar {
+            day: 28,
+            season: Season::Spring,
+            ..Default::default()
+        };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -620,10 +772,12 @@ mod tests {
 
     #[test]
     fn test_year_increment_after_winter() {
-        let mut cal = Calendar::default();
-        cal.day = 28;
-        cal.season = Season::Winter;
-        cal.year = 1;
+        let mut cal = Calendar {
+            day: 28,
+            season: Season::Winter,
+            year: 1,
+            ..Default::default()
+        };
         // Simulate day end
         cal.day += 1;
         if cal.day > DAYS_PER_SEASON {
@@ -640,16 +794,20 @@ mod tests {
 
     #[test]
     fn test_day_of_week_day_7() {
-        let mut cal = Calendar::default();
-        cal.day = 7;
+        let cal = Calendar {
+            day: 7,
+            ..Default::default()
+        };
         // Day 7 => total_days_elapsed = 6, 6 % 7 = 6 => Sunday
         assert_eq!(cal.day_of_week(), DayOfWeek::Sunday);
     }
 
     #[test]
     fn test_day_of_week_day_8_wraps() {
-        let mut cal = Calendar::default();
-        cal.day = 8;
+        let cal = Calendar {
+            day: 8,
+            ..Default::default()
+        };
         // Day 8 => total_days_elapsed = 7, 7 % 7 = 0 => Monday
         assert_eq!(cal.day_of_week(), DayOfWeek::Monday);
     }

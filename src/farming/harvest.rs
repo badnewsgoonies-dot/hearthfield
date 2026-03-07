@@ -1,9 +1,81 @@
 //! Harvest system — player interacts with mature crops.
 
+use super::{CropTileEntity, FarmEntities, HarvestAttemptEvent};
+use crate::shared::*;
 use bevy::prelude::*;
 use rand::Rng;
-use crate::shared::*;
-use super::{FarmEntities, HarvestAttemptEvent, CropTileEntity};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Harvest particle component + systems
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A small particle that bursts outward when a crop is harvested.
+#[derive(Component, Debug)]
+pub struct HarvestParticle {
+    pub velocity: Vec2,
+    pub lifetime: f32,
+    pub elapsed: f32,
+}
+
+/// Spawn 4-6 small coloured particles at the given world position.
+fn spawn_harvest_particles(commands: &mut Commands, world_pos: Vec2) {
+    let mut rng = rand::thread_rng();
+    let count = rng.gen_range(4..=6);
+    let colors = [
+        Color::srgb(0.35, 0.70, 0.25), // green
+        Color::srgb(0.85, 0.78, 0.20), // yellow
+        Color::srgb(0.60, 0.45, 0.25), // brown
+    ];
+
+    for _ in 0..count {
+        let vx = rng.gen_range(-40.0_f32..40.0);
+        let vy = rng.gen_range(20.0_f32..60.0);
+        let lifetime = rng.gen_range(0.6_f32..1.0);
+        let color = colors[rng.gen_range(0..colors.len())];
+
+        commands.spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(3.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, Z_EFFECTS)),
+            HarvestParticle {
+                velocity: Vec2::new(vx, vy),
+                lifetime,
+                elapsed: 0.0,
+            },
+        ));
+    }
+}
+
+/// Move, fade, and despawn harvest particles each frame.
+pub fn update_harvest_particles(
+    mut commands: Commands,
+    mut particles: Query<(Entity, &mut Transform, &mut Sprite, &mut HarvestParticle)>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut transform, mut sprite, mut particle) in particles.iter_mut() {
+        particle.elapsed += dt;
+
+        if particle.elapsed >= particle.lifetime {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        // Apply gravity
+        particle.velocity.y -= 80.0 * dt;
+
+        // Move
+        transform.translation.x += particle.velocity.x * dt;
+        transform.translation.y += particle.velocity.y * dt;
+
+        // Fade alpha based on elapsed / lifetime
+        let alpha = 1.0 - (particle.elapsed / particle.lifetime);
+        sprite.color = sprite.color.with_alpha(alpha);
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detect harvest input (Space bar)
@@ -36,8 +108,9 @@ pub fn detect_harvest_input(
     };
 
     // Convert world position to grid.
-    let grid_x = (logical_pos.0.x / TILE_SIZE).round() as i32;
-    let grid_y = (logical_pos.0.y / TILE_SIZE).round() as i32;
+    let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
+    let grid_x = g.x;
+    let grid_y = g.y;
 
     harvest_events.send(HarvestAttemptEvent { grid_x, grid_y });
 }
@@ -46,6 +119,7 @@ pub fn detect_harvest_input(
 // Process harvest attempt
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_harvest_attempt(
     mut harvest_events: EventReader<HarvestAttemptEvent>,
     mut farm_state: ResMut<FarmState>,
@@ -54,6 +128,7 @@ pub fn handle_harvest_attempt(
     mut item_pickup_events: EventWriter<ItemPickupEvent>,
     mut crop_harvested_events: EventWriter<CropHarvestedEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut toast_events: EventWriter<ToastEvent>,
     crop_registry: Res<CropRegistry>,
 ) {
     for event in harvest_events.read() {
@@ -69,7 +144,7 @@ pub fn handle_harvest_attempt(
         ];
 
         for target_pos in candidates {
-            if try_harvest_at(
+            if let Some(crop_name) = try_harvest_at(
                 target_pos,
                 &mut farm_state,
                 &mut farm_entities,
@@ -78,14 +153,28 @@ pub fn handle_harvest_attempt(
                 &mut crop_harvested_events,
                 &crop_registry,
             ) {
-                sfx_events.send(PlaySfxEvent { sfx_id: "harvest".to_string() });
+                sfx_events.send(PlaySfxEvent {
+                    sfx_id: "harvest".to_string(),
+                });
+                if !crop_name.is_empty() {
+                    toast_events.send(ToastEvent {
+                        message: format!("Harvested {}!", crop_name),
+                        duration_secs: 2.0,
+                    });
+                }
+
+                // Spawn harvest particle burst at the tile position
+                let world_pos = grid_to_world_center(target_pos.0, target_pos.1);
+                spawn_harvest_particles(&mut commands, world_pos);
+
                 break; // Only harvest one crop per input.
             }
         }
     }
 }
 
-/// Try to harvest the crop at `pos`. Returns true if a harvest occurred.
+/// Try to harvest the crop at `pos`. Returns `Some(crop_name)` if a harvest
+/// occurred (empty string for dead crop removal), or `None` if nothing happened.
 fn try_harvest_at(
     pos: (i32, i32),
     farm_state: &mut FarmState,
@@ -94,32 +183,28 @@ fn try_harvest_at(
     item_pickup_events: &mut EventWriter<ItemPickupEvent>,
     crop_harvested_events: &mut EventWriter<CropHarvestedEvent>,
     crop_registry: &CropRegistry,
-) -> bool {
-    let Some(crop) = farm_state.crops.get(&pos) else {
-        return false;
-    };
+) -> Option<String> {
+    let crop = farm_state.crops.get(&pos)?;
 
     if crop.dead {
         // Remove dead crop.
         despawn_crop(pos, farm_state, farm_entities, commands);
-        return true;
+        return Some(String::new());
     }
 
-    let Some(def) = crop_registry.crops.get(&crop.crop_id).cloned() else {
-        return false;
-    };
+    let def = crop_registry.crops.get(&crop.crop_id).cloned()?;
 
     // A crop is mature when current_stage == growth_days.len() (all stages done).
     let mature_stage = def.growth_days.len() as u8;
     let crop_stage = crop.current_stage;
 
     if crop_stage < mature_stage {
-        return false; // Not ready.
+        return None; // Not ready.
     }
 
     // Harvest!
     let quality = roll_harvest_quality();
-    let quantity: u8 = if def.regrows { 1 } else { 1 }; // base quantity always 1
+    let quantity: u8 = 1; // base quantity always 1
 
     item_pickup_events.send(ItemPickupEvent {
         item_id: def.harvest_id.clone(),
@@ -135,6 +220,8 @@ fn try_harvest_at(
         quality: Some(quality),
     });
 
+    let crop_name = def.name.clone();
+
     if def.regrows {
         // Reset to regrow stage.  The crop goes back to the last stage and
         // waits regrow_days to produce again.
@@ -147,7 +234,7 @@ fn try_harvest_at(
 
         // Update the sprite to show regrow stage.
         if let Some(crop_ref) = farm_state.crops.get(&pos) {
-            update_crop_entity_color(pos, crop_ref, &def, farm_entities, commands);
+            refresh_crop_entity(pos, crop_ref, &def, farm_entities, commands);
         }
     } else {
         // Remove the crop entirely.
@@ -161,7 +248,7 @@ fn try_harvest_at(
         }
     }
 
-    true
+    Some(crop_name)
 }
 
 /// Remove a crop from FarmState and despawn its entity.
@@ -193,40 +280,43 @@ fn roll_harvest_quality() -> ItemQuality {
     }
 }
 
-/// Update colour of an existing crop entity in-place.
-fn update_crop_entity_color(
+/// Notify the render pipeline that a crop entity needs visual refresh.
+///
+/// Does NOT replace the Sprite component (that would kill any TextureAtlas
+/// reference). Instead, updates the CropTile component data on the entity —
+/// the `sync_crop_sprites` system in render.rs reads CropTile each frame and
+/// handles atlas index + color updates automatically.
+fn refresh_crop_entity(
     pos: (i32, i32),
     crop: &CropTile,
-    def: &CropDef,
+    _def: &CropDef,
     farm_entities: &mut FarmEntities,
     commands: &mut Commands,
 ) {
-    use super::crop_stage_color;
-
-    let total_stages = def.growth_days.len() as u8;
-    let color = crop_stage_color(crop.current_stage, total_stages, crop.dead);
-
     if let Some(&entity) = farm_entities.crop_entities.get(&pos) {
-        // Insert updated Sprite; Bevy replaces it in-place.
-        commands.entity(entity).insert(Sprite {
-            color,
-            custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-            ..default()
-        });
+        // Update the CropTile component so sync_crop_sprites picks up the change.
+        commands.entity(entity).insert(crop.clone());
     } else {
-        // Entity doesn't exist yet — spawn it.
-        // We need a CropTileEntity and CropTile; both are cloneable.
-        let translation = super::grid_to_world(pos.0, pos.1).with_z(Z_FARM_OVERLAY + 1.0);
-        let entity = commands.spawn((
-            Sprite {
-                color,
-                custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
-                ..default()
-            },
-            Transform::from_translation(translation),
-            CropTileEntity { grid_x: pos.0, grid_y: pos.1 },
-            crop.clone(),
-        )).id();
+        // Entity doesn't exist yet — spawn a placeholder; sync_crop_sprites
+        // will upgrade it to an atlas sprite on the next frame.
+        let translation = grid_to_world_center(pos.0, pos.1).extend(Z_FARM_OVERLAY + 1.0);
+        let color =
+            super::crop_stage_color(crop.current_stage, _def.growth_days.len() as u8, crop.dead);
+        let entity = commands
+            .spawn((
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(TILE_SIZE * 0.8)),
+                    ..default()
+                },
+                Transform::from_translation(translation),
+                CropTileEntity {
+                    grid_x: pos.0,
+                    grid_y: pos.1,
+                },
+                crop.clone(),
+            ))
+            .id();
         farm_entities.crop_entities.insert(pos, entity);
     }
 }
