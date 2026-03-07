@@ -42,10 +42,11 @@ pub struct ToolUpgradeRequestEvent {
 }
 
 /// Fired when an upgrade completes (for UI notification).
-#[allow(dead_code)]
 #[derive(Event, Debug, Clone)]
 pub struct ToolUpgradeCompleteEvent {
+    #[allow(dead_code)]
     pub tool: ToolKind,
+    #[allow(dead_code)]
     pub new_tier: ToolTier,
 }
 

@@ -13,9 +13,9 @@ pub const MINE_WIDTH: i32 = 24;
 pub const MINE_HEIGHT: i32 = 24;
 
 /// Describes a single generated floor before it is spawned into the ECS.
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FloorBlueprint {
+    #[allow(dead_code)]
     pub floor: u8,
     pub rocks: Vec<RockBlueprint>,
     pub enemies: Vec<EnemyBlueprint>,
@@ -24,6 +24,7 @@ pub struct FloorBlueprint {
     /// that rock is destroyed (or all rocks are destroyed).
     pub ladder_hidden: bool,
     /// Index into `rocks` that contains the hidden ladder (if any).
+    #[allow(dead_code)]
     pub ladder_rock_index: Option<usize>,
     /// Player spawn position (near the entrance).
     pub spawn_pos: (i32, i32),

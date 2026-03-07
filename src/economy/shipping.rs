@@ -13,7 +13,6 @@ pub struct ShipItemEvent {
     pub item_id: ItemId,
     pub quantity: u8,
     /// Quality of the shipped item. Affects sell price multiplier.
-    #[allow(dead_code)]
     pub quality: ItemQuality,
 }
 

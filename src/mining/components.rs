@@ -46,10 +46,10 @@ pub struct EnemyAttackCooldown {
 }
 
 /// Resource tracking the current floor's state.
-#[allow(dead_code)]
 #[derive(Resource, Debug, Clone)]
 pub struct ActiveFloor {
     pub floor: u8,
+    #[allow(dead_code)]
     pub total_rocks: usize,
     pub rocks_remaining: usize,
     pub rocks_broken_this_floor: usize,

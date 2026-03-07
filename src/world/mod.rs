@@ -505,8 +505,7 @@ pub struct WaterTile;
 /// Bitmask indicating which edges of a water tile border non-water tiles.
 /// bit 0 = north, bit 1 = east, bit 2 = south, bit 3 = west.
 #[derive(Component, Debug, Clone, Copy)]
-#[allow(dead_code)]
-pub struct WaterEdgeMask(pub u8);
+pub struct WaterEdgeMask(#[allow(dead_code)] pub u8);
 
 /// Marker component for water edge overlay sprites.
 /// Tagged with MapTile so they despawn with the map.
