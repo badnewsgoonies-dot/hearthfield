@@ -17,53 +17,53 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
     match kind {
         AnimalKind::Chicken => AnimalVisual {
             color: Color::srgb(0.9, 0.85, 0.3),
-            width: 12.0,
-            height: 12.0,
+            width: 16.0,
+            height: 16.0,
         },
         AnimalKind::Cow => AnimalVisual {
             color: Color::srgb(0.85, 0.85, 0.85),
+            width: 32.0,
+            height: 32.0,
+        },
+        AnimalKind::Sheep => AnimalVisual {
+            color: Color::srgb(0.97, 0.97, 0.97),
             width: 20.0,
             height: 16.0,
         },
-        AnimalKind::Sheep => AnimalVisual {
-            color: Color::srgb(0.95, 0.95, 0.9),
-            width: 18.0,
-            height: 14.0,
-        },
         AnimalKind::Goat => AnimalVisual {
-            color: Color::srgb(0.75, 0.65, 0.55),
+            color: Color::srgb(0.85, 0.85, 0.78),
             width: 18.0,
-            height: 14.0,
+            height: 18.0,
         },
         AnimalKind::Duck => AnimalVisual {
-            color: Color::srgb(0.3, 0.7, 0.3),
-            width: 12.0,
-            height: 12.0,
+            color: Color::srgb(0.95, 0.88, 0.1),
+            width: 10.0,
+            height: 10.0,
         },
         AnimalKind::Rabbit => AnimalVisual {
-            color: Color::srgb(0.85, 0.75, 0.65),
-            width: 10.0,
+            color: Color::srgb(0.8, 0.8, 0.8),
+            width: 8.0,
             height: 10.0,
         },
         AnimalKind::Pig => AnimalVisual {
-            color: Color::srgb(0.9, 0.7, 0.65),
-            width: 20.0,
-            height: 14.0,
-        },
-        AnimalKind::Horse => AnimalVisual {
-            color: Color::srgb(0.55, 0.35, 0.2),
+            color: Color::srgb(0.95, 0.7, 0.73),
             width: 22.0,
             height: 18.0,
         },
-        AnimalKind::Cat => AnimalVisual {
-            color: Color::srgb(0.8, 0.5, 0.2),
-            width: 10.0,
-            height: 10.0,
+        AnimalKind::Horse => AnimalVisual {
+            color: Color::srgb(0.35, 0.2, 0.1),
+            width: 24.0,
+            height: 20.0,
         },
-        AnimalKind::Dog => AnimalVisual {
-            color: Color::srgb(0.6, 0.4, 0.2),
+        AnimalKind::Cat => AnimalVisual {
+            color: Color::srgb(0.9, 0.55, 0.2),
             width: 12.0,
             height: 12.0,
+        },
+        AnimalKind::Dog => AnimalVisual {
+            color: Color::srgb(0.6, 0.38, 0.18),
+            width: 14.0,
+            height: 14.0,
         },
     }
 }
@@ -299,50 +299,74 @@ pub fn handle_animal_purchase(
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
+                // Non-atlas animals: procedural colored sprites with distinct sizes.
                 AnimalKind::Sheep => {
-                    let mut s = Sprite::from_atlas_image(
-                        sprite_data.sheep_image.clone(),
-                        TextureAtlas {
-                            layout: sprite_data.sheep_layout.clone(),
-                            index: 0,
-                        },
-                    );
-                    s.custom_size = Some(Vec2::new(16.0, 16.0));
-                    s.color = Color::srgb(0.95, 0.95, 0.98); // white-ish tint
+                    let mut s = Sprite {
+                        color: Color::srgb(0.97, 0.97, 0.97),
+                        custom_size: Some(Vec2::new(20.0, 16.0)),
+                        ..default()
+                    };
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Cat => {
-                    let mut s = Sprite::from_atlas_image(
-                        sprite_data.cat_image.clone(),
-                        TextureAtlas {
-                            layout: sprite_data.cat_layout.clone(),
-                            index: 0,
-                        },
-                    );
-                    s.custom_size = Some(Vec2::new(16.0, 16.0));
-                    s.color = Color::srgb(1.0, 0.7, 0.3); // orange tint
+                    let mut s = Sprite {
+                        color: Color::srgb(0.9, 0.55, 0.2),
+                        custom_size: Some(Vec2::new(12.0, 12.0)),
+                        ..default()
+                    };
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
                 AnimalKind::Dog => {
-                    let mut s = Sprite::from_atlas_image(
-                        sprite_data.dog_image.clone(),
-                        TextureAtlas {
-                            layout: sprite_data.dog_layout.clone(),
-                            index: 0,
-                        },
-                    );
-                    s.custom_size = Some(Vec2::new(16.0, 16.0));
-                    s.color = Color::srgb(0.6, 0.4, 0.25); // brown tint
+                    let mut s = Sprite {
+                        color: Color::srgb(0.6, 0.38, 0.18),
+                        custom_size: Some(Vec2::new(14.0, 14.0)),
+                        ..default()
+                    };
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
-                // New animal kinds: use colored rectangles until sprite sheets exist.
-                _ => {
+                AnimalKind::Duck => {
                     let mut s = Sprite {
-                        color: vis.color,
-                        custom_size: Some(Vec2::new(vis.width, vis.height)),
+                        color: Color::srgb(0.95, 0.88, 0.1),
+                        custom_size: Some(Vec2::new(10.0, 10.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Rabbit => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.8, 0.8, 0.8),
+                        custom_size: Some(Vec2::new(8.0, 10.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Pig => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.95, 0.7, 0.73),
+                        custom_size: Some(Vec2::new(22.0, 18.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Goat => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.85, 0.85, 0.78),
+                        custom_size: Some(Vec2::new(18.0, 18.0)),
+                        ..default()
+                    };
+                    s.anchor = bevy::sprite::Anchor::BottomCenter;
+                    s
+                }
+                AnimalKind::Horse => {
+                    let mut s = Sprite {
+                        color: Color::srgb(0.35, 0.2, 0.1),
+                        custom_size: Some(Vec2::new(24.0, 20.0)),
                         ..default()
                     };
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
@@ -389,24 +413,19 @@ pub fn handle_animal_purchase(
             ))
             .id();
 
-        // Attach animation timer for animals with dedicated sprite sheets.
-        match kind {
-            AnimalKind::Chicken => {
-                commands.entity(entity).insert(AnimalAnimTimer {
-                    timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-                    frame_count: 4, // 4 frames per row in chicken atlas
-                    current_frame: 0,
-                });
-            }
-            AnimalKind::Cow => {
-                commands.entity(entity).insert(AnimalAnimTimer {
-                    timer: Timer::from_seconds(0.25, TimerMode::Repeating),
-                    frame_count: 3, // 3 frames per row in cow atlas
-                    current_frame: 0,
-                });
-            }
-            _ => {}
-        }
+        // Attach animation timer for all animals.
+        // Atlas animals (chicken, cow) cycle sprite frames; non-atlas animals
+        // use the timer elapsed time to drive a vertical bob animation.
+        let (anim_period, anim_frames) = match kind {
+            AnimalKind::Chicken => (0.2, 4),
+            AnimalKind::Cow => (0.25, 3),
+            _ => (0.3, 2), // non-atlas: 2 phases for bob
+        };
+        commands.entity(entity).insert(AnimalAnimTimer {
+            timer: Timer::from_seconds(anim_period, TimerMode::Repeating),
+            frame_count: anim_frames,
+            current_frame: 0,
+        });
 
         // Spawn a "name tag" text as a child entity.
         commands.entity(entity).with_children(|parent| {

@@ -66,17 +66,18 @@ pub struct UnfedDays {
 }
 
 /// Timer component driving animal walk-cycle frame advancement.
-/// Only attached to animals with dedicated sprite atlases (chicken, cow).
+/// Attached to all animal kinds. Atlas animals (chicken, cow) cycle sprite frames;
+/// non-atlas animals use the timer elapsed time to drive a vertical bob animation.
 #[derive(Component, Debug, Clone)]
 pub struct AnimalAnimTimer {
     pub timer: Timer,
-    /// Number of frames per animation row.
+    /// Number of frames per animation row (atlas animals) or bob phases (non-atlas).
     pub frame_count: usize,
     /// Current frame index within the row.
     pub current_frame: usize,
 }
 
-/// Cached sprite atlas handles for animals with real sprite assets.
+/// Cached sprite atlas handles for animals with real sprite assets (chicken, cow).
 #[derive(Resource, Default)]
 pub struct AnimalSpriteData {
     pub loaded: bool,
@@ -84,12 +85,6 @@ pub struct AnimalSpriteData {
     pub chicken_layout: Handle<TextureAtlasLayout>,
     pub cow_image: Handle<Image>,
     pub cow_layout: Handle<TextureAtlasLayout>,
-    pub sheep_image: Handle<Image>,
-    pub sheep_layout: Handle<TextureAtlasLayout>,
-    pub cat_image: Handle<Image>,
-    pub cat_layout: Handle<TextureAtlasLayout>,
-    pub dog_image: Handle<Image>,
-    pub dog_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads chicken and cow sprite atlases on first entry into Playing state.
@@ -122,23 +117,6 @@ pub fn load_animal_sprites(
         None,
     ));
 
-    // Sheep, cat, dog: reuse character_spritesheet.png with tint colors.
-    // character_spritesheet.png: 192x192, 4 cols x 4 rows of 48x48 frames.
-    let sheet = asset_server.load("sprites/character_spritesheet.png");
-    let sheet_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(48, 48),
-        4,
-        4,
-        None,
-        None,
-    ));
-    sprite_data.sheep_image = sheet.clone();
-    sprite_data.sheep_layout = sheet_layout.clone();
-    sprite_data.cat_image = sheet.clone();
-    sprite_data.cat_layout = sheet_layout.clone();
-    sprite_data.dog_image = sheet.clone();
-    sprite_data.dog_layout = sheet_layout;
-
     sprite_data.loaded = true;
 }
 
@@ -147,8 +125,10 @@ pub fn load_animal_sprites(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// System: animate animal sprites by cycling atlas frames when the animal is
-/// moving (has a wander target). When idle, snaps back to frame 0.
-/// Only affects entities that have an `AnimalAnimTimer` (chicken, cow).
+/// moving (has a wander target). When idle, snaps back to frame 0 and resets
+/// the timer so the bob offset returns to zero for non-atlas animals.
+/// Non-atlas animals (no TextureAtlas) have their vertical bob applied by
+/// `bob_non_atlas_animals` in PostUpdate after position sync.
 pub fn animate_animal_sprites(
     time: Res<Time>,
     mut query: Query<(&WanderAi, &mut Sprite, &mut AnimalAnimTimer)>,
@@ -163,11 +143,34 @@ pub fn animate_animal_sprites(
             }
         } else {
             anim.current_frame = 0;
+            anim.timer.reset();
         }
 
         if let Some(atlas) = &mut sprite.texture_atlas {
             atlas.index = anim.current_frame;
         }
+    }
+}
+
+/// System: apply a vertical bob (±1 px) to non-atlas animals while they move.
+/// Runs in PostUpdate after `sync_position_and_ysort` has written the base
+/// translation from LogicalPosition, so the offset is applied on top cleanly.
+pub fn bob_non_atlas_animals(
+    mut query: Query<(&WanderAi, &Sprite, &AnimalAnimTimer, &mut Transform)>,
+) {
+    for (wander, sprite, anim, mut transform) in query.iter_mut() {
+        if sprite.texture_atlas.is_some() {
+            continue;
+        }
+        if wander.target.is_some() {
+            let elapsed = anim.timer.elapsed_secs();
+            let period = anim.timer.duration().as_secs_f32();
+            if period > 0.0 {
+                let bob = (elapsed / period * std::f32::consts::TAU).sin();
+                transform.translation.y += bob;
+            }
+        }
+        // When idle the timer was reset (elapsed = 0, sin = 0) so no bob is added.
     }
 }
 
@@ -199,6 +202,13 @@ impl Plugin for AnimalPlugin {
                     update_product_indicators,
                     animate_animal_sprites,
                 )
+                    .run_if(in_state(GameState::Playing)),
+            )
+            // ── bob non-atlas animals after position sync ────────────────────
+            .add_systems(
+                PostUpdate,
+                bob_non_atlas_animals
+                    .after(crate::world::ysort::sync_position_and_ysort)
                     .run_if(in_state(GameState::Playing)),
             )
             // ── day-end processing ───────────────────────────────────────────
