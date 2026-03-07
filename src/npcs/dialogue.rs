@@ -537,10 +537,7 @@ pub fn build_gift_response_lines(
             vec![format!("{}{}", birthday_prefix, response)]
         }
         GiftPreference::Liked => {
-            vec![format!(
-                "{}{} — oh, I really like this! Thank you so much.",
-                birthday_prefix, item_name
-            )]
+            vec![format!("{}{}", birthday_prefix, liked_response(npc_id, item_name))]
         }
         GiftPreference::Neutral => {
             vec![format!(
@@ -549,10 +546,7 @@ pub fn build_gift_response_lines(
             )]
         }
         GiftPreference::Disliked => {
-            vec![format!(
-                "{}I appreciate the thought, but... a {}? Hmm. Thank you anyway.",
-                birthday_prefix, item_name
-            )]
+            vec![format!("{}{}", birthday_prefix, disliked_response(npc_id, item_name))]
         }
         GiftPreference::Hated => {
             let response = hated_response(npc_id, item_name);
@@ -562,90 +556,396 @@ pub fn build_gift_response_lines(
 }
 
 fn loved_response(npc_id: &str, item_name: &str) -> String {
-    match npc_id {
-        "margaret" => format!(
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 3;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
             "A {}! Oh, this will be perfect for my next batch of pastries! Thank you, dear.",
             item_name
         ),
-        "marco" => format!(
+        ("margaret", 1) => format!(
+            "Oh my goodness, a {}! I was just thinking about this. You know me too well!",
+            item_name
+        ),
+        ("margaret", _) => format!(
+            "A {}! Biscuit, come look what we got! Thank you so much, dear.",
+            item_name
+        ),
+
+        ("marco", 0) => format!(
             "A {}! Incredible quality. I can already taste the dish I'll make with this.",
             item_name
         ),
-        "lily" => format!(
+        ("marco", 1) => format!(
+            "Magnifico! A {}! My nonna would weep tears of joy. I may do the same.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "A {} of this quality? You found the finest one. I am speechless. Mostly.",
+            item_name
+        ),
+
+        ("lily", 0) => format!(
             "A {}!! THIS IS THE BEST THING EVER!! Can I keep it? Can I? THANK YOU!!",
             item_name
         ),
-        "old_tom" => format!(
+        ("lily", 1) => format!(
+            "OH! A {}!! I'm going to put it right in my special spot — the best spot in the whole shop!",
+            item_name
+        ),
+        ("lily", _) => format!(
+            "A {}?! How did you KNOW?! This is exactly what I wanted!! I can't stop smiling!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
             "A {}? Well now... haven't seen one this fine in years. Much obliged.",
             item_name
         ),
-        "elena" => format!(
+        ("old_tom", 1) => format!(
+            "A {}. Now that's the kind of gift a man can use. Nod of respect.",
+            item_name
+        ),
+        ("old_tom", _) => format!(
+            "...A {}. You know your stuff. I'll give you that. Good gift.",
+            item_name
+        ),
+
+        ("elena", 0) => format!(
             "Now THIS is a proper gift. A {}. I can feel the quality just holding it. Thank you.",
             item_name
         ),
-        "mira" => format!(
+        ("elena", 1) => format!(
+            "A {}. This is exactly what I needed. How did you know? Don't answer — just, thank you.",
+            item_name
+        ),
+        ("elena", _) => format!(
+            "You brought me a {}? That's actually very thoughtful. Good judgment.",
+            item_name
+        ),
+
+        ("mira", 0) => format!(
             "A {}! You have a trader's eye for value. I'm genuinely impressed.",
             item_name
         ),
-        "doc" => format!(
+        ("mira", 1) => format!(
+            "A {}! Do you know how hard this is to source? Beautifully done.",
+            item_name
+        ),
+        ("mira", _) => format!(
+            "A {}. Exceptional taste. I've sold lesser versions for triple the price.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
             "A {}? This is... very thoughtful. I appreciate it more than you know.",
             item_name
         ),
-        "mayor_rex" => format!(
+        ("doc", 1) => format!(
+            "A {}! Oh, that is genuinely perfect. Thank you. Really.",
+            item_name
+        ),
+        ("doc", _) => format!(
+            "You brought me a {}. You have no idea how much I needed this today. Thank you.",
+            item_name
+        ),
+
+        ("mayor_rex", 0) => format!(
             "A {} for the mayor! I shall display this proudly in my office!",
             item_name
         ),
-        "sam" => format!(
+        ("mayor_rex", 1) => format!(
+            "A {}! This is exactly the quality befitting the mayor's residence. Well done.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "You have brought me a {}? This demonstrates excellent civic judgment. I approve.",
+            item_name
+        ),
+
+        ("sam", 0) => format!(
             "A {}! No way! This is exactly what I needed for inspiration. You're the best.",
             item_name
         ),
-        "nora" => format!(
+        ("sam", 1) => format!(
+            "Whoa, a {}?! Are you serious right now?! This is incredible!!",
+            item_name
+        ),
+        ("sam", _) => format!(
+            "A {}!! Okay, you just jumped to the top of my favorites list. No contest.",
+            item_name
+        ),
+
+        ("nora", 0) => format!(
             "A {}. Good quality. You've got a farmer's instinct for the real stuff.",
             item_name
         ),
+        ("nora", 1) => format!(
+            "A {}. Now that's something. This is the kind of gift that means you paid attention.",
+            item_name
+        ),
+        ("nora", _) => format!(
+            "A {}? This is exactly what a working farmer needs. Well chosen.",
+            item_name
+        ),
+
         _ => format!("A {}! Thank you, I love it!", item_name),
     }
 }
 
+fn liked_response(npc_id: &str, item_name: &str) -> String {
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 2;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
+            "A {}! How lovely — I'll put this to good use in the kitchen. Thoughtful of you.",
+            item_name
+        ),
+        ("margaret", _) => format!("Oh, a {}! I do enjoy this. Thank you, dear.", item_name),
+
+        ("marco", 0) => format!(
+            "A {}! Good quality. I will use this well — you have my professional promise.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "Ah, a {}. Not my first choice, but respectable. Grazie.",
+            item_name
+        ),
+
+        ("lily", 0) => format!(
+            "Oh! A {}! I like this a lot. Thank you for thinking of me!",
+            item_name
+        ),
+        ("lily", _) => format!(
+            "Wow, a {}! That's really sweet of you. I'll treasure it!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
+            "Hmph. A {}. That'll do. That'll do nicely, actually.",
+            item_name
+        ),
+        ("old_tom", _) => format!("A {}. I can work with this. Decent pick.", item_name),
+
+        ("elena", 0) => format!("A {}. Good quality. This'll go to good use.", item_name),
+        ("elena", _) => format!("Decent choice. A {}. I appreciate it.", item_name),
+
+        ("mira", 0) => format!("A {}. A solid choice. Good instinct.", item_name),
+        ("mira", _) => format!(
+            "Hmm, a {}. I know people who'd pay well for this. Thank you.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
+            "A {}! That's a kind thought. I'll enjoy this.",
+            item_name
+        ),
+        ("doc", _) => format!("Oh, a {}. Very considerate of you. Thank you.", item_name),
+
+        ("mayor_rex", 0) => format!(
+            "A {}! The mayor thanks you. This is a fine gift.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "A {}. A respectable choice. The mayor is pleased.",
+            item_name
+        ),
+
+        ("sam", 0) => format!("Oh hey, a {}! Sweet. Thanks!", item_name),
+        ("sam", _) => format!("A {}? Cool! I appreciate it.", item_name),
+
+        ("nora", 0) => format!("A {}. Not bad. This'll be useful.", item_name),
+        ("nora", _) => format!(
+            "A {}. Good pick. Practical gift from a practical person.",
+            item_name
+        ),
+
+        _ => format!("{} — oh, I really like this! Thank you so much.", item_name),
+    }
+}
+
+fn disliked_response(npc_id: &str, item_name: &str) -> String {
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 2;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
+            "Oh... a {}. I appreciate the thought, I really do. I'll find somewhere to put it.",
+            item_name
+        ),
+        ("margaret", _) => format!(
+            "A {}? Well, you're always kind to think of me. Not exactly my first choice, but thank you.",
+            item_name
+        ),
+
+        ("marco", 0) => format!(
+            "A {}? I... appreciate the gesture. It is perhaps not the most inspiring ingredient.",
+            item_name
+        ),
+        ("marco", _) => format!(
+            "Hmm. A {}. I will accept this with grace and perhaps repurpose it somehow.",
+            item_name
+        ),
+
+        ("lily", 0) => format!(
+            "Oh, a {}... Um. Thank you! It's very... sturdy. That's a quality.",
+            item_name
+        ),
+        ("lily", _) => format!(
+            "A {}? I'll find somewhere nice for it. Thank you for bringing it by!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
+            "A {}? ...I suppose. Wasn't on my list, but I'll take it.",
+            item_name
+        ),
+        ("old_tom", _) => format!(
+            "A {}. I have no use for this, truthfully. But thanks.",
+            item_name
+        ),
+
+        ("elena", 0) => format!(
+            "A {}? Not exactly workshop material, but I won't refuse a gift.",
+            item_name
+        ),
+        ("elena", _) => format!("I'll accept a {}. Doesn't mean I'll use it.", item_name),
+
+        ("mira", 0) => format!(
+            "A {}. I've traded stranger things. Thank you, truly.",
+            item_name
+        ),
+        ("mira", _) => format!(
+            "A {}? Not high on my list, but I respect the gesture.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
+            "A {}? Well... it was kind of you to think of me. I'll keep it.",
+            item_name
+        ),
+        ("doc", _) => format!(
+            "A {}. Hmm. It's the thought that counts, and this thought was generous.",
+            item_name
+        ),
+
+        ("mayor_rex", 0) => format!(
+            "A {}. I shall... find a suitable civic use for this. Thank you for the gesture.",
+            item_name
+        ),
+        ("mayor_rex", _) => format!(
+            "This {} will be logged in the mayoral gift register. Thank you.",
+            item_name
+        ),
+
+        ("sam", 0) => format!(
+            "A {}. Um. Thanks, I guess? I'll find somewhere to put it.",
+            item_name
+        ),
+        ("sam", _) => format!(
+            "Oh. A {}. That's... yeah. Thanks for thinking of me.",
+            item_name
+        ),
+
+        ("nora", 0) => format!("A {}. Well. It's kind of you to bring anything.", item_name),
+        ("nora", _) => format!(
+            "A {}. Hmph. I won't complain about a gift. Thank you.",
+            item_name
+        ),
+
+        _ => format!(
+            "I appreciate the thought, but... a {}? Hmm. Thank you anyway.",
+            item_name
+        ),
+    }
+}
+
 fn hated_response(npc_id: &str, item_name: &str) -> String {
-    match npc_id {
-        "margaret" => format!(
+    let variant = item_name.bytes().map(|b| b as usize).sum::<usize>() % 2;
+    match (npc_id, variant) {
+        ("margaret", 0) => format!(
             "A {}? Oh dear... I don't think that belongs in any recipe I know.",
             item_name
         ),
-        "marco" => format!(
+        ("margaret", _) => format!(
+            "A {}? Oh, sweetheart... no. I'll just quietly set this aside.",
+            item_name
+        ),
+
+        ("marco", 0) => format!(
             "A {}? I wouldn't serve this to my worst critic. No offense.",
             item_name
         ),
-        "lily" => format!("A {}?! Ew ew ew! Get it away from my flowers!", item_name),
-        "old_tom" => format!(
+        ("marco", _) => format!(
+            "A {}? This offends my kitchen and my ancestors. Please take it back.",
+            item_name
+        ),
+
+        ("lily", 0) => format!("A {}?! Ew ew ew! Get it away from my flowers!", item_name),
+        ("lily", _) => format!(
+            "A {}?! Why would you — I can't even look at it! Take it back, please!",
+            item_name
+        ),
+
+        ("old_tom", 0) => format!(
             "A {}? Boy, I've pulled stranger things out of the water. ...I'll pass.",
             item_name
         ),
-        "elena" => format!(
+        ("old_tom", _) => format!(
+            "A {}? ...No. Just no. Keep that away from my tackle box.",
+            item_name
+        ),
+
+        ("elena", 0) => format!(
             "A {}? I'd sooner melt this down than look at it. Not my style.",
             item_name
         ),
-        "mira" => format!(
+        ("elena", _) => format!(
+            "A {}? You brought this to a blacksmith? This is an insult to metal.",
+            item_name
+        ),
+
+        ("mira", 0) => format!(
             "A {}? In my travels, I've learned to politely decline. Consider this me declining.",
             item_name
         ),
-        "doc" => format!(
+        ("mira", _) => format!(
+            "A {}? I once traded one of these for passage out of a bad port. I overpaid.",
+            item_name
+        ),
+
+        ("doc", 0) => format!(
             "A {}? I don't think this is... medically advisable. For anyone.",
             item_name
         ),
-        "mayor_rex" => format!(
+        ("doc", _) => format!(
+            "A {}? As a doctor, I must recommend you dispose of this. Carefully.",
+            item_name
+        ),
+
+        ("mayor_rex", 0) => format!(
             "A {}? I appreciate the gesture, but the mayor's office has standards.",
             item_name
         ),
-        "sam" => format!(
+        ("mayor_rex", _) => format!(
+            "A {}? This will not be entering the mayoral gift registry. I am being diplomatic.",
+            item_name
+        ),
+
+        ("sam", 0) => format!(
             "A {}? I've seen things like this at the bottom of a dumpster. Left 'em there too.",
             item_name
         ),
-        "nora" => format!(
+        ("sam", _) => format!(
+            "A {}? Dude... no. Just no. I'll pretend this didn't happen.",
+            item_name
+        ),
+
+        ("nora", 0) => format!(
             "A {}? Hmph. Been farming all my life and never needed one of those.",
             item_name
         ),
+        ("nora", _) => format!(
+            "A {}? I wouldn't compost this. And I compost everything.",
+            item_name
+        ),
+
         _ => format!("A {}? ...Thanks, I guess.", item_name),
     }
 }
