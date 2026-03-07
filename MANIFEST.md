@@ -152,7 +152,30 @@ cargo clippy -- -D warnings            # Lint gate
 ## Completed Waves (Visual + Content)
 - Visual Pass 2: C1 fish sprite clamp ✓, H4 animal walk anim ✓, M4 crop growth anim ✓
 - Wave 8: C3 animal sprites (all 10 kinds) ✓, M6 water edge autotile ✓, 12 seasonal quests ✓
+- Wave 9: H6 emote procedural sprites ✓, dialogue expansion (+420 lines) ✓, M2 autotile verified ✓
+- Wave 10: dead code cleanup ✓, 21 new integration tests (88→109) ✓, WASM deploy bundle ✓
 
-## Remaining Visual Issues (from status/workers/visual_audit_report.md)
-- H6: Emote atlas indices are guesses
-- M2: Path/fence autotile bitmask assumption unverified
+## Visual Issues: ALL RESOLVED
+- H6: Replaced atlas guesses with procedural pixel sprites ✓
+- M2: Path/fence autotile verified correct (4-bit bitmask → 16 indices, 4×4 atlas) ✓
+
+## Test Coverage
+- 109 headless tests passing (0 failures, 2 ignored)
+- Coverage: calendar, player, farming, animals, world, npcs, economy, crafting, fishing, mining, save, festivals, quests
+
+## Tier Completion Status
+- Tier 0 (core loops): COMPLETE ✓
+- Tier 1 (event graph): COMPLETE ✓
+- Tier 2 (content & depth): COMPLETE ✓
+  - Dialogue: 10 NPCs × 4 tiers × 5-10 lines + seasonal + weather + gift responses
+  - Festivals: 4 seasonal events with mechanics and rewards
+  - Recipes: 40 total (25 crafting + 15 cooking, exceeds spec of 35)
+  - Mine: 20 floors, elevator, 3 enemy types, balanced combat, gem drops
+  - Quests: 12 seasonal + daily auto-generated
+  - Animals: 10 kinds with lifecycle, sprites, animation
+- Tier 3 (polish & deploy): MOSTLY COMPLETE
+  - Audio: music + 20+ SFX ✓
+  - Screen transitions: fade overlay ✓
+  - Save: 30+ resources serialized, chests, machines ✓
+  - WASM: configured, build script + index.html created ✓ (needs wasm32 target to build)
+  - Touch input: configured in index.html ✓
