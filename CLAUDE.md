@@ -188,6 +188,79 @@ Write completion report to status/workers/{domain}.md containing:
 - Known risks for integration
 ```
 
+## Container Environment Setup (reproducible recipe)
+
+### 1. GitHub CLI (gh)
+
+```bash
+# Install from apt
+mkdir -p /etc/apt/keyrings
+wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+apt update && apt install gh -y
+
+# Authenticate
+echo "<GH_CLASSIC_PAT>" | gh auth login --with-token
+```
+
+### 2. Codex CLI
+
+```bash
+npm install -g @openai/codex
+export OPENAI_API_KEY="sk-svcacct-..."
+
+# Dispatch a worker
+codex exec --full-auto -C /path/to/repo "worker prompt"
+```
+
+**Status:** Auth reaches api.openai.com but gets 401 on `/v1/responses`. The service account key authenticates against `/v1/models` but Codex uses a different endpoint. May need different key permissions or responses scope. Works fine from local machine.
+
+### 3. Copilot CLI (primary dispatch tool — fully operational from container)
+
+```bash
+# Install
+npm install -g @github/copilot
+
+# Authenticate — MUST use this exact env var + fine-grained PAT
+# ❌ GITHUB_TOKEN with classic PAT — rejected
+# ❌ GH_TOKEN with classic PAT — rejected
+# ❌ GITHUB_TOKEN with fine-grained PAT — rejected
+# ✅ COPILOT_GITHUB_TOKEN with fine-grained PAT — works
+export COPILOT_GITHUB_TOKEN="github_pat_..."
+
+# Dispatch a worker
+copilot -p "Your task prompt here" --allow-all-tools --model claude-sonnet-4.6
+```
+
+Available models: Claude Opus 4.6, Sonnet 4.6, GPT-5.3-Codex, Gemini 3 Pro, others.
+Cost: 1 premium request for Sonnet, 3 for Opus.
+
+### 4. Token loading
+
+```bash
+# Store tokens in ~/.env_tokens, then:
+source ~/.env_tokens
+```
+
+### 5. Parallel dispatch
+
+Container handles 2-3 simultaneous Copilot processes reliably. 5 is unstable. Use separate shell scripts with staggered starts:
+
+```bash
+bash /tmp/dispatch-worker1.sh &
+sleep 3
+bash /tmp/dispatch-worker2.sh &
+```
+
+Workers that appear to "crash" may actually complete in the background — check output files.
+
+### Network notes
+
+- Both `api.openai.com` and GitHub API are reachable from this container (no DNS blocks)
+- Classic PAT (`ghp_...`) works for git push/pull but NOT for Copilot auth
+- Fine-grained PAT (`github_pat_...`) with copilot scope required for Copilot CLI
+
 ## Domain Cycle (repeat for each domain)
 
 1. Write spec → `docs/domains/{domain}.md`
