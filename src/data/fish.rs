@@ -304,7 +304,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.40,
             sell_price: 150,
-            sprite_index: 48,
+            sprite_index: 32,
         },
         // ── Mine Pool Fish ───────────────────────────────────────────────────
         FishDef {
@@ -317,7 +317,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.30,
             sell_price: 90,
-            sprite_index: 49,
+            sprite_index: 33,
         },
         FishDef {
             id: "stonefish".into(),
@@ -329,7 +329,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.55,
             sell_price: 200,
-            sprite_index: 50,
+            sprite_index: 34,
         },
         FishDef {
             id: "ice_pip".into(),
@@ -341,7 +341,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Rare,
             difficulty: 0.65,
             sell_price: 300,
-            sprite_index: 51,
+            sprite_index: 35,
         },
         FishDef {
             id: "lava_eel".into(),
@@ -353,7 +353,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Legendary,
             difficulty: 0.80,
             sell_price: 700,
-            sprite_index: 52,
+            sprite_index: 36,
         },
     ];
 
