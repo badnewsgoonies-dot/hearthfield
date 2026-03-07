@@ -74,13 +74,10 @@ fn edge_transition_from_registry(
         }
     }
 
-    // ── Transitions (zone-based) ──
-    for t in &data.transitions {
-        let (rx, ry, rw, rh) = t.from_rect;
-        if gx >= rx && gx < rx + rw && gy >= ry && gy < ry + rh {
-            return Some((t.to_map, t.to_x, t.to_y));
-        }
-    }
+    // NOTE: MapData.transitions are zone-based triggers kept for
+    // documentation / future use.  Actual game transitions are driven
+    // entirely by doors (above) and edge boundaries (below), matching
+    // the original hardcoded logic.
 
     // ── Edge boundaries ──
     let (min_x, max_x, min_y, max_y) = (0, data.width as i32 - 1, 0, data.height as i32 - 1);
