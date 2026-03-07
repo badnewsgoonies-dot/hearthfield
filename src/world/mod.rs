@@ -15,6 +15,7 @@ use crate::shared::*;
 
 pub mod chests;
 pub mod lighting;
+pub mod map_data;
 pub mod maps;
 pub mod objects;
 pub mod seasonal;
@@ -25,6 +26,7 @@ use lighting::{
     despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
     update_lightning_flash, LightningFlash,
 };
+use map_data::MapRegistry;
 use maps::{generate_map, MapDef};
 use objects::{
     handle_forageable_pickup, handle_tool_use_on_objects, handle_weed_scythe,
@@ -50,7 +52,8 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<WorldMap>()
+        app.insert_resource(map_data::build_map_registry())
+            .init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
@@ -584,8 +587,14 @@ fn load_map(
     day: u8,
     atlases: &TerrainAtlases,
     object_atlases: &objects::ObjectAtlases,
+    registry: &MapRegistry,
 ) {
-    let map_def = generate_map(map_id);
+    // Prefer data-driven map from registry; fall back to hardcoded generator.
+    let map_def = if let Some(data) = registry.maps.get(&map_id) {
+        map_data::map_data_to_map_def(data)
+    } else {
+        generate_map(map_id)
+    };
 
     // Update tracking
     current_map_id.map_id = map_id;
@@ -870,6 +879,7 @@ fn spawn_initial_map(
     mut object_atlases: ResMut<objects::ObjectAtlases>,
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
     existing_tiles: Query<Entity, With<MapTile>>,
+    registry: Res<MapRegistry>,
 ) {
     // Guard against re-entry (e.g. Playing → Cutscene → Playing).
     if !existing_tiles.is_empty() {
@@ -896,6 +906,7 @@ fn spawn_initial_map(
         calendar.day,
         &terrain_atlases,
         &object_atlases,
+        &registry,
     );
 }
 
@@ -914,6 +925,7 @@ fn handle_map_transition(
     mut terrain_atlases: ResMut<TerrainAtlases>,
     mut object_atlases: ResMut<objects::ObjectAtlases>,
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
+    registry: Res<MapRegistry>,
 ) {
     for event in events.read() {
         // Don't transition to the same map
@@ -947,6 +959,7 @@ fn handle_map_transition(
             calendar.day,
             &terrain_atlases,
             &object_atlases,
+            &registry,
         );
     }
 }
