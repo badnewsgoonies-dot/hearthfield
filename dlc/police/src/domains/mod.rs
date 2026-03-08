@@ -6,6 +6,7 @@ pub mod npcs;
 pub mod patrol;
 pub mod player;
 pub mod precinct;
+pub mod save;
 pub mod skills;
 pub mod ui;
 pub mod world;

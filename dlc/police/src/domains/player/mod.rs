@@ -85,16 +85,27 @@ pub fn spawn_player(
         return;
     }
 
-    let spawn_grid = GridPosition { x: 16, y: 20 };
-    let spawn_position = grid_to_world(spawn_grid);
+    let has_saved_position = player_state.position_x != 0.0 || player_state.position_y != 0.0;
+    let spawn_grid = if has_saved_position {
+        world_to_grid(Vec2::new(player_state.position_x, player_state.position_y))
+    } else {
+        GridPosition { x: 16, y: 20 }
+    };
+    let spawn_position = if has_saved_position {
+        Vec2::new(player_state.position_x, player_state.position_y)
+    } else {
+        grid_to_world(spawn_grid)
+    };
 
     if !player_state.equipped.contains(&Equipment::Badge) {
         player_state.equipped.push(Equipment::Badge);
     }
 
-    player_state.position_map = MapId::PrecinctInterior;
-    player_state.position_x = spawn_position.x;
-    player_state.position_y = spawn_position.y;
+    if !has_saved_position {
+        player_state.position_map = MapId::PrecinctInterior;
+        player_state.position_x = spawn_position.x;
+        player_state.position_y = spawn_position.y;
+    }
 
     commands.spawn((
         Player,
@@ -349,6 +360,34 @@ mod tests {
         assert_eq!(
             app.world().resource::<PlayerState>().position_map,
             MapId::PrecinctInterior
+        );
+    }
+
+    #[test]
+    fn player_spawn_respects_saved_position_and_map() {
+        let mut app = build_test_app();
+        {
+            let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+            player_state.position_map = MapId::PrecinctExterior;
+            player_state.position_x = 12.0 * 16.0 * 3.0;
+            player_state.position_y = 3.0 * 16.0 * 3.0;
+        }
+
+        enter_playing(&mut app);
+
+        let mut query = app
+            .world_mut()
+            .query::<(&GridPosition, &Transform, &PlayerMovement)>();
+        let (grid_position, transform, movement) = query.single(app.world());
+
+        assert_eq!(grid_position.x, 12);
+        assert_eq!(grid_position.y, 3);
+        assert_eq!(transform.translation.x, 12.0 * 16.0 * 3.0);
+        assert_eq!(transform.translation.y, 3.0 * 16.0 * 3.0);
+        assert_eq!(movement.facing, Facing::Down);
+        assert_eq!(
+            app.world().resource::<PlayerState>().position_map,
+            MapId::PrecinctExterior
         );
     }
 

@@ -379,14 +379,19 @@ impl Plugin for NpcsPlugin {
             .add_systems(OnEnter(GameState::MainMenu), cleanup_npcs)
             .add_systems(
                 Update,
-                (spawn_npcs_for_map, update_npc_schedules, handle_npc_interaction)
+                (
+                    spawn_npcs_for_map,
+                    update_npc_schedules,
+                    handle_npc_interaction,
+                )
                     .chain()
                     .in_set(UpdatePhase::Simulation)
                     .run_if(in_state(GameState::Playing)),
             )
             .add_systems(
                 Update,
-                (handle_dialogue_events, handle_interrogation_events).in_set(UpdatePhase::Reactions),
+                (handle_dialogue_events, handle_interrogation_events)
+                    .in_set(UpdatePhase::Reactions),
             )
             .add_systems(
                 Update,
@@ -552,7 +557,8 @@ fn handle_interrogation_events(
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     for event in start_events.read() {
-        interaction_state.active_interrogation = Some((event.npc_id.clone(), event.case_id.clone()));
+        interaction_state.active_interrogation =
+            Some((event.npc_id.clone(), event.case_id.clone()));
         next_state.set(GameState::Interrogation);
     }
 
@@ -562,7 +568,9 @@ fn handle_interrogation_events(
             .iter_mut()
             .find(|active_case| active_case.case_id == event.case_id)
         {
-            active_case.suspects_interrogated.insert(event.npc_id.clone());
+            active_case
+                .suspects_interrogated
+                .insert(event.npc_id.clone());
             active_case.notes.push(if event.confession {
                 format!("{} confessed during interrogation.", event.npc_id)
             } else {
@@ -737,7 +745,10 @@ fn spawn_npc_entity(
     ));
 }
 
-fn nearest_npc(player_grid: GridPosition, npc_query: &Query<(&Npc, &GridPosition)>) -> Option<NpcId> {
+fn nearest_npc(
+    player_grid: GridPosition,
+    npc_query: &Query<(&Npc, &GridPosition)>,
+) -> Option<NpcId> {
     npc_query
         .iter()
         .filter_map(|(npc, grid)| {
@@ -1065,15 +1076,18 @@ mod tests {
         let mut app = build_test_app();
         app.update();
 
-        app.world_mut().resource_mut::<CaseBoard>().active.push(ActiveCase {
-            case_id: "patrol_001_petty_theft".to_string(),
-            status: CaseStatus::Interrogating,
-            evidence_collected: Vec::new(),
-            witnesses_interviewed: HashSet::new(),
-            suspects_interrogated: HashSet::new(),
-            shifts_elapsed: 0,
-            notes: Vec::new(),
-        });
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::Interrogating,
+                evidence_collected: Vec::new(),
+                witnesses_interviewed: HashSet::new(),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
 
         app.world_mut()
             .resource_mut::<Events<InterrogationEndEvent>>()
@@ -1091,9 +1105,7 @@ mod tests {
             .iter()
             .find(|active_case| active_case.case_id == "patrol_001_petty_theft")
             .unwrap();
-        assert!(active_case
-            .suspects_interrogated
-            .contains("marcus_cole"));
+        assert!(active_case.suspects_interrogated.contains("marcus_cole"));
 
         let events = app.world().resource::<Events<EvidenceCollectedEvent>>();
         let mut reader = events.get_cursor();

@@ -4,9 +4,15 @@ use bevy::prelude::*;
 
 use crate::shared::{
     ActiveCase, CaseAssignedEvent, CaseBoard, CaseDef, CaseFailedEvent, CaseId, CaseSolvedEvent,
-    CaseStatus, EvidenceCollectedEvent, EvidenceId, GameState, MapId, NpcId, PromotionEvent, Rank,
-    ShiftClock, ShiftEndEvent, UpdatePhase,
+    CaseStatus, EvidenceCollectedEvent, EvidenceId, GameState, GridPosition, MapId, NpcId,
+    PlayerInput, PlayerState, PromotionEvent, Rank, ShiftClock, ShiftEndEvent, UpdatePhase,
+    PIXEL_SCALE, TILE_SIZE,
 };
+
+const INTERACTION_RANGE_TILES: i32 = 2;
+const WORLD_TILE_SIZE: f32 = TILE_SIZE * PIXEL_SCALE;
+const CASE_BOARD_POSITION: GridPosition = GridPosition { x: 4, y: 12 };
+const TRAINING_EVIDENCE_POSITION: GridPosition = GridPosition { x: 18, y: 14 };
 
 #[derive(Resource, Debug, Clone, Default)]
 struct CaseRegistry {
@@ -34,6 +40,8 @@ impl Plugin for CasesPlugin {
             .add_systems(
                 Update,
                 (
+                    handle_case_board_close_interaction,
+                    handle_training_evidence_pickup,
                     handle_case_assignment,
                     track_evidence_for_cases,
                     check_evidence_complete,
@@ -46,6 +54,31 @@ impl Plugin for CasesPlugin {
                     .in_set(UpdatePhase::Reactions)
                     .run_if(in_state(GameState::Playing)),
             );
+    }
+}
+
+fn handle_case_board_close_interaction(
+    player_input: Res<PlayerInput>,
+    player_state: Res<PlayerState>,
+    case_board: Res<CaseBoard>,
+    mut close_requests: EventWriter<CaseCloseRequestedEvent>,
+) {
+    if !player_input.interact || player_state.position_map != MapId::PrecinctInterior {
+        return;
+    }
+
+    if !in_interaction_range(player_grid_position(&player_state), CASE_BOARD_POSITION) {
+        return;
+    }
+
+    if let Some(active_case) = case_board
+        .active
+        .iter()
+        .find(|active_case| active_case.status == CaseStatus::EvidenceComplete)
+    {
+        close_requests.send(CaseCloseRequestedEvent {
+            case_id: active_case.case_id.clone(),
+        });
     }
 }
 
@@ -92,6 +125,43 @@ fn handle_case_assignment(
             notes: Vec::new(),
         });
     }
+}
+
+fn handle_training_evidence_pickup(
+    player_input: Res<PlayerInput>,
+    player_state: Res<PlayerState>,
+    registry: Res<CaseRegistry>,
+    case_board: Res<CaseBoard>,
+    mut evidence_events: EventWriter<EvidenceCollectedEvent>,
+) {
+    if !player_input.interact || player_state.position_map != MapId::PrecinctExterior {
+        return;
+    }
+
+    if !in_interaction_range(
+        player_grid_position(&player_state),
+        TRAINING_EVIDENCE_POSITION,
+    ) {
+        return;
+    }
+
+    let Some((case_id, evidence_id)) = case_board.active.iter().find_map(|active_case| {
+        let case_def = registry.get(&active_case.case_id)?;
+        let next_evidence = case_def
+            .evidence_required
+            .iter()
+            .find(|required| !active_case.evidence_collected.contains(required))?;
+
+        Some((active_case.case_id.clone(), next_evidence.clone()))
+    }) else {
+        return;
+    };
+
+    evidence_events.send(EvidenceCollectedEvent {
+        evidence_id,
+        case_id,
+        quality: 1.0,
+    });
 }
 
 fn track_evidence_for_cases(
@@ -860,6 +930,23 @@ fn npc_ids(ids: &[&str]) -> Vec<NpcId> {
     ids.iter().map(|id| (*id).to_string()).collect()
 }
 
+fn player_grid_position(player_state: &PlayerState) -> GridPosition {
+    GridPosition {
+        x: (player_state.position_x / WORLD_TILE_SIZE).round() as i32,
+        y: (player_state.position_y / WORLD_TILE_SIZE).round() as i32,
+    }
+}
+
+fn in_interaction_range(player_grid: GridPosition, target: GridPosition) -> bool {
+    distance_squared(player_grid, target) <= INTERACTION_RANGE_TILES * INTERACTION_RANGE_TILES
+}
+
+fn distance_squared(a: GridPosition, b: GridPosition) -> i32 {
+    let dx = a.x - b.x;
+    let dy = a.y - b.y;
+    (dx * dx) + (dy * dy)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -887,6 +974,8 @@ mod tests {
         );
         app.init_resource::<ShiftClock>();
         app.init_resource::<CaseBoard>();
+        app.init_resource::<PlayerInput>();
+        app.init_resource::<PlayerState>();
         app.add_event::<CaseAssignedEvent>();
         app.add_event::<CaseSolvedEvent>();
         app.add_event::<CaseFailedEvent>();
@@ -903,6 +992,19 @@ mod tests {
             .set(GameState::Playing);
         app.update();
         app.update();
+    }
+
+    fn set_player_near(app: &mut App, map_id: MapId, grid: GridPosition) {
+        let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+        player_state.position_map = map_id;
+        player_state.position_x = grid.x as f32 * WORLD_TILE_SIZE;
+        player_state.position_y = grid.y as f32 * WORLD_TILE_SIZE;
+    }
+
+    fn interact_once(app: &mut App) {
+        app.world_mut().resource_mut::<PlayerInput>().interact = true;
+        app.update();
+        app.world_mut().resource_mut::<PlayerInput>().interact = false;
     }
 
     #[test]
@@ -1142,6 +1244,81 @@ mod tests {
             .iter()
             .any(|case_id| case_id == "patrol_006_car_breakin"));
         assert_eq!(board.total_cases_solved, 1);
+    }
+
+    #[test]
+    fn live_case_board_interaction_closes_evidence_complete_case() {
+        let mut app = build_test_app();
+        enter_playing(&mut app);
+
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::EvidenceComplete,
+                evidence_collected: vec![
+                    "fingerprint".to_string(),
+                    "witness_statement".to_string(),
+                ],
+                witnesses_interviewed: HashSet::new(),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
+
+        set_player_near(&mut app, MapId::PrecinctInterior, CASE_BOARD_POSITION);
+        interact_once(&mut app);
+
+        let board = app.world().resource::<CaseBoard>();
+        assert!(board.active.is_empty());
+        assert!(board
+            .solved
+            .iter()
+            .any(|case_id| case_id == "patrol_001_petty_theft"));
+
+        let solved_events = app
+            .world_mut()
+            .resource_mut::<Events<CaseSolvedEvent>>()
+            .drain()
+            .collect::<Vec<_>>();
+        assert_eq!(solved_events.len(), 1);
+        assert_eq!(solved_events[0].case_id, "patrol_001_petty_theft");
+    }
+
+    #[test]
+    fn training_evidence_pickup_progresses_active_case_to_evidence_complete() {
+        let mut app = build_test_app();
+        enter_playing(&mut app);
+
+        app.world_mut()
+            .resource_mut::<Events<CaseAssignedEvent>>()
+            .send(CaseAssignedEvent {
+                case_id: "patrol_001_petty_theft".to_string(),
+            });
+        app.update();
+
+        set_player_near(
+            &mut app,
+            MapId::PrecinctExterior,
+            TRAINING_EVIDENCE_POSITION,
+        );
+        interact_once(&mut app);
+        interact_once(&mut app);
+        app.update();
+
+        let board = app.world().resource::<CaseBoard>();
+        let active_case = board
+            .active
+            .iter()
+            .find(|active_case| active_case.case_id == "patrol_001_petty_theft")
+            .unwrap();
+
+        assert_eq!(active_case.status, CaseStatus::EvidenceComplete);
+        assert_eq!(
+            active_case.evidence_collected,
+            vec!["fingerprint".to_string(), "witness_statement".to_string()]
+        );
     }
 
     #[test]

@@ -16,6 +16,7 @@ use domains::npcs::NpcsPlugin;
 use domains::patrol::PatrolPlugin;
 use domains::player::PlayerPlugin;
 use domains::precinct::PrecinctPlugin;
+use domains::save::SavePlugin;
 use domains::skills::SkillsPlugin;
 use domains::ui::UiPlugin;
 use domains::world::WorldPlugin;
@@ -109,8 +110,8 @@ fn main() {
         .add_plugins(SkillsPlugin)
         .add_plugins(EconomyPlugin)
         .add_plugins(NpcsPlugin)
+        .add_plugins(SavePlugin)
         // Future domain plugins (Wave 2+)
-        // .add_plugins(domains::save::SavePlugin)
         // Camera
         .add_systems(Startup, setup_camera)
         .run();

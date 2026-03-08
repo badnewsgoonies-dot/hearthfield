@@ -8,17 +8,31 @@ use crate::shared::{
 
 const PRECINCT_WIDTH: usize = 32;
 const PRECINCT_HEIGHT: usize = 24;
+const PRECINCT_EXTERIOR_WIDTH: usize = 24;
+const PRECINCT_EXTERIOR_HEIGHT: usize = 24;
 const TILE_WORLD_SIZE: f32 = TILE_SIZE * PIXEL_SCALE;
 const PRECINCT_INTERIOR_SPAWN: GridPosition = GridPosition { x: 16, y: 20 };
 const SOUTH_EXIT_POSITION: GridPosition = GridPosition { x: 16, y: 23 };
+const PRECINCT_EXTERIOR_SPAWN: GridPosition = GridPosition { x: 12, y: 3 };
+const PRECINCT_EXTERIOR_DOOR_POSITION: GridPosition = GridPosition { x: 12, y: 1 };
+const PRECINCT_EXTERIOR_EVIDENCE_POSITION: GridPosition = GridPosition { x: 18, y: 14 };
 
 const PRECINCT_INTERIOR_TRANSITIONS: [MapTransition; 1] = [MapTransition {
     from_map: MapId::PrecinctInterior,
     from_x: SOUTH_EXIT_POSITION.x,
     from_y: SOUTH_EXIT_POSITION.y,
     to_map: MapId::PrecinctExterior,
-    to_x: 12,
-    to_y: 1,
+    to_x: PRECINCT_EXTERIOR_DOOR_POSITION.x,
+    to_y: PRECINCT_EXTERIOR_DOOR_POSITION.y,
+}];
+
+const PRECINCT_EXTERIOR_TRANSITIONS: [MapTransition; 1] = [MapTransition {
+    from_map: MapId::PrecinctExterior,
+    from_x: PRECINCT_EXTERIOR_DOOR_POSITION.x,
+    from_y: PRECINCT_EXTERIOR_DOOR_POSITION.y,
+    to_map: MapId::PrecinctInterior,
+    to_x: SOUTH_EXIT_POSITION.x,
+    to_y: SOUTH_EXIT_POSITION.y,
 }];
 
 const CAPTAIN_DOORS: [DoorSpec; 1] = [DoorSpec {
@@ -118,6 +132,8 @@ const PRECINCT_INTERACTABLES: [GridPosition; 6] = [
     GridPosition { x: 27, y: 21 }, // locker bank
 ];
 
+type TileGrid = [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT];
+
 #[derive(Resource, Debug, Default)]
 pub struct CollisionMap(pub HashSet<(i32, i32)>);
 
@@ -145,7 +161,7 @@ struct TileMapData {
     map_id: MapId,
     width: usize,
     height: usize,
-    tiles: [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT],
+    tiles: TileGrid,
     transitions: &'static [MapTransition],
     spawn_point: GridPosition,
 }
@@ -180,6 +196,7 @@ enum DoorSide {
 pub fn map_transitions(map_id: MapId) -> &'static [MapTransition] {
     match map_id {
         MapId::PrecinctInterior => &PRECINCT_INTERIOR_TRANSITIONS,
+        MapId::PrecinctExterior => &PRECINCT_EXTERIOR_TRANSITIONS,
         _ => &[],
     }
 }
@@ -190,7 +207,7 @@ pub fn map_transition_at(map_id: MapId, position: GridPosition) -> Option<&'stat
         .find(|transition| transition.from_x == position.x && transition.from_y == position.y)
 }
 
-pub fn precinct_interior_data() -> [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT] {
+pub fn precinct_interior_data() -> TileGrid {
     let mut tiles = [[TileKind::Floor; PRECINCT_WIDTH]; PRECINCT_HEIGHT];
 
     for tile in &mut tiles[0] {
@@ -215,6 +232,45 @@ pub fn precinct_interior_data() -> [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT]
     }
 
     tiles[SOUTH_EXIT_POSITION.y as usize][SOUTH_EXIT_POSITION.x as usize] = TileKind::Door;
+    tiles
+}
+
+pub fn precinct_exterior_data() -> TileGrid {
+    let mut tiles = [[TileKind::Grass; PRECINCT_WIDTH]; PRECINCT_HEIGHT];
+
+    for row in tiles.iter_mut().take(PRECINCT_EXTERIOR_HEIGHT) {
+        for tile in row.iter_mut().take(PRECINCT_EXTERIOR_WIDTH) {
+            *tile = TileKind::Sidewalk;
+        }
+    }
+
+    for tile in tiles[0].iter_mut().take(PRECINCT_EXTERIOR_WIDTH) {
+        *tile = TileKind::Wall;
+    }
+    for tile in tiles[PRECINCT_EXTERIOR_HEIGHT - 1]
+        .iter_mut()
+        .take(PRECINCT_EXTERIOR_WIDTH)
+    {
+        *tile = TileKind::Wall;
+    }
+
+    for row in tiles.iter_mut().take(PRECINCT_EXTERIOR_HEIGHT) {
+        row[0] = TileKind::Wall;
+        row[PRECINCT_EXTERIOR_WIDTH - 1] = TileKind::Wall;
+    }
+
+    paint_rect(&mut tiles, 2, 3, 21, 20, TileKind::Road);
+    paint_rect(&mut tiles, 10, 1, 14, 5, TileKind::Sidewalk);
+    paint_rect(&mut tiles, 4, 8, 8, 19, TileKind::Sidewalk);
+    paint_rect(&mut tiles, 15, 8, 19, 19, TileKind::Sidewalk);
+
+    tiles[PRECINCT_EXTERIOR_DOOR_POSITION.y as usize][PRECINCT_EXTERIOR_DOOR_POSITION.x as usize] =
+        TileKind::Door;
+    tiles[PRECINCT_EXTERIOR_SPAWN.y as usize][PRECINCT_EXTERIOR_SPAWN.x as usize] =
+        TileKind::Sidewalk;
+    tiles[PRECINCT_EXTERIOR_EVIDENCE_POSITION.y as usize]
+        [PRECINCT_EXTERIOR_EVIDENCE_POSITION.x as usize] = TileKind::Interactable;
+
     tiles
 }
 
@@ -294,13 +350,21 @@ fn tile_map_data(map_id: MapId) -> TileMapData {
             transitions: map_transitions(map_id),
             spawn_point: PRECINCT_INTERIOR_SPAWN,
         },
+        MapId::PrecinctExterior => TileMapData {
+            map_id,
+            width: PRECINCT_EXTERIOR_WIDTH,
+            height: PRECINCT_EXTERIOR_HEIGHT,
+            tiles: precinct_exterior_data(),
+            transitions: map_transitions(map_id),
+            spawn_point: PRECINCT_EXTERIOR_SPAWN,
+        },
         _ => unreachable!("unsupported map should be resolved before loading"),
     }
 }
 
 fn resolve_supported_map(requested_map: MapId) -> MapId {
     match requested_map {
-        MapId::PrecinctInterior => requested_map,
+        MapId::PrecinctInterior | MapId::PrecinctExterior => requested_map,
         _ => {
             bevy::log::warn!(
                 "Wave 1 world fallback: {:?} is not implemented yet; loading {:?} instead.",
@@ -347,9 +411,12 @@ fn spawn_map_entities(
     debug_assert_eq!(
         map_data.transitions.len(),
         1,
-        "Wave 1 should expose exactly one transition zone"
+        "Wave 4 precinct maps should expose exactly one transition zone"
     );
-    debug_assert_eq!(map_data.map_id, MapId::PrecinctInterior);
+    debug_assert!(matches!(
+        map_data.map_id,
+        MapId::PrecinctInterior | MapId::PrecinctExterior
+    ));
 }
 
 fn despawn_map_tiles(
@@ -364,7 +431,10 @@ fn despawn_map_tiles(
 }
 
 fn transition_target(from_map: MapId, to_map: MapId) -> Option<GridPosition> {
-    for transition in PRECINCT_INTERIOR_TRANSITIONS {
+    for transition in PRECINCT_INTERIOR_TRANSITIONS
+        .iter()
+        .chain(PRECINCT_EXTERIOR_TRANSITIONS.iter())
+    {
         if transition.from_map == from_map && transition.to_map == to_map {
             return Some(GridPosition {
                 x: transition.to_x,
@@ -383,7 +453,22 @@ fn transition_target(from_map: MapId, to_map: MapId) -> Option<GridPosition> {
     None
 }
 
-fn draw_room(tiles: &mut [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT], room: RoomSpec) {
+fn paint_rect(
+    tiles: &mut TileGrid,
+    min_x: usize,
+    min_y: usize,
+    max_x: usize,
+    max_y: usize,
+    kind: TileKind,
+) {
+    for row in tiles.iter_mut().take(max_y + 1).skip(min_y) {
+        for tile in row.iter_mut().take(max_x + 1).skip(min_x) {
+            *tile = kind;
+        }
+    }
+}
+
+fn draw_room(tiles: &mut TileGrid, room: RoomSpec) {
     let bounds = room.bounds;
 
     for x in bounds.min_x..=bounds.max_x {
@@ -626,6 +711,45 @@ mod tests {
             SOUTH_EXIT_POSITION.y as f32 * TILE_WORLD_SIZE
         );
         assert_eq!(transform.translation.z, 10.0);
+    }
+
+    #[test]
+    fn interior_exit_transitions_to_precinct_exterior_map() {
+        let mut app = build_test_app();
+
+        enter_playing(&mut app);
+
+        app.world_mut()
+            .resource_mut::<Events<MapTransitionEvent>>()
+            .send(MapTransitionEvent {
+                from: MapId::PrecinctInterior,
+                to: MapId::PrecinctExterior,
+            });
+
+        app.update();
+
+        let player_state = app.world().resource::<PlayerState>();
+        assert_eq!(player_state.position_map, MapId::PrecinctExterior);
+        assert_eq!(
+            (player_state.position_x, player_state.position_y),
+            (
+                PRECINCT_EXTERIOR_DOOR_POSITION.x as f32 * TILE_WORLD_SIZE,
+                PRECINCT_EXTERIOR_DOOR_POSITION.y as f32 * TILE_WORLD_SIZE,
+            )
+        );
+
+        let mut query = app.world_mut().query_filtered::<Entity, With<MapTile>>();
+        assert_eq!(
+            query.iter(app.world()).count(),
+            PRECINCT_EXTERIOR_WIDTH * PRECINCT_EXTERIOR_HEIGHT
+        );
+
+        let exterior_map = precinct_exterior_data();
+        assert_eq!(
+            exterior_map[PRECINCT_EXTERIOR_EVIDENCE_POSITION.y as usize]
+                [PRECINCT_EXTERIOR_EVIDENCE_POSITION.x as usize],
+            TileKind::Interactable
+        );
     }
 
     #[test]
