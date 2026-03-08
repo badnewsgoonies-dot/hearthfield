@@ -64,18 +64,18 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         TintKeyframe {
             hour: 0.0,
             tint: (0.3, 0.3, 0.5),
-            intensity: 0.5,
-        }, // midnight
+            intensity: 0.45,
+        }, // midnight — slightly less oppressive
         TintKeyframe {
             hour: 5.0,
             tint: (0.3, 0.3, 0.5),
-            intensity: 0.5,
+            intensity: 0.45,
         }, // late night
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.9, 0.7),
+            tint: (1.0, 0.85, 0.55),
             intensity: 0.15,
-        }, // sunrise
+        }, // sunrise — warmer, more golden
         TintKeyframe {
             hour: 8.0,
             tint: (1.0, 1.0, 0.95),
@@ -92,10 +92,15 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
             intensity: 0.0,
         }, // full daylight
         TintKeyframe {
+            hour: 17.0,
+            tint: (1.0, 0.92, 0.70),
+            intensity: 0.08,
+        }, // golden hour — warm amber
+        TintKeyframe {
             hour: 18.0,
-            tint: (1.0, 0.85, 0.6),
-            intensity: 0.15,
-        }, // sunset
+            tint: (1.0, 0.75, 0.45),
+            intensity: 0.18,
+        }, // sunset — more dramatic
         TintKeyframe {
             hour: 20.0,
             tint: (0.6, 0.6, 0.9),
@@ -104,12 +109,12 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         TintKeyframe {
             hour: 22.0,
             tint: (0.3, 0.3, 0.5),
-            intensity: 0.5,
+            intensity: 0.45,
         }, // night
         TintKeyframe {
             hour: 24.0,
             tint: (0.3, 0.3, 0.5),
-            intensity: 0.5,
+            intensity: 0.45,
         }, // midnight (wrap)
     ];
     KEYFRAMES

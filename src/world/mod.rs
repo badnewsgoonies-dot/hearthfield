@@ -14,6 +14,7 @@ use std::collections::HashSet;
 use crate::shared::*;
 
 pub mod chests;
+pub mod grass_decor;
 pub mod lighting;
 pub mod map_data;
 pub mod maps;
@@ -39,6 +40,7 @@ use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
     SeasonalTintApplied,
 };
+use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
     update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
@@ -69,6 +71,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<LightningFlash>()
             .init_resource::<PreviousWeather>()
             .init_resource::<WeatherParticleCounts>()
+            .init_resource::<GrassDecorState>()
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
@@ -116,6 +119,8 @@ impl Plugin for WorldPlugin {
                     weather_change_notification,
                     // Forageable sparkle particles
                     update_forage_sparkles,
+                    // Grass decorations (flowers, tufts, etc.)
+                    spawn_grass_decorations,
                     // Water tile animation
                     animate_water_tiles,
                 )
@@ -283,8 +288,125 @@ fn ensure_atlases_loaded(
 // TILE ATLAS MAPPING
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Maps a TileKind (and optionally season) to (image_handle, layout_handle, atlas_index).
-/// Returns None for Void tiles, which use a plain colored sprite instead.
+// Maps a TileKind (and optionally season) to (image_handle, layout_handle, atlas_index).
+// Returns None for Void tiles, which use a plain colored sprite instead.
+
+/// Check if a neighbor tile matches a given predicate.
+/// Returns false for out-of-bounds tiles.
+#[allow(clippy::too_many_arguments)]
+fn neighbor_is(
+    tiles: &[TileKind],
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+    dx: i32,
+    dy: i32,
+    pred: impl Fn(TileKind) -> bool,
+) -> bool {
+    let nx = x as i32 + dx;
+    let ny = y as i32 + dy;
+    if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+        return false;
+    }
+    pred(tiles[ny as usize * width + nx as usize])
+}
+
+/// Compute a 4-bit bitmask indicating which cardinal neighbors satisfy a predicate.
+/// bit 0 = north (+y), bit 1 = east (+x), bit 2 = south (-y), bit 3 = west (-x).
+/// Follows the same convention as `water_edge_mask`.
+fn neighbor_bitmask(
+    tiles: &[TileKind],
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+    pred: impl Fn(TileKind) -> bool,
+) -> u8 {
+    let mut mask: u8 = 0;
+    if neighbor_is(tiles, x, y, width, height, 0, 1, &pred) { mask |= 0b0001; } // north (+y)
+    if neighbor_is(tiles, x, y, width, height, 1, 0, &pred) { mask |= 0b0010; } // east (+x)
+    if neighbor_is(tiles, x, y, width, height, 0, -1, &pred) { mask |= 0b0100; } // south (-y)
+    if neighbor_is(tiles, x, y, width, height, -1, 0, &pred) { mask |= 0b1000; } // west (-x)
+    mask
+}
+
+/// Map a 4-bit grass-neighbor bitmask to an atlas index from the grass-dirt transition
+/// block in `modern_farm_terrain.png` (cols 0-6, rows 0-3, 32 cols per row).
+///
+/// These tiles show a DIRT body with grass bleeding in from the edges where the
+/// set bits indicate grass neighbors. Used when rendering a dirt tile that borders grass.
+///
+/// Bitmask: bit0=N has grass, bit1=E has grass, bit2=S has grass, bit3=W has grass.
+///
+/// Atlas convention: top-of-image = north on screen.
+///   r0c1 = grass at top (N), r2c1 = grass at bottom (S),
+///   r1c0 = grass at left (W), r1c2 = grass at right (E).
+fn dirt_grass_transition_index(grass_mask: u8) -> usize {
+    // 32 columns per row in modern_farm_terrain.png.
+    // 3×3 core block (cols 0-2, rows 0-2):
+    //   r0c0(0)=NW  r0c1(1)=N    r0c2(2)=NE
+    //   r1c0(32)=W  r1c1(33)=ctr r1c2(34)=E
+    //   r2c0(64)=SW r2c1(65)=S   r2c2(66)=SE
+    // Extended (cols 3-4, rows 0-2 + row 3 cols 3-4):
+    //   r0c3(3)=NEW  r0c4(4)=NES
+    //   r1c3(35)=SWN r1c4(36)=ESW
+    //   r3c3(99)=NS  r3c4(100)=EW
+    match grass_mask {
+        0b0000 => 33,  // no grass → plain dirt center
+        0b0001 => 1,   // N only → r0c1
+        0b0010 => 34,  // E only → r1c2
+        0b0100 => 65,  // S only → r2c1
+        0b1000 => 32,  // W only → r1c0
+        0b0011 => 2,   // N+E → r0c2
+        0b0110 => 66,  // S+E → r2c2
+        0b1100 => 64,  // S+W → r2c0
+        0b1001 => 0,   // N+W → r0c0
+        0b0101 => 99,  // N+S → r3c3
+        0b1010 => 100, // E+W → r3c4
+        0b0111 => 4,   // N+E+S → r0c4
+        0b1011 => 3,   // N+E+W → r0c3
+        0b1101 => 35,  // N+S+W → r1c3
+        0b1110 => 36,  // E+S+W → r1c4
+        0b1111 => 33,  // all grass → use center (rare: dirt surrounded by grass)
+        _ => 33,
+    }
+}
+
+/// Map a 4-bit grass-neighbor bitmask to a water transition atlas index.
+/// Same layout as dirt but offset to cols 16-22, rows 0-3.
+///
+/// Bitmask: bit0=N has grass/land, bit1=E, bit2=S, bit3=W.
+fn water_grass_transition_index(land_mask: u8) -> usize {
+    // 3×3 core block at cols 16-18, rows 0-2 (offset = 16):
+    //   r0c16(16)=NW  r0c17(17)=N    r0c18(18)=NE
+    //   r1c16(48)=W   r1c17(49)=ctr  r1c18(50)=E
+    //   r2c16(80)=SW  r2c17(81)=S    r2c18(82)=SE
+    // Extended at cols 19-20, rows 0-2 + row 3 cols 19-20:
+    //   r0c19(19)=NEW  r0c20(20)=NES
+    //   r1c19(51)=SWN  r1c20(52)=ESW
+    //   r3c19(115)=NS  r3c20(116)=EW
+    match land_mask {
+        0b0000 => 49,  // no land → pure water center
+        0b0001 => 17,  // N only
+        0b0010 => 50,  // E only
+        0b0100 => 81,  // S only
+        0b1000 => 48,  // W only
+        0b0011 => 18,  // N+E
+        0b0110 => 82,  // S+E
+        0b1100 => 80,  // S+W
+        0b1001 => 16,  // N+W
+        0b0101 => 115, // N+S
+        0b1010 => 116, // E+W
+        0b0111 => 20,  // N+E+S
+        0b1011 => 19,  // N+E+W
+        0b1101 => 51,  // N+S+W
+        0b1110 => 52,  // E+S+W
+        0b1111 => 49,  // all land → use center
+        _ => 49,
+    }
+}
+
 fn is_path_neighbor(
     tiles: &[TileKind],
     x: usize,
@@ -359,12 +481,23 @@ fn tile_atlas_info(
             ))
         }
 
-        // Dirt: modern_farm_terrain.png, row 9 col 3 (idx 291) — uniform brown dirt.
-        TileKind::Dirt => Some((
-            atlases.terrain_image.clone(),
-            atlases.terrain_layout.clone(),
-            291,
-        )),
+        // Dirt: use grass-dirt transition tiles when bordering grass.
+        // Falls back to uniform dirt (idx 291) when no grass neighbors.
+        TileKind::Dirt => {
+            let grass_mask = neighbor_bitmask(tiles, x, y, width, height, |t| {
+                t == TileKind::Grass
+            });
+            let index = if grass_mask != 0 {
+                dirt_grass_transition_index(grass_mask)
+            } else {
+                291 // plain dirt center (row 9, col 3)
+            };
+            Some((
+                atlases.terrain_image.clone(),
+                atlases.terrain_layout.clone(),
+                index,
+            ))
+        }
 
         // Tilled soil: modern_farm_terrain.png, row 13 col 3 (idx 419) — dark hoed soil.
         TileKind::TilledSoil => Some((
@@ -380,12 +513,30 @@ fn tile_atlas_info(
             417,
         )),
 
-        // Water: modern_farm_terrain.png, row 0 col 19 (idx 19) — blue water center.
-        TileKind::Water => Some((
-            atlases.terrain_image.clone(),
-            atlases.terrain_layout.clone(),
-            19,
-        )),
+        // Water: use grass-water transition tiles from terrain atlas when bordering land.
+        // Pure water centers (no land neighbors) use the dedicated water.png atlas
+        // which has 4 proper animation frames.
+        TileKind::Water => {
+            let land_mask = neighbor_bitmask(tiles, x, y, width, height, |t| {
+                t != TileKind::Water
+            });
+            if land_mask == 0 {
+                // Pure water center → use water.png for animation (4 frames, start at 0)
+                Some((
+                    atlases.water_image.clone(),
+                    atlases.water_layout.clone(),
+                    0,
+                ))
+            } else {
+                // Water bordering land → use terrain atlas transition tile
+                let index = water_grass_transition_index(land_mask);
+                Some((
+                    atlases.terrain_image.clone(),
+                    atlases.terrain_layout.clone(),
+                    index,
+                ))
+            }
+        }
 
         // Sand: modern_farm_terrain.png, row 5 col 1 (idx 161) — uniform sand.
         TileKind::Sand => Some((
@@ -533,6 +684,11 @@ pub struct WaterTile;
 /// bit 0 = north, bit 1 = east, bit 2 = south, bit 3 = west.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct WaterEdgeMask(#[allow(dead_code)] pub u8);
+
+/// Stores the base atlas index for a water tile so animation can cycle
+/// through 4 consecutive frames starting from this index.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct WaterBaseIndex(pub usize);
 
 /// Marker component for water edge overlay sprites.
 /// Tagged with MapTile so they despawn with the map.
@@ -740,6 +896,12 @@ fn spawn_tile_sprites(
                     if tile == TileKind::Water {
                         let mask = water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
                         entity_cmd.insert((WaterTile, WaterEdgeMask(mask)));
+                        // Only add animation base index for pure water centers (no land neighbors).
+                        // Transition tiles have grass edges and should not cycle through
+                        // adjacent atlas indices which are different transition shapes.
+                        if mask == 0 {
+                            entity_cmd.insert(WaterBaseIndex(index));
+                        }
                         if mask != 0 {
                             spawn_water_edge_overlays(commands, x, y, mask, season);
                         }
@@ -786,8 +948,9 @@ fn water_edge_mask(x: usize, y: usize, tiles: &[TileKind], width: usize, height:
 }
 
 /// Spawn semi-transparent overlay sprites on the edges of a water tile that
-/// border non-water tiles. Each overlay is a thin stripe of water colour
-/// with alpha so it blends softly against the adjacent land tile.
+/// border non-water tiles. Uses wider, softer overlays for a gradient-like
+/// blending effect. Two layers per edge: an inner narrow band at higher alpha
+/// and an outer wider band at lower alpha to simulate a feathered transition.
 fn spawn_water_edge_overlays(
     commands: &mut Commands,
     x: usize,
@@ -799,48 +962,62 @@ fn spawn_water_edge_overlays(
     let cy = y as f32 * TILE_SIZE;
     let z = Z_GROUND + 0.1;
 
-    let water_color = {
-        let base = match season {
-            Season::Spring => Color::srgb(0.14, 0.35, 0.57),
-            Season::Summer => Color::srgb(0.16, 0.38, 0.55),
-            Season::Fall => Color::srgb(0.12, 0.30, 0.50),
-            Season::Winter => Color::srgb(0.35, 0.50, 0.65),
-        };
-        let [r, g, b, _] = base.to_srgba().to_f32_array();
-        Color::srgba(r, g, b, 0.40)
+    let base = match season {
+        Season::Spring => Color::srgb(0.14, 0.35, 0.57),
+        Season::Summer => Color::srgb(0.16, 0.38, 0.55),
+        Season::Fall => Color::srgb(0.12, 0.30, 0.50),
+        Season::Winter => Color::srgb(0.35, 0.50, 0.65),
     };
+    let [r, g, b, _] = base.to_srgba().to_f32_array();
+
+    // Inner band: narrower, higher alpha
+    let inner_color = Color::srgba(r, g, b, 0.25);
+    let inner_thick = 3.0;
+    // Outer band: wider, lower alpha for feathered edge
+    let outer_color = Color::srgba(r, g, b, 0.12);
+    let outer_thick = 6.0;
 
     let half = TILE_SIZE / 2.0;
-    let edge_thick = 4.0;
-    let edge_offset = half - edge_thick / 2.0;
+    let inner_offset = half - inner_thick / 2.0;
+    let outer_offset = half - outer_thick / 2.0;
 
-    if mask & 0b0001 != 0 {
-        commands.spawn((
-            Sprite { color: water_color, custom_size: Some(Vec2::new(TILE_SIZE, edge_thick)), ..default() },
-            Transform::from_translation(Vec3::new(cx, cy + edge_offset, z)),
+    // Helper: spawn two overlays (inner + outer) for one edge direction
+    let spawn_edge = |cmds: &mut Commands, size_inner: Vec2, pos_inner: Vec3, size_outer: Vec2, pos_outer: Vec3| {
+        cmds.spawn((
+            Sprite { color: outer_color, custom_size: Some(size_outer), ..default() },
+            Transform::from_translation(pos_outer),
             MapTile, WaterEdgeOverlay,
         ));
+        cmds.spawn((
+            Sprite { color: inner_color, custom_size: Some(size_inner), ..default() },
+            Transform::from_translation(pos_inner),
+            MapTile, WaterEdgeOverlay,
+        ));
+    };
+
+    if mask & 0b0001 != 0 { // north
+        spawn_edge(commands,
+            Vec2::new(TILE_SIZE, inner_thick), Vec3::new(cx, cy + inner_offset, z),
+            Vec2::new(TILE_SIZE, outer_thick), Vec3::new(cx, cy + outer_offset, z),
+        );
     }
-    if mask & 0b0010 != 0 {
-        commands.spawn((
-            Sprite { color: water_color, custom_size: Some(Vec2::new(edge_thick, TILE_SIZE)), ..default() },
-            Transform::from_translation(Vec3::new(cx + edge_offset, cy, z)),
-            MapTile, WaterEdgeOverlay,
-        ));
+    if mask & 0b0010 != 0 { // east
+        spawn_edge(commands,
+            Vec2::new(inner_thick, TILE_SIZE), Vec3::new(cx + inner_offset, cy, z),
+            Vec2::new(outer_thick, TILE_SIZE), Vec3::new(cx + outer_offset, cy, z),
+        );
     }
-    if mask & 0b0100 != 0 {
-        commands.spawn((
-            Sprite { color: water_color, custom_size: Some(Vec2::new(TILE_SIZE, edge_thick)), ..default() },
-            Transform::from_translation(Vec3::new(cx, cy - edge_offset, z)),
-            MapTile, WaterEdgeOverlay,
-        ));
+    if mask & 0b0100 != 0 { // south
+        spawn_edge(commands,
+            Vec2::new(TILE_SIZE, inner_thick), Vec3::new(cx, cy - inner_offset, z),
+            Vec2::new(TILE_SIZE, outer_thick), Vec3::new(cx, cy - outer_offset, z),
+        );
     }
-    if mask & 0b1000 != 0 {
-        commands.spawn((
-            Sprite { color: water_color, custom_size: Some(Vec2::new(edge_thick, TILE_SIZE)), ..default() },
-            Transform::from_translation(Vec3::new(cx - edge_offset, cy, z)),
-            MapTile, WaterEdgeOverlay,
-        ));
+    if mask & 0b1000 != 0 { // west
+        spawn_edge(commands,
+            Vec2::new(inner_thick, TILE_SIZE), Vec3::new(cx - inner_offset, cy, z),
+            Vec2::new(outer_thick, TILE_SIZE), Vec3::new(cx - outer_offset, cy, z),
+        );
     }
 }
 
@@ -859,24 +1036,32 @@ fn despawn_map(
 }
 
 /// Animate water tiles by cycling through 4 atlas frames, and pulse edge overlay alpha.
+/// Only animates tiles that have a `WaterBaseIndex` component (pure water centers).
+/// Transition tiles are left static to preserve their edge artwork.
 fn animate_water_tiles(
     time: Res<Time>,
     mut timer: ResMut<WaterAnimationTimer>,
     mut phase: ResMut<WaterEdgePhase>,
-    mut water_query: Query<&mut Sprite, With<WaterTile>>,
+    mut water_query: Query<(&mut Sprite, Option<&WaterBaseIndex>), With<WaterTile>>,
     mut overlay_query: Query<&mut Sprite, (With<WaterEdgeOverlay>, Without<WaterTile>)>,
 ) {
     // Alpha values for the 4 phases: ramp up then back down for a gentle pulse.
-    const EDGE_ALPHAS: [f32; 4] = [0.30, 0.40, 0.50, 0.40];
+    const EDGE_ALPHAS: [f32; 4] = [0.18, 0.25, 0.30, 0.25];
 
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
-        for mut sprite in water_query.iter_mut() {
-            if let Some(atlas) = &mut sprite.texture_atlas {
-                atlas.index = (atlas.index + 1) % 4;
+        phase.0 = (phase.0 + 1) % 4;
+
+        for (mut sprite, base_idx) in water_query.iter_mut() {
+            // Only cycle animation on tiles with a stored base index
+            // (pure water centers that have 4 consecutive animation frames).
+            if let Some(base) = base_idx {
+                if let Some(atlas) = &mut sprite.texture_atlas {
+                    atlas.index = base.0 + (phase.0 as usize % 4);
+                }
             }
         }
-        phase.0 = (phase.0 + 1) % 4;
+
         let alpha = EDGE_ALPHAS[phase.0 as usize];
         for mut sprite in overlay_query.iter_mut() {
             let [r, g, b, _] = sprite.color.to_srgba().to_f32_array();
