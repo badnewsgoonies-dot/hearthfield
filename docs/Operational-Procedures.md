@@ -118,7 +118,7 @@ Use when the orchestrator is also the implementer.
 3. Implement.
 4. Run compile/test gate.
 5. Run a light Harden pass.
-6. Graduate at least one verified player-facing invariant if the change matters to the loop.
+6. Graduate at least one verified player-facing invariant if the change affects a recurring player-facing behavior. One-off fixes (typos, cosmetic tweaks) do not require graduation.
 
 ### 2.2 Minimum Harden artifact
 
@@ -167,7 +167,7 @@ Create or confirm:
 - `docs/spec.md`
 - relevant `docs/domains/*.md`
 
-Freeze shared shapes before parallel workers launch.
+Freeze shared shapes before parallel workers launch. If ambiguity touches seam placement, shared contract shape, or integration ownership, do not invent a new boundary — escalate to the orchestrator.
 
 ### 3.2 Required artifacts
 
@@ -342,7 +342,7 @@ Do not freeze:
 Required:
 
 - worker .md
-- worker .json
+- worker .json (required only if automated audit tooling consumes them; otherwise markdown reports are sufficient)
 - per-wave player trace
 - per-wave value audit when tuning changed
 - runtime-surfaces artifact
@@ -623,6 +623,3 @@ Priorities:
 - P2 tracked
 - all required artifacts present
 
------
-
-*Derived from "The Model Is the Orchestrator" (Geni, February 2026) — 295M tokens, 100+ agent sessions, 12+ autonomous builds, 8 controlled experiments, 3,200 commits across 56 repositories.*
