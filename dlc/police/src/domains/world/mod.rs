@@ -11,6 +11,13 @@ const PRECINCT_HEIGHT: usize = 24;
 const PRECINCT_EXTERIOR_WIDTH: usize = 24;
 const PRECINCT_EXTERIOR_HEIGHT: usize = 24;
 const TILE_WORLD_SIZE: f32 = TILE_SIZE * PIXEL_SCALE;
+const PRECINCT_TILE_ATLAS_COLUMNS: u32 = 16;
+const PRECINCT_TILE_ATLAS_ROWS: u32 = 14;
+const PRECINCT_TILESET_PATH: &str = "tilesets/precinct_office.png";
+const PRECINCT_FLOOR_TILE_INDEX: usize = 96;
+const PRECINCT_WALL_TILE_INDEX: usize = 27;
+const PRECINCT_DOOR_TILE_INDEX: usize = 8;
+const PRECINCT_INTERACTABLE_TILE_INDEX: usize = 190;
 const PRECINCT_INTERIOR_SPAWN: GridPosition = GridPosition { x: 16, y: 20 };
 const SOUTH_EXIT_POSITION: GridPosition = GridPosition { x: 16, y: 23 };
 const PRECINCT_EXTERIOR_SPAWN: GridPosition = GridPosition { x: 12, y: 3 };
@@ -133,6 +140,13 @@ const PRECINCT_INTERACTABLES: [GridPosition; 6] = [
 ];
 
 type TileGrid = [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT];
+type MapTileEntityFilter = Or<(With<MapTile>, With<MapTileOverlay>)>;
+type MapTileEntities<'w, 's> = Query<'w, 's, Entity, MapTileEntityFilter>;
+type MapAssets<'w> = (
+    Option<Res<'w, AssetServer>>,
+    Option<ResMut<'w, Assets<TextureAtlasLayout>>>,
+    ResMut<'w, PrecinctTileAtlas>,
+);
 
 #[derive(Resource, Debug, Default)]
 pub struct CollisionMap(pub HashSet<(i32, i32)>);
@@ -140,11 +154,21 @@ pub struct CollisionMap(pub HashSet<(i32, i32)>);
 #[derive(Component, Debug)]
 pub struct MapTile;
 
+#[derive(Component, Debug)]
+struct MapTileOverlay;
+
+#[derive(Resource, Debug, Default, Clone)]
+struct PrecinctTileAtlas {
+    texture: Option<Handle<Image>>,
+    layout: Option<Handle<TextureAtlasLayout>>,
+}
+
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CollisionMap>()
+            .init_resource::<PrecinctTileAtlas>()
             .add_systems(OnEnter(GameState::Playing), spawn_map)
             .add_systems(
                 Update,
@@ -274,10 +298,13 @@ pub fn precinct_exterior_data() -> TileGrid {
     tiles
 }
 
-pub fn spawn_map(
+fn spawn_map(
     mut commands: Commands,
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
+    asset_server: Option<Res<AssetServer>>,
+    mut atlas_layouts: Option<ResMut<Assets<TextureAtlasLayout>>>,
+    mut precinct_tile_atlas: ResMut<PrecinctTileAtlas>,
     existing_tiles: Query<Entity, With<MapTile>>,
 ) {
     if existing_tiles.iter().next().is_some() {
@@ -295,17 +322,30 @@ pub fn spawn_map(
         set_player_grid_position(&mut player_state, map_data.spawn_point);
     }
 
-    spawn_map_entities(&mut commands, &mut collision_map, map_data);
+    let interior_tile_handles = ensure_precinct_tile_atlas(
+        asset_server.as_deref(),
+        atlas_layouts.as_deref_mut(),
+        &mut precinct_tile_atlas,
+    );
+
+    spawn_map_entities(
+        &mut commands,
+        &mut collision_map,
+        map_data,
+        interior_tile_handles.as_ref(),
+    );
 }
 
-pub fn handle_map_transition(
+fn handle_map_transition(
     mut commands: Commands,
     mut transition_events: EventReader<MapTransitionEvent>,
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
-    map_tiles: Query<Entity, With<MapTile>>,
+    map_assets: MapAssets<'_>,
+    map_tiles: MapTileEntities<'_, '_>,
     mut player_query: Query<(&mut Transform, &mut GridPosition), With<Player>>,
 ) {
+    let (asset_server, mut atlas_layouts, mut precinct_tile_atlas) = map_assets;
     let mut latest_transition = None;
     for event in transition_events.read() {
         latest_transition = Some((event.from, event.to));
@@ -329,12 +369,23 @@ pub fn handle_map_transition(
     set_player_grid_position(&mut player_state, target_position);
     sync_live_player_position(target_position, &mut player_query);
 
-    spawn_map_entities(&mut commands, &mut collision_map, map_data);
+    let interior_tile_handles = ensure_precinct_tile_atlas(
+        asset_server.as_deref(),
+        atlas_layouts.as_deref_mut(),
+        &mut precinct_tile_atlas,
+    );
+
+    spawn_map_entities(
+        &mut commands,
+        &mut collision_map,
+        map_data,
+        interior_tile_handles.as_ref(),
+    );
 }
 
-pub fn cleanup_map(
+fn cleanup_map(
     mut commands: Commands,
-    map_tiles: Query<Entity, With<MapTile>>,
+    map_tiles: MapTileEntities<'_, '_>,
     mut collision_map: ResMut<CollisionMap>,
 ) {
     despawn_map_tiles(&mut commands, &map_tiles, &mut collision_map);
@@ -380,6 +431,7 @@ fn spawn_map_entities(
     commands: &mut Commands,
     collision_map: &mut CollisionMap,
     map_data: TileMapData,
+    interior_tile_handles: Option<&PrecinctTileAtlasHandles>,
 ) {
     collision_map.0.clear();
 
@@ -393,6 +445,36 @@ fn spawn_map_entities(
 
             if tile_kind == TileKind::Wall {
                 collision_map.0.insert((grid_position.x, grid_position.y));
+            }
+
+            if map_data.map_id == MapId::PrecinctInterior {
+                if let Some(tile_handles) = interior_tile_handles {
+                    commands.spawn((
+                        MapTile,
+                        grid_position,
+                        precinct_floor_sprite(tile_handles),
+                        Transform::from_xyz(
+                            grid_position.x as f32 * TILE_WORLD_SIZE,
+                            grid_position.y as f32 * TILE_WORLD_SIZE,
+                            0.0,
+                        ),
+                    ));
+
+                    if let Some(atlas_index) = precinct_overlay_tile_index(tile_kind) {
+                        commands.spawn((
+                            MapTileOverlay,
+                            grid_position,
+                            precinct_overlay_sprite(tile_handles, atlas_index),
+                            Transform::from_xyz(
+                                grid_position.x as f32 * TILE_WORLD_SIZE,
+                                grid_position.y as f32 * TILE_WORLD_SIZE,
+                                tile_z(tile_kind),
+                            ),
+                        ));
+                    }
+
+                    continue;
+                }
             }
 
             commands.spawn((
@@ -421,7 +503,7 @@ fn spawn_map_entities(
 
 fn despawn_map_tiles(
     commands: &mut Commands,
-    map_tiles: &Query<Entity, With<MapTile>>,
+    map_tiles: &MapTileEntities<'_, '_>,
     collision_map: &mut CollisionMap,
 ) {
     for entity in map_tiles.iter() {
@@ -533,6 +615,69 @@ fn tile_color(tile_kind: TileKind) -> Color {
         TileKind::Interactable => Color::srgb_u8(0x4a, 0x4a, 0x6a),
         TileKind::Water => Color::srgb_u8(0x2a, 0x4a, 0x6a),
         TileKind::CrimeTape => Color::srgb_u8(0xc9, 0xa2, 0x00),
+    }
+}
+
+#[derive(Clone, Debug)]
+struct PrecinctTileAtlasHandles {
+    texture: Handle<Image>,
+    layout: Handle<TextureAtlasLayout>,
+}
+
+fn ensure_precinct_tile_atlas(
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: Option<&mut Assets<TextureAtlasLayout>>,
+    precinct_tile_atlas: &mut PrecinctTileAtlas,
+) -> Option<PrecinctTileAtlasHandles> {
+    if precinct_tile_atlas.texture.is_none() || precinct_tile_atlas.layout.is_none() {
+        let asset_server = asset_server?;
+        let atlas_layouts = atlas_layouts?;
+        let texture = asset_server.load(PRECINCT_TILESET_PATH);
+        let layout = atlas_layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(16),
+            PRECINCT_TILE_ATLAS_COLUMNS,
+            PRECINCT_TILE_ATLAS_ROWS,
+            None,
+            None,
+        ));
+
+        precinct_tile_atlas.texture = Some(texture);
+        precinct_tile_atlas.layout = Some(layout);
+    }
+
+    Some(PrecinctTileAtlasHandles {
+        texture: precinct_tile_atlas.texture.clone()?,
+        layout: precinct_tile_atlas.layout.clone()?,
+    })
+}
+
+fn precinct_floor_sprite(tile_handles: &PrecinctTileAtlasHandles) -> Sprite {
+    precinct_tile_sprite(tile_handles, PRECINCT_FLOOR_TILE_INDEX)
+}
+
+fn precinct_overlay_sprite(tile_handles: &PrecinctTileAtlasHandles, atlas_index: usize) -> Sprite {
+    precinct_tile_sprite(tile_handles, atlas_index)
+}
+
+fn precinct_tile_sprite(tile_handles: &PrecinctTileAtlasHandles, atlas_index: usize) -> Sprite {
+    let mut sprite = Sprite::from_atlas_image(
+        tile_handles.texture.clone(),
+        TextureAtlas {
+            layout: tile_handles.layout.clone(),
+            index: atlas_index,
+        },
+    );
+    sprite.custom_size = Some(Vec2::splat(TILE_WORLD_SIZE));
+    sprite
+}
+
+fn precinct_overlay_tile_index(tile_kind: TileKind) -> Option<usize> {
+    match tile_kind {
+        TileKind::Floor => None,
+        TileKind::Wall => Some(PRECINCT_WALL_TILE_INDEX),
+        TileKind::Door => Some(PRECINCT_DOOR_TILE_INDEX),
+        TileKind::Interactable => Some(PRECINCT_INTERACTABLE_TILE_INDEX),
+        _ => None,
     }
 }
 

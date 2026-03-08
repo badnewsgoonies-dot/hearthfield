@@ -11,6 +11,8 @@ use crate::shared::{
 };
 
 const BAR_MAX_WIDTH: f32 = 200.0;
+const BAR_FRAME_WIDTH: f32 = BAR_MAX_WIDTH + 8.0;
+const BAR_FRAME_HEIGHT: f32 = 26.0;
 
 pub struct UiPlugin;
 
@@ -507,22 +509,35 @@ fn spawn_hud(mut commands: Commands, clock: Res<ShiftClock>, player: Res<PlayerS
                         panel
                             .spawn((
                                 Node {
-                                    width: Val::Px(BAR_MAX_WIDTH),
-                                    height: Val::Px(18.0),
+                                    width: Val::Px(BAR_FRAME_WIDTH),
+                                    height: Val::Px(BAR_FRAME_HEIGHT),
+                                    padding: UiRect::all(Val::Px(2.0)),
                                     ..default()
                                 },
-                                BackgroundColor(Color::srgb(0.12, 0.14, 0.18)),
+                                BackgroundColor(Color::srgb(0.38, 0.40, 0.46)),
                             ))
-                            .with_children(|bar| {
-                                bar.spawn((
-                                    HudFatigueFill,
-                                    Node {
-                                        width: Val::Px(fatigue_fill_width(player.fatigue)),
-                                        height: Val::Percent(100.0),
-                                        ..default()
-                                    },
-                                    BackgroundColor(fatigue_fill_color(player.fatigue)),
-                                ));
+                            .with_children(|frame| {
+                                frame
+                                    .spawn((
+                                        Node {
+                                            width: Val::Percent(100.0),
+                                            height: Val::Percent(100.0),
+                                            padding: UiRect::all(Val::Px(2.0)),
+                                            ..default()
+                                        },
+                                        BackgroundColor(Color::srgb(0.06, 0.08, 0.10)),
+                                    ))
+                                    .with_children(|well| {
+                                        well.spawn((
+                                            HudFatigueFill,
+                                            Node {
+                                                width: Val::Px(fatigue_fill_width(player.fatigue)),
+                                                height: Val::Percent(100.0),
+                                                ..default()
+                                            },
+                                            BackgroundColor(fatigue_fill_color(player.fatigue)),
+                                        ));
+                                    });
                             });
 
                         panel.spawn((
@@ -536,22 +551,35 @@ fn spawn_hud(mut commands: Commands, clock: Res<ShiftClock>, player: Res<PlayerS
                         panel
                             .spawn((
                                 Node {
-                                    width: Val::Px(BAR_MAX_WIDTH),
-                                    height: Val::Px(18.0),
+                                    width: Val::Px(BAR_FRAME_WIDTH),
+                                    height: Val::Px(BAR_FRAME_HEIGHT),
+                                    padding: UiRect::all(Val::Px(2.0)),
                                     ..default()
                                 },
-                                BackgroundColor(Color::srgb(0.12, 0.14, 0.18)),
+                                BackgroundColor(Color::srgb(0.38, 0.40, 0.46)),
                             ))
-                            .with_children(|bar| {
-                                bar.spawn((
-                                    HudStressFill,
-                                    Node {
-                                        width: Val::Px(stress_fill_width(player.stress)),
-                                        height: Val::Percent(100.0),
-                                        ..default()
-                                    },
-                                    BackgroundColor(stress_fill_color(player.stress)),
-                                ));
+                            .with_children(|frame| {
+                                frame
+                                    .spawn((
+                                        Node {
+                                            width: Val::Percent(100.0),
+                                            height: Val::Percent(100.0),
+                                            padding: UiRect::all(Val::Px(2.0)),
+                                            ..default()
+                                        },
+                                        BackgroundColor(Color::srgb(0.06, 0.08, 0.10)),
+                                    ))
+                                    .with_children(|well| {
+                                        well.spawn((
+                                            HudStressFill,
+                                            Node {
+                                                width: Val::Px(stress_fill_width(player.stress)),
+                                                height: Val::Percent(100.0),
+                                                ..default()
+                                            },
+                                            BackgroundColor(stress_fill_color(player.stress)),
+                                        ));
+                                    });
                             });
                     });
 

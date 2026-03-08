@@ -11,6 +11,9 @@ const RUN_SPEED: f32 = WALK_SPEED * RUN_MULTIPLIER;
 const RUN_MULTIPLIER: f32 = 1.5;
 const CAMERA_LERP_SPEED: f32 = 8.0;
 const PLAYER_Z: f32 = 10.0;
+const PLAYER_SPRITE_PATH: &str = "characters/player_officer.png";
+const PLAYER_SPRITE_COLUMNS: u32 = 24;
+const PLAYER_SPRITE_ROWS: u32 = 14;
 
 #[derive(Resource, Debug, Clone, Default)]
 pub(crate) struct ViewHotkeys {
@@ -47,6 +50,12 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 camera_follow
+                    .in_set(UpdatePhase::Presentation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                sync_player_sprite_facing
                     .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
             );
@@ -99,6 +108,8 @@ fn read_keyboard_input(
 pub fn spawn_player(
     mut commands: Commands,
     mut player_state: ResMut<PlayerState>,
+    asset_server: Option<Res<AssetServer>>,
+    mut atlas_layouts: Option<ResMut<Assets<TextureAtlasLayout>>>,
     existing_players: Query<Entity, With<Player>>,
 ) {
     if existing_players.iter().next().is_some() {
@@ -127,6 +138,18 @@ pub fn spawn_player(
         player_state.position_y = spawn_position.y;
     }
 
+    let sprite = player_sprite(
+        Facing::Down,
+        asset_server.as_deref(),
+        atlas_layouts.as_deref_mut(),
+    )
+    .unwrap_or_else(|| {
+        Sprite::from_color(
+            Color::srgb(0.20, 0.38, 0.95),
+            Vec2::splat(world_tile_size()),
+        )
+    });
+
     commands.spawn((
         Player,
         PlayerMovement {
@@ -135,7 +158,7 @@ pub fn spawn_player(
             is_running: false,
         },
         spawn_grid,
-        Sprite::from_color(Color::srgb(0.20, 0.38, 0.95), Vec2::splat(TILE_SIZE)),
+        sprite,
         Transform::from_xyz(spawn_position.x, spawn_position.y, PLAYER_Z),
     ));
 }
@@ -212,6 +235,20 @@ pub fn camera_follow(
 
     camera_transform.translation.x = lerp(camera_transform.translation.x, target.x, t).round();
     camera_transform.translation.y = lerp(camera_transform.translation.y, target.y, t).round();
+}
+
+fn sync_player_sprite_facing(
+    mut player_query: Query<(&PlayerMovement, &mut Sprite), With<Player>>,
+) {
+    let Ok((movement, mut sprite)) = player_query.get_single_mut() else {
+        return;
+    };
+
+    let Some(texture_atlas) = sprite.texture_atlas.as_mut() else {
+        return;
+    };
+
+    texture_atlas.index = character_facing_frame(movement.facing);
 }
 
 pub fn check_map_transition_zone(
@@ -308,6 +345,59 @@ fn world_tile_size() -> f32 {
     TILE_SIZE * PIXEL_SCALE
 }
 
+fn player_sprite(
+    facing: Facing,
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: Option<&mut Assets<TextureAtlasLayout>>,
+) -> Option<Sprite> {
+    character_sprite(
+        PLAYER_SPRITE_PATH,
+        PLAYER_SPRITE_COLUMNS,
+        PLAYER_SPRITE_ROWS,
+        facing,
+        asset_server,
+        atlas_layouts,
+    )
+}
+
+fn character_sprite(
+    path: &str,
+    columns: u32,
+    rows: u32,
+    facing: Facing,
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: Option<&mut Assets<TextureAtlasLayout>>,
+) -> Option<Sprite> {
+    let asset_server = asset_server?;
+    let atlas_layouts = atlas_layouts?;
+    let texture = asset_server.load(path);
+    let layout = atlas_layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::splat(16),
+        columns,
+        rows,
+        None,
+        None,
+    ));
+    let mut sprite = Sprite::from_atlas_image(
+        texture,
+        TextureAtlas {
+            layout,
+            index: character_facing_frame(facing),
+        },
+    );
+    sprite.custom_size = Some(Vec2::splat(world_tile_size()));
+    Some(sprite)
+}
+
+fn character_facing_frame(facing: Facing) -> usize {
+    match facing {
+        Facing::Left => 0,
+        Facing::Right => 1,
+        Facing::Up => 2,
+        Facing::Down => 3,
+    }
+}
+
 fn lerp(current: f32, target: f32, factor: f32) -> f32 {
     current + (target - current) * factor
 }
@@ -374,7 +464,7 @@ mod tests {
         assert_eq!(grid_position.y, 20);
         assert_eq!(transform.translation.x, 16.0 * 16.0 * 3.0);
         assert_eq!(transform.translation.y, 20.0 * 16.0 * 3.0);
-        assert_eq!(sprite.custom_size, Some(Vec2::splat(TILE_SIZE)));
+        assert_eq!(sprite.custom_size, Some(Vec2::splat(world_tile_size())));
         assert_eq!(movement.speed, WALK_SPEED);
         assert_eq!(movement.facing, Facing::Down);
         assert_eq!(

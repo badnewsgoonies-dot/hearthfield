@@ -4,12 +4,12 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::domains::cases::{case_definition, CaseRegistry};
 use crate::shared::{
-    CaseBoard, DayOfWeek, DialogueEndEvent, DialogueStartEvent, EvidenceCollectedEvent, GameState,
-    GridPosition, InterrogationEndEvent, InterrogationStartEvent, MapId, MapTransitionEvent, Npc,
-    NpcDef, NpcId, NpcRegistry, NpcRelationship, NpcRole, NpcTrustChangeEvent, PartnerArc,
-    PartnerStage, PlayerInput, PlayerState, ScheduleEntry, ShiftClock, UpdatePhase, Weather,
-    XpGainedEvent, MAX_PRESSURE, MAX_TRUST, MIN_TRUST, PIXEL_SCALE, TILE_SIZE,
-    XP_PER_INTERROGATION,
+    CaseBoard, DayOfWeek, DialogueEndEvent, DialogueStartEvent, EvidenceCollectedEvent, Facing,
+    GameState, GridPosition, InterrogationEndEvent, InterrogationStartEvent, MapId,
+    MapTransitionEvent, Npc, NpcDef, NpcId, NpcRegistry, NpcRelationship, NpcRole,
+    NpcTrustChangeEvent, PartnerArc, PartnerStage, PlayerInput, PlayerState, ScheduleEntry,
+    ShiftClock, UpdatePhase, Weather, XpGainedEvent, MAX_PRESSURE, MAX_TRUST, MIN_TRUST,
+    PIXEL_SCALE, TILE_SIZE, XP_PER_INTERROGATION,
 };
 
 const INTERACTION_RANGE_TILES: i32 = 2;
@@ -41,6 +41,16 @@ struct NpcInteractionState {
     active_dialogue_npc: Option<NpcId>,
     active_dialogue_context: Option<String>,
     active_interrogation: Option<(NpcId, String)>,
+}
+
+#[derive(Component, Debug, Clone, Copy)]
+struct NpcFacing(Facing);
+
+#[derive(Clone, Copy)]
+struct CharacterSpriteSheetSpec {
+    path: &'static str,
+    columns: u32,
+    rows: u32,
 }
 
 const AUTHORED_NPCS: [AuthoredNpc; 12] = [
@@ -420,6 +430,8 @@ fn spawn_npcs_on_enter(
     registry: Res<NpcRegistry>,
     player_state: Res<PlayerState>,
     clock: Res<ShiftClock>,
+    asset_server: Option<Res<AssetServer>>,
+    mut atlas_layouts: Option<ResMut<Assets<TextureAtlasLayout>>>,
     existing_npcs: Query<Entity, With<Npc>>,
 ) {
     if existing_npcs.iter().next().is_some() {
@@ -432,6 +444,8 @@ fn spawn_npcs_on_enter(
         &clock,
         player_state.position_map,
         &HashSet::new(),
+        asset_server.as_deref(),
+        &mut atlas_layouts,
     );
 }
 
@@ -440,6 +454,8 @@ fn spawn_npcs_for_map(
     mut transition_events: EventReader<MapTransitionEvent>,
     registry: Res<NpcRegistry>,
     clock: Res<ShiftClock>,
+    asset_server: Option<Res<AssetServer>>,
+    mut atlas_layouts: Option<ResMut<Assets<TextureAtlasLayout>>>,
     existing_npcs: Query<Entity, With<Npc>>,
 ) {
     let mut target_map = None;
@@ -462,6 +478,8 @@ fn spawn_npcs_for_map(
         &clock,
         target_map,
         &HashSet::new(),
+        asset_server.as_deref(),
+        &mut atlas_layouts,
     );
 }
 
@@ -470,9 +488,21 @@ fn update_npc_schedules(
     registry: Res<NpcRegistry>,
     clock: Res<ShiftClock>,
     player_state: Res<PlayerState>,
+    sprite_assets: (
+        Option<Res<AssetServer>>,
+        Option<ResMut<Assets<TextureAtlasLayout>>>,
+    ),
     mut transition_events: EventReader<MapTransitionEvent>,
-    mut npc_query: Query<(Entity, &Npc, &mut GridPosition, &mut Transform)>,
+    mut npc_query: Query<(
+        Entity,
+        &Npc,
+        &mut GridPosition,
+        &mut Transform,
+        &mut NpcFacing,
+        &mut Sprite,
+    )>,
 ) {
+    let (asset_server, mut atlas_layouts) = sprite_assets;
     if transition_events.read().next().is_some() {
         return;
     }
@@ -480,7 +510,7 @@ fn update_npc_schedules(
     let mut active_ids = HashSet::new();
     let current_map = player_state.position_map;
 
-    for (entity, npc, mut grid, mut transform) in &mut npc_query {
+    for (entity, npc, mut grid, mut transform, mut facing, mut sprite) in &mut npc_query {
         let Some(schedule) = registry.schedules.get(&npc.id) else {
             commands.entity(entity).despawn();
             continue;
@@ -496,16 +526,27 @@ fn update_npc_schedules(
             continue;
         }
 
+        let previous_grid = *grid;
         let grid_position = resolved_grid_position(&npc.id, entry, &clock);
         let world_position = grid_to_world(grid_position);
         grid.x = grid_position.x;
         grid.y = grid_position.y;
         transform.translation.x = world_position.x;
         transform.translation.y = world_position.y;
+        facing.0 = facing_from_grid_delta(previous_grid, grid_position, facing.0);
+        sync_character_sprite(&mut sprite, facing.0);
         active_ids.insert(npc.id.clone());
     }
 
-    spawn_npcs_for_target_map(&mut commands, &registry, &clock, current_map, &active_ids);
+    spawn_npcs_for_target_map(
+        &mut commands,
+        &registry,
+        &clock,
+        current_map,
+        &active_ids,
+        asset_server.as_deref(),
+        &mut atlas_layouts,
+    );
 }
 
 fn handle_npc_interaction(
@@ -758,6 +799,8 @@ fn spawn_npcs_for_target_map(
     clock: &ShiftClock,
     target_map: MapId,
     already_active: &HashSet<NpcId>,
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: &mut Option<ResMut<Assets<TextureAtlasLayout>>>,
 ) {
     for authored in AUTHORED_NPCS {
         if already_active.contains(authored.id) {
@@ -778,7 +821,15 @@ fn spawn_npcs_for_target_map(
             continue;
         }
 
-        spawn_npc_entity(commands, authored.id, definition, entry, clock);
+        spawn_npc_entity(
+            commands,
+            authored.id,
+            definition,
+            entry,
+            clock,
+            asset_server,
+            atlas_layouts,
+        );
     }
 }
 
@@ -788,16 +839,24 @@ fn spawn_npc_entity(
     definition: &NpcDef,
     schedule_entry: &ScheduleEntry,
     clock: &ShiftClock,
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: &mut Option<ResMut<Assets<TextureAtlasLayout>>>,
 ) {
     let grid_position = resolved_grid_position(npc_id, schedule_entry, clock);
     let world_position = grid_to_world(grid_position);
+    let facing = default_npc_facing(npc_id);
+    let sprite = npc_sprite(npc_id, facing, asset_server, atlas_layouts.as_deref_mut())
+        .unwrap_or_else(|| {
+            Sprite::from_color(role_color(definition.role), Vec2::splat(WORLD_TILE_SIZE))
+        });
 
     commands.spawn((
         Npc {
             id: definition.id.clone(),
         },
+        NpcFacing(facing),
         grid_position,
-        Sprite::from_color(role_color(definition.role), Vec2::splat(TILE_SIZE)),
+        sprite,
         Transform::from_xyz(world_position.x, world_position.y, NPC_Z),
     ));
 }
@@ -980,6 +1039,159 @@ fn role_color(role: NpcRole) -> Color {
         NpcRole::Witness => Color::srgb(0.80, 0.80, 0.80),
         NpcRole::Suspect => Color::srgb(0.58, 0.18, 0.18),
     }
+}
+
+fn npc_sprite(
+    npc_id: &str,
+    facing: Facing,
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: Option<&mut Assets<TextureAtlasLayout>>,
+) -> Option<Sprite> {
+    let spec = npc_sprite_sheet_spec(npc_id)?;
+    character_sprite(spec, facing, asset_server, atlas_layouts)
+}
+
+fn character_sprite(
+    spec: CharacterSpriteSheetSpec,
+    facing: Facing,
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: Option<&mut Assets<TextureAtlasLayout>>,
+) -> Option<Sprite> {
+    let asset_server = asset_server?;
+    let atlas_layouts = atlas_layouts?;
+    let texture = asset_server.load(spec.path);
+    let layout = atlas_layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::splat(16),
+        spec.columns,
+        spec.rows,
+        None,
+        None,
+    ));
+    let mut sprite = Sprite::from_atlas_image(
+        texture,
+        TextureAtlas {
+            layout,
+            index: character_facing_frame(facing),
+        },
+    );
+    sprite.custom_size = Some(Vec2::splat(WORLD_TILE_SIZE));
+    Some(sprite)
+}
+
+fn sync_character_sprite(sprite: &mut Sprite, facing: Facing) {
+    if let Some(texture_atlas) = sprite.texture_atlas.as_mut() {
+        texture_atlas.index = character_facing_frame(facing);
+    }
+}
+
+fn character_facing_frame(facing: Facing) -> usize {
+    match facing {
+        Facing::Left => 0,
+        Facing::Right => 1,
+        Facing::Up => 2,
+        Facing::Down => 3,
+    }
+}
+
+fn default_npc_facing(npc_id: &str) -> Facing {
+    match npc_id {
+        "captain_torres" | "sgt_murphy" | "mayor_aldridge" | "dr_okafor" => Facing::Down,
+        "det_vasquez" | "father_brennan" | "lucia_vega" => Facing::Left,
+        "officer_chen" | "rita_gomez" | "nadia_park" => Facing::Right,
+        _ => Facing::Up,
+    }
+}
+
+fn facing_from_grid_delta(
+    previous: GridPosition,
+    current: GridPosition,
+    fallback: Facing,
+) -> Facing {
+    let delta = IVec2::new(current.x - previous.x, current.y - previous.y);
+
+    if delta.x.abs() > delta.y.abs() {
+        if delta.x > 0 {
+            Facing::Right
+        } else if delta.x < 0 {
+            Facing::Left
+        } else {
+            fallback
+        }
+    } else if delta.y != 0 {
+        if delta.y > 0 {
+            Facing::Up
+        } else {
+            Facing::Down
+        }
+    } else {
+        fallback
+    }
+}
+
+fn npc_sprite_sheet_spec(npc_id: &str) -> Option<CharacterSpriteSheetSpec> {
+    Some(match npc_id {
+        "captain_torres" => CharacterSpriteSheetSpec {
+            path: "characters/captain_torres.png",
+            columns: 24,
+            rows: 14,
+        },
+        "det_vasquez" => CharacterSpriteSheetSpec {
+            path: "characters/det_vasquez.png",
+            columns: 24,
+            rows: 14,
+        },
+        "officer_chen" => CharacterSpriteSheetSpec {
+            path: "characters/officer_chen.png",
+            columns: 24,
+            rows: 14,
+        },
+        "sgt_murphy" => CharacterSpriteSheetSpec {
+            path: "characters/sgt_murphy.png",
+            columns: 4,
+            rows: 2,
+        },
+        "mayor_aldridge" => CharacterSpriteSheetSpec {
+            path: "characters/mayor_aldridge.png",
+            columns: 4,
+            rows: 2,
+        },
+        "dr_okafor" => CharacterSpriteSheetSpec {
+            path: "characters/dr_okafor.png",
+            columns: 4,
+            rows: 2,
+        },
+        "rita_gomez" => CharacterSpriteSheetSpec {
+            path: "characters/rita_gomez.png",
+            columns: 24,
+            rows: 2,
+        },
+        "father_brennan" => CharacterSpriteSheetSpec {
+            path: "characters/father_brennan.png",
+            columns: 4,
+            rows: 2,
+        },
+        "ghost_tipster" => CharacterSpriteSheetSpec {
+            path: "characters/ghost_tipster.png",
+            columns: 24,
+            rows: 2,
+        },
+        "nadia_park" => CharacterSpriteSheetSpec {
+            path: "characters/nadia_park.png",
+            columns: 24,
+            rows: 2,
+        },
+        "marcus_cole" => CharacterSpriteSheetSpec {
+            path: "characters/marcus_cole.png",
+            columns: 24,
+            rows: 2,
+        },
+        "lucia_vega" => CharacterSpriteSheetSpec {
+            path: "characters/lucia_vega.png",
+            columns: 24,
+            rows: 2,
+        },
+        _ => return None,
+    })
 }
 
 #[cfg(test)]

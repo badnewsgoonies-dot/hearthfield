@@ -13,6 +13,9 @@ const INTERACTION_RANGE_TILES: i32 = 2;
 const PRECINCT_OBJECT_Z: f32 = 2.0;
 const TOAST_DURATION_SECS: f32 = 2.5;
 const WORLD_TILE_SIZE: f32 = TILE_SIZE * PIXEL_SCALE;
+const OFFICE_FURNITURE_ATLAS_PATH: &str = "tilesets/office_furniture.png";
+const OFFICE_FURNITURE_COLUMNS: u32 = 16;
+const OFFICE_FURNITURE_ROWS: u32 = 53;
 const LOCKER_POSITION: GridPosition = GridPosition { x: 27, y: 21 };
 const EXTERIOR_EVIDENCE_POSITION: GridPosition = GridPosition { x: 18, y: 14 };
 
@@ -73,6 +76,7 @@ struct PrecinctInteractableSpec {
     map_id: MapId,
     grid: GridPosition,
     color: (u8, u8, u8),
+    atlas_index: usize,
 }
 
 const PRECINCT_INTERACTABLE_SPECS: [PrecinctInteractableSpec; 8] = [
@@ -81,52 +85,66 @@ const PRECINCT_INTERACTABLE_SPECS: [PrecinctInteractableSpec; 8] = [
         map_id: MapId::PrecinctInterior,
         grid: GridPosition { x: 4, y: 12 },
         color: (0xe2, 0xc3, 0x3c),
+        atlas_index: 184,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::EvidenceTerminal,
         map_id: MapId::PrecinctInterior,
         grid: GridPosition { x: 26, y: 12 },
         color: (0x45, 0xa6, 0x62),
+        atlas_index: 205,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::CoffeeMachine,
         map_id: MapId::PrecinctInterior,
         grid: GridPosition { x: 26, y: 6 },
         color: (0x74, 0x4e, 0x2b),
+        atlas_index: 154,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::MealTable,
         map_id: MapId::PrecinctInterior,
         grid: GridPosition { x: 24, y: 6 },
         color: (0xcf, 0x82, 0x31),
+        atlas_index: 201,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::CaptainDoor,
         map_id: MapId::PrecinctInterior,
         grid: GridPosition { x: 4, y: 6 },
         color: (0xb7, 0x3a, 0x3a),
+        atlas_index: 194,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::Locker,
         map_id: MapId::PrecinctInterior,
         grid: LOCKER_POSITION,
         color: (0x7d, 0x84, 0x95),
+        atlas_index: 145,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::DispatchRadio,
         map_id: MapId::PrecinctInterior,
         grid: GridPosition { x: 16, y: 16 },
         color: (0x4d, 0xc3, 0xd8),
+        atlas_index: 204,
     },
     PrecinctInteractableSpec {
         interactable: PrecinctInteractable::ExteriorEvidenceScene,
         map_id: MapId::PrecinctExterior,
         grid: EXTERIOR_EVIDENCE_POSITION,
         color: (0xd2, 0x9d, 0x2f),
+        atlas_index: 193,
     },
 ];
 
 pub struct PrecinctPlugin;
+
+#[derive(Resource, Debug, Default, Clone)]
+struct PrecinctObjectAtlas {
+    texture: Option<Handle<Image>>,
+    layout: Option<Handle<TextureAtlasLayout>>,
+}
 
 #[derive(SystemParam)]
 pub struct PrecinctInteractionContext<'w, 's> {
@@ -145,7 +163,8 @@ pub struct PrecinctInteractionContext<'w, 's> {
 
 impl Plugin for PrecinctPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_precinct_objects_on_enter)
+        app.init_resource::<PrecinctObjectAtlas>()
+            .add_systems(OnEnter(GameState::Playing), spawn_precinct_objects_on_enter)
             .add_systems(
                 OnEnter(GameState::MainMenu),
                 cleanup_precinct_objects_on_exit,
@@ -159,12 +178,26 @@ impl Plugin for PrecinctPlugin {
     }
 }
 
-pub fn spawn_precinct_objects_on_enter(
+fn spawn_precinct_objects_on_enter(
     mut commands: Commands,
     player_state: Res<PlayerState>,
+    asset_server: Option<Res<AssetServer>>,
+    mut atlas_layouts: Option<ResMut<Assets<TextureAtlasLayout>>>,
+    mut precinct_object_atlas: ResMut<PrecinctObjectAtlas>,
     existing_objects: Query<Entity, With<PrecinctObject>>,
 ) {
-    spawn_objects_if_needed(&mut commands, &existing_objects, player_state.position_map);
+    let object_atlas = ensure_precinct_object_atlas(
+        asset_server.as_deref(),
+        atlas_layouts.as_deref_mut(),
+        &mut precinct_object_atlas,
+    );
+
+    spawn_objects_if_needed(
+        &mut commands,
+        &existing_objects,
+        player_state.position_map,
+        object_atlas.as_ref(),
+    );
 }
 
 pub fn handle_precinct_interaction(
@@ -331,12 +364,20 @@ fn spawn_objects_if_needed(
     commands: &mut Commands,
     existing_objects: &Query<Entity, With<PrecinctObject>>,
     current_map: MapId,
+    object_atlas: Option<&PrecinctObjectAtlasHandles>,
 ) {
     if existing_objects.iter().next().is_some() {
         return;
     }
 
     for spec in PRECINCT_INTERACTABLE_SPECS {
+        let sprite = precinct_object_sprite(spec, object_atlas).unwrap_or_else(|| {
+            Sprite::from_color(
+                Color::srgb_u8(spec.color.0, spec.color.1, spec.color.2),
+                Vec2::splat(WORLD_TILE_SIZE),
+            )
+        });
+
         commands.spawn((
             PrecinctObject,
             spec.interactable,
@@ -347,10 +388,7 @@ fn spawn_objects_if_needed(
             } else {
                 Visibility::Hidden
             },
-            Sprite::from_color(
-                Color::srgb_u8(spec.color.0, spec.color.1, spec.color.2),
-                Vec2::splat(WORLD_TILE_SIZE),
-            ),
+            sprite,
             Transform::from_xyz(
                 spec.grid.x as f32 * WORLD_TILE_SIZE,
                 spec.grid.y as f32 * WORLD_TILE_SIZE,
@@ -367,6 +405,55 @@ fn despawn_precinct_objects(
     for entity in precinct_objects.iter() {
         commands.entity(entity).despawn();
     }
+}
+
+#[derive(Clone, Debug)]
+struct PrecinctObjectAtlasHandles {
+    texture: Handle<Image>,
+    layout: Handle<TextureAtlasLayout>,
+}
+
+fn ensure_precinct_object_atlas(
+    asset_server: Option<&AssetServer>,
+    atlas_layouts: Option<&mut Assets<TextureAtlasLayout>>,
+    precinct_object_atlas: &mut PrecinctObjectAtlas,
+) -> Option<PrecinctObjectAtlasHandles> {
+    if precinct_object_atlas.texture.is_none() || precinct_object_atlas.layout.is_none() {
+        let asset_server = asset_server?;
+        let atlas_layouts = atlas_layouts?;
+        let texture = asset_server.load(OFFICE_FURNITURE_ATLAS_PATH);
+        let layout = atlas_layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(16),
+            OFFICE_FURNITURE_COLUMNS,
+            OFFICE_FURNITURE_ROWS,
+            None,
+            None,
+        ));
+
+        precinct_object_atlas.texture = Some(texture);
+        precinct_object_atlas.layout = Some(layout);
+    }
+
+    Some(PrecinctObjectAtlasHandles {
+        texture: precinct_object_atlas.texture.clone()?,
+        layout: precinct_object_atlas.layout.clone()?,
+    })
+}
+
+fn precinct_object_sprite(
+    spec: PrecinctInteractableSpec,
+    object_atlas: Option<&PrecinctObjectAtlasHandles>,
+) -> Option<Sprite> {
+    let object_atlas = object_atlas?;
+    let mut sprite = Sprite::from_atlas_image(
+        object_atlas.texture.clone(),
+        TextureAtlas {
+            layout: object_atlas.layout.clone(),
+            index: spec.atlas_index,
+        },
+    );
+    sprite.custom_size = Some(Vec2::splat(WORLD_TILE_SIZE));
+    Some(sprite)
 }
 
 fn nearest_interactable(
