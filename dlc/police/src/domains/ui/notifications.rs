@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::time::TimerMode;
 
-use crate::domains::cases::case_definition;
+use crate::domains::cases::{case_definition, case_flavor};
 use crate::shared::{
     CaseFailedEvent, CaseSolvedEvent, DispatchCallEvent, EvidenceCollectedEvent, EvidenceLocker,
     EvidenceProcessedEvent, PatrolState, PlayMusicEvent, PlaySfxEvent, PromotionEvent,
@@ -100,8 +100,7 @@ pub(super) fn build_notifications(app: &mut App) {
                 update_dispatch_banner,
             )
                 .in_set(UpdatePhase::Presentation),
-        )
-        .add_systems(Update, log_audio_requests.in_set(UpdatePhase::Reactions));
+        );
 }
 
 fn spawn_feedback_overlay(mut commands: Commands) {
@@ -202,12 +201,17 @@ fn emit_case_solved_toasts(
     mut toast_events: EventWriter<ToastEvent>,
 ) {
     for event in case_solved_events.read() {
-        let case_name = case_definition(&event.case_id)
-            .map(|case_def| case_def.name)
-            .unwrap_or_else(|| event.case_id.clone());
+        let message = case_flavor(&event.case_id)
+            .map(|flavor| flavor.resolution.to_string())
+            .unwrap_or_else(|| {
+                let case_name = case_definition(&event.case_id)
+                    .map(|case_def| case_def.name)
+                    .unwrap_or_else(|| event.case_id.clone());
+                format!("Case closed: {case_name}")
+            });
 
         toast_events.send(ToastEvent {
-            message: format!("Case closed: {case_name}"),
+            message,
             duration_secs: 3.0,
         });
     }
@@ -409,22 +413,6 @@ fn update_dispatch_banner(
         header_color.0 = Color::srgb(1.0, 0.42, 0.42);
         border.0 = Color::srgb(0.98, 0.84, 0.28);
         background.0 = Color::srgba(0.05, 0.08, 0.13, 0.96);
-    }
-}
-
-fn log_audio_requests(
-    mut sfx_events: EventReader<PlaySfxEvent>,
-    mut music_events: EventReader<PlayMusicEvent>,
-) {
-    for event in sfx_events.read() {
-        info!("PlaySfxEvent stub received for '{}'", event.name);
-    }
-
-    for event in music_events.read() {
-        info!(
-            "PlayMusicEvent stub received for '{}' looping={}",
-            event.name, event.looping
-        );
     }
 }
 

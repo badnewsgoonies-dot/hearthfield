@@ -1,3 +1,8 @@
+mod content;
+
+use content::case_flavor as authored_case_flavor;
+pub(crate) use content::{case_flavor, witness_ids, witness_lines};
+
 use std::collections::HashSet;
 
 use bevy::prelude::*;
@@ -89,7 +94,7 @@ fn handle_case_assignment(
         };
 
         let case_id = case_board.available.remove(available_index);
-        case_board.active.push(ActiveCase {
+        let mut active_case = ActiveCase {
             case_id,
             status: CaseStatus::Active,
             evidence_collected: Vec::new(),
@@ -97,7 +102,9 @@ fn handle_case_assignment(
             suspects_interrogated: HashSet::default(),
             shifts_elapsed: 0,
             notes: Vec::new(),
-        });
+        };
+        append_opening_note(&mut active_case);
+        case_board.active.push(active_case);
     }
 }
 
@@ -179,6 +186,8 @@ fn track_evidence_for_cases(
         if active_case.status == CaseStatus::Active {
             active_case.status = CaseStatus::Investigating;
         }
+
+        append_mid_case_note(case_def, active_case);
     }
 }
 
@@ -332,6 +341,42 @@ fn replenish_available_cases(case_defs: &[CaseDef], case_board: &mut CaseBoard, 
             case_board.available.push(case_def.id.clone());
         }
     }
+}
+
+fn append_opening_note(active_case: &mut ActiveCase) {
+    let Some(flavor) = authored_case_flavor(&active_case.case_id) else {
+        return;
+    };
+
+    let note = format!("Briefing: {}", flavor.opening);
+    append_note_once(active_case, note);
+}
+
+fn append_mid_case_note(case_def: &CaseDef, active_case: &mut ActiveCase) {
+    let Some(flavor) = authored_case_flavor(&active_case.case_id) else {
+        return;
+    };
+
+    let required_count = case_def.evidence_required.len();
+    if required_count == 0 {
+        return;
+    }
+
+    let threshold = (required_count / 2).max(1);
+    if active_case.evidence_collected.len() < threshold {
+        return;
+    }
+
+    let note = format!("Lead update: {}", flavor.mid_case_update);
+    append_note_once(active_case, note);
+}
+
+fn append_note_once(active_case: &mut ActiveCase, note: String) {
+    if active_case.notes.iter().any(|existing| existing == &note) {
+        return;
+    }
+
+    active_case.notes.push(note);
 }
 
 struct CaseDefSpec<'a> {
@@ -1056,6 +1101,10 @@ mod tests {
         assert_eq!(board.active.len(), 1);
         assert_eq!(board.active[0].case_id, "patrol_001_petty_theft");
         assert_eq!(board.active[0].status, CaseStatus::Active);
+        assert!(board.active[0]
+            .notes
+            .iter()
+            .any(|note| note.starts_with("Briefing:")));
     }
 
     #[test]
@@ -1128,6 +1177,10 @@ mod tests {
             theft_case.evidence_collected,
             vec!["fingerprint".to_string()]
         );
+        assert!(theft_case
+            .notes
+            .iter()
+            .any(|note| note.starts_with("Lead update:")));
         assert!(vandalism_case.evidence_collected.is_empty());
     }
 

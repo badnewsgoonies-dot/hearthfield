@@ -2,14 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::domains::cases::{case_definition, CaseRegistry};
+use crate::domains::cases::{case_definition, witness_lines, CaseRegistry};
 use crate::shared::{
-    CaseBoard, DayOfWeek, DialogueEndEvent, DialogueStartEvent, EvidenceCollectedEvent, Facing,
-    GameState, GridPosition, InterrogationEndEvent, InterrogationStartEvent, MapId,
-    MapTransitionEvent, Npc, NpcDef, NpcId, NpcRegistry, NpcRelationship, NpcRole,
-    NpcTrustChangeEvent, PartnerArc, PartnerStage, PlayerInput, PlayerState, ScheduleEntry,
-    ShiftClock, UpdatePhase, Weather, XpGainedEvent, MAX_PRESSURE, MAX_TRUST, MIN_TRUST,
-    PIXEL_SCALE, TILE_SIZE, XP_PER_INTERROGATION,
+    CaseAssignedEvent, CaseBoard, DayOfWeek, DialogueEndEvent, DialogueStartEvent,
+    EvidenceCollectedEvent, Facing, GameState, GridPosition, InterrogationEndEvent,
+    InterrogationStartEvent, MapId, MapTransitionEvent, Npc, NpcDef, NpcId, NpcRegistry,
+    NpcRelationship, NpcRole, NpcTrustChangeEvent, PartnerArc, PartnerStage, PlayerInput,
+    PlayerState, ScheduleEntry, ShiftClock, ToastEvent, UpdatePhase, Weather, XpGainedEvent,
+    MAX_PRESSURE, MAX_TRUST, MIN_TRUST, PIXEL_SCALE, TILE_SIZE, XP_PER_INTERROGATION,
 };
 
 const INTERACTION_RANGE_TILES: i32 = 2;
@@ -17,6 +17,42 @@ const NPC_Z: f32 = 6.0;
 const WORLD_TILE_SIZE: f32 = TILE_SIZE * PIXEL_SCALE;
 const CONFESSION_QUALITY: f32 = 1.0;
 const PARTNER_ID: &str = "det_vasquez";
+const GHOST_ID: &str = "ghost_tipster";
+const HIGH_TRUST_THRESHOLD: i32 = 60;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TrustBand {
+    Low,
+    Mid,
+    High,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TimeBand {
+    Morning,
+    Afternoon,
+    Night,
+}
+
+#[derive(Clone, Copy)]
+struct DialogueProfile {
+    low_trust: &'static str,
+    mid_trust: &'static str,
+    high_trust: &'static str,
+    morning: &'static str,
+    afternoon: &'static str,
+    night: &'static str,
+    casework: &'static str,
+    volunteered: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum InterrogationBeat {
+    BuildTrust,
+    ApplyPressure,
+    AskEvidence,
+    Endgame,
+}
 
 #[derive(Clone, Copy)]
 struct AuthoredScheduleEntry {
@@ -45,6 +81,11 @@ struct NpcInteractionState {
 
 #[derive(Component, Debug, Clone, Copy)]
 struct NpcFacing(Facing);
+
+#[derive(Resource, Debug, Default, Clone)]
+struct InvestigationCommentaryState {
+    emitted_keys: HashSet<String>,
+}
 
 #[derive(Clone, Copy)]
 struct CharacterSpriteSheetSpec {
@@ -385,6 +426,7 @@ pub struct NpcsPlugin;
 impl Plugin for NpcsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<NpcInteractionState>()
+            .init_resource::<InvestigationCommentaryState>()
             .add_systems(Startup, populate_npc_registry)
             .add_systems(OnEnter(GameState::Playing), spawn_npcs_on_enter)
             .add_systems(OnEnter(GameState::MainMenu), cleanup_npcs)
@@ -412,7 +454,12 @@ impl Plugin for NpcsPlugin {
             )
             .add_systems(
                 Update,
-                (apply_trust_pressure, advance_partner_arc)
+                (
+                    apply_trust_pressure,
+                    advance_partner_arc,
+                    emit_investigation_commentary,
+                    emit_patrol_commentary,
+                )
                     .chain()
                     .in_set(UpdatePhase::Reactions),
             );
@@ -550,38 +597,81 @@ fn update_npc_schedules(
 }
 
 fn handle_npc_interaction(
-    player_input: Res<PlayerInput>,
-    player_state: Res<PlayerState>,
-    case_board: Res<CaseBoard>,
-    case_registry: Option<Res<CaseRegistry>>,
-    npc_query: Query<(&Npc, &GridPosition)>,
+    mut interaction: NpcInteractionInput,
     mut interaction_output: NpcInteractionOutput,
 ) {
-    if !player_input.interact {
+    if !interaction.player_input.interact {
         return;
     }
 
-    let player_grid = player_grid_position(&player_state);
-    let Some(npc_id) = nearest_npc(player_grid, &npc_query) else {
+    let player_grid = player_grid_position(&interaction.player_state);
+    let Some(npc_id) = nearest_npc(player_grid, &interaction.npc_query) else {
         return;
     };
 
-    if npc_id == "captain_torres" {
-        interaction_output.next_state.set(GameState::CareerView);
+    let witness_case_id = active_case_for_witness(
+        &interaction.case_board,
+        interaction.case_registry.as_deref(),
+        &npc_id,
+    );
+
+    if npc_id == GHOST_ID {
+        if let Some(case_id) = witness_case_id.as_deref() {
+            record_witness_interview(&mut interaction.case_board, case_id, &npc_id);
+        }
+
+        interaction_output.toast_events.send(ToastEvent {
+            message: ghost_dialogue_toast(
+                &interaction.npc_registry,
+                &interaction.case_board,
+                interaction.case_registry.as_deref(),
+                &interaction.clock,
+            ),
+            duration_secs: 3.8,
+        });
         return;
     }
 
-    if let Some(case_id) = active_case_for_suspect(&case_board, case_registry.as_deref(), &npc_id) {
+    if let Some(case_id) = active_case_for_suspect(
+        &interaction.case_board,
+        interaction.case_registry.as_deref(),
+        &npc_id,
+    ) {
         interaction_output
             .interrogation_events
             .send(InterrogationStartEvent { npc_id, case_id });
         return;
     }
 
-    interaction_output.dialogue_events.send(DialogueStartEvent {
-        npc_id,
-        context: "npc_interaction".to_string(),
-    });
+    let context = if npc_id == "captain_torres" {
+        "captain_briefing".to_string()
+    } else if npc_id == PARTNER_ID {
+        if interaction.case_board.active.is_empty() {
+            "partner_patrol".to_string()
+        } else {
+            "partner_casework".to_string()
+        }
+    } else if let Some(case_id) = witness_case_id {
+        record_witness_interview(&mut interaction.case_board, &case_id, &npc_id);
+        format!("case_interview:{case_id}")
+    } else {
+        "npc_interaction".to_string()
+    };
+
+    interaction_output
+        .dialogue_events
+        .send(DialogueStartEvent { npc_id, context });
+}
+
+#[derive(SystemParam)]
+struct NpcInteractionInput<'w, 's> {
+    player_input: Res<'w, PlayerInput>,
+    player_state: Res<'w, PlayerState>,
+    clock: Res<'w, ShiftClock>,
+    npc_registry: Res<'w, NpcRegistry>,
+    case_board: ResMut<'w, CaseBoard>,
+    case_registry: Option<Res<'w, CaseRegistry>>,
+    npc_query: Query<'w, 's, (&'static Npc, &'static GridPosition)>,
 }
 
 #[derive(SystemParam)]
@@ -589,6 +679,7 @@ struct NpcInteractionOutput<'w, 's> {
     next_state: ResMut<'w, NextState<GameState>>,
     dialogue_events: EventWriter<'w, DialogueStartEvent>,
     interrogation_events: EventWriter<'w, InterrogationStartEvent>,
+    toast_events: EventWriter<'w, ToastEvent>,
     marker: std::marker::PhantomData<&'s ()>,
 }
 
@@ -737,6 +828,99 @@ fn cleanup_npcs(mut commands: Commands, npc_query: Query<Entity, With<Npc>>) {
     }
 }
 
+fn emit_investigation_commentary(
+    mut assignment_events: EventReader<CaseAssignedEvent>,
+    mut evidence_events: EventReader<EvidenceCollectedEvent>,
+    partner_arc: Res<PartnerArc>,
+    clock: Res<ShiftClock>,
+    mut commentary_state: ResMut<InvestigationCommentaryState>,
+    mut toast_events: EventWriter<ToastEvent>,
+) {
+    for event in assignment_events.read() {
+        let partner_key = format!("vasquez:assignment:{}", event.case_id);
+        if commentary_state.emitted_keys.insert(partner_key) {
+            toast_events.send(ToastEvent {
+                message: vasquez_assignment_comment(&event.case_id, partner_arc.stage),
+                duration_secs: 3.2,
+            });
+        }
+
+        if case_has_ghost_tip(&event.case_id) {
+            let ghost_key = format!("ghost:assignment:{}", event.case_id);
+            if commentary_state.emitted_keys.insert(ghost_key) {
+                toast_events.send(ToastEvent {
+                    message: ghost_case_tip(&event.case_id, clock.hour),
+                    duration_secs: 3.6,
+                });
+            }
+        }
+    }
+
+    for event in evidence_events.read() {
+        let partner_key = format!("vasquez:evidence:{}", event.case_id);
+        if commentary_state.emitted_keys.insert(partner_key) {
+            toast_events.send(ToastEvent {
+                message: vasquez_evidence_comment(
+                    &event.case_id,
+                    partner_arc.stage,
+                    &event.evidence_id,
+                ),
+                duration_secs: 3.0,
+            });
+        }
+
+        if case_has_ghost_tip(&event.case_id) {
+            let ghost_key = format!("ghost:evidence:{}", event.case_id);
+            if commentary_state.emitted_keys.insert(ghost_key) {
+                toast_events.send(ToastEvent {
+                    message: ghost_case_tip(&event.case_id, clock.hour),
+                    duration_secs: 3.6,
+                });
+            }
+        }
+    }
+}
+
+fn emit_patrol_commentary(
+    mut transition_events: EventReader<MapTransitionEvent>,
+    case_board: Res<CaseBoard>,
+    partner_arc: Res<PartnerArc>,
+    clock: Res<ShiftClock>,
+    mut commentary_state: ResMut<InvestigationCommentaryState>,
+    mut toast_events: EventWriter<ToastEvent>,
+) {
+    let Some(active_case_id) = case_board
+        .active
+        .first()
+        .map(|active_case| active_case.case_id.as_str())
+    else {
+        return;
+    };
+
+    for event in transition_events.read() {
+        if !is_exterior_map(event.to) || event.to == MapId::PrecinctExterior {
+            continue;
+        }
+
+        let key = format!(
+            "vasquez:patrol:{}:{:?}:{}",
+            active_case_id, event.to, clock.shift_number
+        );
+        if !commentary_state.emitted_keys.insert(key) {
+            continue;
+        }
+
+        toast_events.send(ToastEvent {
+            message: vasquez_patrol_comment(
+                active_case_id,
+                partner_arc.stage,
+                event.to.display_name(),
+            ),
+            duration_secs: 3.2,
+        });
+    }
+}
+
 fn authored_definitions() -> HashMap<NpcId, NpcDef> {
     AUTHORED_NPCS
         .iter()
@@ -803,6 +987,10 @@ fn spawn_npcs_for_target_map(
     atlas_layouts: &mut Option<ResMut<Assets<TextureAtlasLayout>>>,
 ) {
     for authored in AUTHORED_NPCS {
+        if authored.id == GHOST_ID {
+            continue;
+        }
+
         if already_active.contains(authored.id) {
             continue;
         }
@@ -908,6 +1096,58 @@ fn active_case_for_suspect(
     })
 }
 
+fn active_case_for_witness(
+    case_board: &CaseBoard,
+    registry: Option<&CaseRegistry>,
+    npc_id: &str,
+) -> Option<String> {
+    case_board.active.iter().find_map(|active_case| {
+        if active_case.witnesses_interviewed.contains(npc_id) {
+            return None;
+        }
+
+        let is_witness = registry
+            .and_then(|registry| registry.get(&active_case.case_id))
+            .map(|case_def| {
+                case_def
+                    .witnesses
+                    .iter()
+                    .any(|witness_id| witness_id == npc_id)
+            })
+            .or_else(|| {
+                case_definition(&active_case.case_id).map(|case_def| {
+                    case_def
+                        .witnesses
+                        .iter()
+                        .any(|witness_id| witness_id == npc_id)
+                })
+            })
+            .unwrap_or(false);
+
+        is_witness.then(|| active_case.case_id.clone())
+    })
+}
+
+fn record_witness_interview(case_board: &mut CaseBoard, case_id: &str, npc_id: &str) {
+    let Some(active_case) = case_board
+        .active
+        .iter_mut()
+        .find(|active_case| active_case.case_id == case_id)
+    else {
+        return;
+    };
+
+    if active_case.witnesses_interviewed.insert(npc_id.to_string()) {
+        active_case
+            .notes
+            .push(format!("Interviewed witness {npc_id} about the case."));
+    }
+}
+
+fn case_has_ghost_tip(case_id: &str) -> bool {
+    witness_lines(case_id, GHOST_ID).is_some()
+}
+
 fn active_schedule_entry<'a>(
     _npc_id: &str,
     schedule: &'a [ScheduleEntry],
@@ -999,6 +1239,649 @@ fn partner_stage_index(stage: PartnerStage) -> u8 {
         PartnerStage::WorkingRapport => 2,
         PartnerStage::TrustedPartners => 3,
         PartnerStage::BestFriends => 4,
+    }
+}
+
+pub(crate) fn dialogue_text(
+    npc_id: &str,
+    context: Option<&str>,
+    registry: &NpcRegistry,
+    case_board: &CaseBoard,
+    case_registry: Option<&CaseRegistry>,
+    clock: &ShiftClock,
+    partner_arc: &PartnerArc,
+) -> String {
+    let npc_name = registry
+        .definitions
+        .get(npc_id)
+        .map(|npc| npc.name.as_str())
+        .unwrap_or("Unknown contact");
+    let relationship = registry.relationships.get(npc_id);
+    let trust = relationship.map(|rel| rel.trust).unwrap_or_default();
+    let trust_band = trust_band(trust);
+    let time_band = time_band(clock.hour);
+    let case_context = case_context_for_dialogue(case_board, case_registry, npc_id, context);
+
+    if npc_id == "captain_torres" {
+        return format!(
+            "{npc_name}\n\n{}\n{}\n{}\n{}",
+            captain_trust_line(trust_band),
+            captain_time_line(time_band),
+            captain_assignment_line(case_board, case_registry),
+            captain_promotion_line(case_board),
+        );
+    }
+
+    if npc_id == PARTNER_ID {
+        let mut lines = vec![
+            partner_stage_line(partner_arc.stage).to_string(),
+            time_line_for_partner(time_band).to_string(),
+        ];
+
+        if let Some((case_id, case_name, is_witness, _)) = case_context.as_ref() {
+            lines.push(format!(
+                "Vasquez folds his arms. \"{case_name} is where somebody's version of the truth gets thin. Let's find which seam rips first.\""
+            ));
+            if *is_witness {
+                if let Some(snippet) = witness_quote(case_id, npc_id) {
+                    lines.push(format!("He adds, \"{snippet}\""));
+                }
+            }
+        } else {
+            lines.push(
+                "Vasquez scans the block before answering. \"Quiet patrols are where the city hides the setup for noisier days.\""
+                    .to_string(),
+            );
+        }
+
+        if trust >= HIGH_TRUST_THRESHOLD {
+            lines.push(
+                "He lowers his voice. \"Take the second look, not the first one. First looks are what suspects rehearse for.\""
+                    .to_string(),
+            );
+        }
+
+        return format!("{npc_name}\n\n{}", lines.join("\n\n"));
+    }
+
+    let profile = dialogue_profile(npc_id);
+    let mut lines = vec![
+        trust_line(profile, trust_band).to_string(),
+        time_line(profile, time_band).to_string(),
+    ];
+
+    if let Some((case_id, case_name, is_witness, is_suspect)) = case_context.as_ref() {
+        lines.push(format_casework_line(
+            npc_id,
+            profile,
+            case_name,
+            *is_witness,
+            *is_suspect,
+        ));
+        if *is_witness {
+            if let Some(snippet) = witness_quote(case_id, npc_id) {
+                lines.push(format!("\"{snippet}\""));
+            }
+        }
+    } else {
+        lines.push(profile.casework.to_string());
+    }
+
+    if trust >= HIGH_TRUST_THRESHOLD {
+        lines.push(profile.volunteered.to_string());
+    }
+
+    format!("{npc_name}\n\n{}", lines.join("\n\n"))
+}
+
+pub(crate) fn ghost_dialogue_toast(
+    registry: &NpcRegistry,
+    case_board: &CaseBoard,
+    case_registry: Option<&CaseRegistry>,
+    clock: &ShiftClock,
+) -> String {
+    let trust = registry
+        .relationships
+        .get(GHOST_ID)
+        .map(|rel| rel.trust)
+        .unwrap_or_default();
+    let mut lines = vec![match trust_band(trust) {
+        TrustBand::Low => "A burner phone buzzes once: \"You keep arriving after the useful lies are gone.\"".to_string(),
+        TrustBand::Mid => "A folded receipt appears under your boot: \"Better. Now stop announcing yourself to every frightened witness.\"".to_string(),
+        TrustBand::High => "A text lands with no number attached: \"You are learning which silence matters. Do not waste it.\"".to_string(),
+    }];
+
+    lines.push(
+        match time_band(clock.hour) {
+            TimeBand::Morning => "Second line: \"Morning light flatters bad crime scenes. Look for what still seems ugly.\"",
+            TimeBand::Afternoon => "Second line: \"By afternoon, the honest people are tired and the liars are polished. Interview accordingly.\"",
+            TimeBand::Night => "Second line: \"Night keeps two ledgers: what happened, and what people swear happened once the dark got involved.\"",
+        }
+        .to_string(),
+    );
+
+    if let Some((case_id, case_name, is_witness, _)) =
+        case_context_for_dialogue(case_board, case_registry, GHOST_ID, Some("ghost_toast"))
+    {
+        if is_witness {
+            if let Some(snippet) = witness_quote(&case_id, GHOST_ID) {
+                lines.push(format!("Case drop on {case_name}: \"{snippet}\""));
+            }
+        } else {
+            lines.push(format!("Case drop on {case_name}: \"Somebody in this file is counting on routine to protect them. Break the routine.\""));
+        }
+    } else {
+        lines.push(
+            "No signature, just one last line: \"If you ever meet me properly, something already went wrong.\""
+                .to_string(),
+        );
+    }
+
+    lines.join("\n")
+}
+
+pub(crate) fn interrogation_summary_text(
+    npc_id: &str,
+    case_id: &str,
+    registry: &NpcRegistry,
+    case_registry: Option<&CaseRegistry>,
+) -> String {
+    let relationship = registry.relationships.get(npc_id);
+    let trust = relationship.map(|rel| rel.trust).unwrap_or_default();
+    let pressure = relationship.map(|rel| rel.pressure).unwrap_or_default();
+    let case_name = case_name_for(case_registry, case_id);
+
+    format!(
+        "Trust: {trust} | Pressure: {pressure}\n{}\nThe room keeps circling {case_name}.",
+        interrogation_feedback(npc_id, case_id, registry, InterrogationBeat::Endgame),
+    )
+}
+
+pub(crate) fn interrogation_feedback(
+    npc_id: &str,
+    case_id: &str,
+    registry: &NpcRegistry,
+    beat: InterrogationBeat,
+) -> String {
+    let relationship = registry.relationships.get(npc_id);
+    let trust = relationship.map(|rel| rel.trust).unwrap_or_default();
+    let pressure = relationship.map(|rel| rel.pressure).unwrap_or_default();
+    let trust_band = trust_band(trust);
+
+    match beat {
+        InterrogationBeat::BuildTrust => match npc_id {
+            "officer_chen" => "Chen straightens his tie. \"Fine. Ask the question like you already know the answer and maybe we both leave with our pride.\"",
+            "mayor_aldridge" => "Aldridge exhales carefully. \"Respect is rarer in this building than leverage. Keep going.\"",
+            "marcus_cole" => "Marcus eases back a fraction. \"Talk to me like a man trying not to go back, not like a headline.\"",
+            _ => "The suspect gives you a little more room to work with. Rapport is finally buying silence instead of resistance.",
+        }
+        .to_string(),
+        InterrogationBeat::ApplyPressure => match npc_id {
+            "officer_chen" => "Chen's jaw locks. \"You come at me sloppy and I make you prove every syllable.\"",
+            "mayor_aldridge" => "Aldridge's eyes harden. \"Pressure is just theater unless you brought records with you.\"",
+            "marcus_cole" => "Marcus leans forward. \"Push me harder than the facts can hold and I stop helping you remember anything.\"",
+            _ => "The room tightens. Pressure is moving the suspect, but not in a direction you can control for free.",
+        }
+        .to_string(),
+        InterrogationBeat::AskEvidence => match npc_id {
+            "officer_chen" => format!("Chen glances at the file. \"If {case_id} hangs on one bad assumption, your whole ladder goes with it.\""),
+            "mayor_aldridge" => format!("Aldridge folds her hands. \"Evidence is the only language that survives {case_id}. Speak that or go home.\""),
+            "marcus_cole" => format!("Marcus taps the table once. \"On {case_id}, you already know which detail keeps getting skipped.\""),
+            _ => "Mentioning the evidence shifts the room from posturing toward specifics, which is usually where lies lose their balance.".to_string(),
+        }
+        .to_string(),
+        InterrogationBeat::Endgame => {
+            let tone = if pressure >= 85 {
+                "They are close to cracking, but only if your last move sounds inevitable."
+            } else if pressure >= 45 {
+                "The pressure is working unevenly. One more bad push and they will harden instead of fold."
+            } else if trust_band == TrustBand::High {
+                "Trust is doing more work than fear right now. A careful question may open them faster than a threat."
+            } else {
+                "You still do not own the room. Build leverage before you gamble on a confession."
+            };
+
+            match npc_id {
+                "officer_chen" => format!("Chen keeps pretending this is a career conversation, not an interrogation. {tone}"),
+                "mayor_aldridge" => format!("Aldridge treats every pause like a press conference beat. {tone}"),
+                "marcus_cole" => format!("Marcus is measuring whether you want truth or just a body to pin it on. {tone}"),
+                _ => tone.to_string(),
+            }
+        }
+    }
+}
+
+fn dialogue_profile(npc_id: &str) -> DialogueProfile {
+    match npc_id {
+        "captain_torres" => DialogueProfile {
+            low_trust: "Captain Torres studies you over the file stack. \"You do not earn easy assignments by wanting them.\"",
+            mid_trust: "Captain Torres nods once. \"You are starting to sound like someone who listens before talking.\"",
+            high_trust: "Captain Torres lets the sternness soften a notch. \"You are giving me fewer surprises and better outcomes. Keep that ratio.\"",
+            morning: "She taps the duty board. \"Morning is for clean priorities. Decide yours before the city decides them for you.\"",
+            afternoon: "She closes a folder with two fingers. \"By afternoon, every weak report starts to smell like an excuse.\"",
+            night: "Her office light is still on. \"Night shift is where lazy thinking asks for cover. Do not give it any.\"",
+            casework: "She glances at the board. \"Whatever is live, keep it factual enough that nobody upstairs can strangle it with politics.\"",
+            volunteered: "\"Watch the person who looks relieved at bad news,\" she adds. \"Relief in a crisis usually means preparation.\"",
+        },
+        "officer_chen" => DialogueProfile {
+            low_trust: "Chen barely looks up. \"If you need a map of the beat, ask someone who still walks slow enough to enjoy it.\"",
+            mid_trust: "Chen shrugs. \"You are not dead weight, which already puts you above half the station.\"",
+            high_trust: "Chen cracks a quick grin. \"You keep pace. That makes you useful and mildly irritating.\"",
+            morning: "He flicks ash from a stale coffee lid. \"Morning calls tell you who panicked overnight and who planned ahead.\"",
+            afternoon: "Chen watches the hallway traffic. \"Afternoons are for speed. Hesitation is how witnesses remember the wrong cop.\"",
+            night: "He lowers his voice. \"Night patrol is when shortcuts start looking clever right before they ruin you.\"",
+            casework: "Chen leans closer. \"If there is a live case, beat the rumor mill to the first useful detail or you are already late.\"",
+            volunteered: "\"Check who filed last and talked first,\" Chen says. \"People do that when they need the story in the air before the facts arrive.\"",
+        },
+        "sgt_murphy" => DialogueProfile {
+            low_trust: "Murphy rubs the bridge of his nose. \"Every rookie thinks the city gets stranger after midnight. It does not. You just get less patient.\"",
+            mid_trust: "Murphy smiles like he has seen this lesson before. \"You are finally learning that the loudest person at a scene is usually the least useful.\"",
+            high_trust: "Murphy shifts into mentor mode. \"You want my secret? Keep your notes clean enough that future-you feels respected.\"",
+            morning: "\"Back in '09 we lost a burglary because someone trusted breakfast gossip over a timestamp,\" Murphy says. \"Morning lies always sound wholesome.\"",
+            afternoon: "\"Afternoon desks are dangerous,\" Murphy warns. \"That is when tired cops decide memory counts as evidence.\"",
+            night: "Murphy chuckles without humor. \"Night shift teaches humility. Every alley looks manageable until it starts talking back.\"",
+            casework: "\"If a live case feels obvious,\" Murphy says, \"that means the liar had time to decorate it.\"",
+            volunteered: "\"Free hint,\" he adds. \"The first person asking whether you solved it yet usually knows how close you are.\"",
+        },
+        "mayor_aldridge" => DialogueProfile {
+            low_trust: "Mayor Aldridge folds her hands precisely. \"I appreciate initiative more when it arrives with discretion.\"",
+            mid_trust: "Aldridge gives you a measured nod. \"You ask direct questions without performing them. That is rarer than it should be.\"",
+            high_trust: "Her tone warms by one degree. \"If I share a concern with you, it is because I expect you to act like a professional and not a tourist.\"",
+            morning: "She checks the day's briefing cards. \"Morning headlines are written by noon. Solve problems before they become language.\"",
+            afternoon: "Aldridge watches the street from the courthouse window. \"By afternoon, every rumor has found a microphone.\"",
+            night: "She exhales at the empty hall. \"Night is when city business pretends it is private.\"",
+            casework: "Aldridge lowers her voice. \"If the current case touches an office downtown, assume two more people know than admit it.\"",
+            volunteered: "\"Follow contracts and favors together,\" she says. \"Scandal breeds where those two stop pretending to be separate.\"",
+        },
+        "dr_okafor" => DialogueProfile {
+            low_trust: "Dr. Okafor adjusts his gloves. \"Speculation is a fine hobby. Bring me samples if you would like science instead.\"",
+            mid_trust: "He nods toward the tray. \"You have started asking questions in an order the evidence can tolerate.\"",
+            high_trust: "Okafor's dry smile appears. \"I set aside my good microscope time for detectives who do not store evidence beside coffee.\"",
+            morning: "\"Bodies are most honest before everyone else wakes up and starts narrating them,\" Okafor says.",
+            afternoon: "\"By afternoon the living have edited the story three times,\" he murmurs. \"The tissue usually has not.\"",
+            night: "\"Night work is simple,\" Okafor says. \"The dead remain punctual. The living become dramatic.\"",
+            casework: "\"On the live file, the evidence will wait,\" he says. \"Human memory will not. Prioritize accordingly.\"",
+            volunteered: "\"If you want the case to hold up,\" he adds, \"bring me context with the sample, not after I have disproved your theory.\"",
+        },
+        "rita_gomez" => DialogueProfile {
+            low_trust: "Rita wipes a glass without looking up. \"Coffee is cheap. My confidence is not.\"",
+            mid_trust: "Rita leans on the counter. \"You have learned how to ask a question without making the whole room leave first.\"",
+            high_trust: "She slides a fresh cup your way. \"You keep my name out of ugly paperwork. That buys you real answers.\"",
+            morning: "\"Breakfast crowd lies with their faces,\" Rita says. \"Lunch crowd lies with their wallets.\"",
+            afternoon: "\"Afternoons are good for rumors,\" she says. \"People get bold once they think the hard part of the day already happened.\"",
+            night: "\"Night crowd talks like shadows have attorneys,\" Rita mutters. \"Listen anyway.\"",
+            casework: "Rita lowers her voice. \"If there is a case running, somebody already used this diner to test which story sounds safest out loud.\"",
+            volunteered: "\"Here is the free part,\" Rita says. \"Ask who suddenly paid cash today and you usually find the real panic.\"",
+        },
+        "father_brennan" => DialogueProfile {
+            low_trust: "Father Brennan clasps his hands. \"Authority without patience sounds a great deal like fear, officer.\"",
+            mid_trust: "He studies you gently. \"You are beginning to leave enough silence for truth to enter the room on its own.\"",
+            high_trust: "Brennan inclines his head. \"I do not offer trust lightly, but you have stopped treating pain like an interruption.\"",
+            morning: "\"Morning confessions are rarely complete,\" he says. \"People still believe they can outrun themselves by lunch.\"",
+            afternoon: "\"By afternoon remorse gets practical,\" Brennan notes. \"That is when the details start arriving.\"",
+            night: "\"Night is when guilt grows theatrical,\" he says. \"Useful, but not the same as honest.\"",
+            casework: "\"Whatever the current case did to the neighborhood,\" Brennan says, \"someone is waiting for permission to tell the difficult version.\"",
+            volunteered: "\"Watch who seeks absolution before accusation,\" he adds. \"That path is rarely random.\"",
+        },
+        "ghost_tipster" => DialogueProfile {
+            low_trust: "\"You are still chasing surface noise.\"",
+            mid_trust: "\"Better. You finally know a clue can whisper.\"",
+            high_trust: "\"Now you are listening like somebody who intends to survive the answer.\"",
+            morning: "\"Morning makes bad staging look tidy.\"",
+            afternoon: "\"By afternoon, liars have polished the obvious.\"",
+            night: "\"Night keeps the version people fear and the version they caused.\"",
+            casework: "\"Every live case has one person praying routine holds for one more hour.\"",
+            volunteered: "\"Break the schedule and the truth starts limping.\"",
+        },
+        "nadia_park" => DialogueProfile {
+            low_trust: "Nadia keeps writing while you speak. \"If you want me off the record, offer me something worth not printing.\"",
+            mid_trust: "She pockets the notepad. \"You have developed the useful habit of asking what happened before asking who benefits.\"",
+            high_trust: "Nadia tilts her head. \"I trust you more than most uniforms, which is either progress or a sign of civic decline.\"",
+            morning: "\"Morning sources are cautious,\" Nadia says. \"They still think the day can be controlled.\"",
+            afternoon: "\"By afternoon everyone has chosen their angle,\" she says. \"That is when pattern beats quote.\"",
+            night: "\"Night reporting is easy,\" Nadia says. \"Everyone mistakes exhaustion for honesty.\"",
+            casework: "\"If there is a live file, assume someone has already started rewriting it for tomorrow's audience,\" Nadia says.",
+            volunteered: "\"When witnesses all reuse the same adjective,\" she adds, \"someone handed them language before they handed you facts.\"",
+        },
+        "marcus_cole" => DialogueProfile {
+            low_trust: "Marcus keeps his hands visible on purpose. \"Every cop says they only want the truth right up until the truth looks inconvenient.\"",
+            mid_trust: "He eyes the street, not you. \"You are learning the difference between a nervous man and a guilty one.\"",
+            high_trust: "Marcus gives a short nod. \"I know when somebody is trying to clear a case and when they are trying to clear a person. You have gotten better at the second part.\"",
+            morning: "\"Morning crews brag too early,\" Marcus says. \"That is useful if you know where they buy coffee.\"",
+            afternoon: "\"By afternoon the smart ones go quiet,\" he mutters. \"Only the desperate stay visible.\"",
+            night: "\"Night makes everybody feel ten feet tall,\" Marcus says. \"That is why so many bad plans leave footprints.\"",
+            casework: "\"If the current case brushes the old crews,\" Marcus says, \"I can tell you what kind of mistake they think nobody notices anymore.\"",
+            volunteered: "\"Street rule,\" he adds. \"After a messy job, the guilty stop boasting and start asking who talked.\"",
+        },
+        "lucia_vega" => DialogueProfile {
+            low_trust: "Lucia folds a case file shut. \"If you came looking for praise, you took a wrong turn at the courthouse.\"",
+            mid_trust: "She studies you carefully. \"You have become slightly less allergic to due process. I notice these things.\"",
+            high_trust: "Lucia's posture softens without surrendering. \"I still challenge your work. I simply no longer assume it deserves to fail.\"",
+            morning: "\"Morning arraignments are where sloppy police work sobers up,\" Lucia says.",
+            afternoon: "\"By afternoon everyone starts pretending shortcuts were strategy,\" she says. \"I dislike that hour.\"",
+            night: "\"Night is when bad cases hope no lawyer is still awake,\" Lucia says. \"Unfortunate for them.\"",
+            casework: "\"If your live case depends on a shortcut,\" Lucia says, \"fix it now. Court punishes arrogance more reliably than crime does.\"",
+            volunteered: "\"The innocent ramble,\" she adds. \"The coached answer in tidy bricks. Listen for the masonry.\"",
+        },
+        _ => DialogueProfile {
+            low_trust: "They study you warily, weighing badge against motive.",
+            mid_trust: "They answer with a little less caution than before.",
+            high_trust: "They seem willing to risk giving you the useful version.",
+            morning: "Morning has them alert and guarded.",
+            afternoon: "Afternoon leaves them practical, not patient.",
+            night: "Night makes every answer feel more expensive.",
+            casework: "They keep circling back to the live work on your board.",
+            volunteered: "At high trust, they give you one extra detail for free.",
+        },
+    }
+}
+
+fn trust_line(profile: DialogueProfile, band: TrustBand) -> &'static str {
+    match band {
+        TrustBand::Low => profile.low_trust,
+        TrustBand::Mid => profile.mid_trust,
+        TrustBand::High => profile.high_trust,
+    }
+}
+
+fn time_line(profile: DialogueProfile, band: TimeBand) -> &'static str {
+    match band {
+        TimeBand::Morning => profile.morning,
+        TimeBand::Afternoon => profile.afternoon,
+        TimeBand::Night => profile.night,
+    }
+}
+
+fn trust_band(trust: i32) -> TrustBand {
+    if trust >= HIGH_TRUST_THRESHOLD {
+        TrustBand::High
+    } else if trust >= 20 {
+        TrustBand::Mid
+    } else {
+        TrustBand::Low
+    }
+}
+
+fn time_band(hour: u8) -> TimeBand {
+    if !(6..18).contains(&hour) {
+        TimeBand::Night
+    } else if hour >= 12 {
+        TimeBand::Afternoon
+    } else {
+        TimeBand::Morning
+    }
+}
+
+fn case_context_for_dialogue(
+    case_board: &CaseBoard,
+    case_registry: Option<&CaseRegistry>,
+    npc_id: &str,
+    context: Option<&str>,
+) -> Option<(String, String, bool, bool)> {
+    let preferred_case_id = context
+        .and_then(|context| context.strip_prefix("case_interview:"))
+        .map(str::to_string);
+
+    if let Some(case_id) = preferred_case_id {
+        let case_name = case_name_for(case_registry, &case_id);
+        let is_witness = case_has_witness(case_registry, &case_id, npc_id);
+        let is_suspect = case_has_suspect(case_registry, &case_id, npc_id);
+
+        return Some((case_id, case_name, is_witness, is_suspect));
+    }
+
+    for active_case in &case_board.active {
+        let case_name = case_name_for(case_registry, &active_case.case_id);
+        let is_witness = case_has_witness(case_registry, &active_case.case_id, npc_id);
+        let is_suspect = case_has_suspect(case_registry, &active_case.case_id, npc_id);
+
+        if is_witness || is_suspect || npc_id == PARTNER_ID || npc_id == "captain_torres" {
+            return Some((
+                active_case.case_id.clone(),
+                case_name,
+                is_witness,
+                is_suspect,
+            ));
+        }
+    }
+
+    case_board.active.first().map(|active_case| {
+        (
+            active_case.case_id.clone(),
+            case_name_for(case_registry, &active_case.case_id),
+            false,
+            false,
+        )
+    })
+}
+
+fn case_name_for(case_registry: Option<&CaseRegistry>, case_id: &str) -> String {
+    case_registry
+        .and_then(|registry| registry.get(case_id))
+        .map(|case_def| case_def.name.clone())
+        .or_else(|| case_definition(case_id).map(|case_def| case_def.name))
+        .unwrap_or_else(|| case_id.to_string())
+}
+
+fn case_has_witness(case_registry: Option<&CaseRegistry>, case_id: &str, npc_id: &str) -> bool {
+    case_registry
+        .and_then(|registry| registry.get(case_id))
+        .map(|case_def| {
+            case_def
+                .witnesses
+                .iter()
+                .any(|witness_id| witness_id == npc_id)
+        })
+        .or_else(|| {
+            case_definition(case_id).map(|case_def| {
+                case_def
+                    .witnesses
+                    .iter()
+                    .any(|witness_id| witness_id == npc_id)
+            })
+        })
+        .unwrap_or(false)
+}
+
+fn case_has_suspect(case_registry: Option<&CaseRegistry>, case_id: &str, npc_id: &str) -> bool {
+    case_registry
+        .and_then(|registry| registry.get(case_id))
+        .map(|case_def| {
+            case_def
+                .suspects
+                .iter()
+                .any(|suspect_id| suspect_id == npc_id)
+        })
+        .or_else(|| {
+            case_definition(case_id).map(|case_def| {
+                case_def
+                    .suspects
+                    .iter()
+                    .any(|suspect_id| suspect_id == npc_id)
+            })
+        })
+        .unwrap_or(false)
+}
+
+fn witness_quote(case_id: &str, npc_id: &str) -> Option<&'static str> {
+    witness_lines(case_id, npc_id).and_then(|lines| lines.first().copied())
+}
+
+fn format_casework_line(
+    npc_id: &str,
+    profile: DialogueProfile,
+    case_name: &str,
+    is_witness: bool,
+    is_suspect: bool,
+) -> String {
+    if is_suspect {
+        return format!("They stiffen at the mention of {case_name}, already treating the conversation like a closing door.");
+    }
+
+    match npc_id {
+        "sgt_murphy" => {
+            format!("Murphy taps the blotter. \"{case_name} is either simpler than it looks or proud of looking simple. I distrust both.\"")
+        }
+        "rita_gomez" => {
+            format!("Rita keeps her voice low. \"Word on {case_name} spread faster than the sirens. That usually means someone wanted the neighborhood rehearsed.\"")
+        }
+        "dr_okafor" => {
+            format!("Okafor glances at your notebook. \"On {case_name}, bring me timing with your evidence and I can save you two bad theories.\"")
+        }
+        "father_brennan" => {
+            format!("Brennan looks past you toward the street. \"{case_name} has people deciding whether truth will cost them more than silence.\"")
+        }
+        "mayor_aldridge" => {
+            format!("Aldridge lowers her voice. \"If {case_name} spills into public panic, the facts will need to arrive before the speeches do.\"")
+        }
+        "nadia_park" => {
+            format!("Nadia taps her pen against the pad. \"{case_name} already has three competing narratives, and only one of them belongs to reality.\"")
+        }
+        "marcus_cole" => {
+            format!("Marcus folds his arms. \"If {case_name} smells like a crew job, somebody on the edge is already wondering who sold them cheap.\"")
+        }
+        "lucia_vega" => {
+            format!("Lucia raises an eyebrow. \"If {case_name} reaches court with holes in it, I will find them before the jury does.\"")
+        }
+        "officer_chen" => {
+            format!("Chen flashes a tight grin. \"{case_name} rewards whoever moves first and documents second. Try not to be that cop.\"")
+        }
+        _ if is_witness => {
+            format!("They keep circling back to {case_name}, treating every answer like testimony.")
+        }
+        _ => profile.casework.to_string(),
+    }
+}
+
+fn captain_trust_line(band: TrustBand) -> &'static str {
+    match band {
+        TrustBand::Low => "Captain Torres keeps the file closed. \"I do not grade effort. I grade outcomes.\"",
+        TrustBand::Mid => "Captain Torres nods once. \"You are starting to look steadier under pressure. Do not confuse that with finished.\"",
+        TrustBand::High => "Captain Torres lets herself sound almost proud. \"You have become the kind of cop I can brief in one sentence and trust with the other nine I leave unsaid.\"",
+    }
+}
+
+fn captain_time_line(band: TimeBand) -> &'static str {
+    match band {
+        TimeBand::Morning => "\"Morning briefing matters because panic has not had time to write over the facts yet,\" she says.",
+        TimeBand::Afternoon => "\"By afternoon the city has opinions. I still want evidence,\" Torres says.",
+        TimeBand::Night => "\"Night work punishes vanity faster than daylight does,\" Torres says.",
+    }
+}
+
+fn captain_assignment_line(case_board: &CaseBoard, case_registry: Option<&CaseRegistry>) -> String {
+    if let Some(active_case) = case_board.active.first() {
+        let case_name = case_name_for(case_registry, &active_case.case_id);
+        format!("She points to the board. \"Your assignment is {case_name}. Keep the witnesses talking and the paperwork cleaner than the scene.\"")
+    } else if let Some(case_id) = case_board.available.first() {
+        let case_name = case_name_for(case_registry, case_id);
+        format!("She taps the next card on the board. \"Take {case_name}. Bring me facts, not atmosphere.\"")
+    } else {
+        "She glances toward the empty board. \"No fresh assignment right now. That means you clean up the old messes before they turn into new ones.\"".to_string()
+    }
+}
+
+fn captain_promotion_line(case_board: &CaseBoard) -> &'static str {
+    match case_board.total_cases_solved {
+        0..=4 => "\"You want promotion talk? Stack clean closes until command stops asking who you are.\"",
+        5..=11 => "\"Your file is starting to look like detective material. Keep it disciplined.\"",
+        12..=19 => "\"Sergeant work means carrying other people's mistakes without adding your own. Start practicing now.\"",
+        _ => "\"At this point promotion is not about ambition. It is about whether you can make the room steadier when everyone else wobbles.\"",
+    }
+}
+
+fn vasquez_assignment_comment(case_id: &str, stage: PartnerStage) -> String {
+    let case_name = case_name_for(None, case_id);
+    let line = match stage {
+        PartnerStage::Stranger => {
+            "Torres gave us a live file, so keep your eyes open and your ego quiet."
+        }
+        PartnerStage::UneasyPartners => {
+            "We'll split the ground and compare notes before the city lies to us twice."
+        }
+        PartnerStage::WorkingRapport => {
+            "Good. A real case. Enough pressure to matter, not enough to rush the fundamentals."
+        }
+        PartnerStage::TrustedPartners => {
+            "This one fits us. You work the people, I'll work the seams around them."
+        }
+        PartnerStage::BestFriends => {
+            "We know the dance now. Let's close it clean before the town writes its own ending."
+        }
+    };
+
+    format!("Vasquez: {line} ({case_name})")
+}
+
+fn vasquez_evidence_comment(case_id: &str, stage: PartnerStage, evidence_id: &str) -> String {
+    let evidence_name = evidence_id.replace('_', " ");
+    let line = match stage {
+        PartnerStage::Stranger => "One hard detail beats ten opinions.",
+        PartnerStage::UneasyPartners => {
+            "That helps. Keep the chain of proof tighter than the gossip around it."
+        }
+        PartnerStage::WorkingRapport => "Nice pull. The case just got narrower.",
+        PartnerStage::TrustedPartners => "That's the kind of evidence that makes bad alibis sweat.",
+        PartnerStage::BestFriends => {
+            "Beautiful. Now the rest of the story has fewer places to hide."
+        }
+    };
+
+    format!("Vasquez: {line} ({case_id}, {evidence_name})")
+}
+
+fn vasquez_patrol_comment(case_id: &str, stage: PartnerStage, map_name: &str) -> String {
+    let line = match stage {
+        PartnerStage::Stranger => "Eyes up. Streets tell the truth faster than interviews do.",
+        PartnerStage::UneasyPartners => {
+            "This is where the file stops helping and the neighborhood starts talking."
+        }
+        PartnerStage::WorkingRapport => {
+            "Walk it slow. Patterns show themselves when you quit trying to force them."
+        }
+        PartnerStage::TrustedPartners => {
+            "Good ground. The block will tell us what the reports left polite."
+        }
+        PartnerStage::BestFriends => {
+            "Right street, right instincts. Let's prove it before sunset does."
+        }
+    };
+
+    format!("Vasquez: {line} ({case_id} near {map_name})")
+}
+
+fn ghost_case_tip(case_id: &str, hour: u8) -> String {
+    let prefix = match time_band(hour) {
+        TimeBand::Morning => "Burner note before breakfast:",
+        TimeBand::Afternoon => "Folded receipt by your elbow:",
+        TimeBand::Night => "Night message from Ghost:",
+    };
+    let quote = witness_quote(case_id, GHOST_ID).unwrap_or(
+        "Somebody in this file is praying routine holds for one more hour. Break the routine.",
+    );
+
+    format!("{prefix} \"{quote}\"")
+}
+
+fn partner_stage_line(stage: PartnerStage) -> &'static str {
+    match stage {
+        PartnerStage::Stranger => "Vasquez does not bother pretending warmth. \"Keep up, keep your notes straight, and do not make me translate rookie mistakes into report language.\"",
+        PartnerStage::UneasyPartners => "Vasquez gives you a measured glance. \"You are asking better questions. Ask them a little quieter and we might get somewhere.\"",
+        PartnerStage::WorkingRapport => "He nods toward the street. \"You are finally reading the room instead of just entering it. That helps.\"",
+        PartnerStage::TrustedPartners => "Vasquez relaxes a fraction. \"I can trust your first instincts now, which saves us both time.\"",
+        PartnerStage::BestFriends => "He gives you the kind of look reserved for survivors. \"If this goes sideways, you are not standing in it alone.\"",
+    }
+}
+
+fn time_line_for_partner(band: TimeBand) -> &'static str {
+    match band {
+        TimeBand::Morning => {
+            "\"Morning patrol tells you which lies the city rehearsed overnight,\" Vasquez says."
+        }
+        TimeBand::Afternoon => {
+            "\"Afternoons are for leaning on timelines before they soften,\" Vasquez says."
+        }
+        TimeBand::Night => "\"Night work is when bad decisions travel farthest,\" Vasquez says.",
     }
 }
 
@@ -1228,12 +2111,15 @@ mod tests {
         app.insert_resource(ButtonInput::<KeyCode>::default());
         app.add_event::<DialogueStartEvent>();
         app.add_event::<DialogueEndEvent>();
+        app.add_event::<CaseAssignedEvent>();
         app.add_event::<InterrogationStartEvent>();
         app.add_event::<InterrogationEndEvent>();
         app.add_event::<NpcTrustChangeEvent>();
+        app.add_event::<CaseAssignedEvent>();
         app.add_event::<EvidenceCollectedEvent>();
         app.add_event::<MapTransitionEvent>();
         app.add_event::<XpGainedEvent>();
+        app.add_event::<ToastEvent>();
         app.add_plugins(NpcsPlugin);
         app
     }
@@ -1371,6 +2257,52 @@ mod tests {
         assert!(spawned.contains("officer_chen"));
         assert!(spawned.contains("sgt_murphy"));
         assert_eq!(spawned.len(), 4);
+    }
+
+    #[test]
+    fn ghost_never_spawns_face_to_face() {
+        let mut app = build_test_app();
+        app.update();
+        app.world_mut().resource_mut::<ShiftClock>().hour = 12;
+        set_player_grid(&mut app, MapId::Downtown, GridPosition { x: 20, y: 18 });
+
+        enter_playing(&mut app);
+
+        let mut npc_query = app.world_mut().query::<&Npc>();
+        let spawned: HashSet<_> = npc_query
+            .iter(app.world())
+            .map(|npc| npc.id.clone())
+            .collect();
+
+        assert!(!spawned.contains(GHOST_ID));
+    }
+
+    #[test]
+    fn case_assignment_emits_partner_and_ghost_commentary_toasts() {
+        let mut app = build_test_app();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Events<CaseAssignedEvent>>()
+            .send(CaseAssignedEvent {
+                case_id: "detective_005_arson".to_string(),
+            });
+
+        app.update();
+
+        let events = app.world().resource::<Events<ToastEvent>>();
+        let mut reader = events.get_cursor();
+        let emitted: Vec<_> = reader
+            .read(events)
+            .map(|event| event.message.clone())
+            .collect();
+
+        assert!(emitted.iter().any(|message| message.contains("Vasquez:")));
+        assert!(emitted.iter().any(|message| {
+            message.contains("Burner note")
+                || message.contains("Folded receipt")
+                || message.contains("Night message")
+        }));
     }
 
     #[test]
@@ -1517,5 +2449,70 @@ mod tests {
         for entity in existing_entities {
             assert!(!app.world().entities().contains(entity));
         }
+    }
+
+    #[test]
+    fn ghost_dialogue_resolves_to_toast_only_clue() {
+        let mut app = build_test_app();
+        app.update();
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_007_graffiti".to_string(),
+                status: CaseStatus::Active,
+                evidence_collected: Vec::new(),
+                witnesses_interviewed: HashSet::new(),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
+        let toast = ghost_dialogue_toast(
+            app.world().resource::<NpcRegistry>(),
+            app.world().resource::<CaseBoard>(),
+            None,
+            app.world().resource::<ShiftClock>(),
+        );
+
+        let lowered = toast.to_ascii_lowercase();
+        assert!(lowered.contains("burner") || lowered.contains("paint"));
+    }
+
+    #[test]
+    fn high_trust_dialogue_volunteers_extra_case_context() {
+        let mut app = build_test_app();
+        app.update();
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::Investigating,
+                evidence_collected: vec!["fingerprint".to_string()],
+                witnesses_interviewed: HashSet::new(),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
+        app.world_mut()
+            .resource_mut::<NpcRegistry>()
+            .relationships
+            .get_mut("rita_gomez")
+            .unwrap()
+            .trust = 75;
+
+        let dialogue = dialogue_text(
+            "rita_gomez",
+            Some("case_interview:patrol_001_petty_theft"),
+            app.world().resource::<NpcRegistry>(),
+            app.world().resource::<CaseBoard>(),
+            None,
+            app.world().resource::<ShiftClock>(),
+            app.world().resource::<PartnerArc>(),
+        );
+
+        assert!(dialogue.contains("Petty Theft at General Store"));
+        assert!(dialogue.contains("Here is the free part"));
+        assert!(dialogue.contains("Marcus kept circling the register"));
     }
 }
