@@ -31,9 +31,9 @@ Your mechanical gates will pass. They always pass by Wave 3. When they pass, you
 
 **When structural gates pass, your search for problems will terminate. "No errors found" will become "no errors exist." This is the primary failure mode of this methodology. The countermeasures are in Phase 5B.**
 
-### 0.1A How to train workers (contrastive-causal prompting)
+### 0.1A How to train workers (Decision Field prompting)
 
-Bare directives build brittle obedience. Durable workers learn fastest when every non-obvious instruction includes:
+Bare directives build brittle obedience. Durable workers learn fastest when every non-obvious instruction includes a **Decision Field**:
 
 - **Preferred action** — what to do
 - **Why** — why this path is preferred
@@ -41,6 +41,8 @@ Bare directives build brittle obedience. Durable workers learn fastest when ever
 - **Consequence** — what breaks if that alternative is chosen
 - **Drift cue** — the first signal that indicates the worker is sliding into the wrong interpretation
 - **Recovery** — what to do if drift has already occurred
+
+Use this pattern throughout: in contract decisions (0.3A), specs (2.1A), seam records (1.2), worker specs (3.2), and repair prompts (3.4). When this document says "include a Decision Field," it means all six elements above.
 
 Use this operational heuristic when writing specs and repair prompts:
 
@@ -206,6 +208,8 @@ The orchestrator's brain on disk. Include only what's needed to recover after co
 - Open blockers
 - Recurring drift patterns worth remembering
 - Any seam decisions that have already failed once
+- P1/P2 graduation debt
+- Unresolved [Inferred]/[Assumed] critical-path claims
 
 ### 0.5 Tracked noise hygiene
 
@@ -287,6 +291,19 @@ For every critical formula, seam, interface, constraint, or quantity, include:
 - **What breaks if the alternative is chosen**
 - **First warning sign / cue**
 - **Recovery path**
+
+Example:
+
+```markdown
+#### Damage model
+
+- Preferred: `crit_multiplier = 2.75`
+- Why: this preserves intended burst thresholds and late-game lethality
+- Tempting alternative: `1.75` (common default)
+- Consequence: crit builds underperform, balance tests pass locally but combat pacing collapses globally
+- Drift cue: crit-focused units fail target kill ranges
+- Recovery: restore multiplier, re-run combat balance tests
+```
 
 **Rule:** Specs should teach not only the correct path, but the boundary around the correct path.
 
@@ -680,27 +697,47 @@ The audit instruction finds experiential problems. The graduation principle fixe
 
 ### 5B.1 The per-wave player trace (non-negotiable)
 
-After structural gates pass and BEFORE committing, write 5 sentences describing what the player experiences from boot to first meaningful interaction. Use present tense.
+After structural gates pass and BEFORE committing, write 5 sentences describing what the player experiences from boot to first meaningful interaction. Use present tense. Tag each sentence with its evidence basis:
+
+- **[Observed]** — you traced the code path and confirmed it executes
+- **[Inferred]** — you believe it works based on related code, but did not trace the exact path
+- **[Assumed]** — you have not verified this; it is a design expectation
+
+Only **[Observed]** sentences count toward release confidence. If any sentence is tagged [Inferred] or [Assumed], it cannot support a graduation test until re-verified.
 
 Example:
 
-> 1. The player boots the game and sees the main menu with New Game and Load Game buttons.
-> 1. The player clicks New Game and spawns in the precinct interior facing the case board.
-> 1. The player walks to the case board, presses F, and receives Case #1 with a toast notification.
-> 1. The player walks to the exit door and transitions to PrecinctExterior.
-> 1. The player stands in the parking lot and a dispatch call arrives within 30 seconds.
+> 1. [Observed] The player boots the game and sees the main menu with New Game and Load Game buttons.
+> 1. [Observed] The player clicks New Game and spawns in the precinct interior facing the case board.
+> 1. [Observed] The player walks to the case board, presses F, and receives Case #1 with a toast notification.
+> 1. [Observed] The player walks to the exit door and transitions to PrecinctExterior.
+> 1. [Inferred] The player stands in the parking lot and a dispatch call arrives within 30 seconds.
 
-If any sentence uses "should" instead of present tense, the feature described in that sentence is not verified. Do not commit until every sentence is present tense and you have checked the implementing code.
+If any sentence uses "should" instead of present tense, the feature described in that sentence is not verified. Do not commit until every [Observed] sentence is present tense and you have checked the implementing code. [Inferred] and [Assumed] sentences must be flagged as open items in MANIFEST.md.
 
-**Include these 5 sentences in the commit message.** Also write them to `status/player-trace-wave-N.md`.
+Write the trace to `status/player-trace-wave-N.md`. Reference the artifact filename in the commit message (e.g. `wave 3: player-trace-wave-3.md`) — do not embed the full trace in the commit message itself, as full prose in every commit creates noise over time.
+
+### 5B.1A Harden artifact template
+
+For each important Harden finding, record:
+
+- **Claim** — what you believe is true about the player experience
+- **Evidence level** — [Observed] / [Inferred] / [Assumed]
+- **Risk if false** — what breaks for the player
+- **Graduation target** — named test or tracked artifact
+- **Owner** — who resolves this (orchestrator / next worker / integration)
+- **By when** — this wave / next wave / release
+
+This keeps Harden from becoming ritualized narrative. Every finding either graduates into a test or is explicitly deferred with a deadline.
 
 ### 5B.2 Graduation: observation → named test
 
-After each wave's player trace, for every experiential surface you verified:
+After each wave's player trace, for every experiential surface tagged **[Observed]**:
 
 1. Write a test that encodes the verification. Example: if you verified "dispatch fires on PrecinctExterior," write `test_dispatch_fires_on_precinct_exterior`.
 1. Add the test to the gate suite so it runs mechanically from this point forward.
-1. The test name should describe the player experience, not the implementation detail.
+1. The test name **must** describe the player experience, not the implementation detail. `test_dispatch_fires_on_precinct_exterior` not `test_dispatch_rate_modifier_nonzero`. A test that freezes a local implementation detail instead of a player-facing invariant is a bad graduation — it will break on refactors that don't affect the player.
+1. Only [Observed] claims graduate. [Inferred] and [Assumed] claims must be verified first — graduating an assumption freezes a guess into machinery.
 
 **Why graduation works:** The audit instruction is a prompt. Prompts fail under pressure (0/20). But the audit instruction only needs to work ONCE per surface — long enough to identify the invariant and write a test. After that, the test enforces mechanically (20/20). The audit instruction is a gate factory, not a gate.
 
@@ -804,7 +841,7 @@ The connectivity check is a grep proxy. For stronger verification: use AST parsi
 
 If failing: dispatch targeted fix workers → clamp → re-run gates.
 
-Write `status/integration.md` with what was wired + what remains.
+Write `status/integration.md` with what was wired, what remains, what is now player-reachable, and any unresolved verification debt ([Inferred]/[Assumed] claims still on the critical path).
 
 -----
 
@@ -825,6 +862,8 @@ Write `status/integration.md` with what was wired + what remains.
 1. **Velocity without verification** (2+ consecutive waves dispatched without a personal player-journey trace) → Stop. Write the 5-sentence player trace (Phase 5B.1). If any sentence uses "should," fix before dispatching the next wave.
 1. **Search termination on structural gates** (orchestrator checks gates, sees green, commits without player trace) → Stop. Green structural gates are a minimum, not a definition of done. Re-read Phase 0.1-WARNING.
 1. **Graduation debt** (any missing P0 test, OR 3+ missing P1 tests) → Stop. Write the tests before the next wave.
+1. **Premature graduation** ([Inferred] or [Assumed] claim turned into a permanent test) → Stop. Delete or gate the test behind verification. Graduating an assumption freezes a guess into machinery.
+1. **Critical-path uncertainty** (current first-60-seconds path still contains [Inferred] or [Assumed] claims at release boundary) → Stop. Verify or replace every unobserved critical-path claim before release.
 
 -----
 
@@ -848,6 +887,7 @@ You are done **only** when:
 - [ ] Content reachability report complete (no dead content units)
 - [ ] Event connectivity gate passes (no orphaned producers/consumers)
 - [ ] Save/Load round-trip gate passes
+- [ ] Current critical-path trace is fully [Observed] (no [Inferred] or [Assumed] claims on the first-60-seconds path)
 
 **Graduation:**
 
@@ -855,6 +895,7 @@ You are done **only** when:
 - [ ] Player trace artifacts exist for every wave (`status/player-trace-wave-N.md`)
 - [ ] Value audit artifacts exist for waves that touched tuning values (`status/value-audit-wave-N.md`)
 - [ ] No graduation debt (stop condition #15 is clear)
+- [ ] No premature graduation (stop condition #16 is clear)
 
 **Artifacts:**
 
