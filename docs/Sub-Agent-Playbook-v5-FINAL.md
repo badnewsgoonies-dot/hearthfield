@@ -2,9 +2,66 @@
 
 Use this as a procedural manual. Follow it in order. Do not skip steps.
 
-**Mission:** Ship a working build with zero handwritten code by enforcing (1) a frozen type contract, (2) mechanical scope clamping, (3) compiler → tests gates, (4) contrastive-causal worker specs, (5) reality gates that verify player-reachable progress, (6) the graduation principle — every experiential observation becomes a named test as fast as possible, and (7) a mandatory four-phase wave cadence: **Feature → Gate → Harden → Graduate.** Gate proves structural correctness. Harden searches for experiential failure. Graduate prevents rediscovery.
+**Mission:** Ship a working build with zero handwritten code by enforcing (1) a macro build strategy — scaffold spine, finish spine, scaffold breadth, finish breadth (Section 0.0), (2) a frozen type contract, (3) mechanical scope clamping, (4) compiler → tests gates, (5) contrastive-causal worker specs, (6) reality gates that verify player-reachable progress, (7) the graduation principle — every experiential observation becomes a named test as fast as possible, and (8) a mandatory four-phase wave cadence: **Feature → Gate → Harden → Graduate.** Gate proves structural correctness. Harden searches for experiential failure. Graduate prevents rediscovery.
 
 *Derived from "The Model Is the Orchestrator" (Geni, February 2026) — 295M tokens, 100+ agent sessions, 12+ autonomous builds, 8 controlled experiments, 3,200 commits across 56 repositories. v5 additions derived from comparative deep-thought analysis of the City Office Worker DLC (0 experiential breaks, pre-playbook organic workflow) and Precinct DLC (6 experiential breaks, playbook v4), plus orchestrator self-analysis under structured questioning. The four-phase wave structure was reverse-engineered from the City DLC's emergent rotation pattern, which the playbook had previously failed to capture.*
+
+-----
+
+## Section 0.0 — Macro Architecture (read before everything else)
+
+**Green means ready to examine, not ready to ship.**
+**Workers build the scaffold. The orchestrator finishes the game.**
+
+The per-wave loop (Feature → Gate → Harden → Graduate) is the micro-cycle. Above it sits a macro strategy that determines what gets built when. Without the macro strategy, you have procedures but no plan.
+
+### The two regimes
+
+Every build passes through two regimes with different goals, different parallelism, and different Harden depth.
+
+**Scaffold regime** — make the system examinable.
+
+- Goal: get the thing standing so it can be examined.
+- Success: compiles, tests pass, runtime path exists, components are wired, nothing is dead on contact.
+- Workers shine here. Parallel dispatch. Structural gates enforce.
+- Harden is **light**: catch catastrophic false greens, confirm the first-touch path is not broken, verify surfaces are reachable.
+
+**Finishing regime** — make the system actually good.
+
+- Goal: make each player-facing surface feel real.
+- Success: feedback is correct, pacing is right, interaction has meaning, edge behavior is handled, the result gets graduated into tests.
+- The orchestrator's attention is the scarce resource. Sequential, one component at a time.
+- Harden is **deep**: trace the player touching the surface, inspect feel, clarity, feedback, pacing, edge cases. Close the gap between "wired" and "real."
+
+### The four-phase macro sequence
+
+Do not build the entire scaffold before finishing anything. Do not finish components before the spine exists.
+
+**A. Scaffold the critical spine**
+
+Get the playable backbone green: boot → menu → spawn → move → first interaction → first persistent state change. This is the first-60-seconds path. Nothing else matters until this stands.
+
+**B. Finish the spine**
+
+The orchestrator personally traces each spine component. One at a time. Make each surface real, not just wired. Graduate every observation into tests. Only [Observed] claims count. The spine must be fully finished — not just structurally green — before expanding.
+
+**C. Scaffold breadth**
+
+Now widen. Dispatch workers to build remaining domains, content, features. Parallel. Structural gates. Light Harden. The spine's graduation tests protect it from regression during breadth expansion.
+
+**D. Finish breadth**
+
+Return to sequential, orchestrator-driven finishing. Component by component, surface by surface. Deep Harden. Graduate each one.
+
+This avoids building a giant green mannequin before you know whether the body can move. The spine-first approach means you discover fundamental problems early when fixing them is cheap.
+
+### The doctrine
+
+The Precinct DLC ran scaffold regime for 9 waves and never entered finishing regime. Nine waves of parallel construction, zero waves of sequential understanding. The City DLC interleaved scaffold and finishing from Rotation 2. That's why it shipped 0 experiential breaks.
+
+**Whatever is green becomes the goal.** During scaffold, only structural gates go green. So the orchestrator optimizes for structure. Graduation fixes this by making reality go green too — but only if the orchestrator actually enters finishing regime and does the deep Harden work.
+
+Gate is a phase transition, not a checkpoint. It means "the thing now stands up enough to be examined." Not "the thing is finished." Everything before Gate is construction. Everything after Gate is understanding. The methodology fails when understanding is skipped because construction feels like progress.
 
 -----
 
