@@ -77,7 +77,7 @@ pub struct AnimalAnimTimer {
     pub current_frame: usize,
 }
 
-/// Cached sprite atlas handles for animals with real sprite assets (chicken, cow).
+/// Cached sprite atlas handles for animals with real sprite assets.
 #[derive(Resource, Default)]
 pub struct AnimalSpriteData {
     pub loaded: bool,
@@ -85,9 +85,19 @@ pub struct AnimalSpriteData {
     pub chicken_layout: Handle<TextureAtlasLayout>,
     pub cow_image: Handle<Image>,
     pub cow_layout: Handle<TextureAtlasLayout>,
+    pub sheep_image: Handle<Image>,
+    pub sheep_layout: Handle<TextureAtlasLayout>,
+    pub goat_image: Handle<Image>,
+    pub goat_layout: Handle<TextureAtlasLayout>,
+    pub pig_image: Handle<Image>,
+    pub pig_layout: Handle<TextureAtlasLayout>,
+    pub duck_image: Handle<Image>,
+    pub duck_layout: Handle<TextureAtlasLayout>,
+    pub rabbit_image: Handle<Image>,
+    pub rabbit_layout: Handle<TextureAtlasLayout>,
 }
 
-/// Loads chicken and cow sprite atlases on first entry into Playing state.
+/// Loads all animal sprite atlases on first entry into Playing state.
 pub fn load_animal_sprites(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -97,22 +107,72 @@ pub fn load_animal_sprites(
         return;
     }
 
-    // chicken.png: 64x32, 4 cols x 2 rows of 16x16 frames
+    // chicken.png: 384×64, 24 cols × 4 rows of 16×16 frames
     sprite_data.chicken_image = asset_server.load("sprites/chicken.png");
     sprite_data.chicken_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
+        24,
         4,
-        2,
         None,
         None,
     ));
 
-    // cow.png: 96x64, 3 cols x 2 rows of 32x32 frames
+    // cow.png: 1152×192, 36 cols × 6 rows of 32×32 frames
     sprite_data.cow_image = asset_server.load("sprites/cow.png");
     sprite_data.cow_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(32, 32),
-        3,
-        2,
+        36,
+        6,
+        None,
+        None,
+    ));
+
+    // sheep.png: 768×128, 24 cols × 4 rows of 32×32 frames
+    sprite_data.sheep_image = asset_server.load("sprites/sheep.png");
+    sprite_data.sheep_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        24,
+        4,
+        None,
+        None,
+    ));
+
+    // goat.png: 768×192, 24 cols × 6 rows of 32×32 frames
+    sprite_data.goat_image = asset_server.load("sprites/goat.png");
+    sprite_data.goat_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        24,
+        6,
+        None,
+        None,
+    ));
+
+    // pig.png: 768×128, 24 cols × 4 rows of 32×32 frames
+    sprite_data.pig_image = asset_server.load("sprites/pig.png");
+    sprite_data.pig_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        24,
+        4,
+        None,
+        None,
+    ));
+
+    // duck.png: 829×128, 48 cols × 8 rows of 16×16 frames (ignore rightmost partial)
+    sprite_data.duck_image = asset_server.load("sprites/duck.png");
+    sprite_data.duck_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        48,
+        8,
+        None,
+        None,
+    ));
+
+    // rabbit.png: 768×128, 48 cols × 8 rows of 16×16 frames
+    sprite_data.rabbit_image = asset_server.load("sprites/rabbit.png");
+    sprite_data.rabbit_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        48,
+        8,
         None,
         None,
     ));

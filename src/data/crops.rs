@@ -25,7 +25,7 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: false,
             regrow_days: 0,
             sell_price: 60,
-            // Sprite stage indices in the crop atlas: 4 growth frames + 1 harvest frame
+            // Per-crop atlas: sequential column indices (crop_turnip.png, 7×3)
             sprite_stages: vec![0, 1, 2, 3],
         },
         CropDef {
@@ -52,7 +52,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: false,
             regrow_days: 0,
             sell_price: 175,
-            sprite_stages: vec![20, 21, 22, 23, 24],
+            // Per-crop atlas: sequential column indices (crop_cauliflower.png, 7×2)
+            sprite_stages: vec![0, 1, 2, 3, 4],
         },
         CropDef {
             id: "strawberry".into(),
@@ -65,7 +66,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: true,
             regrow_days: 4,
             sell_price: 120,
-            sprite_stages: vec![30, 31, 32, 33],
+            // Per-crop atlas: sequential column indices (crop_strawberry.png, 7×2)
+            sprite_stages: vec![0, 1, 2, 3],
         },
         // ── Summer Crops ────────────────────────────────────────────────────────
         CropDef {
@@ -92,7 +94,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: true,
             regrow_days: 4,
             sell_price: 60,
-            sprite_stages: vec![50, 51, 52, 53, 54],
+            // Per-crop atlas: sequential column indices (crop_tomato.png, 7×4)
+            sprite_stages: vec![0, 1, 2, 3, 4],
         },
         CropDef {
             id: "blueberry".into(),
@@ -119,7 +122,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: false,
             regrow_days: 0,
             sell_price: 50,
-            sprite_stages: vec![70, 71, 72, 73, 74, 75],
+            // Per-crop atlas: sequential column indices (crop_corn.png, 7×4)
+            sprite_stages: vec![0, 1, 2, 3, 4, 5],
         },
         // ── Fall Crops ───────────────────────────────────────────────────────────
         CropDef {
@@ -146,7 +150,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: false,
             regrow_days: 0,
             sell_price: 320,
-            sprite_stages: vec![90, 91, 92, 93, 94],
+            // Per-crop atlas: sequential column indices (crop_pumpkin.png, 7×4)
+            sprite_stages: vec![0, 1, 2, 3, 4],
         },
         CropDef {
             id: "cranberry".into(),
@@ -187,7 +192,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: false,
             regrow_days: 0,
             sell_price: 25,
-            sprite_stages: vec![120, 121, 122, 123],
+            // Per-crop atlas: sequential column indices (crop_wheat.png, 7×2)
+            sprite_stages: vec![0, 1, 2, 3],
         },
         CropDef {
             id: "coffee".into(),
@@ -201,7 +207,8 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             regrows: true,
             regrow_days: 2,
             sell_price: 150,
-            sprite_stages: vec![130, 131, 132, 133, 134],
+            // Per-crop atlas: sequential column indices (crop_coffee.png, 7×4)
+            sprite_stages: vec![0, 1, 2, 3, 4],
         },
         CropDef {
             id: "ancient_fruit".into(),

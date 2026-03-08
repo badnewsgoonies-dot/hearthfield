@@ -270,7 +270,13 @@ pub fn sync_crop_sprites(
                 sprite.custom_size = Some(Vec2::splat(TILE_SIZE * 0.8));
             } else if let Some(atlas) = &mut sprite.texture_atlas {
                 // Atlas sprite: update slice index for current stage.
-                atlas.index = crop_atlas_index(crop.current_stage, total_stages);
+                // Per-crop atlases use sequential indices; generic plants.png uses
+                // the sprite_stages mapping via crop_atlas_index.
+                if atlases.crop_atlases.contains_key(&crop.crop_id) {
+                    atlas.index = crop.current_stage as usize;
+                } else {
+                    atlas.index = crop_atlas_index(crop.current_stage, total_stages);
+                }
                 // Apply dehydration tint on top of the atlas image.
                 // Freshly watered or healthy crops get no tint (WHITE).
                 sprite.color = if crop.days_without_water >= 2 {
@@ -282,14 +288,26 @@ pub fn sync_crop_sprites(
                 };
             } else if atlases.loaded && !crop.dead {
                 // Upgrade: sprite was spawned as color-only before atlases loaded.
-                let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
-                *sprite = Sprite::from_atlas_image(
-                    atlases.plants_image.clone(),
-                    TextureAtlas {
-                        layout: atlases.plants_layout.clone(),
-                        index: atlas_index,
-                    },
-                );
+                // Prefer per-crop atlas if available, otherwise fall back to plants.png.
+                if let Some((img, lay)) = atlases.crop_atlases.get(&crop.crop_id) {
+                    let atlas_index = crop.current_stage as usize;
+                    *sprite = Sprite::from_atlas_image(
+                        img.clone(),
+                        TextureAtlas {
+                            layout: lay.clone(),
+                            index: atlas_index,
+                        },
+                    );
+                } else {
+                    let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
+                    *sprite = Sprite::from_atlas_image(
+                        atlases.plants_image.clone(),
+                        TextureAtlas {
+                            layout: atlases.plants_layout.clone(),
+                            index: atlas_index,
+                        },
+                    );
+                }
                 sprite.color = if crop.days_without_water >= 2 {
                     Color::srgb(0.85, 0.70, 0.30)
                 } else if crop.days_without_water >= 1 {
@@ -352,13 +370,20 @@ pub fn sync_crop_sprites(
 
         let entity = if atlases.loaded && !crop.dead {
             // Preferred path: texture atlas sprite.
-            let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
+            // Use per-crop atlas if available, otherwise fall back to plants.png.
+            let (img, lay, atlas_index) =
+                if let Some((ci, cl)) = atlases.crop_atlases.get(&crop.crop_id) {
+                    (ci.clone(), cl.clone(), crop.current_stage as usize)
+                } else {
+                    let idx = crop_atlas_index(crop.current_stage, total_stages);
+                    (atlases.plants_image.clone(), atlases.plants_layout.clone(), idx)
+                };
             commands
                 .spawn((
                     Sprite::from_atlas_image(
-                        atlases.plants_image.clone(),
+                        img,
                         TextureAtlas {
-                            layout: atlases.plants_layout.clone(),
+                            layout: lay,
                             index: atlas_index,
                         },
                     ),

@@ -75,6 +75,10 @@ pub struct FarmingAtlases {
     pub plants_layout: Handle<TextureAtlasLayout>,
     pub dirt_image: Handle<Image>,
     pub dirt_layout: Handle<TextureAtlasLayout>,
+    /// Per-crop sprite atlases keyed by crop_id. Each entry is (image, layout).
+    /// Crops with per-crop sheets use sequential column indices (0, 1, 2, ...)
+    /// for growth stages. Crops without an entry fall back to plants.png.
+    pub crop_atlases: std::collections::HashMap<String, (Handle<Image>, Handle<TextureAtlasLayout>)>,
 }
 
 /// A pending harvest interaction from the player pressing Space.
@@ -238,6 +242,7 @@ fn in_farm_map(player_state: Res<PlayerState>) -> bool {
 /// Assets:
 ///   assets/sprites/plants.png       — 96×32, 16×16 tiles, 6 cols × 2 rows (12 sprites)
 ///   assets/tilesets/tilled_dirt.png — 176×112, 16×16 tiles, 11 cols × 7 rows (77 sprites)
+///   assets/sprites/crop_*.png       — per-crop sheets (7 cols of 16×16, varying rows)
 fn load_farming_atlases(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -264,6 +269,32 @@ fn load_farming_atlases(
         None,
         None,
     ));
+
+    // Per-crop sprite sheets: all are 7 cols of 16×16 with varying row counts.
+    // crop_id → (filename, cols, rows)
+    let crop_sheets: &[(&str, &str, u32, u32)] = &[
+        ("turnip",      "sprites/crop_turnip.png",      7, 3),
+        ("cauliflower", "sprites/crop_cauliflower.png",  7, 2),
+        ("strawberry",  "sprites/crop_strawberry.png",   7, 2),
+        ("tomato",      "sprites/crop_tomato.png",       7, 4),
+        ("corn",        "sprites/crop_corn.png",         7, 4),
+        ("pumpkin",     "sprites/crop_pumpkin.png",      7, 4),
+        ("wheat",       "sprites/crop_wheat.png",        7, 2),
+        ("coffee",      "sprites/crop_coffee.png",       7, 4),
+        ("watermelon",  "sprites/crop_watermelon.png",   7, 4),
+    ];
+
+    for &(crop_id, path, cols, rows) in crop_sheets {
+        let image = asset_server.load(path);
+        let layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            cols,
+            rows,
+            None,
+            None,
+        ));
+        atlases.crop_atlases.insert(crop_id.to_string(), (image, layout));
+    }
 
     atlases.loaded = true;
 }
