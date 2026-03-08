@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -15,6 +16,8 @@ const SAVE_DIR_ENV: &str = "PRECINCT_SAVE_DIR";
 const DEFAULT_SAVE_DIR: &str = "saves";
 const DEFAULT_SAVE_SLOT: u8 = 0;
 const SAVE_SLOT_COUNT: u8 = 3;
+#[cfg(target_arch = "wasm32")]
+const STORAGE_KEY_PREFIX: &str = "precinct_save_";
 
 pub struct SavePlugin;
 
@@ -65,6 +68,7 @@ impl Plugin for SavePlugin {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn ensure_save_dir(config: Res<SaveConfig>) {
     if let Err(error) = fs::create_dir_all(&config.directory) {
         bevy::log::error!(
@@ -73,6 +77,9 @@ fn ensure_save_dir(config: Res<SaveConfig>) {
         );
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+fn ensure_save_dir(_config: Res<SaveConfig>) {}
 
 #[allow(clippy::too_many_arguments)]
 fn handle_save(
@@ -174,23 +181,56 @@ fn auto_save(
 }
 
 fn write_save_data(config: &SaveConfig, save_data: &FullSaveData) -> Result<(), String> {
-    fs::create_dir_all(&config.directory).map_err(|error| error.to_string())?;
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        fs::create_dir_all(&config.directory).map_err(|error| error.to_string())?;
 
-    let payload =
-        serde_json::to_string_pretty(save_data).map_err(|error| format!("serialize: {error}"))?;
-    fs::write(save_path(&config.directory, config.current_slot), payload)
-        .map_err(|error| error.to_string())
+        let payload = serde_json::to_string_pretty(save_data)
+            .map_err(|error| format!("serialize: {error}"))?;
+        fs::write(save_path(&config.directory, config.current_slot), payload)
+            .map_err(|error| error.to_string())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        let payload = serde_json::to_string_pretty(save_data)
+            .map_err(|error| format!("serialize: {error}"))?;
+        browser_storage()?
+            .set_item(&storage_key(config.current_slot), &payload)
+            .map_err(|error| format!("localStorage set_item failed: {error:?}"))
+    }
 }
 
 fn read_save_data(config: &SaveConfig) -> Result<FullSaveData, String> {
+    #[cfg(not(target_arch = "wasm32"))]
     let payload = fs::read_to_string(save_path(&config.directory, config.current_slot))
         .map_err(|error| error.to_string())?;
+
+    #[cfg(target_arch = "wasm32")]
+    let payload = browser_storage()?
+        .get_item(&storage_key(config.current_slot))
+        .map_err(|error| format!("localStorage get_item failed: {error:?}"))?
+        .ok_or_else(|| format!("missing save slot {}", normalized_slot(config.current_slot)))?;
 
     serde_json::from_str(&payload).map_err(|error| format!("deserialize: {error}"))
 }
 
 fn save_path(directory: &Path, slot: u8) -> PathBuf {
     directory.join(format!("save_{}.json", normalized_slot(slot)))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn storage_key(slot: u8) -> String {
+    format!("{STORAGE_KEY_PREFIX}{}.json", normalized_slot(slot))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn browser_storage() -> Result<web_sys::Storage, String> {
+    let window = web_sys::window().ok_or_else(|| "window is not available".to_string())?;
+    let storage = window
+        .local_storage()
+        .map_err(|error| format!("localStorage lookup failed: {error:?}"))?;
+    storage.ok_or_else(|| "localStorage is unavailable in this browser context".to_string())
 }
 
 fn normalized_slot(slot: u8) -> u8 {

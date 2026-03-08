@@ -1,4 +1,6 @@
 /target
+/web/assets
+/web/pkg
 *.swp
 *.swo
 *~
