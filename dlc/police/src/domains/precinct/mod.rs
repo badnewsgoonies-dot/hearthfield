@@ -1,12 +1,12 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::domains::cases::CaseCloseRequestedEvent;
+use crate::domains::cases::case_definition;
 use crate::shared::{
-    CaseAssignedEvent, CaseBoard, CaseStatus, EvidenceCollectedEvent, EvidenceLocker,
-    EvidenceProcessingState, FatigueChangeEvent, GameState, GridPosition, MapId, PatrolState,
-    PlayerInput, PlayerState, ShiftClock, StressChangeEvent, ToastEvent, UpdatePhase,
-    COFFEE_FATIGUE_RESTORE, COFFEE_STRESS_RELIEF, COFFEE_TIME_COST_MINUTES, MEAL_FATIGUE_RESTORE,
-    MEAL_STRESS_RELIEF, MEAL_TIME_COST_MINUTES, PIXEL_SCALE, TILE_SIZE,
+    CaseAssignedEvent, CaseBoard, EvidenceCollectedEvent, EvidenceLocker, EvidenceProcessingState,
+    FatigueChangeEvent, GameState, GridPosition, MapId, PatrolState, PlayerInput, PlayerState,
+    ShiftClock, StressChangeEvent, ToastEvent, UpdatePhase, COFFEE_FATIGUE_RESTORE,
+    COFFEE_STRESS_RELIEF, COFFEE_TIME_COST_MINUTES, MEAL_FATIGUE_RESTORE, MEAL_STRESS_RELIEF,
+    MEAL_TIME_COST_MINUTES, PIXEL_SCALE, TILE_SIZE,
 };
 
 const INTERACTION_RANGE_TILES: i32 = 2;
@@ -135,7 +135,6 @@ pub struct PrecinctInteractionContext<'w, 's> {
     evidence_locker: ResMut<'w, EvidenceLocker>,
     shift_clock: ResMut<'w, ShiftClock>,
     case_assigned_events: EventWriter<'w, CaseAssignedEvent>,
-    case_close_requests: EventWriter<'w, CaseCloseRequestedEvent>,
     evidence_collected_events: EventWriter<'w, EvidenceCollectedEvent>,
     fatigue_events: EventWriter<'w, FatigueChangeEvent>,
     stress_events: EventWriter<'w, StressChangeEvent>,
@@ -175,6 +174,7 @@ pub fn handle_precinct_interaction(
         (&PrecinctInteractable, &GridPosition, &PrecinctMapLocation),
         With<PrecinctObject>,
     >,
+    mut next_state: ResMut<NextState<GameState>>,
     mut interaction_context: PrecinctInteractionContext,
 ) {
     if !player_input.interact {
@@ -190,30 +190,19 @@ pub fn handle_precinct_interaction(
 
     match interactable {
         PrecinctInteractable::CaseBoard => {
-            if let Some(case_id) = interaction_context
-                .case_board
-                .active
-                .iter()
-                .find(|active_case| active_case.status == CaseStatus::EvidenceComplete)
-                .map(|active_case| active_case.case_id.clone())
-            {
-                interaction_context
-                    .case_close_requests
-                    .send(CaseCloseRequestedEvent {
-                        case_id: case_id.clone(),
-                    });
-                interaction_context.toast_events.send(ToastEvent {
-                    message: format!("Filed report for case: {case_id}"),
-                    duration_secs: TOAST_DURATION_SECS,
-                });
+            if !interaction_context.case_board.active.is_empty() {
+                next_state.set(GameState::CaseFile);
             } else if let Some(case_id) = interaction_context.case_board.available.first() {
                 interaction_context
                     .case_assigned_events
                     .send(CaseAssignedEvent {
                         case_id: case_id.clone(),
                     });
+                let case_name = case_definition(case_id)
+                    .map(|case_def| case_def.name)
+                    .unwrap_or_else(|| case_id.clone());
                 interaction_context.toast_events.send(ToastEvent {
-                    message: format!("Assigned case: {case_id}"),
+                    message: format!("Case assigned: {case_name}"),
                     duration_secs: TOAST_DURATION_SECS,
                 });
             } else {
@@ -224,16 +213,14 @@ pub fn handle_precinct_interaction(
             }
         }
         PrecinctInteractable::EvidenceTerminal => {
-            let started = start_processing_raw_evidence(&mut interaction_context.evidence_locker);
-            let message = if started > 0 {
-                format!("Evidence lab queued {started} item(s) for processing.")
+            if interaction_context.evidence_locker.pieces.is_empty() {
+                interaction_context.toast_events.send(ToastEvent {
+                    message: "Evidence locker is empty.".to_string(),
+                    duration_secs: TOAST_DURATION_SECS,
+                });
             } else {
-                "No raw evidence is waiting for the lab.".to_string()
-            };
-            interaction_context.toast_events.send(ToastEvent {
-                message,
-                duration_secs: TOAST_DURATION_SECS,
-            });
+                next_state.set(GameState::EvidenceExam);
+            }
         }
         PrecinctInteractable::CoffeeMachine => {
             interaction_context.fatigue_events.send(FatigueChangeEvent {
@@ -265,10 +252,7 @@ pub fn handle_precinct_interaction(
             });
         }
         PrecinctInteractable::CaptainDoor => {
-            interaction_context.toast_events.send(ToastEvent {
-                message: "Captain Torres is busy right now.".to_string(),
-                duration_secs: TOAST_DURATION_SECS,
-            });
+            next_state.set(GameState::CareerView);
         }
         PrecinctInteractable::Locker => {
             interaction_context.toast_events.send(ToastEvent {
@@ -451,10 +435,9 @@ fn start_processing_raw_evidence(locker: &mut EvidenceLocker) -> usize {
 mod tests {
     use super::*;
 
-    use crate::domains::cases::CaseCloseRequestedEvent;
     use crate::shared::{
-        ActiveCase, EvidenceCategory, EvidenceCollectedEvent, EvidencePiece, Rank, ShiftType,
-        Weather,
+        ActiveCase, CaseStatus, EvidenceCategory, EvidenceCollectedEvent, EvidencePiece, Rank,
+        ShiftType, Weather,
     };
     use bevy::ecs::event::Events;
     use bevy::state::app::StatesPlugin;
@@ -483,7 +466,6 @@ mod tests {
             .init_resource::<ShiftClock>()
             .init_resource::<PatrolState>()
             .add_event::<CaseAssignedEvent>()
-            .add_event::<CaseCloseRequestedEvent>()
             .add_event::<EvidenceCollectedEvent>()
             .add_event::<FatigueChangeEvent>()
             .add_event::<StressChangeEvent>()
@@ -688,7 +670,7 @@ mod tests {
     }
 
     #[test]
-    fn case_board_interaction_requests_case_close_when_case_is_ready() {
+    fn case_board_interaction_opens_case_file_when_active_case_exists() {
         let mut app = build_test_app();
         app.world_mut().resource_mut::<CaseBoard>().available =
             vec!["patrol_002_noise_complaint".to_string()];
@@ -711,25 +693,23 @@ mod tests {
 
         set_player_near(&mut app, GridPosition { x: 4, y: 12 });
         interact_once(&mut app);
+        app.update();
 
         let case_events = app
             .world_mut()
             .resource_mut::<Events<CaseAssignedEvent>>()
             .drain()
             .collect::<Vec<_>>();
-        let close_requests = app
-            .world_mut()
-            .resource_mut::<Events<CaseCloseRequestedEvent>>()
-            .drain()
-            .collect::<Vec<_>>();
 
         assert!(case_events.is_empty());
-        assert_eq!(close_requests.len(), 1);
-        assert_eq!(close_requests[0].case_id, "patrol_001_petty_theft");
+        assert_eq!(
+            app.world().resource::<State<GameState>>().get(),
+            &GameState::CaseFile
+        );
     }
 
     #[test]
-    fn evidence_terminal_starts_processing_all_raw_evidence() {
+    fn evidence_terminal_opens_evidence_exam_when_locker_has_items() {
         let mut app = build_test_app();
         app.world_mut().resource_mut::<EvidenceLocker>().pieces = vec![
             raw_evidence("fingerprint", MapId::CrimeSceneTemplate),
@@ -740,26 +720,26 @@ mod tests {
 
         set_player_near(&mut app, GridPosition { x: 26, y: 12 });
         interact_once(&mut app);
-
-        let states = app
-            .world()
-            .resource::<EvidenceLocker>()
-            .pieces
-            .iter()
-            .map(|piece| (piece.id.as_str(), piece.processing_state))
-            .collect::<HashMap<_, _>>();
+        app.update();
 
         assert_eq!(
-            states.get("fingerprint"),
-            Some(&EvidenceProcessingState::Processing)
+            app.world().resource::<State<GameState>>().get(),
+            &GameState::EvidenceExam
         );
+    }
+
+    #[test]
+    fn captain_door_interaction_opens_career_view() {
+        let mut app = build_test_app();
+        enter_playing(&mut app);
+
+        set_player_near(&mut app, GridPosition { x: 4, y: 6 });
+        interact_once(&mut app);
+        app.update();
+
         assert_eq!(
-            states.get("witness_statement"),
-            Some(&EvidenceProcessingState::Processing)
-        );
-        assert_eq!(
-            states.get("dna_match"),
-            Some(&EvidenceProcessingState::Analyzed)
+            app.world().resource::<State<GameState>>().get(),
+            &GameState::CareerView
         );
     }
 

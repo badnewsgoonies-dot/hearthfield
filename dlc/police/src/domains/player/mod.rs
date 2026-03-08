@@ -12,11 +12,19 @@ const RUN_MULTIPLIER: f32 = 1.5;
 const CAMERA_LERP_SPEED: f32 = 8.0;
 const PLAYER_Z: f32 = 10.0;
 
+#[derive(Resource, Debug, Clone, Default)]
+pub(crate) struct ViewHotkeys {
+    pub open_skill_tree: bool,
+    pub open_case_file: bool,
+    pub open_career_view: bool,
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_player)
+        app.init_resource::<ViewHotkeys>()
+            .add_systems(OnEnter(GameState::Playing), spawn_player)
             .add_systems(OnEnter(GameState::MainMenu), despawn_player)
             .add_systems(
                 Update,
@@ -45,12 +53,14 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-pub fn read_keyboard_input(
+fn read_keyboard_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     input_context: Res<InputContext>,
     mut player_input: ResMut<PlayerInput>,
+    mut view_hotkeys: ResMut<ViewHotkeys>,
 ) {
     *player_input = PlayerInput::default();
+    *view_hotkeys = ViewHotkeys::default();
 
     player_input.menu = keyboard.just_pressed(KeyCode::Escape);
     player_input.cancel = player_input.menu;
@@ -74,6 +84,16 @@ pub fn read_keyboard_input(
     player_input.interact = keyboard.just_pressed(KeyCode::KeyF);
     player_input.run =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+    player_input.notebook = keyboard.just_pressed(KeyCode::KeyJ);
+    player_input.radio = keyboard.just_pressed(KeyCode::Tab);
+
+    if player_input.menu {
+        return;
+    }
+
+    view_hotkeys.open_skill_tree = player_input.radio;
+    view_hotkeys.open_case_file = player_input.notebook;
+    view_hotkeys.open_career_view = keyboard.just_pressed(KeyCode::KeyC);
 }
 
 pub fn spawn_player(
@@ -413,6 +433,45 @@ mod tests {
         assert!(input.menu);
         assert!(input.cancel);
         assert!(input.run);
+        assert!(!input.notebook);
+        assert!(!input.radio);
+    }
+
+    #[test]
+    fn notebook_hotkeys_populate_player_input() {
+        let mut app = build_test_app();
+        enter_playing(&mut app);
+
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyJ);
+
+        app.update();
+
+        assert!(app.world().resource::<PlayerInput>().notebook);
+    }
+
+    #[test]
+    fn view_hotkeys_capture_requested_screens() {
+        for (key, expected_skill_tree, expected_case_file, expected_career_view) in [
+            (KeyCode::Tab, true, false, false),
+            (KeyCode::KeyJ, false, true, false),
+            (KeyCode::KeyC, false, false, true),
+        ] {
+            let mut app = build_test_app();
+            enter_playing(&mut app);
+
+            app.world_mut()
+                .resource_mut::<ButtonInput<KeyCode>>()
+                .press(key);
+
+            app.update();
+
+            let view_hotkeys = app.world().resource::<ViewHotkeys>();
+            assert_eq!(view_hotkeys.open_skill_tree, expected_skill_tree);
+            assert_eq!(view_hotkeys.open_case_file, expected_case_file);
+            assert_eq!(view_hotkeys.open_career_view, expected_career_view);
+        }
     }
 
     #[test]

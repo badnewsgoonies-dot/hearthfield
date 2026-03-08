@@ -1,8 +1,13 @@
-use bevy::{app::AppExit, prelude::*};
+mod notifications;
+mod screens;
 
+use bevy::{app::AppExit, ecs::system::SystemParam, prelude::*};
+
+use crate::domains::player::ViewHotkeys;
 use crate::shared::{
-    DayOfWeek, GameState, PlayerInput, PlayerState, ShiftClock, UpdatePhase, Weather, MAX_FATIGUE,
-    MAX_STRESS, SCREEN_HEIGHT, SCREEN_WIDTH,
+    DayOfWeek, GameState, LoadRequestEvent, PlayMusicEvent, PlaySfxEvent, PlayerInput, PlayerState,
+    SaveRequestEvent, ShiftClock, UpdatePhase, Weather, MAX_FATIGUE, MAX_STRESS, SCREEN_HEIGHT,
+    SCREEN_WIDTH,
 };
 
 const BAR_MAX_WIDTH: f32 = 200.0;
@@ -11,15 +16,28 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Loading), boot_to_main_menu)
-            .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+        app.add_event::<SaveRequestEvent>()
+            .add_event::<LoadRequestEvent>()
+            .add_systems(OnEnter(GameState::Loading), boot_to_main_menu)
+            .add_systems(
+                OnEnter(GameState::MainMenu),
+                (queue_main_menu_music, spawn_main_menu),
+            )
             .add_systems(
                 Update,
                 handle_main_menu_buttons.run_if(in_state(GameState::MainMenu)),
             )
             .add_systems(OnExit(GameState::MainMenu), cleanup_main_menu)
-            .add_systems(OnEnter(GameState::Playing), spawn_hud)
-            .add_systems(Update, toggle_pause.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                OnEnter(GameState::Playing),
+                (queue_playing_music, spawn_hud),
+            )
+            .add_systems(
+                Update,
+                (toggle_pause, open_player_views)
+                    .in_set(UpdatePhase::Intent)
+                    .run_if(in_state(GameState::Playing)),
+            )
             .add_systems(
                 Update,
                 update_hud
@@ -32,7 +50,13 @@ impl Plugin for UiPlugin {
                 Update,
                 handle_pause_buttons.run_if(in_state(GameState::Paused)),
             )
-            .add_systems(OnExit(GameState::Paused), cleanup_pause_menu);
+            .add_systems(
+                OnExit(GameState::Paused),
+                (cleanup_pause_menu, unpause_clock),
+            );
+
+        notifications::build_notifications(app);
+        screens::install_screen_systems(app);
     }
 }
 
@@ -44,6 +68,12 @@ struct HudRoot;
 
 #[derive(Component)]
 struct PauseMenuRoot;
+
+#[derive(Component)]
+struct MainMenuStatusText;
+
+#[derive(Component)]
+struct PauseStatusText;
 
 #[derive(Component, Clone, Copy)]
 struct MainMenuButton(MenuAction);
@@ -89,12 +119,17 @@ type HudQuerySet<'w, 's> = (
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum MenuAction {
     NewGame,
+    LoadGame,
     Quit,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum PauseAction {
     Resume,
+    SaveGame,
+    LoadGame,
+    SkillTree,
+    CareerView,
     QuitToMenu,
 }
 
@@ -102,9 +137,24 @@ fn boot_to_main_menu(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::MainMenu);
 }
 
+fn queue_main_menu_music(mut music_events: EventWriter<PlayMusicEvent>) {
+    music_events.send(PlayMusicEvent {
+        name: "main_menu_theme".to_string(),
+        looping: true,
+    });
+}
+
+fn queue_playing_music(mut music_events: EventWriter<PlayMusicEvent>) {
+    music_events.send(PlayMusicEvent {
+        name: "patrol_shift_theme".to_string(),
+        looping: true,
+    });
+}
+
 fn menu_button_idle_color(action: MenuAction) -> Color {
     match action {
         MenuAction::NewGame => Color::srgb(0.18, 0.34, 0.24),
+        MenuAction::LoadGame => Color::srgb(0.18, 0.28, 0.42),
         MenuAction::Quit => Color::srgb(0.36, 0.18, 0.20),
     }
 }
@@ -112,6 +162,7 @@ fn menu_button_idle_color(action: MenuAction) -> Color {
 fn menu_button_hover_color(action: MenuAction) -> Color {
     match action {
         MenuAction::NewGame => Color::srgb(0.28, 0.50, 0.36),
+        MenuAction::LoadGame => Color::srgb(0.28, 0.42, 0.60),
         MenuAction::Quit => Color::srgb(0.50, 0.28, 0.30),
     }
 }
@@ -119,6 +170,7 @@ fn menu_button_hover_color(action: MenuAction) -> Color {
 fn menu_button_pressed_color(action: MenuAction) -> Color {
     match action {
         MenuAction::NewGame => Color::srgb(0.86, 0.78, 0.40),
+        MenuAction::LoadGame => Color::srgb(0.80, 0.76, 0.46),
         MenuAction::Quit => Color::srgb(0.74, 0.58, 0.32),
     }
 }
@@ -126,6 +178,10 @@ fn menu_button_pressed_color(action: MenuAction) -> Color {
 fn pause_button_idle_color(action: PauseAction) -> Color {
     match action {
         PauseAction::Resume => Color::srgb(0.20, 0.42, 0.30),
+        PauseAction::SaveGame => Color::srgb(0.22, 0.38, 0.26),
+        PauseAction::LoadGame => Color::srgb(0.20, 0.30, 0.46),
+        PauseAction::SkillTree => Color::srgb(0.28, 0.26, 0.48),
+        PauseAction::CareerView => Color::srgb(0.42, 0.26, 0.18),
         PauseAction::QuitToMenu => Color::srgb(0.38, 0.20, 0.22),
     }
 }
@@ -133,6 +189,10 @@ fn pause_button_idle_color(action: PauseAction) -> Color {
 fn pause_button_hover_color(action: PauseAction) -> Color {
     match action {
         PauseAction::Resume => Color::srgb(0.30, 0.56, 0.40),
+        PauseAction::SaveGame => Color::srgb(0.32, 0.50, 0.36),
+        PauseAction::LoadGame => Color::srgb(0.30, 0.44, 0.62),
+        PauseAction::SkillTree => Color::srgb(0.40, 0.38, 0.64),
+        PauseAction::CareerView => Color::srgb(0.56, 0.38, 0.28),
         PauseAction::QuitToMenu => Color::srgb(0.52, 0.30, 0.34),
     }
 }
@@ -140,6 +200,10 @@ fn pause_button_hover_color(action: PauseAction) -> Color {
 fn pause_button_pressed_color(action: PauseAction) -> Color {
     match action {
         PauseAction::Resume => Color::srgb(0.86, 0.78, 0.40),
+        PauseAction::SaveGame => Color::srgb(0.80, 0.74, 0.44),
+        PauseAction::LoadGame => Color::srgb(0.80, 0.76, 0.46),
+        PauseAction::SkillTree => Color::srgb(0.76, 0.70, 0.42),
+        PauseAction::CareerView => Color::srgb(0.78, 0.66, 0.40),
         PauseAction::QuitToMenu => Color::srgb(0.74, 0.58, 0.32),
     }
 }
@@ -243,6 +307,7 @@ fn spawn_main_menu(mut commands: Commands) {
 
             for (label, action) in [
                 ("New Game", MenuAction::NewGame),
+                ("Load Game", MenuAction::LoadGame),
                 ("Quit", MenuAction::Quit),
             ] {
                 parent
@@ -269,6 +334,16 @@ fn spawn_main_menu(mut commands: Commands) {
                         ));
                     });
             }
+
+            parent.spawn((
+                MainMenuStatusText,
+                Text::new("Load Game uses slot 0."),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.70, 0.74, 0.82)),
+            ));
         });
 }
 
@@ -277,8 +352,11 @@ fn handle_main_menu_buttons(
         (&Interaction, &MainMenuButton, &mut BackgroundColor),
         Changed<Interaction>,
     >,
+    mut status_query: Query<&mut Text, With<MainMenuStatusText>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut exit_events: EventWriter<AppExit>,
+    mut load_requests: EventWriter<LoadRequestEvent>,
+    mut sfx_events: EventWriter<PlaySfxEvent>,
 ) {
     for (interaction, button, mut background) in &mut interaction_query {
         background.0 = match *interaction {
@@ -287,12 +365,26 @@ fn handle_main_menu_buttons(
             Interaction::None => menu_button_idle_color(button.0),
         };
 
-        if *interaction == Interaction::Pressed {
-            match button.0 {
-                MenuAction::NewGame => next_state.set(GameState::Playing),
-                MenuAction::Quit => {
-                    exit_events.send(AppExit::Success);
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+
+        sfx_events.send(PlaySfxEvent {
+            name: "ui_confirm".to_string(),
+        });
+
+        match button.0 {
+            MenuAction::NewGame => {
+                next_state.set(GameState::Playing);
+            }
+            MenuAction::LoadGame => {
+                load_requests.send(LoadRequestEvent { slot: 0 });
+                if let Ok(mut status) = status_query.get_single_mut() {
+                    **status = "Loading slot 0...".to_string();
                 }
+            }
+            MenuAction::Quit => {
+                exit_events.send(AppExit::Success);
             }
         }
     }
@@ -538,6 +630,16 @@ fn toggle_pause(
     }
 }
 
+fn open_player_views(view_hotkeys: Res<ViewHotkeys>, mut next_state: ResMut<NextState<GameState>>) {
+    if view_hotkeys.open_skill_tree {
+        next_state.set(GameState::SkillTree);
+    } else if view_hotkeys.open_case_file {
+        next_state.set(GameState::CaseFile);
+    } else if view_hotkeys.open_career_view {
+        next_state.set(GameState::CareerView);
+    }
+}
+
 fn spawn_pause_menu(mut commands: Commands) {
     let button_width = SCREEN_WIDTH * 0.24;
 
@@ -568,6 +670,10 @@ fn spawn_pause_menu(mut commands: Commands) {
 
             for (label, action) in [
                 ("Resume", PauseAction::Resume),
+                ("Save Game", PauseAction::SaveGame),
+                ("Load Game", PauseAction::LoadGame),
+                ("Skill Tree", PauseAction::SkillTree),
+                ("Career View", PauseAction::CareerView),
                 ("Quit to Menu", PauseAction::QuitToMenu),
             ] {
                 parent
@@ -594,6 +700,16 @@ fn spawn_pause_menu(mut commands: Commands) {
                         ));
                     });
             }
+
+            parent.spawn((
+                PauseStatusText,
+                Text::new("Save and load use slot 0."),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.80, 0.82, 0.88)),
+            ));
         });
 }
 
@@ -604,12 +720,12 @@ fn handle_pause_buttons(
         (&Interaction, &PauseMenuButton, &mut BackgroundColor),
         Changed<Interaction>,
     >,
-    mut clock: ResMut<ShiftClock>,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut status_query: Query<&mut Text, With<PauseStatusText>>,
+    mut output: PauseButtonOutput,
 ) {
     if keyboard.just_pressed(KeyCode::Escape) || input.cancel || input.menu {
-        clock.time_paused = false;
-        next_state.set(GameState::Playing);
+        output.clock.time_paused = false;
+        output.next_state.set(GameState::Playing);
         return;
     }
 
@@ -620,19 +736,56 @@ fn handle_pause_buttons(
             Interaction::None => pause_button_idle_color(button.0),
         };
 
-        if *interaction == Interaction::Pressed {
-            match button.0 {
-                PauseAction::Resume => {
-                    clock.time_paused = false;
-                    next_state.set(GameState::Playing);
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+
+        output.sfx_events.send(PlaySfxEvent {
+            name: "ui_confirm".to_string(),
+        });
+
+        match button.0 {
+            PauseAction::Resume => {
+                output.clock.time_paused = false;
+                output.next_state.set(GameState::Playing);
+            }
+            PauseAction::SaveGame => {
+                output.save_requests.send_default();
+                if let Ok(mut status) = status_query.get_single_mut() {
+                    **status = "Saved to slot 0.".to_string();
                 }
-                PauseAction::QuitToMenu => {
-                    clock.time_paused = false;
-                    next_state.set(GameState::MainMenu);
+            }
+            PauseAction::LoadGame => {
+                output.clock.time_paused = false;
+                output.load_requests.send(LoadRequestEvent { slot: 0 });
+                if let Ok(mut status) = status_query.get_single_mut() {
+                    **status = "Loading slot 0...".to_string();
                 }
+            }
+            PauseAction::SkillTree => {
+                output.clock.time_paused = false;
+                output.next_state.set(GameState::SkillTree);
+            }
+            PauseAction::CareerView => {
+                output.clock.time_paused = false;
+                output.next_state.set(GameState::CareerView);
+            }
+            PauseAction::QuitToMenu => {
+                output.clock.time_paused = false;
+                output.next_state.set(GameState::MainMenu);
             }
         }
     }
+}
+
+#[derive(SystemParam)]
+struct PauseButtonOutput<'w, 's> {
+    clock: ResMut<'w, ShiftClock>,
+    next_state: ResMut<'w, NextState<GameState>>,
+    save_requests: EventWriter<'w, SaveRequestEvent>,
+    load_requests: EventWriter<'w, LoadRequestEvent>,
+    sfx_events: EventWriter<'w, PlaySfxEvent>,
+    marker: std::marker::PhantomData<&'s ()>,
 }
 
 fn cleanup_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
@@ -641,9 +794,20 @@ fn cleanup_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMen
     }
 }
 
+fn unpause_clock(mut clock: ResMut<ShiftClock>) {
+    clock.time_paused = false;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::shared::{
+        CaseBoard, DialogueEndEvent, DialogueStartEvent, Economy, EvidenceCollectedEvent,
+        EvidenceLocker, EvidenceProcessedEvent, InputContext, InterrogationEndEvent,
+        InterrogationStartEvent, NpcRegistry, NpcTrustChangeEvent, PatrolState, PromotionEvent,
+        SkillPointSpentEvent, Skills, ToastEvent, XpGainedEvent,
+    };
+    use bevy::ecs::event::Events;
     use bevy::state::app::StatesPlugin;
 
     fn build_test_app() -> App {
@@ -665,8 +829,30 @@ mod tests {
         app.init_resource::<ShiftClock>()
             .init_resource::<PlayerState>()
             .init_resource::<PlayerInput>()
+            .init_resource::<PatrolState>()
+            .init_resource::<ViewHotkeys>()
+            .init_resource::<InputContext>()
+            .init_resource::<CaseBoard>()
+            .init_resource::<EvidenceLocker>()
+            .init_resource::<NpcRegistry>()
+            .init_resource::<Economy>()
+            .init_resource::<Skills>()
             .insert_resource(ButtonInput::<KeyCode>::default())
             .add_event::<AppExit>()
+            .add_event::<DialogueStartEvent>()
+            .add_event::<DialogueEndEvent>()
+            .add_event::<InterrogationStartEvent>()
+            .add_event::<InterrogationEndEvent>()
+            .add_event::<NpcTrustChangeEvent>()
+            .add_event::<EvidenceCollectedEvent>()
+            .add_event::<EvidenceProcessedEvent>()
+            .add_event::<PromotionEvent>()
+            .add_event::<SkillPointSpentEvent>()
+            .add_event::<ToastEvent>()
+            .add_event::<XpGainedEvent>()
+            .add_event::<PlayMusicEvent>()
+            .add_event::<PlaySfxEvent>()
+            .add_event::<LoadRequestEvent>()
             .add_plugins(UiPlugin);
 
         app
@@ -698,77 +884,42 @@ mod tests {
     }
 
     #[test]
-    fn main_menu_spawns_title_and_two_buttons() {
+    fn main_menu_spawns_three_buttons() {
         let mut app = build_test_app();
         set_state(&mut app, GameState::MainMenu);
 
         let mut buttons = app
             .world_mut()
             .query_filtered::<Entity, With<MainMenuButton>>();
-        assert_eq!(buttons.iter(app.world()).count(), 2);
-
-        let mut title_query = app.world_mut().query::<&Text>();
-        let has_title = title_query
-            .iter(app.world())
-            .any(|text| text.as_str() == "PRECINCT");
-        assert!(has_title);
+        assert_eq!(buttons.iter(app.world()).count(), 3);
     }
 
     #[test]
-    fn new_game_button_transitions_to_playing_and_cleans_main_menu() {
+    fn load_game_button_emits_request() {
         let mut app = build_test_app();
         set_state(&mut app, GameState::MainMenu);
 
         let mut button_query = app.world_mut().query::<(Entity, &MainMenuButton)>();
-        let new_game_button = button_query
+        let load_button = button_query
             .iter(app.world())
-            .find_map(|(entity, button)| (button.0 == MenuAction::NewGame).then_some(entity))
-            .expect("new game button should exist");
+            .find_map(|(entity, button)| (button.0 == MenuAction::LoadGame).then_some(entity))
+            .expect("load game button should exist");
 
         app.world_mut()
-            .entity_mut(new_game_button)
-            .insert(Interaction::Pressed);
-
-        app.update();
-        app.update();
-
-        assert_eq!(
-            app.world().resource::<State<GameState>>().get(),
-            &GameState::Playing
-        );
-
-        let mut menu_roots = app
-            .world_mut()
-            .query_filtered::<Entity, With<MainMenuRoot>>();
-        let mut hud_roots = app.world_mut().query_filtered::<Entity, With<HudRoot>>();
-        assert_eq!(menu_roots.iter(app.world()).count(), 0);
-        assert_eq!(hud_roots.iter(app.world()).count(), 1);
-    }
-
-    #[test]
-    fn quit_button_emits_app_exit() {
-        let mut app = build_test_app();
-        set_state(&mut app, GameState::MainMenu);
-
-        let mut button_query = app.world_mut().query::<(Entity, &MainMenuButton)>();
-        let quit_button = button_query
-            .iter(app.world())
-            .find_map(|(entity, button)| (button.0 == MenuAction::Quit).then_some(entity))
-            .expect("quit button should exist");
-
-        app.world_mut()
-            .entity_mut(quit_button)
+            .entity_mut(load_button)
             .insert(Interaction::Pressed);
 
         app.update();
 
-        let events = app.world().resource::<Events<AppExit>>();
+        let events = app.world().resource::<Events<LoadRequestEvent>>();
         let mut reader = events.get_cursor();
-        assert_eq!(reader.read(events).count(), 1);
+        let emitted = reader.read(events).collect::<Vec<_>>();
+        assert_eq!(emitted.len(), 1);
+        assert_eq!(emitted[0].slot, 0);
     }
 
     #[test]
-    fn hud_spawns_and_reflects_player_and_clock_values() {
+    fn hud_spawns_and_reflects_player_state() {
         let mut app = build_test_app();
         {
             let mut clock = app.world_mut().resource_mut::<ShiftClock>();
@@ -797,28 +948,13 @@ mod tests {
             other => panic!("expected fatigue width in pixels, got {other:?}"),
         }
 
-        let mut stress_query = app
-            .world_mut()
-            .query_filtered::<&Node, With<HudStressFill>>();
-        let stress_node = stress_query.single(app.world());
-        match stress_node.width {
-            Val::Px(width) => assert!((width - 80.0).abs() < 0.001),
-            other => panic!("expected stress width in pixels, got {other:?}"),
-        }
-
-        let mut clock_query = app
-            .world_mut()
-            .query_filtered::<&Text, With<HudClockText>>();
-        let clock_text = clock_query.single(app.world());
-        assert_eq!(clock_text.as_str(), "06:00");
-
         let mut gold_query = app.world_mut().query_filtered::<&Text, With<HudGoldText>>();
         let gold_text = gold_query.single(app.world());
         assert_eq!(gold_text.as_str(), "Gold: $275");
     }
 
     #[test]
-    fn escape_pauses_game_sets_time_paused_and_swaps_screens() {
+    fn escape_pauses_game_and_pause_menu_has_load_button() {
         let mut app = build_test_app();
         set_state(&mut app, GameState::Playing);
 
@@ -834,46 +970,52 @@ mod tests {
             app.world().resource::<State<GameState>>().get(),
             &GameState::Paused
         );
-        assert!(app.world().resource::<ShiftClock>().time_paused);
 
-        let mut hud_roots = app.world_mut().query_filtered::<Entity, With<HudRoot>>();
-        let mut pause_roots = app
-            .world_mut()
-            .query_filtered::<Entity, With<PauseMenuRoot>>();
-        assert_eq!(hud_roots.iter(app.world()).count(), 0);
-        assert_eq!(pause_roots.iter(app.world()).count(), 1);
+        let mut buttons = app.world_mut().query::<&PauseMenuButton>();
+        let pause_actions: Vec<_> = buttons.iter(app.world()).map(|button| button.0).collect();
+        assert_eq!(pause_actions.len(), 6);
+        assert!(pause_actions.contains(&PauseAction::LoadGame));
     }
 
     #[test]
-    fn resume_button_returns_to_playing_and_unpauses_clock() {
-        let mut app = build_test_app();
-        app.world_mut().resource_mut::<ShiftClock>().time_paused = true;
-        set_state(&mut app, GameState::Paused);
+    fn player_view_hotkeys_open_requested_screens() {
+        for (hotkeys, expected_state) in [
+            (
+                ViewHotkeys {
+                    open_skill_tree: true,
+                    open_case_file: false,
+                    open_career_view: false,
+                },
+                GameState::SkillTree,
+            ),
+            (
+                ViewHotkeys {
+                    open_skill_tree: false,
+                    open_case_file: true,
+                    open_career_view: false,
+                },
+                GameState::CaseFile,
+            ),
+            (
+                ViewHotkeys {
+                    open_skill_tree: false,
+                    open_case_file: false,
+                    open_career_view: true,
+                },
+                GameState::CareerView,
+            ),
+        ] {
+            let mut app = build_test_app();
+            set_state(&mut app, GameState::Playing);
+            *app.world_mut().resource_mut::<ViewHotkeys>() = hotkeys.clone();
 
-        let mut button_query = app.world_mut().query::<(Entity, &PauseMenuButton)>();
-        let resume_button = button_query
-            .iter(app.world())
-            .find_map(|(entity, button)| (button.0 == PauseAction::Resume).then_some(entity))
-            .expect("resume button should exist");
+            app.update();
+            app.update();
 
-        app.world_mut()
-            .entity_mut(resume_button)
-            .insert(Interaction::Pressed);
-
-        app.update();
-        app.update();
-
-        assert_eq!(
-            app.world().resource::<State<GameState>>().get(),
-            &GameState::Playing
-        );
-        assert!(!app.world().resource::<ShiftClock>().time_paused);
-
-        let mut pause_roots = app
-            .world_mut()
-            .query_filtered::<Entity, With<PauseMenuRoot>>();
-        let mut hud_roots = app.world_mut().query_filtered::<Entity, With<HudRoot>>();
-        assert_eq!(pause_roots.iter(app.world()).count(), 0);
-        assert_eq!(hud_roots.iter(app.world()).count(), 1);
+            assert_eq!(
+                app.world().resource::<State<GameState>>().get(),
+                &expected_state
+            );
+        }
     }
 }

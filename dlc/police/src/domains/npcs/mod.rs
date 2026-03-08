@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use bevy::prelude::*;
+use bevy::{ecs::system::SystemParam, prelude::*};
 
+use crate::domains::cases::{case_definition, CaseRegistry};
 use crate::shared::{
     CaseBoard, DayOfWeek, DialogueEndEvent, DialogueStartEvent, EvidenceCollectedEvent, GameState,
     GridPosition, InterrogationEndEvent, InterrogationStartEvent, MapId, MapTransitionEvent, Npc,
@@ -379,6 +380,12 @@ impl Plugin for NpcsPlugin {
             .add_systems(OnEnter(GameState::MainMenu), cleanup_npcs)
             .add_systems(
                 Update,
+                handle_dialogue_cancel_input
+                    .in_set(UpdatePhase::Intent)
+                    .run_if(in_state(GameState::Dialogue)),
+            )
+            .add_systems(
+                Update,
                 (
                     spawn_npcs_for_map,
                     update_npc_schedules,
@@ -504,8 +511,10 @@ fn update_npc_schedules(
 fn handle_npc_interaction(
     player_input: Res<PlayerInput>,
     player_state: Res<PlayerState>,
+    case_board: Res<CaseBoard>,
+    case_registry: Option<Res<CaseRegistry>>,
     npc_query: Query<(&Npc, &GridPosition)>,
-    mut dialogue_events: EventWriter<DialogueStartEvent>,
+    mut interaction_output: NpcInteractionOutput,
 ) {
     if !player_input.interact {
         return;
@@ -516,10 +525,39 @@ fn handle_npc_interaction(
         return;
     };
 
-    dialogue_events.send(DialogueStartEvent {
+    if npc_id == "captain_torres" {
+        interaction_output.next_state.set(GameState::CareerView);
+        return;
+    }
+
+    if let Some(case_id) = active_case_for_suspect(&case_board, case_registry.as_deref(), &npc_id) {
+        interaction_output
+            .interrogation_events
+            .send(InterrogationStartEvent { npc_id, case_id });
+        return;
+    }
+
+    interaction_output.dialogue_events.send(DialogueStartEvent {
         npc_id,
         context: "npc_interaction".to_string(),
     });
+}
+
+#[derive(SystemParam)]
+struct NpcInteractionOutput<'w, 's> {
+    next_state: ResMut<'w, NextState<GameState>>,
+    dialogue_events: EventWriter<'w, DialogueStartEvent>,
+    interrogation_events: EventWriter<'w, InterrogationStartEvent>,
+    marker: std::marker::PhantomData<&'s ()>,
+}
+
+fn handle_dialogue_cancel_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut dialogue_end_events: EventWriter<DialogueEndEvent>,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        dialogue_end_events.send(DialogueEndEvent);
+    }
 }
 
 fn handle_dialogue_events(
@@ -557,6 +595,13 @@ fn handle_interrogation_events(
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     for event in start_events.read() {
+        if let Some(active_case) = case_board
+            .active
+            .iter_mut()
+            .find(|active_case| active_case.case_id == event.case_id)
+        {
+            active_case.status = crate::shared::CaseStatus::Interrogating;
+        }
         interaction_state.active_interrogation =
             Some((event.npc_id.clone(), event.case_id.clone()));
         next_state.set(GameState::Interrogation);
@@ -580,7 +625,7 @@ fn handle_interrogation_events(
 
         if event.confession {
             evidence_events.send(EvidenceCollectedEvent {
-                evidence_id: format!("confession:{}", event.npc_id),
+                evidence_id: "confession".to_string(),
                 case_id: event.case_id.clone(),
                 quality: CONFESSION_QUALITY,
             });
@@ -588,6 +633,18 @@ fn handle_interrogation_events(
                 amount: XP_PER_INTERROGATION,
                 source: format!("interrogation:{}:{}", event.case_id, event.npc_id),
             });
+        }
+
+        if let Some(active_case) = case_board
+            .active
+            .iter_mut()
+            .find(|active_case| active_case.case_id == event.case_id)
+        {
+            active_case.status = if event.confession {
+                active_case.status
+            } else {
+                crate::shared::CaseStatus::Investigating
+            };
         }
 
         interaction_state.active_interrogation = None;
@@ -760,6 +817,38 @@ fn nearest_npc(
         .map(|(npc_id, _)| npc_id)
 }
 
+fn active_case_for_suspect(
+    case_board: &CaseBoard,
+    registry: Option<&CaseRegistry>,
+    npc_id: &str,
+) -> Option<String> {
+    case_board.active.iter().find_map(|active_case| {
+        if active_case.suspects_interrogated.contains(npc_id) {
+            return None;
+        }
+
+        let is_suspect = registry
+            .and_then(|registry| registry.get(&active_case.case_id))
+            .map(|case_def| {
+                case_def
+                    .suspects
+                    .iter()
+                    .any(|suspect_id| suspect_id == npc_id)
+            })
+            .or_else(|| {
+                case_definition(&active_case.case_id).map(|case_def| {
+                    case_def
+                        .suspects
+                        .iter()
+                        .any(|suspect_id| *suspect_id == npc_id)
+                })
+            })
+            .unwrap_or(false);
+
+        is_suspect.then(|| active_case.case_id.clone())
+    })
+}
+
 fn active_schedule_entry<'a>(
     _npc_id: &str,
     schedule: &'a [ScheduleEntry],
@@ -924,6 +1013,7 @@ mod tests {
         app.init_resource::<PlayerInput>();
         app.init_resource::<ShiftClock>();
         app.init_resource::<CaseBoard>();
+        app.insert_resource(ButtonInput::<KeyCode>::default());
         app.add_event::<DialogueStartEvent>();
         app.add_event::<DialogueEndEvent>();
         app.add_event::<InterrogationStartEvent>();
@@ -1115,9 +1205,76 @@ mod tests {
             .collect();
 
         assert!(emitted.contains(&(
-            "confession:marcus_cole".to_string(),
+            "confession".to_string(),
             "patrol_001_petty_theft".to_string()
         )));
+    }
+
+    #[test]
+    fn suspect_interaction_emits_interrogation_start_event() {
+        let mut app = build_test_app();
+        app.update();
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::Active,
+                evidence_collected: Vec::new(),
+                witnesses_interviewed: HashSet::new(),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
+
+        set_player_grid(
+            &mut app,
+            MapId::ResidentialSouth,
+            GridPosition { x: 12, y: 16 },
+        );
+        enter_playing(&mut app);
+
+        app.world_mut().resource_mut::<PlayerInput>().interact = true;
+        app.update();
+
+        let events = app.world().resource::<Events<InterrogationStartEvent>>();
+        let mut reader = events.get_cursor();
+        let emitted: Vec<_> = reader
+            .read(events)
+            .map(|event| (event.npc_id.clone(), event.case_id.clone()))
+            .collect();
+
+        assert!(emitted.contains(&(
+            "marcus_cole".to_string(),
+            "patrol_001_petty_theft".to_string()
+        )));
+    }
+
+    #[test]
+    fn leaving_dialogue_emits_dialogue_end_event() {
+        let mut app = build_test_app();
+        app.update();
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::Dialogue);
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::Escape);
+
+        app.update();
+        app.insert_resource(ButtonInput::<KeyCode>::default());
+        app.update();
+
+        assert_eq!(
+            app.world().resource::<State<GameState>>().get(),
+            &GameState::Playing
+        );
+
+        let events = app.world().resource::<Events<DialogueEndEvent>>();
+        let mut reader = events.get_cursor();
+        assert_eq!(reader.read(events).count(), 1);
     }
 
     #[test]

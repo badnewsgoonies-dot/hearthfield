@@ -15,12 +15,12 @@ const CASE_BOARD_POSITION: GridPosition = GridPosition { x: 4, y: 12 };
 const TRAINING_EVIDENCE_POSITION: GridPosition = GridPosition { x: 18, y: 14 };
 
 #[derive(Resource, Debug, Clone, Default)]
-struct CaseRegistry {
+pub(crate) struct CaseRegistry {
     defs: Vec<CaseDef>,
 }
 
 impl CaseRegistry {
-    fn get(&self, case_id: &str) -> Option<&CaseDef> {
+    pub(crate) fn get(&self, case_id: &str) -> Option<&CaseDef> {
         self.defs.iter().find(|case_def| case_def.id == case_id)
     }
 }
@@ -40,7 +40,6 @@ impl Plugin for CasesPlugin {
             .add_systems(
                 Update,
                 (
-                    handle_case_board_close_interaction,
                     handle_training_evidence_pickup,
                     handle_case_assignment,
                     track_evidence_for_cases,
@@ -54,31 +53,6 @@ impl Plugin for CasesPlugin {
                     .in_set(UpdatePhase::Reactions)
                     .run_if(in_state(GameState::Playing)),
             );
-    }
-}
-
-fn handle_case_board_close_interaction(
-    player_input: Res<PlayerInput>,
-    player_state: Res<PlayerState>,
-    case_board: Res<CaseBoard>,
-    mut close_requests: EventWriter<CaseCloseRequestedEvent>,
-) {
-    if !player_input.interact || player_state.position_map != MapId::PrecinctInterior {
-        return;
-    }
-
-    if !in_interaction_range(player_grid_position(&player_state), CASE_BOARD_POSITION) {
-        return;
-    }
-
-    if let Some(active_case) = case_board
-        .active
-        .iter()
-        .find(|active_case| active_case.status == CaseStatus::EvidenceComplete)
-    {
-        close_requests.send(CaseCloseRequestedEvent {
-            case_id: active_case.case_id.clone(),
-        });
     }
 }
 
@@ -901,6 +875,12 @@ fn build_case_registry() -> Vec<CaseDef> {
     ]
 }
 
+pub(crate) fn case_definition(case_id: &str) -> Option<CaseDef> {
+    build_case_registry()
+        .into_iter()
+        .find(|case_def| case_def.id == case_id)
+}
+
 impl From<CaseDefSpec<'_>> for CaseDef {
     fn from(spec: CaseDefSpec<'_>) -> Self {
         Self {
@@ -1244,46 +1224,6 @@ mod tests {
             .iter()
             .any(|case_id| case_id == "patrol_006_car_breakin"));
         assert_eq!(board.total_cases_solved, 1);
-    }
-
-    #[test]
-    fn live_case_board_interaction_closes_evidence_complete_case() {
-        let mut app = build_test_app();
-        enter_playing(&mut app);
-
-        app.world_mut()
-            .resource_mut::<CaseBoard>()
-            .active
-            .push(ActiveCase {
-                case_id: "patrol_001_petty_theft".to_string(),
-                status: CaseStatus::EvidenceComplete,
-                evidence_collected: vec![
-                    "fingerprint".to_string(),
-                    "witness_statement".to_string(),
-                ],
-                witnesses_interviewed: HashSet::new(),
-                suspects_interrogated: HashSet::new(),
-                shifts_elapsed: 0,
-                notes: Vec::new(),
-            });
-
-        set_player_near(&mut app, MapId::PrecinctInterior, CASE_BOARD_POSITION);
-        interact_once(&mut app);
-
-        let board = app.world().resource::<CaseBoard>();
-        assert!(board.active.is_empty());
-        assert!(board
-            .solved
-            .iter()
-            .any(|case_id| case_id == "patrol_001_petty_theft"));
-
-        let solved_events = app
-            .world_mut()
-            .resource_mut::<Events<CaseSolvedEvent>>()
-            .drain()
-            .collect::<Vec<_>>();
-        assert_eq!(solved_events.len(), 1);
-        assert_eq!(solved_events[0].case_id, "patrol_001_petty_theft");
     }
 
     #[test]
