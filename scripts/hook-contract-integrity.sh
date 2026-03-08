@@ -6,11 +6,11 @@
 input=$(cat)
 
 # Only check in the hearthfield repo
-if [[ ! -f /home/user/hearthfield/.contract.sha256 ]]; then
+if [[ ! -f /home/geni/swarm/hearthfield/.contract.sha256 ]]; then
   exit 0
 fi
 
-cd /home/user/hearthfield
+cd /home/geni/swarm/hearthfield
 
 # Check if shared/mod.rs has uncommitted changes
 if ! git diff --quiet -- src/shared/mod.rs 2>/dev/null; then

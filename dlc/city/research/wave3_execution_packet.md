@@ -1,7 +1,7 @@
 # Wave 3 Execution Packet: Contract Alignment
 
 Date: 2026-03-03
-Target repo: `/home/geni/swarm/hearthfield-office-dlc/city_office_worker_dlc`
+Target repo: `/home/geni/swarm/hearthfield/dlc/city`
 Wave scope: persistence + balance pass, with contract alignment and zero gameplay regression.
 
 ## 1) Contract Sections To Implement Now (Minimal High-Leverage Subset)
@@ -173,8 +173,8 @@ Wave 3 is complete only when all gates below are PASS:
 - End-of-day summary still renders correctly while adapters are active.
 
 6. Tooling/Quality Gate
-- `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes.
-- `cargo test --manifest-path city_office_worker_dlc/Cargo.toml` passes.
-- `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml -- -D warnings` passes.
+- `cargo check --manifest-path dlc/city/Cargo.toml` passes.
+- `cargo test --manifest-path dlc/city/Cargo.toml` passes.
+- `cargo clippy --manifest-path dlc/city/Cargo.toml -- -D warnings` passes.
 - Scope guard confirms only allowlisted files changed per lane.
 

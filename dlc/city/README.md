@@ -38,29 +38,33 @@ From repo root:
 
 ```bash
 # run the DLC prototype
-cargo run --manifest-path city_office_worker_dlc/Cargo.toml
+cargo run --manifest-path dlc/city/Cargo.toml
 
 # quick compile check
-cargo check --manifest-path city_office_worker_dlc/Cargo.toml
+cargo check --manifest-path dlc/city/Cargo.toml
 
 # run DLC tests
-cargo test --manifest-path city_office_worker_dlc/Cargo.toml
+cargo test --manifest-path dlc/city/Cargo.toml
 ```
 
 ## Target Module Layout
 
 ```text
-city_office_worker_dlc/
+dlc/city/
   Cargo.toml
   src/
     main.rs
-    shared/
-    office_time/
-    tasks/
-    interruptions/
-    economy/
-    ui/
-    save/
+    game/
+      mod.rs
+      resources.rs
+      events.rs
+      components.rs
+      save/
+      systems/
+      ui/
+  tools/
+    scope_guard.sh
+  research/
 ```
 
 ## MVP Feature Slice

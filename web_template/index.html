@@ -159,7 +159,7 @@
         console.error = function() {
             origError.apply(console, arguments);
             const msg = Array.from(arguments).map(a => {
-                if (a instanceof Error) return a.message + '\n' + (a.stack || '');
+                if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
                 if (typeof a === 'object') {
                     try { return JSON.stringify(a, null, 2); } catch { return String(a); }
                 }

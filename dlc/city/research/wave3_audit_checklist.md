@@ -9,22 +9,22 @@ Commit SHA:
 ## 1) State Machine Correctness
 
 - [ ] `OfficeGameState` includes exactly `Boot`, `MainMenu`, `InDay`, `DaySummary`, `Paused` (per `CONTRACT.md`).
-  - Check: `rg -n "enum OfficeGameState|Boot|MainMenu|InDay|DaySummary|Paused" city_office_worker_dlc/src city_office_worker_dlc/CONTRACT.md`
+  - Check: `rg -n "enum OfficeGameState|Boot|MainMenu|InDay|DaySummary|Paused" dlc/city/src dlc/city/CONTRACT.md`
   - Pass criteria: all five states are present, and no alternate replacement enum is used for core flow.
 
 - [ ] Only valid transitions are reachable: `Boot -> MainMenu -> InDay -> DaySummary -> InDay`, plus pause/unpause.
   - Check: inspect transition systems and `NextState<OfficeGameState>` writes.
-  - Command: `rg -n "NextState<OfficeGameState>|set\\(OfficeGameState::" city_office_worker_dlc/src`
+  - Command: `rg -n "NextState<OfficeGameState>|set\\(OfficeGameState::" dlc/city/src`
   - Pass criteria: no direct transition bypasses `DaySummary` for end-of-day rollover.
 
 - [ ] Salary/reputation rollover logic runs only in `DaySummary`.
   - Check: search writes to `money`/`reputation` and confirm state gating.
-  - Command: `rg -n "money|reputation|salary|rollover" city_office_worker_dlc/src`
+  - Command: `rg -n "money|reputation|salary|rollover" dlc/city/src`
   - Pass criteria: rollover writes are gated to `OfficeGameState::DaySummary`.
 
 - [ ] In-day system ordering matches contract (`Input -> Time -> TaskGeneration -> TaskResolution -> Interruptions -> Economy -> StateTransitions -> Ui`).
   - Check: plugin wiring and system set ordering.
-  - Command: `rg -n "OfficeSimSet|add_systems\\(Update|\\.chain\\(\\)" city_office_worker_dlc/src`
+  - Command: `rg -n "OfficeSimSet|add_systems\\(Update|\\.chain\\(\\)" dlc/city/src`
   - Pass criteria: no ordering that allows UI/state transition side effects to run before core sim steps.
 
 - [ ] `Paused` prevents time/task progression.
@@ -50,7 +50,7 @@ Commit SHA:
   - Pass criteria: first request advances day; subsequent requests in same day are ignored/debounced.
 
 - [ ] If legacy `EndOfDayEvent` still exists, adapter wiring is explicit and one-way.
-  - Check: `rg -n "EndOfDayEvent|EndDayRequested|DayAdvanced" city_office_worker_dlc/src`
+  - Check: `rg -n "EndOfDayEvent|EndDayRequested|DayAdvanced" dlc/city/src`
   - Pass criteria: either legacy event is removed, or adapter emits one `EndDayRequested` and does not double-advance.
 
 ## 3) TaskBoard Invariants
@@ -99,12 +99,12 @@ Commit SHA:
 
 ## 5) Compile/Test/Clippy Gates
 
-Run from `/home/geni/swarm/hearthfield-office-dlc`:
+Run from `/home/geni/swarm/hearthfield`:
 
-- [ ] `cargo fmt --manifest-path city_office_worker_dlc/Cargo.toml --all -- --check`
-- [ ] `cargo check --manifest-path city_office_worker_dlc/Cargo.toml`
-- [ ] `cargo test --manifest-path city_office_worker_dlc/Cargo.toml`
-- [ ] `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml --all-targets -- -D warnings`
+- [ ] `cargo fmt --manifest-path dlc/city/Cargo.toml --all -- --check`
+- [ ] `cargo check --manifest-path dlc/city/Cargo.toml`
+- [ ] `cargo test --manifest-path dlc/city/Cargo.toml`
+- [ ] `cargo clippy --manifest-path dlc/city/Cargo.toml --all-targets -- -D warnings`
 
 Pass criteria:
 - All commands exit `0`.

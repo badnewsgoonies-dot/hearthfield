@@ -4,8 +4,8 @@ set -euo pipefail
 # Mechanical scope enforcement helper for DLC lanes.
 #
 # Usage:
-#   ./city_office_worker_dlc/tools/scope_guard.sh <allowed_prefix1> [allowed_prefix2 ...]
-#   ./city_office_worker_dlc/tools/scope_guard.sh --allow-file city_office_worker_dlc/TASKS.md <lane_id>
+#   ./dlc/city/tools/scope_guard.sh <allowed_prefix1> [allowed_prefix2 ...]
+#   ./dlc/city/tools/scope_guard.sh --allow-file dlc/city/TASKS.md <lane_id>
 #
 # --allow-file mode extracts markdown backtick paths from the given file and uses
 # them as allowed prefixes. If an optional lane id is provided, extraction starts

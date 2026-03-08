@@ -39,9 +39,9 @@ Lane `PROG-UNLOCKS`:
 
 ## 4) Executable Checks (Must Pass)
 
-1. `cargo check --manifest-path city_office_worker_dlc/Cargo.toml`
-2. `cargo test --manifest-path city_office_worker_dlc/Cargo.toml`
-3. `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml --all-targets -- -D warnings`
+1. `cargo check --manifest-path dlc/city/Cargo.toml`
+2. `cargo test --manifest-path dlc/city/Cargo.toml`
+3. `cargo clippy --manifest-path dlc/city/Cargo.toml --all-targets -- -D warnings`
 
 Required new test classes for R6 entry:
 1. Per-coworker affinity round-trip persistence.
