@@ -1,9 +1,21 @@
+#![allow(dead_code)]
+#![allow(clippy::derivable_impls)]
+
+mod domains;
 mod shared;
 
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
 
+use domains::calendar::CalendarPlugin;
+use domains::cases::CasesPlugin;
+use domains::evidence::EvidencePlugin;
+use domains::patrol::PatrolPlugin;
+use domains::player::PlayerPlugin;
+use domains::precinct::PrecinctPlugin;
+use domains::ui::UiPlugin;
+use domains::world::WorldPlugin;
 use shared::*;
 
 fn main() {
@@ -82,19 +94,20 @@ fn main() {
         .add_event::<ToastEvent>()
         .add_event::<SaveRequestEvent>()
         .add_event::<LoadRequestEvent>()
-        // Domain plugins — workers will implement these
-        // .add_plugins(calendar::CalendarPlugin)
-        // .add_plugins(player::PlayerPlugin)
-        // .add_plugins(world::WorldPlugin)
-        // .add_plugins(cases::CasePlugin)
-        // .add_plugins(evidence::EvidencePlugin)
-        // .add_plugins(npcs::NpcPlugin)
-        // .add_plugins(economy::EconomyPlugin)
-        // .add_plugins(skills::SkillPlugin)
-        // .add_plugins(patrol::PatrolPlugin)
-        // .add_plugins(precinct::PrecinctPlugin)
-        // .add_plugins(ui::UiPlugin)
-        // .add_plugins(save::SavePlugin)
+        // Wave 1 domain plugins
+        .add_plugins(CalendarPlugin)
+        .add_plugins(PlayerPlugin)
+        .add_plugins(WorldPlugin)
+        .add_plugins(UiPlugin)
+        .add_plugins(CasesPlugin)
+        .add_plugins(EvidencePlugin)
+        .add_plugins(PatrolPlugin)
+        .add_plugins(PrecinctPlugin)
+        // Future domain plugins (Wave 2+)
+        // .add_plugins(domains::npcs::NpcPlugin)
+        // .add_plugins(domains::economy::EconomyPlugin)
+        // .add_plugins(domains::skills::SkillPlugin)
+        // .add_plugins(domains::save::SavePlugin)
         // Camera
         .add_systems(Startup, setup_camera)
         .run();
