@@ -39,10 +39,10 @@ This is the single long-horizon execution list to reach **OES-v1** (Origin-Equiv
 
 ## Gate Runbook (Every Rotation)
 
-- [x] `cargo fmt --manifest-path city_office_worker_dlc/Cargo.toml --all`
-- [x] `cargo check --manifest-path city_office_worker_dlc/Cargo.toml`
-- [x] `cargo test --manifest-path city_office_worker_dlc/Cargo.toml`
-- [x] `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml --all-targets -- -D warnings`
+- [x] `cargo fmt --manifest-path dlc/city/Cargo.toml --all`
+- [x] `cargo check --manifest-path dlc/city/Cargo.toml`
+- [x] `cargo test --manifest-path dlc/city/Cargo.toml`
+- [x] `cargo clippy --manifest-path dlc/city/Cargo.toml --all-targets -- -D warnings`
 
 ## Current Next-Up
 

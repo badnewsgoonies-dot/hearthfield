@@ -1,7 +1,7 @@
 # Parity Baseline Matrix (R0)
 
 Date: 2026-03-03
-Scope: origin game at `/home/geni/swarm/hearthfield` vs DLC at `/home/geni/swarm/hearthfield-office-dlc/city_office_worker_dlc`
+Scope: origin game at `/home/geni/swarm/hearthfield` vs DLC at `/home/geni/swarm/hearthfield/dlc/city`
 
 ## Measurement Snapshot
 

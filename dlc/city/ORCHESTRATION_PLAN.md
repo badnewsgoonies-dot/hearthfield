@@ -61,7 +61,7 @@ Per worker task:
 
 ```bash
 # from repo root (project-specific helper)
-./city_office_worker_dlc/tools/scope_guard.sh --allow-file city_office_worker_dlc/TASKS.md
+./dlc/city/tools/scope_guard.sh --allow-file dlc/city/TASKS.md
 ```
 
 If helper script is not available, equivalent fallback:
@@ -69,8 +69,8 @@ If helper script is not available, equivalent fallback:
 ```bash
 # example fallback: revert only files outside allowlist
 # (replace ALLOWED_* values with current owned paths)
-ALLOWED_1='city_office_worker_dlc/src/tasks/'
-ALLOWED_2='city_office_worker_dlc/src/shared/'
+ALLOWED_1='dlc/city/src/game/'
+ALLOWED_2='dlc/city/STATUS.md'
 
 for f in $(git diff --name-only); do
   case "$f" in
@@ -94,7 +94,7 @@ Scope:
 - Add contract stubs for resources/events/components.
 
 Gate:
-- `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes.
+- `cargo check --manifest-path dlc/city/Cargo.toml` passes.
 - No out-of-scope diff after scope guard.
 
 ### Wave 1 - Playable Core Day Loop
@@ -135,8 +135,8 @@ Scope:
 - Performance sanity pass and bug triage.
 
 Gate:
-- `cargo test --manifest-path city_office_worker_dlc/Cargo.toml` passes.
-- `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml -- -D warnings` passes.
+- `cargo test --manifest-path dlc/city/Cargo.toml` passes.
+- `cargo clippy --manifest-path dlc/city/Cargo.toml -- -D warnings` passes.
 - No P0/P1 known issues in `STATUS.md`.
 
 ## Measurable Gates Dashboard

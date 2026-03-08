@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/user/hearthfield/scripts/hook-no-rust-from-orchestrator.sh"
+            "command": "bash /home/geni/swarm/hearthfield/scripts/hook-no-rust-from-orchestrator.sh"
           }
         ]
       },
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/user/hearthfield/scripts/hook-agent-guard.sh"
+            "command": "bash /home/geni/swarm/hearthfield/scripts/hook-agent-guard.sh"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /home/user/hearthfield/scripts/hook-contract-integrity.sh"
+            "command": "bash /home/geni/swarm/hearthfield/scripts/hook-contract-integrity.sh"
           }
         ]
       }

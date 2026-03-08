@@ -31,15 +31,15 @@ Delivered:
 ### Lane INT - Integrator
 
 Allowlist:
-- `city_office_worker_dlc/src/main.rs`
-- `city_office_worker_dlc/src/game/mod.rs`
-- `city_office_worker_dlc/src/game/resources.rs`
-- `city_office_worker_dlc/src/game/events.rs`
-- `city_office_worker_dlc/src/game/components.rs`
-- `city_office_worker_dlc/src/game/systems/**`
-- `city_office_worker_dlc/src/game/save/**`
-- `city_office_worker_dlc/STATUS.md`
-- `city_office_worker_dlc/DECISIONS.md`
+- `dlc/city/src/main.rs`
+- `dlc/city/src/game/mod.rs`
+- `dlc/city/src/game/resources.rs`
+- `dlc/city/src/game/events.rs`
+- `dlc/city/src/game/components.rs`
+- `dlc/city/src/game/systems/**`
+- `dlc/city/src/game/save/**`
+- `dlc/city/STATUS.md`
+- `dlc/city/DECISIONS.md`
 
 Acceptance criteria:
 1. No contract drift between systems, resources, events, and save schema.
@@ -49,10 +49,10 @@ Acceptance criteria:
 ### Lane SAVE - Durable Save Slots
 
 Allowlist:
-- `city_office_worker_dlc/src/game/save/**`
-- `city_office_worker_dlc/src/game/resources.rs`
-- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
-- `city_office_worker_dlc/src/game/systems/tests.rs`
+- `dlc/city/src/game/save/**`
+- `dlc/city/src/game/resources.rs`
+- `dlc/city/src/game/systems/day_cycle.rs`
+- `dlc/city/src/game/systems/tests.rs`
 
 Acceptance criteria:
 1. Save slot write/read flow persists snapshot JSON outside volatile memory.
@@ -62,11 +62,11 @@ Acceptance criteria:
 ### Lane TASK - Progression/Deadline Semantics
 
 Allowlist:
-- `city_office_worker_dlc/src/game/systems/tasks.rs`
-- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
-- `city_office_worker_dlc/src/game/events.rs`
-- `city_office_worker_dlc/src/game/resources.rs`
-- `city_office_worker_dlc/src/game/systems/tests.rs`
+- `dlc/city/src/game/systems/tasks.rs`
+- `dlc/city/src/game/systems/day_cycle.rs`
+- `dlc/city/src/game/events.rs`
+- `dlc/city/src/game/resources.rs`
+- `dlc/city/src/game/systems/tests.rs`
 
 Acceptance criteria:
 1. Task progress can advance by non-trivial deltas and complete deterministically.
@@ -76,10 +76,10 @@ Acceptance criteria:
 ### Lane ECON - Economy/Progression Depth
 
 Allowlist:
-- `city_office_worker_dlc/src/game/resources.rs`
-- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
-- `city_office_worker_dlc/src/game/systems/tests.rs`
-- `city_office_worker_dlc/src/game/events.rs`
+- `dlc/city/src/game/resources.rs`
+- `dlc/city/src/game/systems/day_cycle.rs`
+- `dlc/city/src/game/systems/tests.rs`
+- `dlc/city/src/game/events.rs`
 
 Acceptance criteria:
 1. Salary/penalty/reputation deltas are tunable and deterministic under replay.
@@ -89,11 +89,11 @@ Acceptance criteria:
 ### Lane SOC - Social State and Scenarios
 
 Allowlist:
-- `city_office_worker_dlc/src/game/resources.rs`
-- `city_office_worker_dlc/src/game/events.rs`
-- `city_office_worker_dlc/src/game/systems/interruptions.rs`
-- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
-- `city_office_worker_dlc/src/game/systems/tests.rs`
+- `dlc/city/src/game/resources.rs`
+- `dlc/city/src/game/events.rs`
+- `dlc/city/src/game/systems/interruptions.rs`
+- `dlc/city/src/game/systems/day_cycle.rs`
+- `dlc/city/src/game/systems/tests.rs`
 
 Acceptance criteria:
 1. Persistent coworker/manager relationship state exists with bounded normalization.
@@ -103,10 +103,10 @@ Acceptance criteria:
 ### Lane PROG - Unlock Catalog
 
 Allowlist:
-- `city_office_worker_dlc/src/game/resources.rs`
-- `city_office_worker_dlc/src/game/systems/day_cycle.rs`
-- `city_office_worker_dlc/src/game/save/mod.rs`
-- `city_office_worker_dlc/src/game/systems/tests.rs`
+- `dlc/city/src/game/resources.rs`
+- `dlc/city/src/game/systems/day_cycle.rs`
+- `dlc/city/src/game/save/mod.rs`
+- `dlc/city/src/game/systems/tests.rs`
 
 Acceptance criteria:
 1. Unlock table maps progression milestones to deterministic gameplay benefits.
@@ -116,8 +116,8 @@ Acceptance criteria:
 ### Lane INV - Investigation/Audit
 
 Allowlist:
-- `city_office_worker_dlc/research/**`
-- `city_office_worker_dlc/STATUS.md`
+- `dlc/city/research/**`
+- `dlc/city/STATUS.md`
 
 Acceptance criteria:
 1. Publish social/progression parity packet with executable checks.
@@ -126,7 +126,7 @@ Acceptance criteria:
 
 ## Rotation Exit Criteria
 
-1. `cargo check --manifest-path city_office_worker_dlc/Cargo.toml` passes.
-2. `cargo test --manifest-path city_office_worker_dlc/Cargo.toml` passes.
-3. `cargo clippy --manifest-path city_office_worker_dlc/Cargo.toml --all-targets -- -D warnings` passes.
+1. `cargo check --manifest-path dlc/city/Cargo.toml` passes.
+2. `cargo test --manifest-path dlc/city/Cargo.toml` passes.
+3. `cargo clippy --manifest-path dlc/city/Cargo.toml --all-targets -- -D warnings` passes.
 4. Scope guard confirms allowlist compliance.
