@@ -943,16 +943,12 @@ fn handle_load_request(
                 }
                 machines.machine_registry.machines.clear();
                 for saved in file.placed_machines {
-                    use crate::crafting::machines::{item_to_machine_type, machine_atlas_index};
+                    use crate::crafting::machines::item_to_machine_type;
                     let world_x = saved.grid_x as f32 * TILE_SIZE;
                     let world_y = saved.grid_y as f32 * TILE_SIZE;
                     let machine_sprite = if machines.furniture.loaded {
-                        let mut s = Sprite::from_atlas_image(
-                            machines.furniture.image.clone(),
-                            TextureAtlas {
-                                layout: machines.furniture.layout.clone(),
-                                index: machine_atlas_index(saved.machine_type),
-                            },
+                        let mut s = Sprite::from_image(
+                            machines.furniture.processing_machine_image.clone(),
                         );
                         s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
                         s

@@ -95,6 +95,8 @@ pub struct AnimalSpriteData {
     pub duck_layout: Handle<TextureAtlasLayout>,
     pub rabbit_image: Handle<Image>,
     pub rabbit_layout: Handle<TextureAtlasLayout>,
+    pub dog_image: Handle<Image>,
+    pub dog_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads all animal sprite atlases on first entry into Playing state.
@@ -173,6 +175,16 @@ pub fn load_animal_sprites(
         UVec2::new(16, 16),
         48,
         8,
+        None,
+        None,
+    ));
+
+    // dog.png: 1152×416, 36 cols × 13 rows of 32×32 frames
+    sprite_data.dog_image = asset_server.load("sprites/dog.png");
+    sprite_data.dog_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        36,
+        13,
         None,
         None,
     ));

@@ -38,7 +38,7 @@ impl Plugin for MiningPlugin {
         app.init_resource::<PlayerIFrames>();
         app.init_resource::<MineMoveCooldown>();
         app.init_resource::<ElevatorUiOpen>();
-        app.init_resource::<spawning::MiningAtlas>();
+        app.init_resource::<spawning::MiningAtlases>();
         app.init_resource::<spawning::EnemyAtlas>();
         app.add_event::<MonsterSlainEvent>();
 

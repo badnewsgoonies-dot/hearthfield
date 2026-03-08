@@ -79,6 +79,10 @@ pub struct FarmingAtlases {
     /// Crops with per-crop sheets use sequential column indices (0, 1, 2, ...)
     /// for growth stages. Crops without an entry fall back to plants.png.
     pub crop_atlases: std::collections::HashMap<String, (Handle<Image>, Handle<TextureAtlasLayout>)>,
+    /// Standalone sprinkler sprite (16x16).
+    pub sprinkler_image: Handle<Image>,
+    /// Standalone scarecrow sprite (48x48).
+    pub scarecrow_image: Handle<Image>,
 }
 
 /// A pending harvest interaction from the player pressing Space.
@@ -295,6 +299,10 @@ fn load_farming_atlases(
         ));
         atlases.crop_atlases.insert(crop_id.to_string(), (image, layout));
     }
+
+    // Standalone farm object sprites
+    atlases.sprinkler_image = asset_server.load("sprites/sprinkler.png");
+    atlases.scarecrow_image = asset_server.load("sprites/scarecrow.png");
 
     atlases.loaded = true;
 }

@@ -487,6 +487,8 @@ pub fn animate_crop_growth(
 
 /// Map a FarmObject to an atlas index in furniture.png (9 cols × 6 rows).
 /// Returns None for Fence (handled separately with fences atlas + autotile).
+/// Retained for potential future atlas-based rendering of farm objects.
+#[allow(dead_code)]
 fn farm_object_atlas_index(obj: &FarmObject) -> Option<usize> {
     match obj {
         FarmObject::Sprinkler => Some(36), // row 4: machinery/device
@@ -532,11 +534,16 @@ pub fn sync_farm_objects_sprites(
     mut commands: Commands,
     mut farm_entities: ResMut<FarmEntities>,
     farm_state: Res<FarmState>,
+    farming_atlases: Res<FarmingAtlases>,
     furniture: Res<crate::world::objects::FurnitureAtlases>,
     obj_atlases: Res<crate::world::objects::ObjectAtlases>,
 ) {
     // Incremental short-circuit for unchanged object state and atlas resources.
-    if !farm_state.is_changed() && !furniture.is_changed() && !obj_atlases.is_changed() {
+    if !farm_state.is_changed()
+        && !farming_atlases.is_changed()
+        && !furniture.is_changed()
+        && !obj_atlases.is_changed()
+    {
         return;
     }
 
@@ -601,31 +608,27 @@ pub fn sync_farm_objects_sprites(
                     ))
                     .id()
             }
-        } else if furniture.loaded {
-            if let Some(idx) = farm_object_atlas_index(&obj) {
-                let mut sprite = Sprite::from_atlas_image(
-                    furniture.image.clone(),
-                    TextureAtlas {
-                        layout: furniture.layout.clone(),
-                        index: idx,
+        } else if farming_atlases.loaded {
+            // Use standalone sprite images for sprinkler/scarecrow.
+            let image = match obj {
+                FarmObject::Sprinkler => farming_atlases.sprinkler_image.clone(),
+                FarmObject::Scarecrow => farming_atlases.scarecrow_image.clone(),
+                _ => continue,
+            };
+            let mut sprite = Sprite::from_image(image);
+            sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+            commands
+                .spawn((
+                    sprite,
+                    Transform::from_translation(translation),
+                    logical,
+                    YSorted,
+                    FarmObjectEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
                     },
-                );
-                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
-                commands
-                    .spawn((
-                        sprite,
-                        Transform::from_translation(translation),
-                        logical,
-                        YSorted,
-                        FarmObjectEntity {
-                            grid_x: pos.0,
-                            grid_y: pos.1,
-                        },
-                    ))
-                    .id()
-            } else {
-                continue;
-            }
+                ))
+                .id()
         } else {
             // Colour fallback — no atlas available yet.
             commands

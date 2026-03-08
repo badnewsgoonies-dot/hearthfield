@@ -379,11 +379,14 @@ pub fn handle_animal_purchase(
                     s
                 }
                 AnimalKind::Dog => {
-                    let mut s = Sprite {
-                        color: Color::srgb(0.6, 0.38, 0.18),
-                        custom_size: Some(Vec2::new(14.0, 14.0)),
-                        ..default()
-                    };
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.dog_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.dog_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(32.0, 32.0));
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
@@ -439,7 +442,8 @@ pub fn handle_animal_purchase(
             AnimalKind::Pig => (0.15, 24),       // 24 cols
             AnimalKind::Duck => (0.12, 48),      // 48 cols
             AnimalKind::Rabbit => (0.12, 48),    // 48 cols
-            _ => (0.3, 2), // non-atlas: 2 phases for bob (Horse, Cat, Dog)
+            AnimalKind::Dog => (0.15, 36),    // 36 cols
+            _ => (0.3, 2), // non-atlas: 2 phases for bob (Horse, Cat)
         };
         commands.entity(entity).insert(AnimalAnimTimer {
             timer: Timer::from_seconds(anim_period, TimerMode::Repeating),

@@ -110,6 +110,11 @@ pub struct ObjectAtlases {
     pub wood_bridge_layout: Handle<TextureAtlasLayout>,
     pub tools_image: Handle<Image>,
     pub tools_layout: Handle<TextureAtlasLayout>,
+    // Modern Farm composite building sprites (single images, no atlas)
+    pub farmhouse_image: Handle<Image>,
+    pub barn_image: Handle<Image>,
+    pub chicken_house_image: Handle<Image>,
+    pub well_image: Handle<Image>,
 }
 
 /// Loads object atlas assets on first use. Subsequent calls are no-ops.
@@ -214,6 +219,16 @@ pub fn ensure_object_atlases_loaded(
         None,
     ));
 
+    // Modern Farm composite building sprites (single images, no atlas)
+    // farmhouse.png: 128x160 — complete farmhouse
+    atlases.farmhouse_image = asset_server.load("sprites/farmhouse.png");
+    // barn.png: 128x160 — complete barn
+    atlases.barn_image = asset_server.load("sprites/barn.png");
+    // chicken_house.png: 48x48 — chicken coop
+    atlases.chicken_house_image = asset_server.load("sprites/chicken_house.png");
+    // well.png: 48x32 — well structure
+    atlases.well_image = asset_server.load("sprites/well.png");
+
     atlases.loaded = true;
 }
 
@@ -229,6 +244,16 @@ pub struct FurnitureAtlases {
     pub loaded: bool,
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
+    /// Standalone shipping bin sprite (32x32).
+    pub shipping_bin_image: Handle<Image>,
+    /// Standalone crafting bench sprite (48x48).
+    pub crafting_bench_image: Handle<Image>,
+    /// Standalone carpenter board sprite (48x48).
+    pub carpenter_board_image: Handle<Image>,
+    /// Standalone processing machine sprite (64x48).
+    pub processing_machine_image: Handle<Image>,
+    /// Standalone chest sprite.
+    pub chest_image: Handle<Image>,
 }
 
 /// Loads the furniture atlas on first use. Subsequent calls are no-ops.
@@ -249,6 +274,14 @@ pub fn ensure_furniture_atlases_loaded(
         None,
         None,
     ));
+
+    // Standalone sprite images for specific furniture/structures
+    atlases.shipping_bin_image = asset_server.load("sprites/shipping_bin.png");
+    atlases.crafting_bench_image = asset_server.load("sprites/crafting_bench.png");
+    atlases.carpenter_board_image = asset_server.load("sprites/carpenter_board.png");
+    atlases.processing_machine_image = asset_server.load("sprites/processing_machine.png");
+    atlases.chest_image = asset_server.load("sprites/chest.png");
+
     atlases.loaded = true;
 }
 
@@ -1185,13 +1218,7 @@ pub fn spawn_shipping_bin(
     }
     let wc = grid_to_world_center(14, 6);
     let sprite = if furniture.loaded {
-        let mut s = Sprite::from_atlas_image(
-            furniture.image.clone(),
-            TextureAtlas {
-                layout: furniture.layout.clone(),
-                index: 18,
-            },
-        );
+        let mut s = Sprite::from_image(furniture.shipping_bin_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
         s
     } else {
@@ -1228,13 +1255,7 @@ pub fn spawn_crafting_bench(
     }
     let wc = grid_to_world_center(12, 6);
     let sprite = if furniture.loaded {
-        let mut s = Sprite::from_atlas_image(
-            furniture.image.clone(),
-            TextureAtlas {
-                layout: furniture.layout.clone(),
-                index: 27,
-            },
-        );
+        let mut s = Sprite::from_image(furniture.crafting_bench_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
         s
     } else {
@@ -1271,13 +1292,7 @@ pub fn spawn_carpenter_board(
     }
     let wc = grid_to_world_center(10, 8);
     let sprite = if furniture.loaded {
-        let mut s = Sprite::from_atlas_image(
-            furniture.image.clone(),
-            TextureAtlas {
-                layout: furniture.layout.clone(),
-                index: 20,
-            },
-        );
+        let mut s = Sprite::from_image(furniture.carpenter_board_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
         s
     } else {
@@ -1350,6 +1365,15 @@ pub fn spawn_building_signs(
 #[derive(Component)]
 pub struct BuildingOverlay;
 
+/// Identifies which composite building sprite to use (if any).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BuildingImage {
+    Farmhouse,
+    Barn,
+    ChickenHouse,
+    Well,
+}
+
 /// Definition for a building to render on a map.
 struct BuildingDef {
     /// Top-left grid position of the building footprint.
@@ -1363,6 +1387,8 @@ struct BuildingDef {
     door_y: i32,
     /// Roof color tint to differentiate buildings.
     roof_tint: Color,
+    /// Optional composite image to render instead of tile-by-tile.
+    composite: Option<BuildingImage>,
 }
 
 /// Town building definitions.
@@ -1377,6 +1403,7 @@ fn town_buildings() -> Vec<BuildingDef> {
             door_x: 5,
             door_y: 2,
             roof_tint: Color::srgb(0.85, 0.55, 0.4),
+            composite: None,
         },
         // Animal Shop (north-east)
         BuildingDef {
@@ -1387,6 +1414,7 @@ fn town_buildings() -> Vec<BuildingDef> {
             door_x: 22,
             door_y: 2,
             roof_tint: Color::srgb(0.5, 0.7, 0.85),
+            composite: None,
         },
         // Blacksmith (east, below plaza)
         BuildingDef {
@@ -1397,6 +1425,7 @@ fn town_buildings() -> Vec<BuildingDef> {
             door_x: 22,
             door_y: 13,
             roof_tint: Color::srgb(0.6, 0.55, 0.55),
+            composite: None,
         },
         // NPC House 1 (west, below plaza — doc/librarian area)
         BuildingDef {
@@ -1407,6 +1436,7 @@ fn town_buildings() -> Vec<BuildingDef> {
             door_x: 3,
             door_y: 13,
             roof_tint: Color::srgb(0.75, 0.85, 0.6),
+            composite: None,
         },
         // NPC House 2 (center-west, below plaza — fisher/kid)
         BuildingDef {
@@ -1417,13 +1447,14 @@ fn town_buildings() -> Vec<BuildingDef> {
             door_x: 9,
             door_y: 13,
             roof_tint: Color::srgb(0.85, 0.75, 0.55),
+            composite: None,
         },
     ]
 }
 
 fn farm_buildings() -> Vec<BuildingDef> {
     vec![
-        // Player house (top center of farm)
+        // Player house (top center of farm) — composite farmhouse sprite (128x160)
         BuildingDef {
             x: 13,
             y: 0,
@@ -1432,8 +1463,9 @@ fn farm_buildings() -> Vec<BuildingDef> {
             door_x: 15,
             door_y: 0,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
+            composite: Some(BuildingImage::Farmhouse),
         },
-        // Chicken coop (bottom-left area)
+        // Chicken coop (bottom-left area) — composite chicken house sprite (48x48)
         BuildingDef {
             x: 9,
             y: 17,
@@ -1442,8 +1474,9 @@ fn farm_buildings() -> Vec<BuildingDef> {
             door_x: 10,
             door_y: 17,
             roof_tint: Color::srgb(0.9, 0.8, 0.5),
+            composite: Some(BuildingImage::ChickenHouse),
         },
-        // Barn (bottom-left area)
+        // Barn (bottom-left area) — composite barn sprite (128x160)
         BuildingDef {
             x: 3,
             y: 16,
@@ -1452,6 +1485,7 @@ fn farm_buildings() -> Vec<BuildingDef> {
             door_x: 5,
             door_y: 16,
             roof_tint: Color::srgb(0.7, 0.3, 0.3),
+            composite: Some(BuildingImage::Barn),
         },
     ]
 }

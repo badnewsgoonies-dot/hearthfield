@@ -592,13 +592,7 @@ pub fn handle_place_machine(
         // Spawn machine entity
         let display_label = machine_type.display_name().to_string();
         let machine_sprite = if furniture.loaded {
-            let mut s = Sprite::from_atlas_image(
-                furniture.image.clone(),
-                TextureAtlas {
-                    layout: furniture.layout.clone(),
-                    index: machine_atlas_index(machine_type),
-                },
-            );
+            let mut s = Sprite::from_image(furniture.processing_machine_image.clone());
             s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
             s
         } else {
