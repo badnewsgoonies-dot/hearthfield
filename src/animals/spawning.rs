@@ -22,33 +22,33 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
         },
         AnimalKind::Cow => AnimalVisual {
             color: Color::srgb(0.85, 0.85, 0.85),
-            width: 32.0,
-            height: 32.0,
+            width: 48.0,
+            height: 48.0,
         },
         AnimalKind::Sheep => AnimalVisual {
             color: Color::srgb(0.97, 0.97, 0.97),
-            width: 20.0,
-            height: 16.0,
+            width: 32.0,
+            height: 32.0,
         },
         AnimalKind::Goat => AnimalVisual {
             color: Color::srgb(0.85, 0.85, 0.78),
-            width: 18.0,
-            height: 18.0,
+            width: 32.0,
+            height: 48.0,
         },
         AnimalKind::Duck => AnimalVisual {
             color: Color::srgb(0.95, 0.88, 0.1),
-            width: 10.0,
-            height: 10.0,
+            width: 16.0,
+            height: 16.0,
         },
         AnimalKind::Rabbit => AnimalVisual {
             color: Color::srgb(0.8, 0.8, 0.8),
-            width: 8.0,
-            height: 10.0,
+            width: 16.0,
+            height: 16.0,
         },
         AnimalKind::Pig => AnimalVisual {
             color: Color::srgb(0.95, 0.7, 0.73),
-            width: 22.0,
-            height: 18.0,
+            width: 32.0,
+            height: 32.0,
         },
         AnimalKind::Horse => AnimalVisual {
             color: Color::srgb(0.35, 0.2, 0.1),
@@ -62,8 +62,8 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
         },
         AnimalKind::Dog => AnimalVisual {
             color: Color::srgb(0.6, 0.38, 0.18),
-            width: 14.0,
-            height: 14.0,
+            width: 48.0,
+            height: 32.0,
         },
     }
 }
@@ -295,7 +295,7 @@ pub fn handle_animal_purchase(
                             index: 0,
                         },
                     );
-                    s.custom_size = Some(Vec2::new(32.0, 32.0));
+                    s.custom_size = Some(Vec2::new(48.0, 48.0));
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
@@ -319,7 +319,7 @@ pub fn handle_animal_purchase(
                             index: 0,
                         },
                     );
-                    s.custom_size = Some(Vec2::new(32.0, 32.0));
+                    s.custom_size = Some(Vec2::new(32.0, 48.0));
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
@@ -386,7 +386,7 @@ pub fn handle_animal_purchase(
                             index: 0,
                         },
                     );
-                    s.custom_size = Some(Vec2::new(32.0, 32.0));
+                    s.custom_size = Some(Vec2::new(48.0, 32.0));
                     s.anchor = bevy::sprite::Anchor::BottomCenter;
                     s
                 }
@@ -434,15 +434,18 @@ pub fn handle_animal_purchase(
         // Attach animation timer for all animals.
         // Atlas animals cycle first-row sprite frames; non-atlas animals (Horse,
         // Cat, Dog) use the timer elapsed time to drive a vertical bob animation.
+        // Walk cycle: use first 6 frames (one facing direction) from row 0.
+        // Each sprite sheet has 24 cols = 6 frames × 4 directions.
+        // At 0.15s/frame × 6 frames = 0.9s per cycle — natural walk speed.
         let (anim_period, anim_frames) = match kind {
-            AnimalKind::Chicken => (0.15, 24),   // 24 cols
-            AnimalKind::Cow => (0.15, 36),       // 36 cols
-            AnimalKind::Sheep => (0.15, 24),     // 24 cols
-            AnimalKind::Goat => (0.15, 24),      // 24 cols
-            AnimalKind::Pig => (0.15, 24),       // 24 cols
-            AnimalKind::Duck => (0.12, 48),      // 48 cols
-            AnimalKind::Rabbit => (0.12, 48),    // 48 cols
-            AnimalKind::Dog => (0.15, 36),    // 36 cols
+            AnimalKind::Chicken => (0.15, 6),
+            AnimalKind::Cow => (0.15, 6),
+            AnimalKind::Sheep => (0.15, 6),
+            AnimalKind::Goat => (0.15, 6),
+            AnimalKind::Pig => (0.15, 6),
+            AnimalKind::Duck => (0.15, 6),
+            AnimalKind::Rabbit => (0.12, 6),
+            AnimalKind::Dog => (0.15, 6),
             _ => (0.3, 2), // non-atlas: 2 phases for bob (Horse, Cat)
         };
         commands.entity(entity).insert(AnimalAnimTimer {
