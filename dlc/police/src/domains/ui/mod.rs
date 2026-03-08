@@ -11,7 +11,8 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+        app.add_systems(OnEnter(GameState::Loading), boot_to_main_menu)
+            .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(
                 Update,
                 handle_main_menu_buttons.run_if(in_state(GameState::MainMenu)),
@@ -95,6 +96,10 @@ enum MenuAction {
 enum PauseAction {
     Resume,
     QuitToMenu,
+}
+
+fn boot_to_main_menu(mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::MainMenu);
 }
 
 fn menu_button_idle_color(action: MenuAction) -> Color {
@@ -672,6 +677,24 @@ mod tests {
             .resource_mut::<NextState<GameState>>()
             .set(state);
         app.update();
+    }
+
+    #[test]
+    fn loading_boots_into_main_menu() {
+        let mut app = build_test_app();
+
+        app.update();
+        app.update();
+
+        assert_eq!(
+            app.world().resource::<State<GameState>>().get(),
+            &GameState::MainMenu
+        );
+
+        let mut menu_roots = app
+            .world_mut()
+            .query_filtered::<Entity, With<MainMenuRoot>>();
+        assert_eq!(menu_roots.iter(app.world()).count(), 1);
     }
 
     #[test]

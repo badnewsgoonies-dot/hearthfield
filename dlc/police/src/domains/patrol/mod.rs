@@ -300,7 +300,7 @@ fn dispatch_spawn_chance(map_id: MapId, hour: u8, delta_game_hours: f32) -> f32 
 }
 
 fn night_modifier_for_hour(hour: u8) -> f32 {
-    if hour >= 22 || hour < 6 {
+    if !(6..22).contains(&hour) {
         DISPATCH_NIGHT_MODIFIER
     } else {
         1.0

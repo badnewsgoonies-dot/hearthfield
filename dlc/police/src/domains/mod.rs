@@ -1,8 +1,11 @@
 pub mod calendar;
 pub mod cases;
+pub mod economy;
 pub mod evidence;
+pub mod npcs;
 pub mod patrol;
 pub mod player;
 pub mod precinct;
+pub mod skills;
 pub mod ui;
 pub mod world;

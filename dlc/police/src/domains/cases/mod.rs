@@ -290,9 +290,62 @@ fn replenish_available_cases(case_defs: &[CaseDef], case_board: &mut CaseBoard, 
     }
 }
 
+struct CaseDefSpec<'a> {
+    id: &'a str,
+    name: &'a str,
+    description: &'a str,
+    rank_required: Rank,
+    evidence_required: &'a [&'a str],
+    witnesses: &'a [&'a str],
+    suspects: &'a [&'a str],
+    scenes: &'a [MapId],
+    time_limit_shifts: Option<u8>,
+    reward_xp: u32,
+    reward_reputation: i32,
+    reward_gold: i32,
+    difficulty: u8,
+    is_major: bool,
+}
+
+macro_rules! case_def {
+    (
+        $id:expr,
+        $name:expr,
+        $description:expr,
+        $rank_required:expr,
+        $evidence_required:expr,
+        $witnesses:expr,
+        $suspects:expr,
+        $scenes:expr,
+        $time_limit_shifts:expr,
+        $reward_xp:expr,
+        $reward_reputation:expr,
+        $reward_gold:expr,
+        $difficulty:expr,
+        $is_major:expr $(,)?
+    ) => {
+        CaseDef::from(CaseDefSpec {
+            id: $id,
+            name: $name,
+            description: $description,
+            rank_required: $rank_required,
+            evidence_required: $evidence_required,
+            witnesses: $witnesses,
+            suspects: $suspects,
+            scenes: $scenes,
+            time_limit_shifts: $time_limit_shifts,
+            reward_xp: $reward_xp,
+            reward_reputation: $reward_reputation,
+            reward_gold: $reward_gold,
+            difficulty: $difficulty,
+            is_major: $is_major,
+        })
+    };
+}
+
 fn build_case_registry() -> Vec<CaseDef> {
     vec![
-        case_def(
+        case_def!(
             "patrol_001_petty_theft",
             "Petty Theft at General Store",
             "The general store owner wants a quick answer about missing cash and a familiar face near the till.",
@@ -308,7 +361,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             2,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_002_vandalism",
             "Park Vandalism",
             "Fresh damage in the park needs documenting before weather or foot traffic wipes the trail away.",
@@ -324,7 +377,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             2,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_003_noise",
             "Noise Complaint",
             "Neighbors want a late-night disturbance handled before the block turns on itself.",
@@ -340,7 +393,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             1,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_004_lost_pet",
             "Lost Pet Report",
             "A worried resident needs help tracing where a missing pet ran after bolting from home.",
@@ -356,7 +409,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             1,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_005_shoplifting",
             "Shoplifting in Progress",
             "A live shoplifting call needs a fast response before the suspect disappears into the lunch crowd.",
@@ -372,7 +425,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             3,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_006_car_breakin",
             "Car Break-In",
             "A smashed lock in the precinct lot means one of your own neighbors expects answers.",
@@ -388,7 +441,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             3,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_007_graffiti",
             "Graffiti Investigation",
             "Fresh tags across the industrial district point to someone who knows exactly when the patrol routes thin out.",
@@ -404,7 +457,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             2,
             false,
         ),
-        case_def(
+        case_def!(
             "patrol_008_trespassing",
             "Trespassing at Rail Yard",
             "The rail yard foreman wants proof of who crossed the fence before the next freight run comes through.",
@@ -420,7 +473,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             3,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_001_burglary",
             "Residential Burglary",
             "A quiet home invasion left just enough physical and paper trail to chase if you move before the neighborhood clams up.",
@@ -436,7 +489,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             5,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_002_assault",
             "Downtown Assault",
             "An assault downtown has medical evidence waiting at the hospital and bystanders already second-guessing what they saw.",
@@ -452,7 +505,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             5,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_003_fraud",
             "Bank Fraud Scheme",
             "A tidy fraud complaint starts opening into a larger paper trail that could embarrass half of downtown.",
@@ -468,7 +521,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             6,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_004_missing",
             "Missing Person",
             "A disappearance stretches from apartments to the park and highway, forcing you to stitch together the last clean timeline.",
@@ -489,7 +542,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             6,
             true,
         ),
-        case_def(
+        case_def!(
             "detective_005_arson",
             "Warehouse Arson",
             "The warehouse fire looks accidental from the street, but the scene and forecast records tell a different story.",
@@ -510,7 +563,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             6,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_006_drugs",
             "Drug Possession Ring",
             "What looks like a routine possession bust may actually connect a few regulars who never appear in the same report twice.",
@@ -526,7 +579,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             5,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_007_hitrun",
             "Hit and Run",
             "A violent collision on the highway left just enough trace evidence to catch the driver before repairs hide the damage.",
@@ -547,7 +600,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             5,
             false,
         ),
-        case_def(
+        case_def!(
             "detective_008_blackmail",
             "Blackmail Case",
             "A blackmail scheme is squeezing a powerful target, and every message or bank record points to something uglier underneath.",
@@ -563,7 +616,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             7,
             false,
         ),
-        case_def(
+        case_def!(
             "sergeant_001_homicide",
             "Downtown Homicide",
             "A downtown killing forces the precinct into a full-scene investigation with public pressure rising every shift.",
@@ -586,7 +639,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             8,
             true,
         ),
-        case_def(
+        case_def!(
             "sergeant_002_kidnapping",
             "Child Kidnapping",
             "A child abduction leaves only a narrow window to connect witness recollections with vehicle movement across town.",
@@ -608,7 +661,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             8,
             false,
         ),
-        case_def(
+        case_def!(
             "sergeant_003_theft_ring",
             "Organized Theft Ring",
             "Separate theft reports are starting to line up into something coordinated, profitable, and much harder to pin on one suspect.",
@@ -630,7 +683,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             7,
             false,
         ),
-        case_def(
+        case_def!(
             "sergeant_004_corruption",
             "Police Corruption",
             "The evidence points back inside the precinct, where every new lead risks turning coworkers defensive or dangerous.",
@@ -652,7 +705,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             8,
             false,
         ),
-        case_def(
+        case_def!(
             "sergeant_005_cold_case",
             "Cold Case Revival",
             "A shelved investigation finally has modern evidence to reopen it, if you can make the old story stand up under fresh scrutiny.",
@@ -673,7 +726,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             7,
             false,
         ),
-        case_def(
+        case_def!(
             "sergeant_006_serial_vandal",
             "Serial Vandal Pattern",
             "What the town sees as random damage is starting to read like one deliberate pattern across multiple neighborhoods.",
@@ -695,7 +748,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             6,
             false,
         ),
-        case_def(
+        case_def!(
             "lieutenant_001_serial",
             "Serial Killer Investigation",
             "Multiple scenes now point to one killer, and every witness account matters because the pattern is tightening around the town.",
@@ -723,7 +776,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             10,
             true,
         ),
-        case_def(
+        case_def!(
             "lieutenant_002_conspiracy",
             "City-Wide Conspiracy",
             "Financial records, private letters, and digital traces suggest the town's power structure has been coordinating for years.",
@@ -747,7 +800,7 @@ fn build_case_registry() -> Vec<CaseDef> {
             10,
             true,
         ),
-        case_def(
+        case_def!(
             "lieutenant_003_final",
             "The Final Case",
             "The rookie's entire arc comes due in one last investigation that threads through every institution you've had to trust or challenge.",
@@ -778,37 +831,24 @@ fn build_case_registry() -> Vec<CaseDef> {
     ]
 }
 
-fn case_def(
-    id: &str,
-    name: &str,
-    description: &str,
-    rank_required: Rank,
-    evidence_required: &[&str],
-    witnesses: &[&str],
-    suspects: &[&str],
-    scenes: &[MapId],
-    time_limit_shifts: Option<u8>,
-    reward_xp: u32,
-    reward_reputation: i32,
-    reward_gold: i32,
-    difficulty: u8,
-    is_major: bool,
-) -> CaseDef {
-    CaseDef {
-        id: id.to_string(),
-        name: name.to_string(),
-        description: description.to_string(),
-        rank_required,
-        evidence_required: evidence_ids(evidence_required),
-        witnesses: npc_ids(witnesses),
-        suspects: npc_ids(suspects),
-        scenes: scenes.to_vec(),
-        time_limit_shifts,
-        reward_xp,
-        reward_reputation,
-        reward_gold,
-        difficulty,
-        is_major,
+impl From<CaseDefSpec<'_>> for CaseDef {
+    fn from(spec: CaseDefSpec<'_>) -> Self {
+        Self {
+            id: spec.id.to_string(),
+            name: spec.name.to_string(),
+            description: spec.description.to_string(),
+            rank_required: spec.rank_required,
+            evidence_required: evidence_ids(spec.evidence_required),
+            witnesses: npc_ids(spec.witnesses),
+            suspects: npc_ids(spec.suspects),
+            scenes: spec.scenes.to_vec(),
+            time_limit_shifts: spec.time_limit_shifts,
+            reward_xp: spec.reward_xp,
+            reward_reputation: spec.reward_reputation,
+            reward_gold: spec.reward_gold,
+            difficulty: spec.difficulty,
+            is_major: spec.is_major,
+        }
     }
 }
 

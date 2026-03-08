@@ -1,10 +1,10 @@
+use crate::domains::world::{map_transition_at, CollisionMap};
 use crate::shared::{
     Equipment, Facing, FatigueChangeEvent, GameState, GridPosition, InputContext, MapId,
     MapTransitionEvent, Player, PlayerInput, PlayerMovement, PlayerState, StressChangeEvent,
     UpdatePhase, MAX_FATIGUE, MAX_STRESS, PIXEL_SCALE, TILE_SIZE,
 };
 use bevy::prelude::*;
-use std::collections::HashSet;
 
 const WALK_SPEED: f32 = 80.0;
 const RUN_SPEED: f32 = WALK_SPEED * RUN_MULTIPLIER;
@@ -17,7 +17,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Playing), spawn_player)
-            .add_systems(OnExit(GameState::Playing), despawn_player)
+            .add_systems(OnEnter(GameState::MainMenu), despawn_player)
             .add_systems(
                 Update,
                 read_keyboard_input
@@ -43,16 +43,6 @@ impl Plugin for PlayerPlugin {
                     .run_if(in_state(GameState::Playing)),
             );
     }
-}
-
-/// Optional collision resource for tile-blocking checks.
-///
-/// Wave 1's world domain is expected to own and populate collision data later.
-/// This resource is intentionally not initialized here so movement can skip
-/// collision safely until that data exists.
-#[derive(Resource, Debug, Clone, Default)]
-pub struct CollisionMap {
-    pub solid_tiles: HashSet<(i32, i32)>,
 }
 
 pub fn read_keyboard_input(
@@ -86,7 +76,15 @@ pub fn read_keyboard_input(
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 }
 
-pub fn spawn_player(mut commands: Commands, mut player_state: ResMut<PlayerState>) {
+pub fn spawn_player(
+    mut commands: Commands,
+    mut player_state: ResMut<PlayerState>,
+    existing_players: Query<Entity, With<Player>>,
+) {
+    if existing_players.iter().next().is_some() {
+        return;
+    }
+
     let spawn_grid = GridPosition { x: 16, y: 20 };
     let spawn_position = grid_to_world(spawn_grid);
 
@@ -195,14 +193,13 @@ pub fn check_map_transition_zone(
         return;
     };
 
-    let in_transition_zone = player_state.position_map == MapId::PrecinctInterior
-        && grid_position.x == 16
-        && grid_position.y <= 0;
+    let active_transition = map_transition_at(player_state.position_map, *grid_position);
+    let in_transition_zone = active_transition.is_some();
 
-    if in_transition_zone && !*was_in_transition_zone {
+    if let Some(transition) = active_transition.filter(|_| !*was_in_transition_zone) {
         transition_events.send(MapTransitionEvent {
-            from: MapId::PrecinctInterior,
-            to: MapId::PrecinctExterior,
+            from: transition.from_map,
+            to: transition.to_map,
         });
     }
 
@@ -273,10 +270,7 @@ fn world_to_grid(world_position: Vec2) -> GridPosition {
 }
 
 fn tile_is_blocked(collision_map: Option<&CollisionMap>, grid_position: GridPosition) -> bool {
-    collision_map.is_some_and(|map| {
-        map.solid_tiles
-            .contains(&(grid_position.x, grid_position.y))
-    })
+    collision_map.is_some_and(|map| map.0.contains(&(grid_position.x, grid_position.y)))
 }
 
 fn world_tile_size() -> f32 {
@@ -290,8 +284,11 @@ fn lerp(current: f32, target: f32, factor: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domains::world::map_transitions;
+    use bevy::ecs::event::Events;
     use bevy::state::app::StatesPlugin;
     use bevy::time::TimeUpdateStrategy;
+    use std::collections::HashSet;
     use std::time::Duration;
 
     fn build_test_app() -> App {
@@ -410,9 +407,7 @@ mod tests {
     #[test]
     fn movement_does_not_enter_solid_tiles() {
         let mut app = build_test_app();
-        app.insert_resource(CollisionMap {
-            solid_tiles: HashSet::from([(16, 20), (17, 20), (18, 20)]),
-        });
+        app.insert_resource(CollisionMap(HashSet::from([(16, 20), (17, 20), (18, 20)])));
         enter_playing(&mut app);
 
         app.world_mut()
@@ -467,17 +462,80 @@ mod tests {
     }
 
     #[test]
-    fn player_despawns_on_exit_playing() {
+    fn player_persists_through_pause_resume_and_cleans_up_on_main_menu() {
         let mut app = build_test_app();
         enter_playing(&mut app);
+
+        let mut player_query = app.world_mut().query_filtered::<Entity, With<Player>>();
+        let player_entity = player_query.single(app.world());
 
         app.world_mut()
             .resource_mut::<NextState<GameState>>()
             .set(GameState::Paused);
         app.update();
 
-        let mut query = app.world_mut().query_filtered::<Entity, With<Player>>();
-        assert_eq!(query.iter(app.world()).count(), 0);
+        let mut paused_query = app.world_mut().query_filtered::<Entity, With<Player>>();
+        assert_eq!(paused_query.iter(app.world()).count(), 1);
+        assert_eq!(paused_query.single(app.world()), player_entity);
+
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::Playing);
+        app.update();
+
+        let mut resumed_query = app.world_mut().query_filtered::<Entity, With<Player>>();
+        assert_eq!(resumed_query.iter(app.world()).count(), 1);
+        assert_eq!(resumed_query.single(app.world()), player_entity);
+
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::MainMenu);
+        app.update();
+
+        let mut cleaned_query = app.world_mut().query_filtered::<Entity, With<Player>>();
+        assert_eq!(cleaned_query.iter(app.world()).count(), 0);
+    }
+
+    #[test]
+    fn map_transition_uses_world_authored_transition_tile() {
+        let mut app = build_test_app();
+        enter_playing(&mut app);
+
+        let transition = map_transitions(MapId::PrecinctInterior)
+            .first()
+            .expect("precinct interior should define a transition");
+        let transition_grid = GridPosition {
+            x: transition.from_x,
+            y: transition.from_y,
+        };
+        let transition_world = grid_to_world(transition_grid);
+
+        {
+            let world = app.world_mut();
+            let mut query =
+                world.query_filtered::<(&mut GridPosition, &mut Transform), With<Player>>();
+            let (mut grid_position, mut transform) = query.single_mut(world);
+            *grid_position = transition_grid;
+            transform.translation.x = transition_world.x;
+            transform.translation.y = transition_world.y;
+        }
+
+        {
+            let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+            player_state.position_map = transition.from_map;
+            player_state.position_x = transition_world.x;
+            player_state.position_y = transition_world.y;
+        }
+
+        app.update();
+
+        let events = app.world().resource::<Events<MapTransitionEvent>>();
+        let mut reader = events.get_cursor();
+        let emitted = reader.read(events).collect::<Vec<_>>();
+
+        assert_eq!(emitted.len(), 1);
+        assert_eq!(emitted[0].from, transition.from_map);
+        assert_eq!(emitted[0].to, transition.to_map);
     }
 
     #[test]

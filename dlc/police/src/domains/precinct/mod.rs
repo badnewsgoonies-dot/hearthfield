@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::shared::{
     CaseAssignedEvent, CaseBoard, EvidenceLocker, EvidenceProcessingState, FatigueChangeEvent,
@@ -75,10 +75,27 @@ const PRECINCT_INTERACTABLE_SPECS: [PrecinctInteractableSpec; 7] = [
 
 pub struct PrecinctPlugin;
 
+#[derive(SystemParam)]
+pub struct PrecinctInteractionContext<'w, 's> {
+    case_board: Res<'w, CaseBoard>,
+    patrol_state: Option<Res<'w, PatrolState>>,
+    evidence_locker: ResMut<'w, EvidenceLocker>,
+    shift_clock: ResMut<'w, ShiftClock>,
+    case_assigned_events: EventWriter<'w, CaseAssignedEvent>,
+    fatigue_events: EventWriter<'w, FatigueChangeEvent>,
+    stress_events: EventWriter<'w, StressChangeEvent>,
+    toast_events: EventWriter<'w, ToastEvent>,
+    #[system_param(ignore)]
+    _marker: std::marker::PhantomData<&'s ()>,
+}
+
 impl Plugin for PrecinctPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Playing), spawn_precinct_objects_on_enter)
-            .add_systems(OnExit(GameState::Playing), cleanup_precinct_objects_on_exit)
+            .add_systems(
+                OnEnter(GameState::MainMenu),
+                cleanup_precinct_objects_on_exit,
+            )
             .add_systems(
                 Update,
                 (
@@ -124,15 +141,8 @@ pub fn spawn_precinct_objects(
 pub fn handle_precinct_interaction(
     player_input: Res<PlayerInput>,
     player_state: Res<PlayerState>,
-    case_board: Res<CaseBoard>,
-    patrol_state: Option<Res<PatrolState>>,
-    mut evidence_locker: ResMut<EvidenceLocker>,
-    mut shift_clock: ResMut<ShiftClock>,
     interactables: Query<(&PrecinctInteractable, &GridPosition), With<PrecinctObject>>,
-    mut case_assigned_events: EventWriter<CaseAssignedEvent>,
-    mut fatigue_events: EventWriter<FatigueChangeEvent>,
-    mut stress_events: EventWriter<StressChangeEvent>,
-    mut toast_events: EventWriter<ToastEvent>,
+    mut interaction_context: PrecinctInteractionContext,
 ) {
     if !player_input.interact || player_state.position_map != MapId::PrecinctInterior {
         return;
@@ -145,73 +155,79 @@ pub fn handle_precinct_interaction(
 
     match interactable {
         PrecinctInteractable::CaseBoard => {
-            if let Some(case_id) = case_board.available.first() {
-                case_assigned_events.send(CaseAssignedEvent {
-                    case_id: case_id.clone(),
-                });
-                toast_events.send(ToastEvent {
+            if let Some(case_id) = interaction_context.case_board.available.first() {
+                interaction_context
+                    .case_assigned_events
+                    .send(CaseAssignedEvent {
+                        case_id: case_id.clone(),
+                    });
+                interaction_context.toast_events.send(ToastEvent {
                     message: format!("Assigned case: {case_id}"),
                     duration_secs: TOAST_DURATION_SECS,
                 });
             } else {
-                toast_events.send(ToastEvent {
+                interaction_context.toast_events.send(ToastEvent {
                     message: "No cases available right now.".to_string(),
                     duration_secs: TOAST_DURATION_SECS,
                 });
             }
         }
         PrecinctInteractable::EvidenceTerminal => {
-            let started = start_processing_raw_evidence(&mut evidence_locker);
+            let started = start_processing_raw_evidence(&mut interaction_context.evidence_locker);
             let message = if started > 0 {
                 format!("Evidence lab queued {started} item(s) for processing.")
             } else {
                 "No raw evidence is waiting for the lab.".to_string()
             };
-            toast_events.send(ToastEvent {
+            interaction_context.toast_events.send(ToastEvent {
                 message,
                 duration_secs: TOAST_DURATION_SECS,
             });
         }
         PrecinctInteractable::CoffeeMachine => {
-            fatigue_events.send(FatigueChangeEvent {
+            interaction_context.fatigue_events.send(FatigueChangeEvent {
                 delta: COFFEE_FATIGUE_RESTORE,
             });
-            stress_events.send(StressChangeEvent {
+            interaction_context.stress_events.send(StressChangeEvent {
                 delta: -COFFEE_STRESS_RELIEF,
             });
-            advance_clock_minutes(&mut shift_clock, COFFEE_TIME_COST_MINUTES);
-            toast_events.send(ToastEvent {
+            advance_clock_minutes(
+                &mut interaction_context.shift_clock,
+                COFFEE_TIME_COST_MINUTES,
+            );
+            interaction_context.toast_events.send(ToastEvent {
                 message: "Coffee break taken.".to_string(),
                 duration_secs: TOAST_DURATION_SECS,
             });
         }
         PrecinctInteractable::MealTable => {
-            fatigue_events.send(FatigueChangeEvent {
+            interaction_context.fatigue_events.send(FatigueChangeEvent {
                 delta: MEAL_FATIGUE_RESTORE,
             });
-            stress_events.send(StressChangeEvent {
+            interaction_context.stress_events.send(StressChangeEvent {
                 delta: -MEAL_STRESS_RELIEF,
             });
-            advance_clock_minutes(&mut shift_clock, MEAL_TIME_COST_MINUTES);
-            toast_events.send(ToastEvent {
+            advance_clock_minutes(&mut interaction_context.shift_clock, MEAL_TIME_COST_MINUTES);
+            interaction_context.toast_events.send(ToastEvent {
                 message: "Meal break taken.".to_string(),
                 duration_secs: TOAST_DURATION_SECS,
             });
         }
         PrecinctInteractable::CaptainDoor => {
-            toast_events.send(ToastEvent {
+            interaction_context.toast_events.send(ToastEvent {
                 message: "Captain Torres is busy right now.".to_string(),
                 duration_secs: TOAST_DURATION_SECS,
             });
         }
         PrecinctInteractable::Locker => {
-            toast_events.send(ToastEvent {
+            interaction_context.toast_events.send(ToastEvent {
                 message: "Locker management is coming in a future wave.".to_string(),
                 duration_secs: TOAST_DURATION_SECS,
             });
         }
         PrecinctInteractable::DispatchRadio => {
-            let message = patrol_state
+            let message = interaction_context
+                .patrol_state
                 .and_then(|state| {
                     state
                         .current_dispatch
@@ -219,7 +235,7 @@ pub fn handle_precinct_interaction(
                         .map(|call| call.description.clone())
                 })
                 .unwrap_or_else(|| "Dispatch is quiet right now.".to_string());
-            toast_events.send(ToastEvent {
+            interaction_context.toast_events.send(ToastEvent {
                 message,
                 duration_secs: TOAST_DURATION_SECS,
             });

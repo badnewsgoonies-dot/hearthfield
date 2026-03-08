@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::shared::{
-    GameState, GridPosition, MapId, MapTransition, MapTransitionEvent, PlayerState, TileKind,
-    UpdatePhase, PIXEL_SCALE, TILE_SIZE,
+    GameState, GridPosition, MapId, MapTransition, MapTransitionEvent, Player, PlayerState,
+    TileKind, UpdatePhase, PIXEL_SCALE, TILE_SIZE,
 };
 
 const PRECINCT_WIDTH: usize = 32;
@@ -136,7 +136,7 @@ impl Plugin for WorldPlugin {
                     .in_set(UpdatePhase::Simulation)
                     .run_if(in_state(GameState::Playing)),
             )
-            .add_systems(OnExit(GameState::Playing), cleanup_map);
+            .add_systems(OnEnter(GameState::MainMenu), cleanup_map);
     }
 }
 
@@ -177,6 +177,19 @@ enum DoorSide {
     West,
 }
 
+pub fn map_transitions(map_id: MapId) -> &'static [MapTransition] {
+    match map_id {
+        MapId::PrecinctInterior => &PRECINCT_INTERIOR_TRANSITIONS,
+        _ => &[],
+    }
+}
+
+pub fn map_transition_at(map_id: MapId, position: GridPosition) -> Option<&'static MapTransition> {
+    map_transitions(map_id)
+        .iter()
+        .find(|transition| transition.from_x == position.x && transition.from_y == position.y)
+}
+
 pub fn precinct_interior_data() -> [[TileKind; PRECINCT_WIDTH]; PRECINCT_HEIGHT] {
     let mut tiles = [[TileKind::Floor; PRECINCT_WIDTH]; PRECINCT_HEIGHT];
 
@@ -209,7 +222,12 @@ pub fn spawn_map(
     mut commands: Commands,
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
+    existing_tiles: Query<Entity, With<MapTile>>,
 ) {
+    if existing_tiles.iter().next().is_some() {
+        return;
+    }
+
     let requested_map = player_state.position_map;
     let resolved_map = resolve_supported_map(requested_map);
     let map_data = tile_map_data(resolved_map);
@@ -230,6 +248,7 @@ pub fn handle_map_transition(
     mut player_state: ResMut<PlayerState>,
     mut collision_map: ResMut<CollisionMap>,
     map_tiles: Query<Entity, With<MapTile>>,
+    mut player_query: Query<(&mut Transform, &mut GridPosition), With<Player>>,
 ) {
     let mut latest_transition = None;
     for event in transition_events.read() {
@@ -252,6 +271,7 @@ pub fn handle_map_transition(
 
     player_state.position_map = resolved_map;
     set_player_grid_position(&mut player_state, target_position);
+    sync_live_player_position(target_position, &mut player_query);
 
     spawn_map_entities(&mut commands, &mut collision_map, map_data);
 }
@@ -271,7 +291,7 @@ fn tile_map_data(map_id: MapId) -> TileMapData {
             width: PRECINCT_WIDTH,
             height: PRECINCT_HEIGHT,
             tiles: precinct_interior_data(),
-            transitions: &PRECINCT_INTERIOR_TRANSITIONS,
+            transitions: map_transitions(map_id),
             spawn_point: PRECINCT_INTERIOR_SPAWN,
         },
         _ => unreachable!("unsupported map should be resolved before loading"),
@@ -402,6 +422,19 @@ fn room_door_position(bounds: RoomBounds, door: DoorSpec) -> GridPosition {
 fn set_player_grid_position(player_state: &mut PlayerState, position: GridPosition) {
     player_state.position_x = position.x as f32 * TILE_WORLD_SIZE;
     player_state.position_y = position.y as f32 * TILE_WORLD_SIZE;
+}
+
+fn sync_live_player_position(
+    position: GridPosition,
+    player_query: &mut Query<(&mut Transform, &mut GridPosition), With<Player>>,
+) {
+    let Ok((mut transform, mut grid_position)) = player_query.get_single_mut() else {
+        return;
+    };
+
+    *grid_position = position;
+    transform.translation.x = position.x as f32 * TILE_WORLD_SIZE;
+    transform.translation.y = position.y as f32 * TILE_WORLD_SIZE;
 }
 
 fn tile_color(tile_kind: TileKind) -> Color {
@@ -555,6 +588,76 @@ mod tests {
                 SOUTH_EXIT_POSITION.y as f32 * TILE_WORLD_SIZE,
             )
         );
+    }
+
+    #[test]
+    fn map_transition_updates_live_player_entity_position() {
+        let mut app = build_test_app();
+
+        enter_playing(&mut app);
+        app.world_mut().spawn((
+            Player,
+            GridPosition { x: 0, y: 0 },
+            Transform::from_xyz(0.0, 0.0, 10.0),
+        ));
+
+        app.world_mut()
+            .resource_mut::<Events<MapTransitionEvent>>()
+            .send(MapTransitionEvent {
+                from: MapId::PrecinctExterior,
+                to: MapId::PrecinctInterior,
+            });
+
+        app.update();
+
+        let mut player_query = app
+            .world_mut()
+            .query_filtered::<(&GridPosition, &Transform), With<Player>>();
+        let (grid_position, transform) = player_query.single(app.world());
+
+        assert_eq!(grid_position.x, SOUTH_EXIT_POSITION.x);
+        assert_eq!(grid_position.y, SOUTH_EXIT_POSITION.y);
+        assert_eq!(
+            transform.translation.x,
+            SOUTH_EXIT_POSITION.x as f32 * TILE_WORLD_SIZE
+        );
+        assert_eq!(
+            transform.translation.y,
+            SOUTH_EXIT_POSITION.y as f32 * TILE_WORLD_SIZE
+        );
+        assert_eq!(transform.translation.z, 10.0);
+    }
+
+    #[test]
+    fn map_persists_through_pause_resume_and_cleans_up_on_main_menu() {
+        let mut app = build_test_app();
+
+        enter_playing(&mut app);
+        let initial_tiles = map_tile_entities(&mut app);
+
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::Paused);
+        app.update();
+
+        let paused_tiles = map_tile_entities(&mut app);
+        assert_eq!(paused_tiles, initial_tiles);
+
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::Playing);
+        app.update();
+
+        let resumed_tiles = map_tile_entities(&mut app);
+        assert_eq!(resumed_tiles, initial_tiles);
+
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::MainMenu);
+        app.update();
+
+        let mut query = app.world_mut().query_filtered::<Entity, With<MapTile>>();
+        assert_eq!(query.iter(app.world()).count(), 0);
     }
 
     #[test]

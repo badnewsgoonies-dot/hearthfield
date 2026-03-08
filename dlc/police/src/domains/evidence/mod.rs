@@ -143,7 +143,7 @@ fn active_penalty_conditions(clock: &ShiftClock) -> u8 {
 }
 
 fn is_night_hour(hour: u8) -> bool {
-    hour >= 22 || hour < 6
+    !(6..22).contains(&hour)
 }
 
 fn linked_case(case_id: &CaseId) -> Option<CaseId> {

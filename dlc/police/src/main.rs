@@ -10,10 +10,13 @@ use bevy::window::{PresentMode, WindowResolution};
 
 use domains::calendar::CalendarPlugin;
 use domains::cases::CasesPlugin;
+use domains::economy::EconomyPlugin;
 use domains::evidence::EvidencePlugin;
+use domains::npcs::NpcsPlugin;
 use domains::patrol::PatrolPlugin;
 use domains::player::PlayerPlugin;
 use domains::precinct::PrecinctPlugin;
+use domains::skills::SkillsPlugin;
 use domains::ui::UiPlugin;
 use domains::world::WorldPlugin;
 use shared::*;
@@ -103,10 +106,10 @@ fn main() {
         .add_plugins(EvidencePlugin)
         .add_plugins(PatrolPlugin)
         .add_plugins(PrecinctPlugin)
+        .add_plugins(SkillsPlugin)
+        .add_plugins(EconomyPlugin)
+        .add_plugins(NpcsPlugin)
         // Future domain plugins (Wave 2+)
-        // .add_plugins(domains::npcs::NpcPlugin)
-        // .add_plugins(domains::economy::EconomyPlugin)
-        // .add_plugins(domains::skills::SkillPlugin)
         // .add_plugins(domains::save::SavePlugin)
         // Camera
         .add_systems(Startup, setup_camera)
