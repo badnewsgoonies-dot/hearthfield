@@ -81,6 +81,10 @@ pub struct FarmingAtlases {
     pub crop_atlases: std::collections::HashMap<String, (Handle<Image>, Handle<TextureAtlasLayout>)>,
     /// Standalone sprinkler sprite (16x16).
     pub sprinkler_image: Handle<Image>,
+    /// Animated sprinkler sprite sheet (1344x192, 32x32 tiles, 42 cols x 6 rows).
+    /// Row 0 contains the full sprinkler watering animation (42 frames).
+    pub sprinkler_anim_image: Handle<Image>,
+    pub sprinkler_anim_layout: Handle<TextureAtlasLayout>,
     /// Standalone scarecrow sprite (48x48).
     pub scarecrow_image: Handle<Image>,
 }
@@ -199,6 +203,8 @@ impl Plugin for FarmingPlugin {
                     sprinkler::apply_sprinklers,
                     // Phase 4 kind-aware sprinkler auto-watering
                     auto_water_sprinklers,
+                    // Trigger sprinkler watering animation on morning event
+                    render::trigger_sprinkler_animation,
                     events_handler::on_day_end,
                     events_handler::on_season_change,
                 )
@@ -225,6 +231,15 @@ impl Plugin for FarmingPlugin {
                 PostUpdate,
                 render::animate_crop_growth
                     .after(render::sync_crop_sprites)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            // ------------------------------------------------------------------
+            // Sprinkler animation — ticks after sync spawns sprinkler entities
+            // ------------------------------------------------------------------
+            .add_systems(
+                PostUpdate,
+                render::animate_sprinklers
+                    .after(render::sync_farm_objects_sprites)
                     .run_if(in_state(GameState::Playing)),
             );
     }
@@ -302,6 +317,15 @@ fn load_farming_atlases(
 
     // Standalone farm object sprites
     atlases.sprinkler_image = asset_server.load("sprites/sprinkler.png");
+    // Animated sprinkler sprite sheet: 1344x192, 32x32 tiles → 42 cols × 6 rows
+    atlases.sprinkler_anim_image = asset_server.load("sprites/sprinkler_anim.png");
+    atlases.sprinkler_anim_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        42,
+        6,
+        None,
+        None,
+    ));
     atlases.scarecrow_image = asset_server.load("sprites/scarecrow.png");
 
     atlases.loaded = true;

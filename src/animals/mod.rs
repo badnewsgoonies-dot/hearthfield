@@ -97,6 +97,11 @@ pub struct AnimalSpriteData {
     pub rabbit_layout: Handle<TextureAtlasLayout>,
     pub dog_image: Handle<Image>,
     pub dog_layout: Handle<TextureAtlasLayout>,
+    // Product indicator sprites
+    pub egg_nest_image: Handle<Image>,
+    pub egg_nest_layout: Handle<TextureAtlasLayout>,
+    pub milk_grass_image: Handle<Image>,
+    pub milk_grass_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads all animal sprite atlases on first entry into Playing state.
@@ -185,6 +190,26 @@ pub fn load_animal_sprites(
         UVec2::new(32, 32),
         36,
         13,
+        None,
+        None,
+    ));
+
+    // egg_and_nest.png: 64×16, 4 cols × 1 row of 16×16 frames
+    sprite_data.egg_nest_image = asset_server.load("sprites/egg_and_nest.png");
+    sprite_data.egg_nest_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        1,
+        None,
+        None,
+    ));
+
+    // milk_and_grass.png: 64×16, 4 cols × 1 row of 16×16 frames
+    sprite_data.milk_grass_image = asset_server.load("sprites/milk_and_grass.png");
+    sprite_data.milk_grass_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        4,
+        1,
         None,
         None,
     ));

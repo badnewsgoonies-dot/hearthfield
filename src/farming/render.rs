@@ -13,6 +13,39 @@ use crate::shared::*;
 use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sprinkler animation component
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Number of animation frames in row 0 of sprinkler_anim.png (32x32 tiles, 42 cols).
+pub const SPRINKLER_ANIM_FRAMES: usize = 42;
+
+/// Duration in seconds that the sprinkler watering animation plays each morning.
+/// After this elapses the animation resets to frame 0 (idle).
+const SPRINKLER_ANIM_DURATION: f32 = 4.0;
+
+/// Drives the sprinkler sprite animation.  When the sprinkler is "watering"
+/// (triggered once per morning), it cycles through frames 0..42 at ~10 fps
+/// for SPRINKLER_ANIM_DURATION seconds, then returns to frame 0 (idle).
+#[derive(Component, Debug, Clone)]
+pub struct SprinklerAnimTimer {
+    pub frame_timer: Timer,
+    pub duration_timer: Timer,
+    pub current_frame: usize,
+    pub animating: bool,
+}
+
+impl Default for SprinklerAnimTimer {
+    fn default() -> Self {
+        Self {
+            frame_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            duration_timer: Timer::from_seconds(SPRINKLER_ANIM_DURATION, TimerMode::Once),
+            current_frame: 0,
+            animating: false,
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Crop growth pop animation component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -608,14 +641,15 @@ pub fn sync_farm_objects_sprites(
                     ))
                     .id()
             }
-        } else if farming_atlases.loaded {
-            // Use standalone sprite images for sprinkler/scarecrow.
-            let image = match obj {
-                FarmObject::Sprinkler => farming_atlases.sprinkler_image.clone(),
-                FarmObject::Scarecrow => farming_atlases.scarecrow_image.clone(),
-                _ => continue,
-            };
-            let mut sprite = Sprite::from_image(image);
+        } else if matches!(obj, FarmObject::Sprinkler) && farming_atlases.sprinkler_anim_layout != Handle::default() {
+            // Sprinkler with animated atlas — row 0, frame 0 (idle)
+            let mut sprite = Sprite::from_atlas_image(
+                farming_atlases.sprinkler_anim_image.clone(),
+                TextureAtlas {
+                    layout: farming_atlases.sprinkler_anim_layout.clone(),
+                    index: 0,
+                },
+            );
             sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
             commands
                 .spawn((
@@ -623,12 +657,37 @@ pub fn sync_farm_objects_sprites(
                     Transform::from_translation(translation),
                     logical,
                     YSorted,
+                    SprinklerAnimTimer::default(),
                     FarmObjectEntity {
                         grid_x: pos.0,
                         grid_y: pos.1,
                     },
                 ))
                 .id()
+        } else if farming_atlases.loaded {
+            // Fallback: standalone sprite images for sprinkler/scarecrow.
+            let image = match obj {
+                FarmObject::Sprinkler => farming_atlases.sprinkler_image.clone(),
+                FarmObject::Scarecrow => farming_atlases.scarecrow_image.clone(),
+                _ => continue,
+            };
+            let mut sprite = Sprite::from_image(image);
+            sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+            let mut entity_cmds = commands.spawn((
+                sprite,
+                Transform::from_translation(translation),
+                logical,
+                YSorted,
+                FarmObjectEntity {
+                    grid_x: pos.0,
+                    grid_y: pos.1,
+                },
+            ));
+            // Add anim timer for sprinklers even with static sprite (future upgrade path)
+            if matches!(obj, FarmObject::Sprinkler) {
+                entity_cmds.insert(SprinklerAnimTimer::default());
+            }
+            entity_cmds.id()
         } else {
             // Colour fallback — no atlas available yet.
             commands
@@ -674,6 +733,64 @@ pub fn sync_farm_objects_sprites(
     for pos in stale {
         if let Some(entity) = farm_entities.object_entities.remove(&pos) {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprinkler animation systems
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Triggers the sprinkler watering animation when a `MorningSprinklerEvent` fires.
+/// This sets `animating = true` on every `SprinklerAnimTimer`, causing
+/// `animate_sprinklers` to start cycling frames.
+pub fn trigger_sprinkler_animation(
+    mut sprinkler_events: EventReader<super::MorningSprinklerEvent>,
+    mut timers: Query<&mut SprinklerAnimTimer>,
+) {
+    if sprinkler_events.read().next().is_none() {
+        return;
+    }
+    for mut anim in timers.iter_mut() {
+        anim.animating = true;
+        anim.current_frame = 0;
+        anim.frame_timer.reset();
+        anim.duration_timer.reset();
+    }
+}
+
+/// Drives the sprinkler sprite animation.
+///
+/// When `animating` is true (set by `trigger_sprinkler_animation`), cycles
+/// through row-0 frames of sprinkler_anim.png at ~10 fps for a fixed duration,
+/// then snaps back to frame 0 (idle).
+pub fn animate_sprinklers(
+    time: Res<Time>,
+    mut query: Query<(&mut SprinklerAnimTimer, &mut Sprite)>,
+) {
+    for (mut anim, mut sprite) in query.iter_mut() {
+        if !anim.animating {
+            continue;
+        }
+
+        anim.duration_timer.tick(time.delta());
+        anim.frame_timer.tick(time.delta());
+
+        if anim.duration_timer.finished() {
+            // Animation complete — return to idle
+            anim.animating = false;
+            anim.current_frame = 0;
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = 0;
+            }
+            continue;
+        }
+
+        if anim.frame_timer.just_finished() {
+            anim.current_frame = (anim.current_frame + 1) % SPRINKLER_ANIM_FRAMES;
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = anim.current_frame;
+            }
         }
     }
 }

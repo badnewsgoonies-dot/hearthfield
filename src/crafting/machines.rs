@@ -74,6 +74,32 @@ pub fn machine_atlas_index(machine_type: MachineType) -> usize {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// MACHINE ANIMATION
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Number of animation frames in row 0 of machine_anim.png (64x48 tiles, 31 cols).
+pub const MACHINE_ANIM_FRAMES: usize = 31;
+
+/// Drives the processing-machine sprite animation.  When the machine is actively
+/// processing, the timer cycles through frames 0..MACHINE_ANIM_FRAMES in row 0
+/// of machine_anim.png at ~10 fps.  When idle (or ready), it snaps to frame 0.
+#[derive(Component, Debug, Clone)]
+pub struct MachineAnimTimer {
+    pub timer: Timer,
+    pub current_frame: usize,
+}
+
+impl Default for MachineAnimTimer {
+    fn default() -> Self {
+        Self {
+            // ~10 fps animation
+            timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            current_frame: 0,
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // PROCESSING MACHINE COMPONENT
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -589,9 +615,20 @@ pub fn handle_place_machine(
         let world_x = event.grid_x as f32 * TILE_SIZE;
         let world_y = event.grid_y as f32 * TILE_SIZE;
 
-        // Spawn machine entity
+        // Spawn machine entity — prefer animated atlas, fall back to static sprite, then color
         let display_label = machine_type.display_name().to_string();
-        let machine_sprite = if furniture.loaded {
+        let machine_sprite = if furniture.machine_anim_layout != Handle::default() {
+            // Use animated sprite sheet (row 0, frame 0 = idle)
+            let mut s = Sprite::from_atlas_image(
+                furniture.machine_anim_image.clone(),
+                TextureAtlas {
+                    layout: furniture.machine_anim_layout.clone(),
+                    index: 0,
+                },
+            );
+            s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+            s
+        } else if furniture.loaded {
             let mut s = Sprite::from_image(furniture.processing_machine_image.clone());
             s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
             s
@@ -606,6 +643,7 @@ pub fn handle_place_machine(
                 Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
                 LogicalPosition(Vec2::new(world_x, world_y)),
                 YSorted,
+                MachineAnimTimer::default(),
                 Interactable {
                     kind: InteractionKind::Machine,
                     label: display_label,
@@ -632,5 +670,42 @@ pub fn handle_place_machine(
         });
 
         let _ = item_registry; // registry available for future use (stack_size lookups, etc.)
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MACHINE ANIMATION SYSTEM
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Drives the animated sprite for processing machines.
+///
+/// When a machine is actively processing (`is_processing()` returns true), the
+/// system advances through animation frames 0..MACHINE_ANIM_FRAMES at ~10 fps.
+/// When idle or ready for collection, the sprite snaps to frame 0 (idle pose).
+pub fn animate_processing_machines(
+    time: Res<Time>,
+    mut query: Query<(&ProcessingMachine, &mut MachineAnimTimer, &mut Sprite)>,
+) {
+    for (machine, mut anim, mut sprite) in query.iter_mut() {
+        if machine.is_processing() {
+            // Advance animation timer
+            anim.timer.tick(time.delta());
+            if anim.timer.just_finished() {
+                anim.current_frame = (anim.current_frame + 1) % MACHINE_ANIM_FRAMES;
+            }
+            // Update atlas index — row 0 frames only
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = anim.current_frame;
+            }
+        } else {
+            // Idle / ready — reset to frame 0
+            if anim.current_frame != 0 {
+                anim.current_frame = 0;
+                if let Some(atlas) = &mut sprite.texture_atlas {
+                    atlas.index = 0;
+                }
+            }
+            anim.timer.reset();
+        }
     }
 }

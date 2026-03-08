@@ -252,6 +252,10 @@ pub struct FurnitureAtlases {
     pub carpenter_board_image: Handle<Image>,
     /// Standalone processing machine sprite (64x48).
     pub processing_machine_image: Handle<Image>,
+    /// Animated processing machine sprite sheet (1984x96, 64x48 tiles, 31 cols x 2 rows).
+    /// Row 0 contains the processing animation; row 1 has overlay/particle effects.
+    pub machine_anim_image: Handle<Image>,
+    pub machine_anim_layout: Handle<TextureAtlasLayout>,
     /// Standalone chest sprite.
     pub chest_image: Handle<Image>,
 }
@@ -280,6 +284,15 @@ pub fn ensure_furniture_atlases_loaded(
     atlases.crafting_bench_image = asset_server.load("sprites/crafting_bench.png");
     atlases.carpenter_board_image = asset_server.load("sprites/carpenter_board.png");
     atlases.processing_machine_image = asset_server.load("sprites/processing_machine.png");
+    // Animated machine sprite sheet: 1984x96, 64x48 tiles → 31 cols × 2 rows
+    atlases.machine_anim_image = asset_server.load("sprites/machine_anim.png");
+    atlases.machine_anim_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(64, 48),
+        31,
+        2,
+        None,
+        None,
+    ));
     atlases.chest_image = asset_server.load("sprites/chest.png");
 
     atlases.loaded = true;
@@ -1367,6 +1380,7 @@ pub struct BuildingOverlay;
 
 /// Identifies which composite building sprite to use (if any).
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 enum BuildingImage {
     Farmhouse,
     Barn,
@@ -1490,8 +1504,29 @@ fn farm_buildings() -> Vec<BuildingDef> {
     ]
 }
 
-/// Spawn multi-tile building overlays using Sprout Lands house tilesets.
-/// Renders walls on the building footprint and roof tiles above.
+/// Resolve a `BuildingImage` variant to the corresponding loaded image handle.
+fn resolve_building_image(img: BuildingImage, atlases: &ObjectAtlases) -> Handle<Image> {
+    match img {
+        BuildingImage::Farmhouse => atlases.farmhouse_image.clone(),
+        BuildingImage::Barn => atlases.barn_image.clone(),
+        BuildingImage::ChickenHouse => atlases.chicken_house_image.clone(),
+        BuildingImage::Well => atlases.well_image.clone(),
+    }
+}
+
+/// Source pixel dimensions for each composite building sprite.
+fn building_image_source_size(img: BuildingImage) -> Vec2 {
+    match img {
+        BuildingImage::Farmhouse => Vec2::new(128.0, 160.0),
+        BuildingImage::Barn => Vec2::new(128.0, 160.0),
+        BuildingImage::ChickenHouse => Vec2::new(48.0, 48.0),
+        BuildingImage::Well => Vec2::new(48.0, 32.0),
+    }
+}
+
+/// Spawn building overlays. Buildings with a `composite` image are rendered as
+/// a single sprite scaled to match the footprint width; others fall back to
+/// the legacy tile-by-tile wall+roof+door construction from Sprout Lands.
 pub fn spawn_building_sprites(
     mut commands: Commands,
     player_state: Res<PlayerState>,
@@ -1509,129 +1544,147 @@ pub fn spawn_building_sprites(
     };
 
     for bld in &buildings {
-        // --- WALLS: tile the building footprint ---
-        // house_walls.png layout (5 cols x 3 rows) — opaque tiles only:
-        //   [1]=wall, [3]=wall, [4]=wall, [6]=light, [8]=wall, [9]=wall, [11]=wall
-        //   Transparent (skip): 0,2,5,7,10,12,13,14
-        // We use opaque tiles: 8/9 for body, 1/3/4 for top row, 11 for bottom.
-        for dy in 0..bld.h {
-            for dx in 0..bld.w {
-                let gx = bld.x + dx;
-                let gy = bld.y + dy;
+        if let Some(img) = bld.composite {
+            // ── Composite sprite path ──────────────────────────────────
+            // Render the entire building (walls + roof) as a single image.
+            // Width is set to match the footprint tile width; height is
+            // derived from the source aspect ratio so the image is not
+            // distorted.
+            let src = building_image_source_size(img);
+            let aspect = src.y / src.x;
+            let render_w = bld.w as f32 * TILE_SIZE;
+            let render_h = render_w * aspect;
 
-                // Pick wall tile — use only opaque indices
-                let is_left = dx == 0;
-                let is_right = dx == bld.w - 1;
-                let is_top = dy == bld.h - 1; // highest Y = back wall
-                let is_bottom = dy == 0; // lowest Y = front wall
+            // Anchor the sprite so its horizontal center aligns with the
+            // footprint center and its bottom edge sits at bld.y * TILE_SIZE.
+            let center_x = bld.x as f32 * TILE_SIZE + render_w * 0.5 - TILE_SIZE * 0.5;
+            let bottom_y = bld.y as f32 * TILE_SIZE - TILE_SIZE * 0.5;
+            let center_y = bottom_y + render_h * 0.5;
 
-                let wall_index = match (is_top, is_bottom, is_left, is_right) {
-                    (true, _, true, _) => 1,  // top-left: wall face
-                    (true, _, _, true) => 4,  // top-right: wall face
-                    (true, _, _, _) => 3,     // top center: wall face
-                    (_, true, true, _) => 11, // bottom-left: base
-                    (_, true, _, true) => 9,  // bottom-right: wall
-                    (_, true, _, _) => 6,     // bottom center: light wall
-                    (_, _, true, _) => 1,     // left edge: wall face
-                    (_, _, _, true) => 9,     // right edge: wall
-                    _ => 8,                   // interior fill: wall
-                };
+            let handle = resolve_building_image(img, &object_atlases);
+            let mut sprite = Sprite::from_image(handle);
+            sprite.custom_size = Some(Vec2::new(render_w, render_h));
 
-                let wc = grid_to_world_center(gx, gy);
-                let mut sprite = Sprite::from_atlas_image(
-                    object_atlases.house_walls_image.clone(),
-                    TextureAtlas {
-                        layout: object_atlases.house_walls_layout.clone(),
-                        index: wall_index,
-                    },
-                );
-                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+            commands.spawn((
+                BuildingOverlay,
+                WorldObject,
+                sprite,
+                Transform::from_xyz(center_x, center_y, Z_GROUND + 1.5),
+                Visibility::default(),
+            ));
+        } else {
+            // ── Legacy tile-by-tile path (Sprout Lands house tilesets) ──
+            // house_walls.png layout (5 cols x 3 rows) — opaque tiles only:
+            //   [1]=wall, [3]=wall, [4]=wall, [6]=light, [8]=wall, [9]=wall, [11]=wall
+            // We use opaque tiles: 8/9 for body, 1/3/4 for top row, 11 for bottom.
+            for dy in 0..bld.h {
+                for dx in 0..bld.w {
+                    let gx = bld.x + dx;
+                    let gy = bld.y + dy;
 
-                commands.spawn((
-                    BuildingOverlay,
-                    WorldObject,
-                    sprite,
-                    Transform::from_xyz(wc.x, wc.y, Z_GROUND + 1.0),
-                    Visibility::default(),
-                ));
+                    let is_left = dx == 0;
+                    let is_right = dx == bld.w - 1;
+                    let is_top = dy == bld.h - 1;
+                    let is_bottom = dy == 0;
+
+                    let wall_index = match (is_top, is_bottom, is_left, is_right) {
+                        (true, _, true, _) => 1,
+                        (true, _, _, true) => 4,
+                        (true, _, _, _) => 3,
+                        (_, true, true, _) => 11,
+                        (_, true, _, true) => 9,
+                        (_, true, _, _) => 6,
+                        (_, _, true, _) => 1,
+                        (_, _, _, true) => 9,
+                        _ => 8,
+                    };
+
+                    let wc = grid_to_world_center(gx, gy);
+                    let mut sprite = Sprite::from_atlas_image(
+                        object_atlases.house_walls_image.clone(),
+                        TextureAtlas {
+                            layout: object_atlases.house_walls_layout.clone(),
+                            index: wall_index,
+                        },
+                    );
+                    sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+
+                    commands.spawn((
+                        BuildingOverlay,
+                        WorldObject,
+                        sprite,
+                        Transform::from_xyz(wc.x, wc.y, Z_GROUND + 1.0),
+                        Visibility::default(),
+                    ));
+                }
             }
-        }
 
-        // --- ROOF: span the width of the building, above the back wall ---
-        // house_roof.png layout (7 cols x 5 rows) — opaque tiles:
-        //   Row 2: [15=left, 17-20=body]  Row 3: [22=left, 24-27=body]
-        //   Row 4: [31-34=eave]
-        // We use eave (row 4) for the row closest to walls, body (row 3) for peak.
-        let roof_rows = 2.min((bld.h + 1) / 2); // 1-2 roof rows
-        for ry in 0..roof_rows {
-            for dx in 0..bld.w {
-                let gx = bld.x + dx;
-                // Place roof BEHIND the building (higher Y = away from camera)
-                let gy = bld.y + bld.h + ry;
+            // --- ROOF ---
+            let roof_rows = 2.min((bld.h + 1) / 2);
+            for ry in 0..roof_rows {
+                for dx in 0..bld.w {
+                    let gx = bld.x + dx;
+                    let gy = bld.y + bld.h + ry;
 
-                let is_left = dx == 0;
-                let is_right = dx == bld.w - 1;
+                    let is_left = dx == 0;
+                    let is_right = dx == bld.w - 1;
 
-                let roof_index = if ry == 0 {
-                    // Bottom roof row (eave, closest to building)
-                    if is_left {
-                        31
-                    } else if is_right {
-                        34
-                    } else {
-                        32
-                    }
-                } else {
-                    // Top roof row (body/peak, furthest from building)
-                    if is_left {
+                    let roof_index = if ry == 0 {
+                        if is_left {
+                            31
+                        } else if is_right {
+                            34
+                        } else {
+                            32
+                        }
+                    } else if is_left {
                         22
                     } else if is_right {
                         27
                     } else {
                         25
-                    }
-                };
+                    };
 
-                let wc = grid_to_world_center(gx, gy);
-                let mut sprite = Sprite::from_atlas_image(
-                    object_atlases.house_roof_image.clone(),
-                    TextureAtlas {
-                        layout: object_atlases.house_roof_layout.clone(),
-                        index: roof_index,
-                    },
-                );
-                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
-                sprite.color = bld.roof_tint;
+                    let wc = grid_to_world_center(gx, gy);
+                    let mut sprite = Sprite::from_atlas_image(
+                        object_atlases.house_roof_image.clone(),
+                        TextureAtlas {
+                            layout: object_atlases.house_roof_layout.clone(),
+                            index: roof_index,
+                        },
+                    );
+                    sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+                    sprite.color = bld.roof_tint;
 
-                commands.spawn((
-                    BuildingOverlay,
-                    WorldObject,
-                    sprite,
-                    Transform::from_xyz(wc.x, wc.y, Z_GROUND + 3.0),
-                    Visibility::default(),
-                ));
+                    commands.spawn((
+                        BuildingOverlay,
+                        WorldObject,
+                        sprite,
+                        Transform::from_xyz(wc.x, wc.y, Z_GROUND + 3.0),
+                        Visibility::default(),
+                    ));
+                }
             }
+
+            // --- DOOR ---
+            let dwc = grid_to_world_center(bld.door_x, bld.door_y);
+            let mut door_sprite = Sprite::from_atlas_image(
+                object_atlases.doors_image.clone(),
+                TextureAtlas {
+                    layout: object_atlases.doors_layout.clone(),
+                    index: 1,
+                },
+            );
+            door_sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+
+            commands.spawn((
+                BuildingOverlay,
+                WorldObject,
+                door_sprite,
+                Transform::from_xyz(dwc.x, dwc.y, Z_GROUND + 2.0),
+                Visibility::default(),
+            ));
         }
-
-        // --- DOOR: place at entrance ---
-        // doors.png: 1 col x 4 rows. Opaque tiles: 1, 3. Use index 1.
-        let dwc = grid_to_world_center(bld.door_x, bld.door_y);
-        let mut door_sprite = Sprite::from_atlas_image(
-            object_atlases.doors_image.clone(),
-            TextureAtlas {
-                layout: object_atlases.doors_layout.clone(),
-                index: 1,
-            },
-        );
-        door_sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
-
-        commands.spawn((
-            BuildingOverlay,
-            WorldObject,
-            door_sprite,
-            Transform::from_xyz(dwc.x, dwc.y, Z_GROUND + 2.0),
-            Visibility::default(),
-        ));
     }
 }
 
