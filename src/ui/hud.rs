@@ -159,7 +159,7 @@ pub fn preload_item_atlas(
     atlas_data.layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
         13,
-        10,
+        17,
         None,
         None,
     ));
@@ -960,7 +960,7 @@ pub fn hydrate_hotbar_icons(
         atlas_data.layout = layouts.add(TextureAtlasLayout::from_grid(
             UVec2::new(16, 16),
             13,
-            10,
+            17,
             None,
             None,
         ));

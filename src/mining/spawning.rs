@@ -6,10 +6,15 @@ use super::components::*;
 use super::floor_gen::{self, FloorBlueprint, MINE_HEIGHT, MINE_WIDTH};
 use crate::shared::*;
 
+/// Holds atlas handles for cave environment and rock/ore sprites.
 #[derive(Resource, Default)]
-pub struct MiningAtlas {
-    pub image: Handle<Image>,
-    pub layout: Handle<TextureAtlasLayout>,
+pub struct MiningAtlases {
+    /// Cave environment tileset (fungus_cave.png — 8 cols x 35 rows)
+    pub cave_image: Handle<Image>,
+    pub cave_layout: Handle<TextureAtlasLayout>,
+    /// Rock/ore sprites (mining_atlas.png — 8 cols x 6 rows)
+    pub rock_image: Handle<Image>,
+    pub rock_layout: Handle<TextureAtlasLayout>,
     pub loaded: bool,
 }
 
@@ -20,22 +25,47 @@ pub struct EnemyAtlas {
     pub loaded: bool,
 }
 
+/// Tile indices into fungus_cave.png (8 cols x 35 rows = 280 tiles).
+/// Determined by visual inspection of the tileset.
+pub mod cave_tiles {
+    /// Dark cave floor (row 20, col 4)
+    pub const FLOOR: usize = 164;
+    /// Slightly different floor tile for checkerboard (row 20, col 5)
+    pub const FLOOR_ALT: usize = 165;
+    /// Stone/brick wall (row 3, col 0)
+    pub const WALL: usize = 24;
+    /// Wooden ladder (row 8, col 0)
+    pub const LADDER: usize = 64;
+    /// Mine exit — distinct tile (row 33, col 0)
+    pub const EXIT: usize = 264;
+}
+
 pub fn load_mining_atlas(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
-    mut atlas: ResMut<MiningAtlas>,
+    mut atlases: ResMut<MiningAtlases>,
     mut enemy_atlas: ResMut<EnemyAtlas>,
 ) {
-    if !atlas.loaded {
-        atlas.image = asset_server.load("sprites/mining_atlas.png");
-        atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+    if !atlases.loaded {
+        // Cave environment tileset: 128x560 = 8 cols x 35 rows of 16x16 tiles
+        atlases.cave_image = asset_server.load("tilesets/fungus_cave.png");
+        atlases.cave_layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            8,
+            35,
+            None,
+            None,
+        ));
+        // Rock/ore sprites: existing 8x6 mining atlas
+        atlases.rock_image = asset_server.load("sprites/mining_atlas.png");
+        atlases.rock_layout = layouts.add(TextureAtlasLayout::from_grid(
             UVec2::new(16, 16),
             8,
             6,
             None,
             None,
         ));
-        atlas.loaded = true;
+        atlases.loaded = true;
     }
     if !enemy_atlas.loaded {
         enemy_atlas.image = asset_server.load("sprites/mine_enemies.png");
@@ -51,7 +81,7 @@ pub fn load_mining_atlas(
     }
 }
 
-/// Color palette for mine visuals.
+/// Fallback color palette for mine visuals (used when atlas not yet loaded).
 const FLOOR_COLOR: Color = Color::srgb(0.15, 0.12, 0.18);
 const WALL_COLOR: Color = Color::srgb(0.08, 0.06, 0.10);
 const ROCK_STONE_COLOR: Color = Color::srgb(0.45, 0.42, 0.40);
@@ -59,8 +89,6 @@ const ROCK_COPPER_COLOR: Color = Color::srgb(0.72, 0.45, 0.20);
 const ROCK_IRON_COLOR: Color = Color::srgb(0.55, 0.55, 0.60);
 const ROCK_GOLD_COLOR: Color = Color::srgb(0.85, 0.75, 0.20);
 const ROCK_GEM_COLOR: Color = Color::srgb(0.60, 0.20, 0.80);
-const LADDER_COLOR: Color = Color::srgb(0.75, 0.60, 0.30);
-const LADDER_HIDDEN_COLOR: Color = Color::srgb(0.15, 0.12, 0.18); // same as floor when hidden
 const EXIT_COLOR: Color = Color::srgb(0.40, 0.70, 0.40);
 
 /// System: detects when a floor spawn is requested and carries it out.
@@ -69,7 +97,7 @@ pub fn spawn_mine_floor(
     mut floor_req: ResMut<FloorSpawnRequest>,
     mut active_floor: ResMut<ActiveFloor>,
     existing: Query<Entity, With<MineFloorEntity>>,
-    atlas: Res<MiningAtlas>,
+    atlases: Res<MiningAtlases>,
     enemy_atlas: Res<EnemyAtlas>,
 ) {
     if !floor_req.pending {
@@ -86,20 +114,20 @@ pub fn spawn_mine_floor(
     let blueprint = floor_gen::generate_floor(floor_num);
 
     // Spawn floor tiles
-    spawn_tiles(&mut commands, &blueprint, &atlas);
+    spawn_tiles(&mut commands, &blueprint, &atlases);
 
     // Spawn rocks
     let rock_count = blueprint.rocks.len();
-    spawn_rocks(&mut commands, &blueprint, &atlas);
+    spawn_rocks(&mut commands, &blueprint, &atlases);
 
     // Spawn enemies
     spawn_enemies(&mut commands, &blueprint, &enemy_atlas);
 
     // Spawn ladder
-    spawn_ladder(&mut commands, &blueprint, &atlas);
+    spawn_ladder(&mut commands, &blueprint, &atlases);
 
     // Spawn exit tile (bottom center)
-    spawn_exit(&mut commands, &atlas);
+    spawn_exit(&mut commands, &atlases);
 
     // Update active floor tracking
     *active_floor = ActiveFloor {
@@ -114,7 +142,7 @@ pub fn spawn_mine_floor(
     };
 }
 
-fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlas: &MiningAtlas) {
+fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlases: &MiningAtlases) {
     for y in 0..MINE_HEIGHT {
         for x in 0..MINE_WIDTH {
             let is_wall = x == 0 || x == MINE_WIDTH - 1 || y == MINE_HEIGHT - 1;
@@ -123,19 +151,22 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlas: &Min
 
             // Subtle checkerboard: every other tile gets a slight brightness bump
             let checker_bright = (x + y) % 2 == 0;
-            let sprite = if atlas.loaded {
-                let idx = if is_wall { 3 } else { 0 };
+            let sprite = if atlases.loaded {
+                let idx = if is_wall {
+                    cave_tiles::WALL
+                } else if checker_bright {
+                    cave_tiles::FLOOR_ALT
+                } else {
+                    cave_tiles::FLOOR
+                };
                 let mut s = Sprite::from_atlas_image(
-                    atlas.image.clone(),
+                    atlases.cave_image.clone(),
                     TextureAtlas {
-                        layout: atlas.layout.clone(),
+                        layout: atlases.cave_layout.clone(),
                         index: idx,
                     },
                 );
                 s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
-                if !is_wall && checker_bright {
-                    s.color = Color::srgb(1.02, 1.02, 1.02);
-                }
                 s
             } else {
                 let color = if is_wall {
@@ -191,17 +222,17 @@ fn rock_atlas_index(drop_item: &str) -> usize {
     }
 }
 
-fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint, atlas: &MiningAtlas) {
+fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &MiningAtlases) {
     for rock_bp in &blueprint.rocks {
         let world_x = rock_bp.x as f32 * TILE_SIZE;
         let world_y = rock_bp.y as f32 * TILE_SIZE;
 
-        let sprite = if atlas.loaded {
+        let sprite = if atlases.loaded {
             let idx = rock_atlas_index(&rock_bp.drop_item);
             let mut s = Sprite::from_atlas_image(
-                atlas.image.clone(),
+                atlases.rock_image.clone(),
                 TextureAtlas {
-                    layout: atlas.layout.clone(),
+                    layout: atlases.rock_layout.clone(),
                     index: idx,
                 },
             );
@@ -281,25 +312,31 @@ fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint, enemy_atla
     }
 }
 
-fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint, atlas: &MiningAtlas) {
+fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &MiningAtlases) {
     let world_x = blueprint.ladder_pos.0 as f32 * TILE_SIZE;
     let world_y = blueprint.ladder_pos.1 as f32 * TILE_SIZE;
 
-    let sprite = if atlas.loaded && !blueprint.ladder_hidden {
+    let sprite = if atlases.loaded {
+        // Hidden ladder shows a floor tile; revealed shows the ladder tile
+        let idx = if blueprint.ladder_hidden {
+            cave_tiles::FLOOR
+        } else {
+            cave_tiles::LADDER
+        };
         let mut s = Sprite::from_atlas_image(
-            atlas.image.clone(),
+            atlases.cave_image.clone(),
             TextureAtlas {
-                layout: atlas.layout.clone(),
-                index: 45,
+                layout: atlases.cave_layout.clone(),
+                index: idx,
             },
         );
         s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
         s
     } else {
         let color = if blueprint.ladder_hidden {
-            LADDER_HIDDEN_COLOR
+            FLOOR_COLOR
         } else {
-            LADDER_COLOR
+            Color::srgb(0.75, 0.60, 0.30)
         };
         Sprite {
             color,
@@ -322,21 +359,20 @@ fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint, atlas: &Min
     ));
 }
 
-fn spawn_exit(commands: &mut Commands, atlas: &MiningAtlas) {
+fn spawn_exit(commands: &mut Commands, atlases: &MiningAtlases) {
     // Exit is at bottom center (x=12, y=0)
     let exit_x = (MINE_WIDTH / 2) as f32 * TILE_SIZE;
     let exit_y = 0.0;
 
-    let sprite = if atlas.loaded {
+    let sprite = if atlases.loaded {
         let mut s = Sprite::from_atlas_image(
-            atlas.image.clone(),
+            atlases.cave_image.clone(),
             TextureAtlas {
-                layout: atlas.layout.clone(),
-                index: 45,
+                layout: atlases.cave_layout.clone(),
+                index: cave_tiles::EXIT,
             },
         );
         s.custom_size = Some(Vec2::new(TILE_SIZE * 2.0, TILE_SIZE));
-        s.color = EXIT_COLOR;
         s
     } else {
         Sprite {

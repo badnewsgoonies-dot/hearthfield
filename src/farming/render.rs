@@ -13,6 +13,39 @@ use crate::shared::*;
 use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sprinkler animation component
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Number of animation frames in row 0 of sprinkler_anim.png (32x32 tiles, 42 cols).
+pub const SPRINKLER_ANIM_FRAMES: usize = 42;
+
+/// Duration in seconds that the sprinkler watering animation plays each morning.
+/// After this elapses the animation resets to frame 0 (idle).
+const SPRINKLER_ANIM_DURATION: f32 = 4.0;
+
+/// Drives the sprinkler sprite animation.  When the sprinkler is "watering"
+/// (triggered once per morning), it cycles through frames 0..42 at ~10 fps
+/// for SPRINKLER_ANIM_DURATION seconds, then returns to frame 0 (idle).
+#[derive(Component, Debug, Clone)]
+pub struct SprinklerAnimTimer {
+    pub frame_timer: Timer,
+    pub duration_timer: Timer,
+    pub current_frame: usize,
+    pub animating: bool,
+}
+
+impl Default for SprinklerAnimTimer {
+    fn default() -> Self {
+        Self {
+            frame_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            duration_timer: Timer::from_seconds(SPRINKLER_ANIM_DURATION, TimerMode::Once),
+            current_frame: 0,
+            animating: false,
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Crop growth pop animation component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -270,7 +303,13 @@ pub fn sync_crop_sprites(
                 sprite.custom_size = Some(Vec2::splat(TILE_SIZE * 0.8));
             } else if let Some(atlas) = &mut sprite.texture_atlas {
                 // Atlas sprite: update slice index for current stage.
-                atlas.index = crop_atlas_index(crop.current_stage, total_stages);
+                // Per-crop atlases use sequential indices; generic plants.png uses
+                // the sprite_stages mapping via crop_atlas_index.
+                if atlases.crop_atlases.contains_key(&crop.crop_id) {
+                    atlas.index = crop.current_stage as usize;
+                } else {
+                    atlas.index = crop_atlas_index(crop.current_stage, total_stages);
+                }
                 // Apply dehydration tint on top of the atlas image.
                 // Freshly watered or healthy crops get no tint (WHITE).
                 sprite.color = if crop.days_without_water >= 2 {
@@ -282,14 +321,26 @@ pub fn sync_crop_sprites(
                 };
             } else if atlases.loaded && !crop.dead {
                 // Upgrade: sprite was spawned as color-only before atlases loaded.
-                let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
-                *sprite = Sprite::from_atlas_image(
-                    atlases.plants_image.clone(),
-                    TextureAtlas {
-                        layout: atlases.plants_layout.clone(),
-                        index: atlas_index,
-                    },
-                );
+                // Prefer per-crop atlas if available, otherwise fall back to plants.png.
+                if let Some((img, lay)) = atlases.crop_atlases.get(&crop.crop_id) {
+                    let atlas_index = crop.current_stage as usize;
+                    *sprite = Sprite::from_atlas_image(
+                        img.clone(),
+                        TextureAtlas {
+                            layout: lay.clone(),
+                            index: atlas_index,
+                        },
+                    );
+                } else {
+                    let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
+                    *sprite = Sprite::from_atlas_image(
+                        atlases.plants_image.clone(),
+                        TextureAtlas {
+                            layout: atlases.plants_layout.clone(),
+                            index: atlas_index,
+                        },
+                    );
+                }
                 sprite.color = if crop.days_without_water >= 2 {
                     Color::srgb(0.85, 0.70, 0.30)
                 } else if crop.days_without_water >= 1 {
@@ -352,13 +403,20 @@ pub fn sync_crop_sprites(
 
         let entity = if atlases.loaded && !crop.dead {
             // Preferred path: texture atlas sprite.
-            let atlas_index = crop_atlas_index(crop.current_stage, total_stages);
+            // Use per-crop atlas if available, otherwise fall back to plants.png.
+            let (img, lay, atlas_index) =
+                if let Some((ci, cl)) = atlases.crop_atlases.get(&crop.crop_id) {
+                    (ci.clone(), cl.clone(), crop.current_stage as usize)
+                } else {
+                    let idx = crop_atlas_index(crop.current_stage, total_stages);
+                    (atlases.plants_image.clone(), atlases.plants_layout.clone(), idx)
+                };
             commands
                 .spawn((
                     Sprite::from_atlas_image(
-                        atlases.plants_image.clone(),
+                        img,
                         TextureAtlas {
-                            layout: atlases.plants_layout.clone(),
+                            layout: lay,
                             index: atlas_index,
                         },
                     ),
@@ -462,6 +520,8 @@ pub fn animate_crop_growth(
 
 /// Map a FarmObject to an atlas index in furniture.png (9 cols × 6 rows).
 /// Returns None for Fence (handled separately with fences atlas + autotile).
+/// Retained for potential future atlas-based rendering of farm objects.
+#[allow(dead_code)]
 fn farm_object_atlas_index(obj: &FarmObject) -> Option<usize> {
     match obj {
         FarmObject::Sprinkler => Some(36), // row 4: machinery/device
@@ -507,11 +567,16 @@ pub fn sync_farm_objects_sprites(
     mut commands: Commands,
     mut farm_entities: ResMut<FarmEntities>,
     farm_state: Res<FarmState>,
+    farming_atlases: Res<FarmingAtlases>,
     furniture: Res<crate::world::objects::FurnitureAtlases>,
     obj_atlases: Res<crate::world::objects::ObjectAtlases>,
 ) {
     // Incremental short-circuit for unchanged object state and atlas resources.
-    if !farm_state.is_changed() && !furniture.is_changed() && !obj_atlases.is_changed() {
+    if !farm_state.is_changed()
+        && !farming_atlases.is_changed()
+        && !furniture.is_changed()
+        && !obj_atlases.is_changed()
+    {
         return;
     }
 
@@ -576,31 +641,53 @@ pub fn sync_farm_objects_sprites(
                     ))
                     .id()
             }
-        } else if furniture.loaded {
-            if let Some(idx) = farm_object_atlas_index(&obj) {
-                let mut sprite = Sprite::from_atlas_image(
-                    furniture.image.clone(),
-                    TextureAtlas {
-                        layout: furniture.layout.clone(),
-                        index: idx,
+        } else if matches!(obj, FarmObject::Sprinkler) && farming_atlases.sprinkler_anim_layout != Handle::default() {
+            // Sprinkler with animated atlas — row 0, frame 0 (idle)
+            let mut sprite = Sprite::from_atlas_image(
+                farming_atlases.sprinkler_anim_image.clone(),
+                TextureAtlas {
+                    layout: farming_atlases.sprinkler_anim_layout.clone(),
+                    index: 0,
+                },
+            );
+            sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+            commands
+                .spawn((
+                    sprite,
+                    Transform::from_translation(translation),
+                    logical,
+                    YSorted,
+                    SprinklerAnimTimer::default(),
+                    FarmObjectEntity {
+                        grid_x: pos.0,
+                        grid_y: pos.1,
                     },
-                );
-                sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
-                commands
-                    .spawn((
-                        sprite,
-                        Transform::from_translation(translation),
-                        logical,
-                        YSorted,
-                        FarmObjectEntity {
-                            grid_x: pos.0,
-                            grid_y: pos.1,
-                        },
-                    ))
-                    .id()
-            } else {
-                continue;
+                ))
+                .id()
+        } else if farming_atlases.loaded {
+            // Fallback: standalone sprite images for sprinkler/scarecrow.
+            let image = match obj {
+                FarmObject::Sprinkler => farming_atlases.sprinkler_image.clone(),
+                FarmObject::Scarecrow => farming_atlases.scarecrow_image.clone(),
+                _ => continue,
+            };
+            let mut sprite = Sprite::from_image(image);
+            sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+            let mut entity_cmds = commands.spawn((
+                sprite,
+                Transform::from_translation(translation),
+                logical,
+                YSorted,
+                FarmObjectEntity {
+                    grid_x: pos.0,
+                    grid_y: pos.1,
+                },
+            ));
+            // Add anim timer for sprinklers even with static sprite (future upgrade path)
+            if matches!(obj, FarmObject::Sprinkler) {
+                entity_cmds.insert(SprinklerAnimTimer::default());
             }
+            entity_cmds.id()
         } else {
             // Colour fallback — no atlas available yet.
             commands
@@ -646,6 +733,64 @@ pub fn sync_farm_objects_sprites(
     for pos in stale {
         if let Some(entity) = farm_entities.object_entities.remove(&pos) {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprinkler animation systems
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Triggers the sprinkler watering animation when a `MorningSprinklerEvent` fires.
+/// This sets `animating = true` on every `SprinklerAnimTimer`, causing
+/// `animate_sprinklers` to start cycling frames.
+pub fn trigger_sprinkler_animation(
+    mut sprinkler_events: EventReader<super::MorningSprinklerEvent>,
+    mut timers: Query<&mut SprinklerAnimTimer>,
+) {
+    if sprinkler_events.read().next().is_none() {
+        return;
+    }
+    for mut anim in timers.iter_mut() {
+        anim.animating = true;
+        anim.current_frame = 0;
+        anim.frame_timer.reset();
+        anim.duration_timer.reset();
+    }
+}
+
+/// Drives the sprinkler sprite animation.
+///
+/// When `animating` is true (set by `trigger_sprinkler_animation`), cycles
+/// through row-0 frames of sprinkler_anim.png at ~10 fps for a fixed duration,
+/// then snaps back to frame 0 (idle).
+pub fn animate_sprinklers(
+    time: Res<Time>,
+    mut query: Query<(&mut SprinklerAnimTimer, &mut Sprite)>,
+) {
+    for (mut anim, mut sprite) in query.iter_mut() {
+        if !anim.animating {
+            continue;
+        }
+
+        anim.duration_timer.tick(time.delta());
+        anim.frame_timer.tick(time.delta());
+
+        if anim.duration_timer.finished() {
+            // Animation complete — return to idle
+            anim.animating = false;
+            anim.current_frame = 0;
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = 0;
+            }
+            continue;
+        }
+
+        if anim.frame_timer.just_finished() {
+            anim.current_frame = (anim.current_frame + 1) % SPRINKLER_ANIM_FRAMES;
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = anim.current_frame;
+            }
         }
     }
 }

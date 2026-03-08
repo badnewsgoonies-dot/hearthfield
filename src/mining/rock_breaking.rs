@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use rand::prelude::*;
 
 use super::components::*;
+use super::spawning::{cave_tiles, MiningAtlases};
 use crate::shared::*;
 
 /// Pickaxe damage per tool tier.
@@ -40,6 +41,7 @@ pub fn handle_rock_breaking(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     in_mine: Res<InMine>,
+    atlases: Res<MiningAtlases>,
 ) {
     if !in_mine.0 {
         return;
@@ -99,7 +101,7 @@ pub fn handle_rock_breaking(
             active_floor.rocks_broken_this_floor += 1;
 
             // Check if this rock had the ladder hidden in it, or probability triggers
-            check_ladder_reveal(&mut active_floor, &mut ladders, rx, ry);
+            check_ladder_reveal(&mut active_floor, &mut ladders, rx, ry, &atlases);
         }
     }
 }
@@ -114,6 +116,7 @@ fn check_ladder_reveal(
     ladders: &mut Query<(&MineGridPos, &mut MineLadder, &mut Sprite), Without<MineRock>>,
     broken_x: i32,
     broken_y: i32,
+    atlases: &MiningAtlases,
 ) {
     if active_floor.ladder_revealed {
         return;
@@ -131,8 +134,21 @@ fn check_ladder_reveal(
         let is_ladder_rock = grid_pos.x == broken_x && grid_pos.y == broken_y;
         if !ladder.revealed && (all_gone || is_ladder_rock || prob_reveal) {
             ladder.revealed = true;
-            sprite.color = Color::srgb(0.65, 0.50, 0.25); // LADDER_COLOR
             active_floor.ladder_revealed = true;
+
+            // Swap the sprite to show the ladder tile from the cave atlas
+            if atlases.loaded {
+                *sprite = Sprite::from_atlas_image(
+                    atlases.cave_image.clone(),
+                    TextureAtlas {
+                        layout: atlases.cave_layout.clone(),
+                        index: cave_tiles::LADDER,
+                    },
+                );
+                sprite.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+            } else {
+                sprite.color = Color::srgb(0.65, 0.50, 0.25);
+            }
         }
     }
 }

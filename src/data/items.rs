@@ -1,5 +1,36 @@
 use crate::shared::*;
 
+// ─── ITEMS ATLAS LAYOUT (13 columns × 17 rows = 221 slots) ─────────────────
+//
+// Row  0 (  0– 12): Seeds (turnip..ancient, 15 used + 15-19 reserved)
+// Row  1 ( 13– 19): Seeds cont. + reserved
+// Row  1 ( 20– 25): Crops (turnip..tomato)
+// Row  2 ( 26– 34): Crops cont. (blueberry..ancient_fruit)
+// Row  3 ( 35– 39): Crafting materials (wood..oak_resin, + forage)
+// Row  3 ( 40– 44): Animal products (egg..wool)
+// Row  3 ( 45– 47): Artisan goods (cheese, cloth, mayonnaise)
+// Row  4 ( 50– 59): Fish - common (sardine..eel)
+// Row  5 ( 60– 69): Fish - rare (tuna..crimsonfish)
+// Row  5 ( 70– 74): Minerals (stone..coal)
+// Row  6 ( 75– 79): Gems (quartz..diamond)
+// Row  6 ( 80– 83): Bars (copper..iridium)
+// Row  6 ( 84– 89): Furniture & placeable (chest..sprinkler)
+// Row  7 ( 90– 97): Food (fried_egg..cranberry_sauce)
+// Row  7 ( 98–109): Food cont. + misc
+// Row  8 (110–129): Food/artisan/crafting overflow (original)
+//
+// === EXPANDED REGION (rows 10–16, indices 130+) ===
+//
+// Row 10 (130–138): Fish overflow (koi, ghostfish, stonefish, etc.)
+// Row 10–12 (139–160): Food overflow (toast, porridge, corn_chowder, etc.)
+// Row 12–14 (161–184): Artisan goods overflow (jelly, wine, pickles, etc.)
+// Row 14–15 (185–194): Furniture overflow (furnace, keg, etc.)
+// Row 15–16 (195–218): Special items (bouquet, animals, buildings, recipes, etc.)
+// Row 16–17 (219–220): Crafting overflow (bomb, cherry_bomb)
+//
+// Total: 216 items, 221 slots, 0 harmful collisions.
+// ────────────────────────────────────────────────────────────────────────────
+
 /// Populate the ItemRegistry with every item in the game.
 pub fn populate_items(registry: &mut ItemRegistry) {
     let items: Vec<ItemDef> = vec![
@@ -1022,7 +1053,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 48.0,
-            sprite_index: 95,
+            sprite_index: 141,
         },
         ItemDef {
             id: "melon_smoothie".into(),
@@ -1034,7 +1065,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 44.0,
-            sprite_index: 102,
+            sprite_index: 146,
         },
         ItemDef {
             id: "truffle_risotto".into(),
@@ -1046,7 +1077,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 72.0,
-            sprite_index: 101,
+            sprite_index: 144,
         },
         ItemDef {
             id: "blueberry_pie".into(),
@@ -1094,7 +1125,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 65.0,
-            sprite_index: 97,
+            sprite_index: 142,
         },
         ItemDef {
             id: "cooked_fish".into(),
@@ -1130,7 +1161,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 60.0,
-            sprite_index: 100,
+            sprite_index: 143,
         },
         ItemDef {
             id: "spaghetti".into(),
@@ -1142,7 +1173,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 45.0,
-            sprite_index: 101,
+            sprite_index: 145,
         },
         ItemDef {
             id: "ice_cream".into(),
@@ -1154,7 +1185,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 40.0,
-            sprite_index: 102,
+            sprite_index: 147,
         },
         ItemDef {
             id: "cake".into(),
@@ -1166,7 +1197,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 65.0,
-            sprite_index: 103,
+            sprite_index: 148,
         },
         ItemDef {
             id: "cookie".into(),
@@ -1178,7 +1209,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 38.0,
-            sprite_index: 104,
+            sprite_index: 149,
         },
         ItemDef {
             id: "turnip_soup".into(),
@@ -1190,7 +1221,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 30.0,
-            sprite_index: 105,
+            sprite_index: 150,
         },
         ItemDef {
             id: "strawberry_jam".into(),
@@ -1202,7 +1233,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 20.0,
-            sprite_index: 106,
+            sprite_index: 151,
         },
         ItemDef {
             id: "cauliflower_gratin".into(),
@@ -1214,7 +1245,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 45.0,
-            sprite_index: 107,
+            sprite_index: 152,
         },
         ItemDef {
             id: "sardine_toast".into(),
@@ -1226,7 +1257,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 25.0,
-            sprite_index: 108,
+            sprite_index: 153,
         },
         ItemDef {
             id: "corn_tortilla".into(),
@@ -1238,7 +1269,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 20.0,
-            sprite_index: 109,
+            sprite_index: 154,
         },
         ItemDef {
             id: "blueberry_muffin".into(),
@@ -1250,7 +1281,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 30.0,
-            sprite_index: 110,
+            sprite_index: 155,
         },
         ItemDef {
             id: "pumpkin_bread".into(),
@@ -1262,7 +1293,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 35.0,
-            sprite_index: 111,
+            sprite_index: 156,
         },
         ItemDef {
             id: "cranberry_tart".into(),
@@ -1274,7 +1305,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 35.0,
-            sprite_index: 112,
+            sprite_index: 157,
         },
         ItemDef {
             id: "yam_pudding".into(),
@@ -1286,7 +1317,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 30.0,
-            sprite_index: 113,
+            sprite_index: 158,
         },
         ItemDef {
             id: "stuffed_eggplant".into(),
@@ -1298,7 +1329,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 40.0,
-            sprite_index: 114,
+            sprite_index: 159,
         },
         ItemDef {
             id: "coffee_pudding".into(),
@@ -1322,7 +1353,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 45.0,
-            sprite_index: 116,
+            sprite_index: 160,
         },
         ItemDef {
             id: "truffle_pasta".into(),
@@ -1432,7 +1463,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: true,
             energy_restore: 30.0,
-            sprite_index: 115,
+            sprite_index: 166,
         },
         ItemDef {
             id: "wheat_flour".into(),
@@ -1506,7 +1537,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 120,
+            sprite_index: 216,
         },
         ItemDef {
             id: "bait".into(),
@@ -1518,7 +1549,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 121,
+            sprite_index: 217,
         },
         ItemDef {
             id: "tackle".into(),
@@ -1530,7 +1561,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 122,
+            sprite_index: 218,
         },
 
         // ═══════════════════════════════════════════════════════════════
@@ -1548,7 +1579,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 76,
+            sprite_index: 219,
         },
         ItemDef {
             id: "cherry_bomb".into(),
@@ -1560,7 +1591,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 99,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 77,
+            sprite_index: 220,
         },
 
         // ── Animals (purchased at Animal Shop) ──────────────────────
@@ -1574,7 +1605,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 78,
+            sprite_index: 197,
         },
         ItemDef {
             id: "animal_cow".into(),
@@ -1586,7 +1617,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 79,
+            sprite_index: 198,
         },
         ItemDef {
             id: "animal_sheep".into(),
@@ -1598,7 +1629,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 80,
+            sprite_index: 199,
         },
         ItemDef {
             id: "animal_goat".into(),
@@ -1610,7 +1641,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 81,
+            sprite_index: 200,
         },
         ItemDef {
             id: "animal_duck".into(),
@@ -1622,7 +1653,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 82,
+            sprite_index: 204,
         },
         ItemDef {
             id: "animal_rabbit".into(),
@@ -1634,7 +1665,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 83,
+            sprite_index: 208,
         },
         ItemDef {
             id: "animal_pig".into(),
@@ -1646,7 +1677,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 84,
+            sprite_index: 212,
         },
         ItemDef {
             id: "animal_horse".into(),
@@ -1658,7 +1689,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 85,
+            sprite_index: 213,
         },
         ItemDef {
             id: "animal_cat".into(),
@@ -1670,7 +1701,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 86,
+            sprite_index: 214,
         },
         ItemDef {
             id: "animal_dog".into(),
@@ -1682,7 +1713,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 87,
+            sprite_index: 215,
         },
 
         // ── Buildings (purchased at Animal Shop) ────────────────────
@@ -1696,7 +1727,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 81,
+            sprite_index: 201,
         },
         ItemDef {
             id: "building_big_coop".into(),
@@ -1708,7 +1739,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 81,
+            sprite_index: 202,
         },
         ItemDef {
             id: "building_deluxe_coop".into(),
@@ -1720,7 +1751,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 81,
+            sprite_index: 203,
         },
         ItemDef {
             id: "building_barn".into(),
@@ -1732,7 +1763,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 82,
+            sprite_index: 205,
         },
         ItemDef {
             id: "building_big_barn".into(),
@@ -1744,7 +1775,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 82,
+            sprite_index: 206,
         },
         ItemDef {
             id: "building_deluxe_barn".into(),
@@ -1756,7 +1787,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 82,
+            sprite_index: 207,
         },
 
         // ── Recipe Books (General Store) ────────────────────────────
@@ -1770,7 +1801,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 83,
+            sprite_index: 209,
         },
         ItemDef {
             id: "recipe_book_pancakes".into(),
@@ -1782,7 +1813,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 83,
+            sprite_index: 210,
         },
         ItemDef {
             id: "recipe_book_spaghetti".into(),
@@ -1794,7 +1825,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             stack_size: 1,
             edible: false,
             energy_restore: 0.0,
-            sprite_index: 83,
+            sprite_index: 211,
         },
 
         // ═══════════════════════════════════════════════════════════════
@@ -1806,18 +1837,18 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         ItemDef { id: "stone_path".into(), name: "Stone Path".into(), description: "A cobblestone walkway tile.".into(), category: ItemCategory::Furniture, sell_price: 2, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 87 },
         ItemDef { id: "scarecrow".into(), name: "Scarecrow".into(), description: "Keeps crows away from crops in an 8-tile radius.".into(), category: ItemCategory::Furniture, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 88 },
         ItemDef { id: "basic_sprinkler".into(), name: "Basic Sprinkler".into(), description: "Waters 4 adjacent tiles each morning.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 89 },
-        ItemDef { id: "quality_sprinkler".into(), name: "Quality Sprinkler".into(), description: "Waters 8 surrounding tiles each morning.".into(), category: ItemCategory::Furniture, sell_price: 450, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 89 },
-        ItemDef { id: "furnace".into(), name: "Furnace".into(), description: "Smelts ore into bars. Place on farm.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 36 },
+        ItemDef { id: "quality_sprinkler".into(), name: "Quality Sprinkler".into(), description: "Waters 8 surrounding tiles each morning.".into(), category: ItemCategory::Furniture, sell_price: 450, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 193 },
+        ItemDef { id: "furnace".into(), name: "Furnace".into(), description: "Smelts ore into bars. Place on farm.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 185 },
         ItemDef { id: "preserves_jar".into(), name: "Preserves Jar".into(), description: "Turns fruits and vegetables into preserves.".into(), category: ItemCategory::Furniture, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 37 },
         ItemDef { id: "cheese_press".into(), name: "Cheese Press".into(), description: "Turns milk into cheese.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 38 },
         ItemDef { id: "loom".into(), name: "Loom".into(), description: "Turns wool into cloth.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 39 },
-        ItemDef { id: "keg".into(), name: "Keg".into(), description: "Turns fruits into wine and grains into beer.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 40 },
-        ItemDef { id: "lightning_rod".into(), name: "Lightning Rod".into(), description: "Captures lightning energy during storms.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 41 },
-        ItemDef { id: "mayonnaise_machine".into(), name: "Mayonnaise Machine".into(), description: "Turns eggs into mayonnaise.".into(), category: ItemCategory::Furniture, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 42 },
-        ItemDef { id: "crab_pot".into(), name: "Crab Pot".into(), description: "Place in water to catch shellfish.".into(), category: ItemCategory::Furniture, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 43 },
-        ItemDef { id: "torch".into(), name: "Torch".into(), description: "A simple light source.".into(), category: ItemCategory::Furniture, sell_price: 5, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 44 },
-        ItemDef { id: "wooden_sign".into(), name: "Wooden Sign".into(), description: "A small sign to mark your farm.".into(), category: ItemCategory::Furniture, sell_price: 10, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 46 },
-        ItemDef { id: "tapper".into(), name: "Tapper".into(), description: "Attach to trees to collect sap and syrup.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 47 },
+        ItemDef { id: "keg".into(), name: "Keg".into(), description: "Turns fruits into wine and grains into beer.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 186 },
+        ItemDef { id: "lightning_rod".into(), name: "Lightning Rod".into(), description: "Captures lightning energy during storms.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 187 },
+        ItemDef { id: "mayonnaise_machine".into(), name: "Mayonnaise Machine".into(), description: "Turns eggs into mayonnaise.".into(), category: ItemCategory::Furniture, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 188 },
+        ItemDef { id: "crab_pot".into(), name: "Crab Pot".into(), description: "Place in water to catch shellfish.".into(), category: ItemCategory::Furniture, sell_price: 50, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 189 },
+        ItemDef { id: "torch".into(), name: "Torch".into(), description: "A simple light source.".into(), category: ItemCategory::Furniture, sell_price: 5, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 190 },
+        ItemDef { id: "wooden_sign".into(), name: "Wooden Sign".into(), description: "A small sign to mark your farm.".into(), category: ItemCategory::Furniture, sell_price: 10, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 191 },
+        ItemDef { id: "tapper".into(), name: "Tapper".into(), description: "Attach to trees to collect sap and syrup.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 192 },
         ItemDef { id: "bee_house".into(), name: "Bee House".into(), description: "Produces honey. Nearby flowers affect flavor.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 48 },
         ItemDef { id: "recycling_machine".into(), name: "Recycling Machine".into(), description: "Recycles trash into useful materials.".into(), category: ItemCategory::Furniture, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 49 },
 
@@ -1827,7 +1858,7 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         ItemDef { id: "goat_milk".into(), name: "Goat Milk".into(), description: "Fresh goat milk.".into(), category: ItemCategory::AnimalProduct, sell_price: 225, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 100 },
         ItemDef { id: "duck_egg".into(), name: "Duck Egg".into(), description: "A spotted duck egg.".into(), category: ItemCategory::AnimalProduct, sell_price: 95, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 101 },
         ItemDef { id: "rabbit_foot".into(), name: "Rabbit's Foot".into(), description: "A lucky charm. Loved by many villagers.".into(), category: ItemCategory::AnimalProduct, sell_price: 565, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 102 },
-        ItemDef { id: "large_cheese".into(), name: "Large Cheese".into(), description: "A wheel of aged cheese made from large milk.".into(), category: ItemCategory::ArtisanGood, sell_price: 400, buy_price: None, stack_size: 99, edible: true, energy_restore: 40.0, sprite_index: 103 },
+        ItemDef { id: "large_cheese".into(), name: "Large Cheese".into(), description: "A wheel of aged cheese made from large milk.".into(), category: ItemCategory::ArtisanGood, sell_price: 400, buy_price: None, stack_size: 99, edible: true, energy_restore: 40.0, sprite_index: 161 },
 
         // ═══════════════════════════════════════════════════════════════
         // CRAFTING MATERIALS & MONSTER DROPS (new)
@@ -1850,63 +1881,63 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         // ═══════════════════════════════════════════════════════════════
         // ARTISAN GOODS — Machine outputs (preserves, wines, jellies)
         // ═══════════════════════════════════════════════════════════════
-        ItemDef { id: "oil_maker".into(), name: "Oil Maker".into(), description: "Extracts oil from plants and truffles.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 110 },
-        ItemDef { id: "blueberry_jelly".into(), name: "Blueberry Jelly".into(), description: "Sweet preserves made from blueberries.".into(), category: ItemCategory::ArtisanGood, sell_price: 150, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 111 },
-        ItemDef { id: "strawberry_jelly".into(), name: "Strawberry Jelly".into(), description: "Bright red preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 200, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 112 },
-        ItemDef { id: "melon_jelly".into(), name: "Melon Jelly".into(), description: "Smooth, sweet melon preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 35.0, sprite_index: 113 },
-        ItemDef { id: "apple_jelly".into(), name: "Apple Jelly".into(), description: "Clear amber preserves from apples.".into(), category: ItemCategory::ArtisanGood, sell_price: 150, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 114 },
-        ItemDef { id: "ancient_jelly".into(), name: "Ancient Fruit Jelly".into(), description: "Exotic preserves with a mysterious flavor.".into(), category: ItemCategory::ArtisanGood, sell_price: 750, buy_price: None, stack_size: 99, edible: true, energy_restore: 50.0, sprite_index: 115 },
-        ItemDef { id: "blueberry_wine".into(), name: "Blueberry Wine".into(), description: "A deep purple wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 240, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 116 },
-        ItemDef { id: "strawberry_wine".into(), name: "Strawberry Wine".into(), description: "A rosé-colored fruit wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 360, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 117 },
-        ItemDef { id: "melon_wine".into(), name: "Melon Wine".into(), description: "A sweet, golden wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 500, buy_price: None, stack_size: 99, edible: true, energy_restore: 35.0, sprite_index: 118 },
-        ItemDef { id: "ancient_fruit_wine".into(), name: "Ancient Fruit Wine".into(), description: "The most prized wine in the valley.".into(), category: ItemCategory::ArtisanGood, sell_price: 1650, buy_price: None, stack_size: 99, edible: true, energy_restore: 60.0, sprite_index: 119 },
+        ItemDef { id: "oil_maker".into(), name: "Oil Maker".into(), description: "Extracts oil from plants and truffles.".into(), category: ItemCategory::Furniture, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 194 },
+        ItemDef { id: "blueberry_jelly".into(), name: "Blueberry Jelly".into(), description: "Sweet preserves made from blueberries.".into(), category: ItemCategory::ArtisanGood, sell_price: 150, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 162 },
+        ItemDef { id: "strawberry_jelly".into(), name: "Strawberry Jelly".into(), description: "Bright red preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 200, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 163 },
+        ItemDef { id: "melon_jelly".into(), name: "Melon Jelly".into(), description: "Smooth, sweet melon preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 35.0, sprite_index: 164 },
+        ItemDef { id: "apple_jelly".into(), name: "Apple Jelly".into(), description: "Clear amber preserves from apples.".into(), category: ItemCategory::ArtisanGood, sell_price: 150, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 165 },
+        ItemDef { id: "ancient_jelly".into(), name: "Ancient Fruit Jelly".into(), description: "Exotic preserves with a mysterious flavor.".into(), category: ItemCategory::ArtisanGood, sell_price: 750, buy_price: None, stack_size: 99, edible: true, energy_restore: 50.0, sprite_index: 167 },
+        ItemDef { id: "blueberry_wine".into(), name: "Blueberry Wine".into(), description: "A deep purple wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 240, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 168 },
+        ItemDef { id: "strawberry_wine".into(), name: "Strawberry Wine".into(), description: "A rosé-colored fruit wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 360, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 169 },
+        ItemDef { id: "melon_wine".into(), name: "Melon Wine".into(), description: "A sweet, golden wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 500, buy_price: None, stack_size: 99, edible: true, energy_restore: 35.0, sprite_index: 170 },
+        ItemDef { id: "ancient_fruit_wine".into(), name: "Ancient Fruit Wine".into(), description: "The most prized wine in the valley.".into(), category: ItemCategory::ArtisanGood, sell_price: 1650, buy_price: None, stack_size: 99, edible: true, energy_restore: 60.0, sprite_index: 171 },
         ItemDef { id: "truffle_oil".into(), name: "Truffle Oil".into(), description: "Rich, earthy oil pressed from truffles.".into(), category: ItemCategory::ArtisanGood, sell_price: 1065, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 120 },
 
         // Pickled vegetables (Preserves Jar outputs)
         ItemDef { id: "pickled_turnip".into(), name: "Pickled Turnip".into(), description: "Tangy pickled turnip.".into(), category: ItemCategory::ArtisanGood, sell_price: 60, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
-        ItemDef { id: "pickled_potato".into(), name: "Pickled Potato".into(), description: "Brined potato slices.".into(), category: ItemCategory::ArtisanGood, sell_price: 80, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 121 },
-        ItemDef { id: "pickled_cauliflower".into(), name: "Pickled Cauliflower".into(), description: "Crisp pickled florets.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 121 },
-        ItemDef { id: "pickled_pumpkin".into(), name: "Pickled Pumpkin".into(), description: "Sweet and sour pumpkin preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 120, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 121 },
-        ItemDef { id: "pickled_eggplant".into(), name: "Pickled Eggplant".into(), description: "Savory pickled eggplant.".into(), category: ItemCategory::ArtisanGood, sell_price: 70, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
-        ItemDef { id: "pickled_yam".into(), name: "Pickled Yam".into(), description: "Sweet pickled yam slices.".into(), category: ItemCategory::ArtisanGood, sell_price: 90, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 121 },
-        ItemDef { id: "pickled_tomato".into(), name: "Pickled Tomato".into(), description: "Tangy preserved tomatoes.".into(), category: ItemCategory::ArtisanGood, sell_price: 65, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
-        ItemDef { id: "pickled_corn".into(), name: "Pickled Corn".into(), description: "Sweet pickled corn kernels.".into(), category: ItemCategory::ArtisanGood, sell_price: 75, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 121 },
+        ItemDef { id: "pickled_potato".into(), name: "Pickled Potato".into(), description: "Brined potato slices.".into(), category: ItemCategory::ArtisanGood, sell_price: 80, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 172 },
+        ItemDef { id: "pickled_cauliflower".into(), name: "Pickled Cauliflower".into(), description: "Crisp pickled florets.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 173 },
+        ItemDef { id: "pickled_pumpkin".into(), name: "Pickled Pumpkin".into(), description: "Sweet and sour pumpkin preserves.".into(), category: ItemCategory::ArtisanGood, sell_price: 120, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 174 },
+        ItemDef { id: "pickled_eggplant".into(), name: "Pickled Eggplant".into(), description: "Savory pickled eggplant.".into(), category: ItemCategory::ArtisanGood, sell_price: 70, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 175 },
+        ItemDef { id: "pickled_yam".into(), name: "Pickled Yam".into(), description: "Sweet pickled yam slices.".into(), category: ItemCategory::ArtisanGood, sell_price: 90, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 176 },
+        ItemDef { id: "pickled_tomato".into(), name: "Pickled Tomato".into(), description: "Tangy preserved tomatoes.".into(), category: ItemCategory::ArtisanGood, sell_price: 65, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 177 },
+        ItemDef { id: "pickled_corn".into(), name: "Pickled Corn".into(), description: "Sweet pickled corn kernels.".into(), category: ItemCategory::ArtisanGood, sell_price: 75, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 178 },
 
         // Beverages (Keg outputs)
         ItemDef { id: "beer".into(), name: "Beer".into(), description: "A refreshing wheat ale.".into(), category: ItemCategory::ArtisanGood, sell_price: 200, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 122 },
-        ItemDef { id: "pale_ale".into(), name: "Pale Ale".into(), description: "A hoppy, golden ale.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 122 },
-        ItemDef { id: "pumpkin_juice".into(), name: "Pumpkin Juice".into(), description: "A smooth, spiced juice.".into(), category: ItemCategory::ArtisanGood, sell_price: 350, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 123 },
-        ItemDef { id: "apple_cider".into(), name: "Apple Cider".into(), description: "Warm, aromatic cider.".into(), category: ItemCategory::ArtisanGood, sell_price: 250, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 123 },
-        ItemDef { id: "mead".into(), name: "Mead".into(), description: "A sweet honey wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 122 },
-        ItemDef { id: "oil".into(), name: "Oil".into(), description: "Cooking oil pressed from plants.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 124 },
+        ItemDef { id: "pale_ale".into(), name: "Pale Ale".into(), description: "A hoppy, golden ale.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 22.0, sprite_index: 179 },
+        ItemDef { id: "pumpkin_juice".into(), name: "Pumpkin Juice".into(), description: "A smooth, spiced juice.".into(), category: ItemCategory::ArtisanGood, sell_price: 350, buy_price: None, stack_size: 99, edible: true, energy_restore: 30.0, sprite_index: 181 },
+        ItemDef { id: "apple_cider".into(), name: "Apple Cider".into(), description: "Warm, aromatic cider.".into(), category: ItemCategory::ArtisanGood, sell_price: 250, buy_price: None, stack_size: 99, edible: true, energy_restore: 25.0, sprite_index: 182 },
+        ItemDef { id: "mead".into(), name: "Mead".into(), description: "A sweet honey wine.".into(), category: ItemCategory::ArtisanGood, sell_price: 300, buy_price: None, stack_size: 99, edible: true, energy_restore: 28.0, sprite_index: 180 },
+        ItemDef { id: "oil".into(), name: "Oil".into(), description: "Cooking oil pressed from plants.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 183 },
 
         // Other obtainables
-        ItemDef { id: "honey".into(), name: "Honey".into(), description: "Sweet golden honey from a bee house.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 125 },
-        ItemDef { id: "crab".into(), name: "Crab".into(), description: "A small crab caught in a crab pot.".into(), category: ItemCategory::Fish, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 126 },
+        ItemDef { id: "honey".into(), name: "Honey".into(), description: "Sweet golden honey from a bee house.".into(), category: ItemCategory::ArtisanGood, sell_price: 100, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 184 },
+        ItemDef { id: "crab".into(), name: "Crab".into(), description: "A small crab caught in a crab pot.".into(), category: ItemCategory::Fish, sell_price: 100, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 135 },
 
         // Pond fish
-        ItemDef { id: "goldfish".into(), name: "Goldfish".into(), description: "A shimmering little pond fish.".into(), category: ItemCategory::Fish, sell_price: 30, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 127 },
-        ItemDef { id: "sunfish".into(), name: "Sunfish".into(), description: "A warm-weather pond dweller with bright scales.".into(), category: ItemCategory::Fish, sell_price: 45, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 128 },
-        ItemDef { id: "bullhead".into(), name: "Bullhead".into(), description: "A bottom-feeder common in still water.".into(), category: ItemCategory::Fish, sell_price: 75, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 129 },
-        ItemDef { id: "koi".into(), name: "Koi".into(), description: "An ornamental fish prized for its beauty.".into(), category: ItemCategory::Fish, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 0 },
+        ItemDef { id: "goldfish".into(), name: "Goldfish".into(), description: "A shimmering little pond fish.".into(), category: ItemCategory::Fish, sell_price: 30, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 136 },
+        ItemDef { id: "sunfish".into(), name: "Sunfish".into(), description: "A warm-weather pond dweller with bright scales.".into(), category: ItemCategory::Fish, sell_price: 45, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 137 },
+        ItemDef { id: "bullhead".into(), name: "Bullhead".into(), description: "A bottom-feeder common in still water.".into(), category: ItemCategory::Fish, sell_price: 75, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 138 },
+        ItemDef { id: "koi".into(), name: "Koi".into(), description: "An ornamental fish prized for its beauty.".into(), category: ItemCategory::Fish, sell_price: 150, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 130 },
 
         // Mine pool fish
-        ItemDef { id: "ghostfish".into(), name: "Ghostfish".into(), description: "A translucent fish found in underground pools.".into(), category: ItemCategory::Fish, sell_price: 90, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 1 },
-        ItemDef { id: "stonefish".into(), name: "Stonefish".into(), description: "A well-camouflaged cave dweller.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 2 },
-        ItemDef { id: "ice_pip".into(), name: "Ice Pip".into(), description: "A tiny fish from the deepest frozen cavern pools.".into(), category: ItemCategory::Fish, sell_price: 300, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 3 },
-        ItemDef { id: "lava_eel".into(), name: "Lava Eel".into(), description: "An eel that thrives in volcanic heat. Extremely difficult to catch.".into(), category: ItemCategory::Fish, sell_price: 700, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 4 },
+        ItemDef { id: "ghostfish".into(), name: "Ghostfish".into(), description: "A translucent fish found in underground pools.".into(), category: ItemCategory::Fish, sell_price: 90, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 131 },
+        ItemDef { id: "stonefish".into(), name: "Stonefish".into(), description: "A well-camouflaged cave dweller.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 132 },
+        ItemDef { id: "ice_pip".into(), name: "Ice Pip".into(), description: "A tiny fish from the deepest frozen cavern pools.".into(), category: ItemCategory::Fish, sell_price: 300, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 133 },
+        ItemDef { id: "lava_eel".into(), name: "Lava Eel".into(), description: "An eel that thrives in volcanic heat. Extremely difficult to catch.".into(), category: ItemCategory::Fish, sell_price: 700, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 134 },
 
         // ═══════════════════════════════════════════════════════════════
         // SPECIAL — Romance & relationship items
         // ═══════════════════════════════════════════════════════════════
-        ItemDef { id: "bouquet".into(), name: "Bouquet".into(), description: "A beautiful bouquet of flowers. Give to a villager you are dating.".into(), category: ItemCategory::Special, sell_price: 200, buy_price: Some(500), stack_size: 1, edible: false, energy_restore: 0.0, sprite_index: 5 },
-        ItemDef { id: "mermaid_pendant".into(), name: "Mermaid Pendant".into(), description: "A rare pendant shaped like a mermaid. Used to propose marriage.".into(), category: ItemCategory::Special, sell_price: 1000, buy_price: Some(5000), stack_size: 1, edible: false, energy_restore: 0.0, sprite_index: 6 },
+        ItemDef { id: "bouquet".into(), name: "Bouquet".into(), description: "A beautiful bouquet of flowers. Give to a villager you are dating.".into(), category: ItemCategory::Special, sell_price: 200, buy_price: Some(500), stack_size: 1, edible: false, energy_restore: 0.0, sprite_index: 195 },
+        ItemDef { id: "mermaid_pendant".into(), name: "Mermaid Pendant".into(), description: "A rare pendant shaped like a mermaid. Used to propose marriage.".into(), category: ItemCategory::Special, sell_price: 1000, buy_price: Some(5000), stack_size: 1, edible: false, energy_restore: 0.0, sprite_index: 196 },
 
         // ═══════════════════════════════════════════════════════════════
         // FOOD — Spouse breakfast gifts
         // ═══════════════════════════════════════════════════════════════
-        ItemDef { id: "toast".into(), name: "Toast".into(), description: "Crispy golden toast prepared by your spouse.".into(), category: ItemCategory::Food, sell_price: 25, buy_price: None, stack_size: 99, edible: true, energy_restore: 15.0, sprite_index: 7 },
-        ItemDef { id: "porridge".into(), name: "Porridge".into(), description: "Warm creamy porridge prepared by your spouse.".into(), category: ItemCategory::Food, sell_price: 30, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 8 },
+        ItemDef { id: "toast".into(), name: "Toast".into(), description: "Crispy golden toast prepared by your spouse.".into(), category: ItemCategory::Food, sell_price: 25, buy_price: None, stack_size: 99, edible: true, energy_restore: 15.0, sprite_index: 139 },
+        ItemDef { id: "porridge".into(), name: "Porridge".into(), description: "Warm creamy porridge prepared by your spouse.".into(), category: ItemCategory::Food, sell_price: 30, buy_price: None, stack_size: 99, edible: true, energy_restore: 20.0, sprite_index: 140 },
     ];
 
     for item in items {

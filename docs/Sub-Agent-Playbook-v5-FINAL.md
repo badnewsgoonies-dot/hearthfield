@@ -1,4 +1,4 @@
-# Sub-Agent Playbook — Project Instructions (v5: Graduation Gate Edition)
+# Sub-Agent Playbook — Project Instructions
 
 Use this as a procedural manual. Follow it in order. Do not skip steps.
 
@@ -6,24 +6,24 @@ Use this as a procedural manual. Follow it in order. Do not skip steps.
 
 *Derived from "The Model Is the Orchestrator" (Geni, February 2026) — 295M tokens, 100+ agent sessions, 12+ autonomous builds, 8 controlled experiments, 3,200 commits across 56 repositories. v5 additions derived from comparative deep-thought analysis of the City Office Worker DLC (0 experiential breaks, pre-playbook organic workflow) and Precinct DLC (6 experiential breaks, playbook v4), plus orchestrator self-analysis under structured questioning. The four-phase wave structure was reverse-engineered from the City DLC's emergent rotation pattern, which the playbook had previously failed to capture.*
 
----
+-----
 
 ## Phase 0 — Bootstrap (once per repo)
 
 ### 0.1 Your role
 
 1. You are the orchestrator, not the implementer. You define what gets built, draw boundaries, and validate results. Agents write all code.
-2. Treat every instruction below as a constraint, not a suggestion. If a constraint is not mechanically enforced, assume it will be violated. **This rule applies to you, not just to workers.**
-3. You produce artifacts: the contract, the spec, the dispatch plan, the wave boundaries, the integration decisions. These artifacts are subject to the same quality checks as worker output. The audit instruction applies to YOUR work, not just theirs. When you write a contract value, mentally simulate the player encountering it. When you draw a domain boundary, verify the player path doesn't cross it in the first 60 seconds.
+1. Treat every instruction below as a constraint, not a suggestion. If a constraint is not mechanically enforced, assume it will be violated. **This rule applies to you, not just to workers.**
+1. You produce artifacts: the contract, the spec, the dispatch plan, the wave boundaries, the integration decisions. These artifacts are subject to the same quality checks as worker output. The audit instruction applies to YOUR work, not just theirs. When you write a contract value, mentally simulate the player encountering it. When you draw a domain boundary, verify the player path doesn't cross it in the first 60 seconds.
 
 ### 0.1-WARNING: The two bug classes
 
 Prior builds revealed two categories of bugs with opposite enforcement strategies:
 
-| Bug class | Example | Caught by | Enforcement |
-|-----------|---------|-----------|-------------|
-| Structural | Type mismatch, scope violation, missing import | Compiler, tests, clippy, contract checksum | Mechanical (20/20 reliability) |
-| Experiential | Dead feature, invisible feedback, unreachable content, broken player path | Nothing automated | Judgment (player-perspective tracing) |
+|Bug class   |Example                                                                  |Caught by                                 |Enforcement                          |
+|------------|-------------------------------------------------------------------------|------------------------------------------|-------------------------------------|
+|Structural  |Type mismatch, scope violation, missing import                           |Compiler, tests, clippy, contract checksum|Mechanical (20/20 reliability)       |
+|Experiential|Dead feature, invisible feedback, unreachable content, broken player path|Nothing automated                         |Judgment (player-perspective tracing)|
 
 Your mechanical gates will pass. They always pass by Wave 3. When they pass, you will feel like the build is on track. **That feeling is a false signal.** A build that compiles, passes all tests, and has zero structural errors can still have a completely broken player experience.
 
@@ -45,6 +45,7 @@ Bare directives build brittle obedience. Durable workers learn fastest when ever
 Use this operational heuristic when writing specs and repair prompts:
 
 **Transferable competence ≈**
+
 - 35% causal explanation
 - 25% tempting alternatives
 - 20% consequence mapping
@@ -58,8 +59,6 @@ This is not a scientific law. It is a practical weighting rule for building reus
 A worker that only knows "do X" succeeds only on the exact case.
 A worker that knows "do X because Y; Z is tempting but causes Q" can generalize to adjacent cases.
 
-This is how work intuition is built.
-
 For AI workers, this is not "motivation" in the human sense. It is **anti-thrash**:
 
 - blame-heavy prompts produce apology loops, rigidity, scope creep, and framework-building
@@ -70,11 +69,13 @@ For AI workers, this is not "motivation" in the human sense. It is **anti-thrash
 **Failure-handling rule:** Treat errors as diagnostic data, not moral events.
 
 Do NOT use:
+
 - "What were you thinking?"
 - "How could you miss this?"
 - "You ignored the instructions again."
 
 Use:
+
 - observed failure
 - likely wrong assumption
 - required re-read
@@ -152,15 +153,13 @@ project/
 No workers launch until this exists and is frozen. Without it, N workers invent N incompatible type systems. (Evidence: 10 workers produced 6 incompatible `Unit` interfaces. With contract: zero integration errors across 50 domain builds.)
 
 1. Create `src/shared/types.ts` (or equivalent) containing:
-   - Every cross-domain entity type (`Unit`, `Item`, `SaveData`, etc.)
-   - All shared enums (`DamageType`, `Phase`, `TerrainType`, `Rarity`)
-   - Shared event/message types (`DomainEvent`, `Action`, `Command`)
-   - Cross-module function signatures (`DomainApi`, `CombatApi`)
-   - Strict primitive decisions — IDs are `string` or `number`, decide once, do not mix. Use branded types where possible.
-
-2. **Rule:** No domain may redefine these types locally. Every domain must import from the contract (contract coupling, not domain-to-domain coupling).
-
-3. Freeze by checksum + commit:
+- Every cross-domain entity type (`Unit`, `Item`, `SaveData`, etc.)
+- All shared enums (`DamageType`, `Phase`, `TerrainType`, `Rarity`)
+- Shared event/message types (`DomainEvent`, `Action`, `Command`)
+- Cross-module function signatures (`DomainApi`, `CombatApi`)
+- Strict primitive decisions — IDs are `string` or `number`, decide once, do not mix. Use branded types where possible.
+1. **Rule:** No domain may redefine these types locally. Every domain must import from the contract (contract coupling, not domain-to-domain coupling).
+1. Freeze by checksum + commit:
 
 ```bash
 shasum -a 256 src/shared/types.ts > .contract.sha256
@@ -189,11 +188,11 @@ Example decision record:
 
 The contract freezes **equations, function shapes, and parameter names** (struct definitions, enum variants, event types, function signatures, the formula `base_rate * map_modifier * night_modifier`). It does NOT freeze **coefficients, rates, or thresholds** (the specific values of `map_modifier` per map, XP curves, spawn probabilities, cost tables).
 
-Put coefficients/rates/thresholds in a separate data file (RON, TOML, or a Rust const module outside the checksummed contract). Workers must use the shared equation but can adjust the coefficients.
+Put coefficients/rates/thresholds in a separate data file (RON, TOML, or a const module outside the checksummed contract). Workers must use the shared equation but can adjust the coefficients.
 
 - **Preferred:** Contract freezes `fn dispatch_rate_modifier(self) -> f32` (the equation shape). Data file contains `PrecinctExterior = 0.8` (the coefficient).
-- **Tempting alternative:** Hardcode coefficients in the contract for simplicity, or sneak constants into "formula" code.
-- **Consequence:** A Phase 0 guess becomes permanent truth. A prior build froze `dispatch_rate_modifier = 0.0` on the only reachable exterior map — written before any implementation, before knowing which maps the player would actually visit. Nobody re-examined it. The patrol loop was dead from Phase 0.
+- **Tempting alternative:** Hardcode coefficients in the contract for simplicity.
+- **Consequence:** A Phase 0 guess becomes permanent truth. A prior build froze `dispatch_rate_modifier = 0.0` on the only reachable exterior map — written before any implementation. Nobody re-examined it. The patrol loop was dead from Phase 0.
 - **Drift cue:** The contract contains numeric literals that could change during playtesting.
 - **Recovery:** Extract coefficients to a data file, update the contract method to read from it, refreeze the contract (shapes only).
 
@@ -217,7 +216,7 @@ Explicitly forbid tracked build outputs: `target/`, `dist/`, generated fingerpri
 - **Consequence:** clamp scripts misfire, diffs become unreadable, workers waste turns on generated files.
 - **Recovery:** add to `.gitignore`, run `git rm -r --cached target/`, recommit.
 
----
+-----
 
 ## Phase 1 — Draw Boundaries That Survive Clamping
 
@@ -253,7 +252,7 @@ If workers repeatedly need out-of-scope edits, the seam is fiction.
 
 ### 1.3 Create the folder structure now (empty is fine)
 
----
+-----
 
 ## Phase 2 — Put Full Specs on Disk (No Summaries, With Why / Alternatives / Consequences)
 
@@ -289,45 +288,19 @@ For every critical formula, seam, interface, constraint, or quantity, include:
 - **First warning sign / cue**
 - **Recovery path**
 
-Example:
-
-```markdown
-#### Damage model
-
-- Preferred: `crit_multiplier = 2.75`
-- Why: this preserves intended burst thresholds and late-game lethality
-- Tempting alternative: `1.75` (common default)
-- Consequence: crit builds underperform, balance tests pass locally but combat pacing collapses globally
-- Drift cue: crit-focused units fail target kill ranges
-- Recovery: restore multiplier, re-run combat balance tests
-```
-
-Example:
-
-```markdown
-#### Shared types
-
-- Preferred: import `Unit`, `Action`, `DamageType` from `src/shared/types.ts`
-- Why: one shared integration substrate
-- Tempting alternative: redefine local interfaces for convenience
-- Consequence: local green / global red; clamp reverts "fixes"; integration breaks
-- Drift cue: local `interface Unit` appears in domain code
-- Recovery: delete local redefinition, import contract type, re-run gates
-```
-
 **Rule:** Specs should teach not only the correct path, but the boundary around the correct path.
 
----
+-----
 
 ## Phase 3 — Worker Dispatch
 
 ### 3.1 Choose depth
 
-| Domains | Depth |
-|---------|-------|
-| ≤10 | Orchestrator → workers (flat) |
-| 10–20 | Orchestrator → domain leads → workers |
-| 20+ | Architect → domain leads → workers |
+|Domains|Depth                                |
+|-------|-------------------------------------|
+|≤10    |Orchestrator → workers (flat)        |
+|10–20  |Orchestrator → domain leads → workers|
+|20+    |Architect → domain leads → workers   |
 
 Each extra handoff is lossy — disk specs become more critical as depth increases. Mechanical delegation enforcement at every level: agents default to solo execution if not structurally forced to delegate.
 
@@ -425,11 +398,13 @@ Also write status/workers/[domain].json with the same data in machine-readable f
 ### 3.4 Prompting rule: never issue bare corrections
 
 If a worker needs a clarification or repair pass, do NOT say only:
+
 - "Do it this way."
 - "Don't do it that way."
 - "Fix your mistakes."
 
 Instead specify:
+
 - preferred path
 - why
 - tempting wrong path
@@ -445,7 +420,7 @@ Tool flags and environment signals change worker behavior in ways prompts cannot
 
 Known overrides:
 
-- **`--enable multi_agent`**: Switches the agent from implementer to planner. At scales below 10 domains, do not use this flag. The agent will produce delegation plans instead of implementation. (Evidence: same prompt, same model — produced implementation without the flag, produced only a planning artifact with it.)
+- **`--enable multi_agent`**: Switches the agent from implementer to planner. At scales below 10 domains, do not use this flag. The agent will produce delegation plans instead of implementation.
 - **Large repo / many files**: Makes agents read-heavy, write-light. Counteract with: "Start implementing immediately. Read only the files listed in Required Reading."
 - **`cargo fmt` on frozen contract**: Every worker that runs `cargo fmt` will reformat `shared/mod.rs`, breaking the checksum. Add to every worker spec: "Do NOT run cargo fmt on shared/mod.rs."
 - **Model class affects behavior**: Opus-class models deliberate more, implement less. Codex/Sonnet models implement faster. Match model to task: Opus for integration/audit, Sonnet/Codex for domain implementation.
@@ -453,7 +428,7 @@ Known overrides:
 
 **Rule:** When a worker fails to implement, check the tool configuration before re-issuing the prompt. The prompt may be correct and the tool may be overriding it.
 
----
+-----
 
 ## Phase 4 — Clamp Scope Mechanically (after every worker)
 
@@ -495,7 +470,7 @@ Usage:
 bash scripts/clamp-scope.sh src/domains/combat/
 ```
 
----
+-----
 
 ## Wave Structure (mandatory — every wave, no exceptions)
 
@@ -504,17 +479,20 @@ Every wave has four named phases. This structure was reverse-engineered from com
 The playbook captured the structural rules but lost the workflow rhythm. This section recovers it.
 
 ### 1. Feature
+
 - Implement the intended surface.
 - Scope: owned files only.
 - Workers execute here. Orchestrator dispatches and waits.
 - Do not evaluate player experience here except for obvious catastrophic failures; experiential evaluation belongs to Harden.
 
 ### 2. Gate
+
 - Run structural gates only: compile, tests, lint, contract checksum, scope clamp.
 - This is Phase 5. If failing, use the fix loop (5.2).
 - **Gate proves structural correctness. It does NOT prove the build is good.** (See Phase 0.1-WARNING.)
 
 ### 3. Harden
+
 - **Stop forward motion.**
 - Perform player trace and reality checks (Phase 5A):
   - First-60-seconds path [wave-required]
@@ -526,6 +504,7 @@ The playbook captured the structural rules but lost the workflow rhythm. This se
 - Write the value audit to `status/value-audit-wave-N.md` if tuning values were touched (Phase 5B.4).
 
 ### 4. Graduate
+
 - Convert every important experiential observation from Harden into:
   - A named test (preferred — mechanical enforcement from this point forward), or
   - A tracked release artifact if not yet mechanizable
@@ -538,7 +517,7 @@ The playbook captured the structural rules but lost the workflow rhythm. This se
 
 If you find yourself committing after Gate and dispatching the next wave — stop. You are in the failure pattern. Re-read Phase 0.1-WARNING. The velocity feels productive. The experiential debt is compounding silently.
 
----
+-----
 
 ## Phase 5 — Validate Each Domain [Wave Phase: Gate]
 
@@ -547,12 +526,14 @@ If you find yourself committing after Gate and dispatching the next wave — sto
 When a worker fails a gate, acknowledge the failure briefly and factually.
 
 **Bad correction style**
+
 - "What were you thinking?"
 - "How could you miss this?"
 - "You ignored the instructions."
 - "This is obvious."
 
 Even for AI, this is counterproductive. It tends to trigger:
+
 - apology loops
 - defensive verbosity
 - rigid over-correction
@@ -562,31 +543,30 @@ Even for AI, this is counterproductive. It tends to trigger:
 **Good correction style**
 
 State:
+
 1. the observed failure,
-2. the likely wrong assumption,
-3. the required files to re-read,
-4. the allowed scope,
-5. the preferred fix,
-6. the tempting wrong fix,
-7. the consequence if that wrong fix is taken again,
-8. the exact gate to re-run.
+1. the likely wrong assumption,
+1. the required files to re-read,
+1. the allowed scope,
+1. the preferred fix,
+1. the tempting wrong fix,
+1. the consequence if that wrong fix is taken again,
+1. the exact gate to re-run.
 
 Use historical failure patterns when helpful, but keep them brief.
 
-Example: "This usually happens when a worker locally redefines a shared type to get local green. Clamp reverts that, and the global gate stays red."
-
-**Rule:** One failure is data, not identity. Your job is to reduce ambiguity and restore the correct pattern, not to increase pressure.
-
 ### 5.1 Domain gate (immediately after clamp)
 
-```bash
-# Run the repo's compile gate:
-npx tsc --noEmit          # TypeScript
-# cargo check             # Rust
+Run the repo's compile gate and domain test gate:
 
-# Run the repo's domain test gate:
-npm test -- src/domains/[domain]/    # TypeScript
-# cargo test -p [crate]              # Rust
+```bash
+# TypeScript:
+npx tsc --noEmit
+npm test -- src/domains/[domain]/
+
+# Rust:
+# cargo check
+# cargo test -p [crate]
 ```
 
 ### 5.2 Fix loop (bounded, contrastive)
@@ -594,19 +574,19 @@ npm test -- src/domains/[domain]/    # TypeScript
 If failing:
 
 1. Dispatch a fix worker with the same allowlist.
-2. State the failure factually:
-   - exact compiler/test error
-   - file/path involved
-   - likely wrong assumption
-3. Re-state:
-   - preferred fix path
-   - why it is correct
-   - tempting wrong fix
-   - what will happen if that wrong fix is used again
-4. Clamp again (Phase 4).
-5. Re-run gates.
-6. Repeat up to 10 passes.
-7. If still failing: escalate to orchestrator triage.
+1. State the failure factually:
+- exact compiler/test error
+- file/path involved
+- likely wrong assumption
+1. Re-state:
+- preferred fix path
+- why it is correct
+- tempting wrong fix
+- what will happen if that wrong fix is used again
+1. Clamp again (Phase 4).
+1. Re-run gates.
+1. Repeat up to 10 passes.
+1. If still failing: escalate to orchestrator triage.
 
 **Fix worker prompt template:**
 
@@ -637,8 +617,8 @@ If you choose the wrong fix:
 - [what clamp/gates/integration will do]
 
 Re-run:
-- repo compile gate (e.g. `npx tsc --noEmit` / `cargo check`)
-- repo domain test gate (e.g. `npm test -- src/domains/[domain]/` / `cargo test -p [crate]`)
+- repo compile gate
+- repo domain test gate
 
 In your report, state:
 - smallest wrong assumption corrected
@@ -646,100 +626,49 @@ In your report, state:
 - cue you will watch for next time
 ```
 
----
+-----
 
 ## Phase 5A — Reality Gates [Wave Phase: Harden]
 
-These gates verify that work is player-reachable, not just compiler-green. They are derived from failure classes observed in the City Office Worker DLC audit: entrypoint drift, asset dead-ends, content that exists but is not reachable, save/load drift, and event buses that emit into nothing.
+These gates verify that work is player-reachable, not just compiler-green. Derived from failure classes observed in comparative DLC analysis: entrypoint drift, asset dead-ends, unreachable content, save/load drift, and event buses that emit into nothing.
 
 Each gate is classified by enforcement timing:
 
 - **wave-required** — must pass after every wave, no exceptions
 - **wave-if-touched** — must pass if this wave added or modified the relevant surface
-- **release-required** — must pass before final ship, but may be incomplete during early waves
+- **release-required** — must pass before final ship, may be incomplete during early waves
 
 ### 5A.1 EntryPoint Gate [wave-required]
 
-Name the exact player-facing runtime surface:
-- binary / crate / branch / folder / launch command
-
-One file must declare the canonical launch surface. One artifact (`status/runtime-surfaces.md`) must list all secondary/test surfaces. Any new runtime surface requires explicit orchestrator approval.
+Name the exact player-facing runtime surface (binary / crate / branch / folder / launch command). One file must declare the canonical launch surface. One artifact (`status/runtime-surfaces.md`) must list all secondary/test surfaces. Any new runtime surface requires explicit orchestrator approval.
 
 Pass only if the implemented work is reachable from that runtime. Code that compiles in an unwired side surface does not count as progress.
 
-- **Tempting alternative:** "it compiles somewhere, so it's fine."
-- **Consequence:** false progress; shipped branch contains code that is not actually launch-path reachable.
-- **Drift cue:** worker creates new entry points, side crates, or standalone binaries instead of wiring into the existing runtime.
-
 ### 5A.2 First-60-Seconds Gate [wave-required]
 
-Validate the player path from launch to first meaningful interaction:
-- boot
-- menu
-- new game / load game
-- spawn
-- movement
-- first interaction
-- first persistent state change
+Validate the player path from launch to first meaningful interaction: boot → menu → new game / load game → spawn → movement → first interaction → first persistent state change.
 
 If this path is unstable, stop all deeper feature work.
 
-- **Why:** this catches "beautiful dead game" failure early.
-- **Drift cue:** workers build systems that only matter after minute 10 while the first-seconds path is still fragile.
-- **Recovery:** stabilize the critical path before any new wave launches.
-
 ### 5A.3 Asset Reachability Gate [wave-if-touched]
 
-Classify every asset as:
-- **runtime-used** — loaded and rendered during normal play
-- **present-but-unreferenced** — file exists, no code path loads it
-- **referenced-but-missing** — code references it, file doesn't exist
-
-No asset-heavy wave closes without this report.
-
-- **Why:** "asset exists" is not the same as "player can ever see it."
-- **Tempting alternative:** "the art is in the repo, so the art is done."
-- **Consequence:** dead art/UI inventory that inflates perceived progress.
+Classify every asset as: **runtime-used** (loaded and rendered during normal play), **present-but-unreferenced** (file exists, no code path loads it), or **referenced-but-missing** (code references it, file doesn't exist). No asset-heavy wave closes without this report.
 
 ### 5A.4 Content Reachability Gate [wave-if-touched, release-required]
 
-For every gameplay content unit:
-- **defined** — exists in code/data
-- **obtainable** — player can acquire it through normal gameplay
-- **usable / sellable / consumable / progressable** — player can do something meaningful with it
-- **save/load safe** — survives round-trip serialization
-
-If a unit fails any step, mark it as dead content.
-
-- **Why:** this is the cleanest way to kill fake depth.
-- **Tempting alternative:** "the items are defined in the data file."
-- **Consequence:** a game with 200 items where the player can only ever touch 12.
+For every gameplay content unit: **defined** (exists in code/data), **obtainable** (player can acquire through normal gameplay), **usable / sellable / consumable / progressable** (player can do something meaningful with it), **save/load safe** (survives round-trip serialization). If a unit fails any step, mark it as dead content.
 
 ### 5A.5 Event Connectivity Gate [wave-required]
 
-For each event:
-- list **producers** (systems that emit it)
-- list **consumers** (systems that read it)
-
-Fail if any event has no runtime producer or no runtime consumer unless explicitly marked future-work.
-
-- **Why:** disconnected events feel "implemented" in code review but are inert in play.
-- **Drift cue:** event types defined in the contract with no `emit()` or `on()` calls in any domain.
+For each event: list **producers** (systems that emit it) and **consumers** (systems that read it). Fail if any event has no runtime producer or no runtime consumer unless explicitly marked future-work.
 
 ### 5A.6 Save/Load Round-Trip Gate [wave-if-touched]
 
-Create state, save, reload, verify:
-- same location/state
-- same progression/resources
-- no duplicate generation
-- no OnEnter overwrite drift
+Create state, save, reload, verify: same location/state, same progression/resources, no duplicate generation, no OnEnter overwrite drift.
 
 - **Why:** OnEnter systems that regenerate state on scene load are the most common source of save corruption in simulation games.
-- **Tempting alternative:** "save works — I tested it by saving and loading once."
-- **Consequence:** save file exists but gameplay state is silently reset or duplicated on reload.
-- **Drift cue:** world state diverges between "new game played to minute 5" and "saved at minute 3, loaded, played to minute 5."
 
----
+-----
 
 ## Phase 5B — The Graduation Principle [Wave Phase: Graduate]
 
@@ -751,67 +680,65 @@ The audit instruction finds experiential problems. The graduation principle fixe
 
 ### 5B.1 The per-wave player trace (non-negotiable)
 
-After structural gates pass (cargo check, cargo test, clippy, contract) and BEFORE committing, write 5 sentences describing what the player experiences from boot to first meaningful interaction. Use present tense.
+After structural gates pass and BEFORE committing, write 5 sentences describing what the player experiences from boot to first meaningful interaction. Use present tense.
 
 Example:
+
 > 1. The player boots the game and sees the main menu with New Game and Load Game buttons.
-> 2. The player clicks New Game and spawns in the precinct interior facing the case board.
-> 3. The player walks to the case board, presses F, and receives Case #1 with a toast notification.
-> 4. The player walks to the exit door and transitions to PrecinctExterior.
-> 5. The player stands in the parking lot and a dispatch call arrives within 30 seconds.
+> 1. The player clicks New Game and spawns in the precinct interior facing the case board.
+> 1. The player walks to the case board, presses F, and receives Case #1 with a toast notification.
+> 1. The player walks to the exit door and transitions to PrecinctExterior.
+> 1. The player stands in the parking lot and a dispatch call arrives within 30 seconds.
 
 If any sentence uses "should" instead of present tense, the feature described in that sentence is not verified. Do not commit until every sentence is present tense and you have checked the implementing code.
 
-**Include these 5 sentences in the commit message.** Also write them to `status/player-trace-wave-N.md` — the commit message is visible but brittle (squash/rebase loses it). The on-disk artifact is the stable audit trail.
+**Include these 5 sentences in the commit message.** Also write them to `status/player-trace-wave-N.md`.
 
 ### 5B.2 Graduation: observation → named test
 
 After each wave's player trace, for every experiential surface you verified:
 
-1. Write a test that encodes the verification. Example: if you verified "dispatch fires on PrecinctExterior," write `test_dispatch_fires_on_precinct_exterior` using MinimalPlugins.
-2. Add the test to the gate suite so it runs mechanically from this point forward.
-3. The test name should describe the player experience, not the implementation detail. `test_dispatch_fires_on_precinct_exterior` not `test_dispatch_rate_modifier_nonzero`.
+1. Write a test that encodes the verification. Example: if you verified "dispatch fires on PrecinctExterior," write `test_dispatch_fires_on_precinct_exterior`.
+1. Add the test to the gate suite so it runs mechanically from this point forward.
+1. The test name should describe the player experience, not the implementation detail.
 
 **Why graduation works:** The audit instruction is a prompt. Prompts fail under pressure (0/20). But the audit instruction only needs to work ONCE per surface — long enough to identify the invariant and write a test. After that, the test enforces mechanically (20/20). The audit instruction is a gate factory, not a gate.
 
-(Evidence: City DLC orchestrator — "the audit instruction mattered first, the mechanical gates mattered longer. Once [experiential surfaces] became gates, the mechanical side did most of the day-to-day enforcement.")
-
 ### 5B.3 Graduation priority tiers
 
-Not all graduation debt is equal. Triage by player impact:
-
 **P0 — one missing test is a stop condition:**
+
 - Boot → menu → new game (entrypoint liveness)
 - Player spawn + movement
 - First interaction produces visible feedback
 - Save/load round-trip identity
 
 **P1 — must graduate before the wave that follows the one that created them:**
+
 - Map transitions
 - Core loop rewards (gold, XP, rank visible to player)
-- Event→toast feedback chains (any event the player triggers must produce visible output)
+- Event→toast feedback chains
 
 **P2 — must graduate before release, may lag during early waves:**
-- Optional content surfaces (side quests, cosmetics, achievements)
-- Asset completeness (all referenced sprites exist and render)
+
+- Optional content surfaces
+- Asset completeness
 - Full content breadth
 
 One missing P0 graduation test is an immediate stop. P1 debt of 3+ is a stop. P2 is tracked in MANIFEST.md and enforced at release.
 
 ### 5B.4 Value audit rule
 
-For every tuning value in data files (rates, modifiers, thresholds):
+For every tuning value in data files:
 
 1. Non-obvious values must have a one-line "player consequence" note. Example: `PrecinctExterior = 0.8  # player gets ~1 dispatch call per 6 game-minutes here`
-2. **Any value that can zero out a player-facing loop must have a named graduation test.** If `dispatch_rate_modifier = 0.0` is valid for some maps, there must be a test verifying it's nonzero on maps the player actually visits during normal play.
-3. During integration, review every `0.0`, `None`, and default/catch-all value and ask: "will the player stand on this value during the first 60 seconds?"
-4. Write the review to `status/value-audit-wave-N.md`. This gives auditors a stable artifact to verify the dangerous-value review actually happened.
+1. **Any value that can zero out a player-facing loop must have a named graduation test.**
+1. During integration, review every `0.0`, `None`, and default/catch-all value and ask: "will the player stand on this value during the first 60 seconds?"
+1. Write the review to `status/value-audit-wave-N.md`.
 
 (Evidence: Precinct DLC — `dispatch_rate_modifier` defaulted to 0.0 via a catch-all. The only reachable exterior map hit the catch-all. The patrol loop was dead from Phase 0. Nobody checked because the value was "correct" structurally.)
 
-If a wave adds a system but no graduation test, the wave is incomplete — even if all structural gates pass.
-
----
+-----
 
 ## Phase 6 — Integration (fresh session, artifact-only)
 
@@ -826,14 +753,7 @@ Integration session ingests **only:**
 - `status/workers/*.md` (and `*.json` for automated checks)
 - Current compiler/test errors (if any)
 
-Integration should ingest worker reports not just as status artifacts, but as **captured reasoning boundaries**:
-- what each worker implemented
-- what tempting alternatives they rejected
-- what cues indicate regression
-- what risks remain
-- **what is now player-reachable because of their work**
-
-This preserves the decision field into integration instead of collapsing everything into "done / not done."
+Integration should ingest worker reports as **captured reasoning boundaries**: what each worker implemented, what tempting alternatives they rejected, what cues indicate regression, what risks remain, what is now player-reachable.
 
 ### 6.2 Integration worker scope
 
@@ -843,7 +763,7 @@ This preserves the decision field into integration instead of collapsing everyth
 
 ### 6.3 Run global gates
 
-Save as `scripts/run-gates.sh` (adapt compiler/test commands to your repo's stack):
+Save as `scripts/run-gates.sh`:
 
 ```bash
 #!/usr/bin/env bash
@@ -852,12 +772,12 @@ set -euo pipefail
 echo "== Contract integrity =="
 shasum -a 256 -c .contract.sha256
 
-echo "== Compile gate =="
+echo "== Typecheck =="
 # TypeScript: npx tsc --noEmit
 # Rust: cargo check
 npx tsc --noEmit
 
-echo "== Test gate =="
+echo "== Tests =="
 # TypeScript: npm test
 # Rust: cargo test
 npm test
@@ -873,7 +793,6 @@ done
 [ "$FAIL" -eq 0 ] || { echo "Connectivity check FAILED: hermetic domains detected"; exit 1; }
 
 echo "== Reality gates (scriptable portions) =="
-# These catch what structural gates miss. Add project-specific checks here.
 [ -x scripts/check-runtime-surface.sh ] && bash scripts/check-runtime-surface.sh
 [ -x scripts/check-event-connectivity.sh ] && bash scripts/check-event-connectivity.sh
 [ -x scripts/check-asset-reachability.sh ] && bash scripts/check-asset-reachability.sh
@@ -881,46 +800,48 @@ echo "== Reality gates (scriptable portions) =="
 echo "== All gates passed =="
 ```
 
-Reality gate scripts are project-specific. Create them as the build progresses — even a simple grep-based check is better than prose-only. Reality scripts may start as grep-based approximations and graduate to AST/headless/runtime checks as the build matures. Don't wait for a perfect script; a rough one that runs is better than a thorough one that doesn't exist. Example `check-event-connectivity.sh`: for each event type in the contract, verify at least one `EventWriter<T>` and one `EventReader<T>` exist outside `shared/mod.rs`.
+The connectivity check is a grep proxy. For stronger verification: use AST parsing (`ts-morph`) or require each domain to export an `index.ts` that imports at least one shared type in a value position (not type-only, which gets tree-shaken).
 
 If failing: dispatch targeted fix workers → clamp → re-run gates.
 
 Write `status/integration.md` with what was wired + what remains.
 
----
+-----
 
 ## Stop Conditions (do not push through these)
 
 1. **Contract drift** (checksum fails) → Stop. Restore contract. Re-run from Phase 5.
-2. **Clamp breaks the fix** → Stop. Boundaries are wrong. Re-scope as integration or merge domains (Phase 1.2).
-3. **False green** (domains compile but don't import shared types) → Stop. Wire imports or add integration harness (Phase 6).
-4. **Abstraction reflex** (worker builds orchestration frameworks instead of features) → Stop. Re-issue spec with: "Do not create orchestration infrastructure. Implement only domain deliverables."
-5. **Delegation compression** (asked for 80 items, got 8) → Stop. Worker is reading a summary, not the full spec. Ensure it reads the disk file. Repeat quantities in the worker spec.
-6. **Self-model error** (agent claims it cannot do things it can) → Add to prompt: "You have bash access. You can run `codex exec`. You can read and write files."
-7. **Identity paradox** (one agent playing architect + worker loses role separation) → Use separate agent sessions per role. Never ask one session to be both.
-8. **Blame-thrash loop** (fix prompts become accusatory; worker responds with apologies, abstractions, or scope creep) → Stop. Re-issue with factual failure, likely wrong assumption, allowed scope, preferred fix, tempting wrong fix, and next gate only.
-9. **Happy-path training** (worker succeeds on the exact case but fails on adjacent cases because alternatives/consequences were never specified) → Stop. Add contrastive notes to the relevant domain spec and rerun.
-10. **Rule-without-rationale drift** (workers keep violating a frozen decision because the spec says what to do but not why / what breaks otherwise) → Stop. Add a decision record with why, tempting alternative, consequence, cue, and recovery.
-11. **Beautiful dead game** (compilation green, tests green, reality gates red — code exists but player can't reach it) → Stop. Run Phase 5A gates. Stabilize the first-60-seconds path before any new feature wave.
-12. **Ghost progress** (worker reports "done" but player-reachable output hasn't changed) → Stop. Require the worker to state specifically what is now player-reachable. If nothing, the work is not done.
-13. **Velocity without verification** (2+ consecutive waves dispatched without a personal player-journey trace) → Stop. Write the 5-sentence player trace (Phase 5B.1). If any sentence uses "should," fix before dispatching the next wave. Momentum is not progress.
-14. **Search termination on structural gates** (orchestrator checks gates, sees green, commits without player trace) → Stop. Green structural gates are a minimum, not a definition of done. Re-read Phase 0.1-WARNING.
-15. **Graduation debt** (any missing P0 test, OR 3+ missing P1 tests) → Stop. Write the tests before the next wave. P0 surfaces (boot, spawn, movement, first interaction, save/load) are immediate stops. P1 surfaces (map transitions, core rewards, feedback chains) accumulate to a threshold. P2 is tracked and enforced at release.
+1. **Clamp breaks the fix** → Stop. Boundaries are wrong. Re-scope as integration or merge domains (Phase 1.2).
+1. **False green** (domains compile but don't import shared types) → Stop. Wire imports or add integration harness (Phase 6).
+1. **Abstraction reflex** (worker builds orchestration frameworks instead of features) → Stop. Re-issue spec with: "Do not create orchestration infrastructure. Implement only domain deliverables."
+1. **Delegation compression** (asked for 80 items, got 8) → Stop. Worker is reading a summary, not the full spec. Ensure it reads the disk file. Repeat quantities in the worker spec.
+1. **Self-model error** (agent claims it cannot do things it can) → Add to prompt: "You have bash access. You can run `codex exec`. You can read and write files."
+1. **Identity paradox** (one agent playing architect + worker loses role separation) → Use separate agent sessions per role. Never ask one session to be both.
+1. **Blame-thrash loop** (fix prompts become accusatory; worker responds with apologies, abstractions, or scope creep) → Stop. Re-issue with factual failure, likely wrong assumption, allowed scope, preferred fix, tempting wrong fix, and next gate only.
+1. **Happy-path training** (worker succeeds on exact case but fails on adjacent cases) → Stop. Add contrastive notes to the relevant domain spec and rerun.
+1. **Rule-without-rationale drift** (workers keep violating a frozen decision because spec says what but not why) → Stop. Add a decision record with why, tempting alternative, consequence, cue, and recovery.
+1. **Beautiful dead game** (compilation green, tests green, reality gates red — code exists but player can't reach it) → Stop. Run Phase 5A gates. Stabilize the first-60-seconds path before any new feature wave.
+1. **Ghost progress** (worker reports "done" but player-reachable output hasn't changed) → Stop. Require the worker to state specifically what is now player-reachable. If nothing, the work is not done.
+1. **Velocity without verification** (2+ consecutive waves dispatched without a personal player-journey trace) → Stop. Write the 5-sentence player trace (Phase 5B.1). If any sentence uses "should," fix before dispatching the next wave.
+1. **Search termination on structural gates** (orchestrator checks gates, sees green, commits without player trace) → Stop. Green structural gates are a minimum, not a definition of done. Re-read Phase 0.1-WARNING.
+1. **Graduation debt** (any missing P0 test, OR 3+ missing P1 tests) → Stop. Write the tests before the next wave.
 
----
+-----
 
 ## Completion Criteria
 
 You are done **only** when:
 
-**Structural (mechanical — run the repo's compile + test + lint gates):**
+**Structural (mechanical):**
+
 - [ ] Contract checksum passes
-- [ ] Compile gate passes
-- [ ] Test gate passes
+- [ ] Global typecheck passes (`npx tsc --noEmit` / `cargo check`)
+- [ ] Global test suite passes
 - [ ] Connectivity gate passes (no hermetic domains)
 - [ ] Reality gate scripts pass (if implemented)
 
 **Reality (judgment — requires tracing):**
+
 - [ ] EntryPoint gate passes (all work reachable from player-facing runtime)
 - [ ] First-60-Seconds gate passes (boot → menu → spawn → move → interact → persist)
 - [ ] Asset reachability report complete (no referenced-but-missing)
@@ -928,13 +849,19 @@ You are done **only** when:
 - [ ] Event connectivity gate passes (no orphaned producers/consumers)
 - [ ] Save/Load round-trip gate passes
 
-**Graduation (the v5 addition):**
+**Graduation:**
+
 - [ ] Every player-facing system has a corresponding graduation test (P0 complete, P1 complete, P2 tracked)
 - [ ] Player trace artifacts exist for every wave (`status/player-trace-wave-N.md`)
 - [ ] Value audit artifacts exist for waves that touched tuning values (`status/value-audit-wave-N.md`)
 - [ ] No graduation debt (stop condition #15 is clear)
 
 **Artifacts:**
+
 - [ ] Each worker report exists (`status/workers/*.md` + `*.json`)
 - [ ] Integration report exists (`status/integration.md`)
 - [ ] `MANIFEST.md` updated with final status
+
+-----
+
+*Derived from "The Model Is the Orchestrator" (Geni, February 2026) — 295M tokens, 100+ agent sessions, 12+ autonomous builds, 8 controlled experiments, 3,200 commits across 56 repositories.*

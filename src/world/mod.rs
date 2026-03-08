@@ -191,6 +191,9 @@ pub struct TerrainAtlases {
     pub bridge_layout: Handle<TextureAtlasLayout>,
     pub hills_image: Handle<Image>,
     pub hills_layout: Handle<TextureAtlasLayout>,
+    // Modern Farm terrain sheet (512×368, 32 cols × 23 rows of 16×16 tiles)
+    pub terrain_image: Handle<Image>,
+    pub terrain_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads all terrain atlas assets on first use. Subsequent calls are no-ops.
@@ -263,6 +266,16 @@ fn ensure_atlases_loaded(
         None,
     ));
 
+    // modern_farm_terrain.png: 512x368px -> 16x16 tiles, 32 columns x 23 rows
+    atlases.terrain_image = asset_server.load("tilesets/modern_farm_terrain.png");
+    atlases.terrain_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        32,
+        23,
+        None,
+        None,
+    ));
+
     atlases.loaded = true;
 }
 
@@ -327,47 +340,58 @@ fn tile_atlas_info(
     height: usize,
 ) -> Option<(Handle<Image>, Handle<TextureAtlasLayout>, usize)> {
     match kind {
-        // Grass: use grass.png atlas. Index 5 is a nice center grass tile.
-        // Different rows could represent seasonal variants; for now we pick
-        // a reasonable base index per season.
+        // Grass: modern_farm_terrain.png (32 cols × 23 rows).
+        // Use positional hash for visual variety. We pick from 4 grass variants
+        // using a deterministic hash of (x, y) so it's stable without runtime cost.
+        // Seasonal tints are applied via apply_seasonal_tint; base tiles stay green.
         TileKind::Grass => {
-            // Use positional hash for visual variety across the grass tileset.
-            // grass.png is 11 cols x 7 rows = 77 frames. Each season gets a row
-            // band of ~11 frames. We pick from 4 variants per season using a
-            // deterministic hash of (x, y) so it's stable without runtime cost.
             let variant = (x.wrapping_mul(7).wrapping_add(y.wrapping_mul(13))) % 4;
-            let season_base = match _season {
-                Season::Spring => 4,  // row 0, starting at col 4
-                Season::Summer => 15, // row 1, starting at col 4
-                Season::Fall => 26,   // row 2, starting at col 4
-                Season::Winter => 37, // row 3, starting at col 4
-            };
+            // Four distinct grass center tiles from the terrain atlas:
+            //   idx 5  (row 0, col 5)  — bright green
+            //   idx 6  (row 0, col 6)  — bright green variant
+            //   idx 67 (row 2, col 3)  — medium green
+            //   idx 101 (row 3, col 5) — slightly darker green
+            let grass_tiles: [usize; 4] = [5, 6, 67, 101];
             Some((
-                atlases.grass_image.clone(),
-                atlases.grass_layout.clone(),
-                season_base + variant,
+                atlases.terrain_image.clone(),
+                atlases.terrain_layout.clone(),
+                grass_tiles[variant],
             ))
         }
 
-        // Dirt: use tilled_dirt.png atlas. Index 5 = plain dirt tile.
-        TileKind::Dirt => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 5)),
+        // Dirt: modern_farm_terrain.png, row 9 col 3 (idx 291) — uniform brown dirt.
+        TileKind::Dirt => Some((
+            atlases.terrain_image.clone(),
+            atlases.terrain_layout.clone(),
+            291,
+        )),
 
-        // Tilled soil: tilled_dirt.png with a hoed-looking tile (index 12, row 1 col 1).
-        TileKind::TilledSoil => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 12)),
+        // Tilled soil: modern_farm_terrain.png, row 13 col 3 (idx 419) — dark hoed soil.
+        TileKind::TilledSoil => Some((
+            atlases.terrain_image.clone(),
+            atlases.terrain_layout.clone(),
+            419,
+        )),
 
-        // Watered soil: tilled_dirt.png with a darker index (index 16, row 1 col 5).
-        TileKind::WateredSoil => {
-            Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 16))
-        }
+        // Watered soil: modern_farm_terrain.png, row 13 col 1 (idx 417) — very dark wet soil.
+        TileKind::WateredSoil => Some((
+            atlases.terrain_image.clone(),
+            atlases.terrain_layout.clone(),
+            417,
+        )),
 
-        // Water: water.png atlas, index 0.
-        TileKind::Water => Some((atlases.water_image.clone(), atlases.water_layout.clone(), 0)),
+        // Water: modern_farm_terrain.png, row 0 col 19 (idx 19) — blue water center.
+        TileKind::Water => Some((
+            atlases.terrain_image.clone(),
+            atlases.terrain_layout.clone(),
+            19,
+        )),
 
-        // Sand: use grass.png atlas with a sandy tile (row 4, col 2 = index 46).
+        // Sand: modern_farm_terrain.png, row 5 col 1 (idx 161) — uniform sand.
         TileKind::Sand => Some((
-            atlases.grass_image.clone(),
-            atlases.grass_layout.clone(),
-            46,
+            atlases.terrain_image.clone(),
+            atlases.terrain_layout.clone(),
+            161,
         )),
 
         // Stone: use hills.png for a proper rocky/stone texture (index 0, top-left).

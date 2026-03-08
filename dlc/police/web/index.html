@@ -53,7 +53,7 @@
             background: linear-gradient(180deg, rgba(11, 18, 26, 0.2), rgba(11, 18, 26, 0.6));
         }
 
-        #game-canvas {
+        #game-shell canvas {
             display: block;
             width: 100%;
             height: 100%;
@@ -63,7 +63,7 @@
             transition: opacity 180ms ease;
         }
 
-        #game-shell.ready #game-canvas {
+        #game-shell.ready canvas {
             opacity: 1;
         }
 
@@ -177,8 +177,6 @@
 </head>
 <body>
     <main id="game-shell">
-        <canvas id="game-canvas" aria-label="Precinct game canvas"></canvas>
-
         <section id="loading" class="overlay" aria-live="polite">
             <div class="panel">
                 <div class="eyebrow">Precinct DLC</div>

@@ -172,6 +172,7 @@ pub fn update_product_indicators(
     mut commands: Commands,
     animal_query: Query<(Entity, &Animal, &LogicalPosition)>,
     mut indicator_query: Query<(Entity, &mut Transform, &ProductReadyIndicator), Without<Animal>>,
+    sprite_data: Res<super::AnimalSpriteData>,
 ) {
     // Build the set of animal entities that currently have a product ready.
     let ready_entities: std::collections::HashSet<Entity> = animal_query
@@ -204,28 +205,75 @@ pub fn update_product_indicators(
             continue;
         }
 
-        // Color hint: matches the floating text quality colors loosely,
-        // but here we show what *kind* of product is available (not quality,
-        // since quality is only revealed on collection).
-        let color = match animal.kind {
-            AnimalKind::Chicken => Color::srgb(1.0, 1.0, 0.5), // yellow — egg
-            AnimalKind::Cow => Color::srgb(1.0, 1.0, 1.0),     // white — milk
-            AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),   // pale blue — wool
-            AnimalKind::Goat => Color::srgb(0.95, 0.9, 0.8),   // cream — goat milk
-            AnimalKind::Duck => Color::srgb(0.7, 0.9, 0.7),    // soft green — duck egg
-            AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),  // lavender — foot
-            AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),    // brown — truffle
-            _ => Color::srgb(1.0, 1.0, 1.0),
-        };
+        let indicator_pos = animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 12.0, 0.0);
 
-        commands.spawn((
-            ProductReadyIndicator { owner: entity },
+        // Use atlas sprites for egg (chicken/duck) and milk (cow/goat) indicators
+        // when loaded; fall back to colored squares for other animal kinds or
+        // when sprite data is not yet available.
+        let indicator_sprite = if sprite_data.loaded {
+            match animal.kind {
+                // Egg indicator: egg_and_nest.png frame 0
+                AnimalKind::Chicken | AnimalKind::Duck => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.egg_nest_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.egg_nest_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(10.0, 10.0));
+                    s
+                }
+                // Milk indicator: milk_and_grass.png frame 0
+                AnimalKind::Cow | AnimalKind::Goat => {
+                    let mut s = Sprite::from_atlas_image(
+                        sprite_data.milk_grass_image.clone(),
+                        TextureAtlas {
+                            layout: sprite_data.milk_grass_layout.clone(),
+                            index: 0,
+                        },
+                    );
+                    s.custom_size = Some(Vec2::new(10.0, 10.0));
+                    s
+                }
+                // Other animals: colored squares (no dedicated sprite)
+                _ => {
+                    let color = match animal.kind {
+                        AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),   // pale blue — wool
+                        AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),  // lavender — foot
+                        AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),    // brown — truffle
+                        _ => Color::srgb(1.0, 1.0, 1.0),
+                    };
+                    Sprite {
+                        color,
+                        custom_size: Some(Vec2::new(6.0, 6.0)),
+                        ..default()
+                    }
+                }
+            }
+        } else {
+            // Fallback: colored squares when sprite data not loaded
+            let color = match animal.kind {
+                AnimalKind::Chicken => Color::srgb(1.0, 1.0, 0.5),
+                AnimalKind::Cow => Color::srgb(1.0, 1.0, 1.0),
+                AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),
+                AnimalKind::Goat => Color::srgb(0.95, 0.9, 0.8),
+                AnimalKind::Duck => Color::srgb(0.7, 0.9, 0.7),
+                AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),
+                AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),
+                _ => Color::srgb(1.0, 1.0, 1.0),
+            };
             Sprite {
                 color,
                 custom_size: Some(Vec2::new(6.0, 6.0)),
                 ..default()
-            },
-            Transform::from_translation(animal_lp.0.extend(Z_EFFECTS) + Vec3::new(0.0, 12.0, 0.0)),
+            }
+        };
+
+        commands.spawn((
+            ProductReadyIndicator { owner: entity },
+            indicator_sprite,
+            Transform::from_translation(indicator_pos),
             Visibility::default(),
         ));
     }

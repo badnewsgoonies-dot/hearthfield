@@ -268,7 +268,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.10,
             sell_price: 30,
-            sprite_index: 45,
+            sprite_index: 37,
         },
         FishDef {
             id: "sunfish".into(),
@@ -280,7 +280,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Common,
             difficulty: 0.18,
             sell_price: 45,
-            sprite_index: 46,
+            sprite_index: 38,
         },
         FishDef {
             id: "bullhead".into(),
@@ -292,7 +292,7 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             rarity: Rarity::Uncommon,
             difficulty: 0.25,
             sell_price: 75,
-            sprite_index: 47,
+            sprite_index: 39,
         },
         FishDef {
             id: "koi".into(),
