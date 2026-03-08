@@ -3,12 +3,17 @@ use std::hash::{Hash, Hasher};
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::domains::cases::{case_definition, CaseCloseRequestedEvent};
+use crate::domains::cases::{
+    case_definition, case_flavor, witness_ids, witness_lines, CaseCloseRequestedEvent, CaseRegistry,
+};
+use crate::domains::npcs::{
+    dialogue_text, interrogation_feedback, interrogation_summary_text, InterrogationBeat,
+};
 use crate::domains::skills::perk_definition;
 use crate::shared::{
     CaseBoard, CaseId, CaseStatus, DialogueEndEvent, DialogueStartEvent, Economy, EvidenceLocker,
     EvidenceProcessingState, GameState, InputContext, InterrogationEndEvent,
-    InterrogationStartEvent, NpcId, NpcRegistry, NpcTrustChangeEvent, Rank, ShiftClock,
+    InterrogationStartEvent, NpcId, NpcRegistry, NpcTrustChangeEvent, PartnerArc, Rank, ShiftClock,
     SkillPointSpentEvent, SkillTree, Skills, ToastEvent, UpdatePhase, MAX_PRESSURE, MAX_TRUST,
     MIN_TRUST,
 };
@@ -355,27 +360,33 @@ fn spawn_dialogue_screen(mut commands: Commands) {
 fn update_dialogue_screen(
     dialogue_ui_state: Res<DialogueUiState>,
     npc_registry: Res<NpcRegistry>,
+    case_board: Res<CaseBoard>,
+    case_registry: Option<Res<CaseRegistry>>,
+    clock: Res<ShiftClock>,
+    partner_arc: Res<PartnerArc>,
     mut body_query: Query<&mut Text, With<DialogueBodyText>>,
 ) {
     let Ok(mut body_text) = body_query.get_single_mut() else {
         return;
     };
 
-    let npc_name = dialogue_ui_state
+    **body_text = dialogue_ui_state
         .npc_id
-        .as_ref()
-        .and_then(|npc_id| npc_registry.definitions.get(npc_id))
-        .map(|npc| npc.name.as_str())
-        .unwrap_or("Unknown contact");
-    let context = dialogue_ui_state
-        .context
         .as_deref()
-        .unwrap_or("npc_interaction")
-        .replace('_', " ");
-
-    **body_text = format!(
-        "{npc_name}\n\nConversation context: {context}\n\nPress Back or Escape to return to patrol."
-    );
+        .map(|npc_id| {
+            dialogue_text(
+                npc_id,
+                dialogue_ui_state.context.as_deref(),
+                &npc_registry,
+                &case_board,
+                case_registry.as_deref(),
+                &clock,
+                &partner_arc,
+            )
+        })
+        .unwrap_or_else(|| {
+            "Unknown contact.\n\nPress Back or Escape to return to patrol.".to_string()
+        });
 }
 
 fn handle_dialogue_buttons(
@@ -859,6 +870,7 @@ fn spawn_interrogation_screen(mut commands: Commands) {
 fn update_interrogation_screen(
     interrogation_ui_state: Res<InterrogationUiState>,
     npc_registry: Res<NpcRegistry>,
+    case_registry: Option<Res<CaseRegistry>>,
     mut name_query: InterrogationNameTextQuery,
     mut summary_query: InterrogationSummaryTextQuery,
     mut trust_query: InterrogationTrustFillQuery,
@@ -882,15 +894,15 @@ fn update_interrogation_screen(
     }
 
     if let Ok(mut summary_text) = summary_query.get_single_mut() {
-        **summary_text = if pressure > 80 {
-            format!(
-                "Trust: {trust} | Pressure: {pressure}\nPressure is high enough that ending the interview may crack them."
-            )
-        } else {
-            format!(
-                "Trust: {trust} | Pressure: {pressure}\nPush harder or build rapport before ending the interrogation."
-            )
-        };
+        **summary_text = interrogation_summary_text(
+            npc_id,
+            interrogation_ui_state
+                .case_id
+                .as_deref()
+                .unwrap_or_default(),
+            &npc_registry,
+            case_registry.as_deref(),
+        );
     }
 
     if let Ok(mut trust_fill) = trust_query.get_single_mut() {
@@ -942,6 +954,15 @@ fn handle_interrogation_buttons(
                     trust_delta: 12,
                     pressure_delta: -4,
                 });
+                output.toast_events.send(ToastEvent {
+                    message: interrogation_feedback(
+                        npc_id,
+                        case_id,
+                        &npc_registry,
+                        InterrogationBeat::BuildTrust,
+                    ),
+                    duration_secs: 2.8,
+                });
             }
             InterrogationAction::ApplyPressure => {
                 output.trust_events.send(NpcTrustChangeEvent {
@@ -949,12 +970,30 @@ fn handle_interrogation_buttons(
                     trust_delta: -8,
                     pressure_delta: 15,
                 });
+                output.toast_events.send(ToastEvent {
+                    message: interrogation_feedback(
+                        npc_id,
+                        case_id,
+                        &npc_registry,
+                        InterrogationBeat::ApplyPressure,
+                    ),
+                    duration_secs: 2.8,
+                });
             }
             InterrogationAction::AskAboutEvidence => {
                 output.trust_events.send(NpcTrustChangeEvent {
                     npc_id: npc_id.clone(),
                     trust_delta: 0,
                     pressure_delta: 0,
+                });
+                output.toast_events.send(ToastEvent {
+                    message: interrogation_feedback(
+                        npc_id,
+                        case_id,
+                        &npc_registry,
+                        InterrogationBeat::AskEvidence,
+                    ),
+                    duration_secs: 2.8,
                 });
             }
             InterrogationAction::End => {
@@ -1251,16 +1290,76 @@ fn build_case_file_text(
 
     let witnesses = npc_list_text(&case_def.witnesses, npc_registry);
     let suspects = npc_list_text(&case_def.suspects, npc_registry);
+    let progress_percent = if case_def.evidence_required.is_empty() {
+        100
+    } else {
+        ((active_case.evidence_collected.len() as f32 / case_def.evidence_required.len() as f32)
+            * 100.0)
+            .round() as i32
+    };
+    let flavor = case_flavor(&active_case.case_id);
+    let witness_interviews = build_witness_interview_text(active_case, npc_registry);
+    let current_update = match active_case.status {
+        CaseStatus::Active => flavor
+            .map(|flavor| flavor.opening)
+            .unwrap_or(case_def.description.as_str()),
+        CaseStatus::Investigating | CaseStatus::Interrogating => flavor
+            .map(|flavor| flavor.mid_case_update)
+            .unwrap_or(case_def.description.as_str()),
+        CaseStatus::EvidenceComplete => flavor
+            .map(|flavor| flavor.resolution)
+            .unwrap_or(case_def.description.as_str()),
+        _ => case_def.description.as_str(),
+    };
+    let closure_text = flavor
+        .map(|flavor| flavor.resolution)
+        .unwrap_or("No authored closure text is available for this case yet.");
 
     format!(
-        "{}\nStatus: {:?}\n\n{}\n\nRequired evidence:\n{}\n\nWitnesses:\n{}\n\nSuspects:\n{}\n",
+        "{}\nStatus: {:?} | Evidence progress: {}%\n\nOpening lead:\n{}\n\nCurrent assessment:\n{}\n\nClosure outlook:\n{}\n\nRequired evidence:\n{}\n\nWitnesses:\n{}\n\nInterview notes:\n{}\n\nSuspects:\n{}\n",
         case_def.name,
         active_case.status,
-        case_def.description,
+        progress_percent,
+        flavor
+            .map(|flavor| flavor.opening)
+            .unwrap_or(case_def.description.as_str()),
+        current_update,
+        closure_text,
         required_evidence,
         witnesses,
+        witness_interviews,
         suspects,
     )
+}
+
+fn build_witness_interview_text(
+    active_case: &crate::shared::ActiveCase,
+    npc_registry: &NpcRegistry,
+) -> String {
+    let witness_ids = witness_ids(&active_case.case_id);
+    if witness_ids.is_empty() {
+        return "No witness interviews are authored for this case.".to_string();
+    }
+
+    witness_ids
+        .iter()
+        .map(|witness_id| {
+            let witness_name = npc_registry
+                .definitions
+                .get(witness_id)
+                .map(|npc| npc.name.as_str())
+                .unwrap_or(witness_id);
+            if active_case.witnesses_interviewed.contains(witness_id) {
+                let lines = witness_lines(&active_case.case_id, witness_id)
+                    .map(|lines| lines.join("\n- "))
+                    .unwrap_or_else(|| "Interview transcript unavailable".to_string());
+                format!("{witness_name}:\n- {lines}")
+            } else {
+                format!("{witness_name}:\n- Pending interview")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 fn npc_list_text(npc_ids: &[NpcId], npc_registry: &NpcRegistry) -> String {
@@ -1508,6 +1607,7 @@ mod tests {
         app.init_resource::<CaseBoard>();
         app.init_resource::<EvidenceLocker>();
         app.init_resource::<NpcRegistry>();
+        app.init_resource::<PartnerArc>();
         app.init_resource::<Skills>();
         app.init_resource::<Economy>();
         app.init_resource::<ShiftClock>();
@@ -1597,6 +1697,112 @@ mod tests {
     }
 
     #[test]
+    fn case_file_renders_authored_flavor_and_witness_notes() {
+        let mut app = build_test_app();
+        app.world_mut()
+            .resource_mut::<NpcRegistry>()
+            .definitions
+            .insert(
+                "rita_gomez".to_string(),
+                NpcDef {
+                    id: "rita_gomez".to_string(),
+                    name: "Rita Gomez".to_string(),
+                    role: NpcRole::Informant,
+                    default_map: crate::shared::MapId::Downtown,
+                    description: "Informant".to_string(),
+                },
+            );
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::Investigating,
+                evidence_collected: vec!["fingerprint".to_string()],
+                witnesses_interviewed: HashSet::from(["rita_gomez".to_string()]),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: vec!["Briefing: test".to_string()],
+            });
+
+        seed_npcs(&mut app);
+        set_state(&mut app, GameState::CaseFile);
+
+        let text = app
+            .world_mut()
+            .query_filtered::<&Text, With<CaseFileBodyText>>()
+            .single(app.world())
+            .0
+            .clone();
+
+        assert!(text.contains("Opening lead:"));
+        assert!(text.contains("Current assessment:"));
+        assert!(text.contains("Rita Gomez"));
+        assert!(text.contains("Marcus kept circling the register"));
+    }
+
+    #[test]
+    fn dialogue_screen_uses_authored_npc_dialogue() {
+        let mut app = build_test_app();
+        {
+            let registry = &mut app.world_mut().resource_mut::<NpcRegistry>();
+            registry.definitions.insert(
+                "rita_gomez".to_string(),
+                NpcDef {
+                    id: "rita_gomez".to_string(),
+                    name: "Rita Gomez".to_string(),
+                    role: NpcRole::Informant,
+                    default_map: crate::shared::MapId::Downtown,
+                    description: "Informant".to_string(),
+                },
+            );
+            registry.relationships.insert(
+                "rita_gomez".to_string(),
+                NpcRelationship {
+                    npc_id: "rita_gomez".to_string(),
+                    trust: 70,
+                    pressure: 0,
+                    favors_done: 0,
+                    dialogue_flags: HashSet::new(),
+                },
+            );
+        }
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::Investigating,
+                evidence_collected: vec!["fingerprint".to_string()],
+                witnesses_interviewed: HashSet::from(["rita_gomez".to_string()]),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
+        app.world_mut().resource_mut::<ShiftClock>().hour = 13;
+        app.world_mut().send_event(DialogueStartEvent {
+            npc_id: "rita_gomez".to_string(),
+            context: "case_interview:patrol_001_petty_theft".to_string(),
+        });
+
+        set_state(&mut app, GameState::Dialogue);
+
+        let text = app
+            .world_mut()
+            .query_filtered::<&Text, With<DialogueBodyText>>()
+            .single(app.world())
+            .0
+            .clone();
+
+        assert!(text.contains("Rita Gomez"));
+        assert!(text.contains("Marcus kept circling the register"));
+        assert!(
+            text.contains("Coffee is cheap")
+                || text.contains("You keep my name out of ugly paperwork")
+        );
+    }
+
+    #[test]
     fn skill_tree_next_perk_button_emits_spend_event() {
         let mut app = build_test_app();
         {
@@ -1670,6 +1876,16 @@ mod tests {
             .collect();
         assert_eq!(emitted_trust, vec![("marcus_cole".to_string(), 12, -4)]);
 
+        let toast_events = app.world().resource::<Events<ToastEvent>>();
+        let mut toast_reader = toast_events.get_cursor();
+        let emitted_toasts: Vec<_> = toast_reader
+            .read(toast_events)
+            .map(|event| event.message.clone())
+            .collect();
+        assert!(emitted_toasts
+            .iter()
+            .any(|message| message.contains("Talk to me like a man trying not to go back")));
+
         app.world_mut()
             .entity_mut(end_button)
             .insert(Interaction::Pressed);
@@ -1688,6 +1904,92 @@ mod tests {
                 "patrol_001_petty_theft".to_string()
             )]
         );
+    }
+
+    #[test]
+    fn interrogation_actions_emit_feedback_toasts() {
+        let mut app = build_test_app();
+        app.world_mut().send_event(InterrogationStartEvent {
+            npc_id: "marcus_cole".to_string(),
+            case_id: "patrol_001_petty_theft".to_string(),
+        });
+        app.update();
+        set_state(&mut app, GameState::Interrogation);
+
+        let mut button_query = app.world_mut().query::<(Entity, &InterrogationButton)>();
+        let pressure_button = button_query
+            .iter(app.world())
+            .find_map(|(entity, button)| {
+                (button.0 == InterrogationAction::ApplyPressure).then_some(entity)
+            })
+            .expect("pressure button should exist");
+
+        app.world_mut()
+            .entity_mut(pressure_button)
+            .insert(Interaction::Pressed);
+        app.update();
+
+        let events = app.world().resource::<Events<ToastEvent>>();
+        let mut reader = events.get_cursor();
+        let emitted: Vec<_> = reader
+            .read(events)
+            .map(|event| event.message.clone())
+            .collect();
+        assert!(emitted.iter().any(|message| message.contains("Marcus")));
+    }
+
+    #[test]
+    fn case_file_text_surfaces_authored_flavor_and_interviews() {
+        let mut app = build_test_app();
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .push(ActiveCase {
+                case_id: "patrol_001_petty_theft".to_string(),
+                status: CaseStatus::Investigating,
+                evidence_collected: vec!["fingerprint".to_string()],
+                witnesses_interviewed: HashSet::new(),
+                suspects_interrogated: HashSet::new(),
+                shifts_elapsed: 0,
+                notes: Vec::new(),
+            });
+        app.world_mut()
+            .resource_mut::<NpcRegistry>()
+            .definitions
+            .insert(
+                "rita_gomez".to_string(),
+                NpcDef {
+                    id: "rita_gomez".to_string(),
+                    name: "Rita Gomez".to_string(),
+                    role: NpcRole::Informant,
+                    default_map: crate::shared::MapId::Downtown,
+                    description: "Informant".to_string(),
+                },
+            );
+
+        let pending_text = build_case_file_text(
+            app.world().resource::<CaseBoard>().active.first(),
+            app.world().resource::<EvidenceLocker>(),
+            app.world().resource::<NpcRegistry>(),
+        );
+        assert!(pending_text.contains("Opening lead:"));
+        assert!(pending_text.contains("Current assessment:"));
+        assert!(pending_text.contains("Rita Gomez:\n- Pending interview"));
+
+        app.world_mut()
+            .resource_mut::<CaseBoard>()
+            .active
+            .first_mut()
+            .unwrap()
+            .witnesses_interviewed
+            .insert("rita_gomez".to_string());
+
+        let interviewed_text = build_case_file_text(
+            app.world().resource::<CaseBoard>().active.first(),
+            app.world().resource::<EvidenceLocker>(),
+            app.world().resource::<NpcRegistry>(),
+        );
+        assert!(interviewed_text.contains("Marcus kept circling the register"));
     }
 
     #[test]

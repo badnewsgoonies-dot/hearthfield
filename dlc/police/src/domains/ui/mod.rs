@@ -1,3 +1,4 @@
+mod audio;
 mod notifications;
 mod screens;
 
@@ -57,6 +58,7 @@ impl Plugin for UiPlugin {
                 (cleanup_pause_menu, unpause_clock),
             );
 
+        audio::build_audio(app);
         notifications::build_notifications(app);
         screens::install_screen_systems(app);
     }
@@ -141,14 +143,17 @@ fn boot_to_main_menu(mut next_state: ResMut<NextState<GameState>>) {
 
 fn queue_main_menu_music(mut music_events: EventWriter<PlayMusicEvent>) {
     music_events.send(PlayMusicEvent {
-        name: "main_menu_theme".to_string(),
+        name: "precinct_theme".to_string(),
         looping: true,
     });
 }
 
-fn queue_playing_music(mut music_events: EventWriter<PlayMusicEvent>) {
+fn queue_playing_music(
+    player_state: Res<PlayerState>,
+    mut music_events: EventWriter<PlayMusicEvent>,
+) {
     music_events.send(PlayMusicEvent {
-        name: "patrol_shift_theme".to_string(),
+        name: audio::music_for_map(player_state.position_map).to_string(),
         looping: true,
     });
 }
@@ -372,7 +377,7 @@ fn handle_main_menu_buttons(
         }
 
         sfx_events.send(PlaySfxEvent {
-            name: "ui_confirm".to_string(),
+            name: "menu_click".to_string(),
         });
 
         match button.0 {
@@ -769,7 +774,7 @@ fn handle_pause_buttons(
         }
 
         output.sfx_events.send(PlaySfxEvent {
-            name: "ui_confirm".to_string(),
+            name: "menu_click".to_string(),
         });
 
         match button.0 {

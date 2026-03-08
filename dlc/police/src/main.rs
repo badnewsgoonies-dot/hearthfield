@@ -4,9 +4,12 @@
 mod domains;
 mod shared;
 
+use bevy::asset::AssetMetaCheck;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::PathBuf;
 
 use domains::calendar::CalendarPlugin;
 use domains::cases::CasesPlugin;
@@ -23,10 +26,17 @@ use domains::world::WorldPlugin;
 use shared::*;
 
 fn main() {
+    #[cfg(not(target_arch = "wasm32"))]
+    let asset_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .to_string_lossy()
+        .into_owned();
+
     let default_plugins = DefaultPlugins
         .set(bevy::asset::AssetPlugin {
-            meta_check: bevy::asset::AssetMetaCheck::Never,
-            file_path: "assets".to_string(),
+            meta_check: AssetMetaCheck::Never,
+            #[cfg(not(target_arch = "wasm32"))]
+            file_path: asset_path,
             ..default()
         })
         .set(WindowPlugin {
@@ -35,6 +45,10 @@ fn main() {
                 resolution: WindowResolution::new(SCREEN_WIDTH, SCREEN_HEIGHT),
                 present_mode: PresentMode::AutoVsync,
                 resizable: true,
+                #[cfg(target_arch = "wasm32")]
+                canvas: Some("#game-canvas".into()),
+                #[cfg(target_arch = "wasm32")]
+                fit_canvas_to_parent: true,
                 ..default()
             }),
             ..default()

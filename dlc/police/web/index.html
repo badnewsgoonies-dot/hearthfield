@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+    <title>Precinct</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg-top: #07111b;
+            --bg-bottom: #15202d;
+            --panel: rgba(9, 15, 23, 0.92);
+            --panel-border: rgba(132, 164, 194, 0.24);
+            --accent: #7dc3ff;
+            --accent-dim: #355875;
+            --text: #e6edf5;
+            --muted: #8ea2b8;
+            --danger: #ff8d8d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top, rgba(82, 120, 164, 0.35), transparent 45%),
+                linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--text);
+        }
+
+        body {
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+        }
+
+        #game-shell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(11, 18, 26, 0.2), rgba(11, 18, 26, 0.6));
+        }
+
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transition: opacity 180ms ease;
+        }
+
+        #game-shell.ready #game-canvas {
+            opacity: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        #loading {
+            background: linear-gradient(180deg, rgba(4, 8, 14, 0.72), rgba(4, 8, 14, 0.88));
+            z-index: 10;
+        }
+
+        .panel {
+            width: min(100%, 460px);
+            padding: 28px 26px;
+            border: 1px solid var(--panel-border);
+            border-radius: 18px;
+            background: var(--panel);
+            box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+            backdrop-filter: blur(10px);
+        }
+
+        .eyebrow {
+            font-size: 12px;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: clamp(28px, 5vw, 42px);
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 22px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .progress-track {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(53, 88, 117, 0.32);
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #6cb2f8, var(--accent));
+            transition: width 220ms ease;
+        }
+
+        #status {
+            min-height: 1.3em;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        #error {
+            display: none;
+            background: rgba(10, 7, 9, 0.95);
+            z-index: 20;
+        }
+
+        #error .panel {
+            border-color: rgba(255, 141, 141, 0.28);
+        }
+
+        #error h2 {
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+
+        #error p {
+            color: var(--muted);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        #error-details {
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 34vh;
+            overflow: auto;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 14px;
+            color: var(--danger);
+            font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+            font-size: 13px;
+        }
+
+        .hint {
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <main id="game-shell">
+        <canvas id="game-canvas" aria-label="Precinct game canvas"></canvas>
+
+        <section id="loading" class="overlay" aria-live="polite">
+            <div class="panel">
+                <div class="eyebrow">Precinct DLC</div>
+                <h1>Precinct</h1>
+                <p class="subtitle">Loading the station, case board, and morning briefing.</p>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+                <div id="status">Booting browser runtime...</div>
+                <p class="hint">If audio is quiet at first, click once after the scene appears.</p>
+            </div>
+        </section>
+
+        <section id="error" class="overlay" aria-live="assertive">
+            <div class="panel">
+                <div class="eyebrow">Startup Error</div>
+                <h2>Precinct failed to load</h2>
+                <p>The browser reported an error before the scene finished booting.</p>
+                <pre id="error-details"></pre>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        const gameShell = document.getElementById("game-shell");
+        const loading = document.getElementById("loading");
+        const errorOverlay = document.getElementById("error");
+        const errorDetails = document.getElementById("error-details");
+        const progress = document.getElementById("progress");
+        const status = document.getElementById("status");
+
+        function setProgress(percent, message) {
+            progress.style.width = `${percent}%`;
+            status.textContent = message;
+        }
+
+        function revealGame() {
+            gameShell.classList.add("ready");
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    loading.style.display = "none";
+                });
+            });
+        }
+
+        function showError(error) {
+            loading.style.display = "none";
+            errorOverlay.style.display = "flex";
+            errorDetails.textContent = String(error);
+        }
+
+        window.addEventListener("error", (event) => {
+            if (event.error) {
+                showError(event.error.stack || event.error.message || event.error);
+            } else {
+                showError(event.message || "Unknown window error");
+            }
+        });
+
+        window.addEventListener("unhandledrejection", (event) => {
+            const reason = event.reason?.stack || event.reason?.message || event.reason || "Unhandled promise rejection";
+            showError(reason);
+        });
+
+        document.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
+        document.addEventListener("gesturestart", (event) => event.preventDefault());
+
+        async function run() {
+            try {
+                setProgress(12, "Fetching Precinct module...");
+                const init = await import("./pkg/precinct.js");
+
+                setProgress(48, "Initializing renderer...");
+                await init.default();
+
+                setProgress(82, "Entering the precinct...");
+                revealGame();
+                setProgress(100, "Ready for roll call.");
+            } catch (error) {
+                console.error("Precinct failed to start:", error);
+                showError(error?.stack || error?.message || error);
+            }
+        }
+
+        run();
+    </script>
+</body>
+</html>

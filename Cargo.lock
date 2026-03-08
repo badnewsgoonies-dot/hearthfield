@@ -3254,10 +3254,12 @@ name = "precinct"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "getrandom 0.3.4",
  "rand",
  "ron",
  "serde",
  "serde_json",
+ "web-sys",
 ]
 
 [[package]]

@@ -3,8 +3,8 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::domains::cases::case_definition;
 use crate::shared::{
     CaseAssignedEvent, CaseBoard, EvidenceCollectedEvent, EvidenceLocker, EvidenceProcessingState,
-    FatigueChangeEvent, GameState, GridPosition, MapId, PatrolState, PlayerInput, PlayerState,
-    ShiftClock, StressChangeEvent, ToastEvent, UpdatePhase, COFFEE_FATIGUE_RESTORE,
+    FatigueChangeEvent, GameState, GridPosition, MapId, PatrolState, PlaySfxEvent, PlayerInput,
+    PlayerState, ShiftClock, StressChangeEvent, ToastEvent, UpdatePhase, COFFEE_FATIGUE_RESTORE,
     COFFEE_STRESS_RELIEF, COFFEE_TIME_COST_MINUTES, MEAL_FATIGUE_RESTORE, MEAL_STRESS_RELIEF,
     MEAL_TIME_COST_MINUTES, PIXEL_SCALE, TILE_SIZE,
 };
@@ -156,6 +156,7 @@ pub struct PrecinctInteractionContext<'w, 's> {
     evidence_collected_events: EventWriter<'w, EvidenceCollectedEvent>,
     fatigue_events: EventWriter<'w, FatigueChangeEvent>,
     stress_events: EventWriter<'w, StressChangeEvent>,
+    sfx_events: EventWriter<'w, PlaySfxEvent>,
     toast_events: EventWriter<'w, ToastEvent>,
     #[system_param(ignore)]
     _marker: std::marker::PhantomData<&'s ()>,
@@ -164,6 +165,7 @@ pub struct PrecinctInteractionContext<'w, 's> {
 impl Plugin for PrecinctPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PrecinctObjectAtlas>()
+            .add_event::<PlaySfxEvent>()
             .add_systems(OnEnter(GameState::Playing), spawn_precinct_objects_on_enter)
             .add_systems(
                 OnEnter(GameState::MainMenu),
@@ -224,6 +226,9 @@ pub fn handle_precinct_interaction(
     match interactable {
         PrecinctInteractable::CaseBoard => {
             if !interaction_context.case_board.active.is_empty() {
+                interaction_context.sfx_events.send(PlaySfxEvent {
+                    name: "menu_click".to_string(),
+                });
                 next_state.set(GameState::CaseFile);
             } else if let Some(case_id) = interaction_context.case_board.available.first() {
                 interaction_context
@@ -252,10 +257,16 @@ pub fn handle_precinct_interaction(
                     duration_secs: TOAST_DURATION_SECS,
                 });
             } else {
+                interaction_context.sfx_events.send(PlaySfxEvent {
+                    name: "menu_click".to_string(),
+                });
                 next_state.set(GameState::EvidenceExam);
             }
         }
         PrecinctInteractable::CoffeeMachine => {
+            interaction_context.sfx_events.send(PlaySfxEvent {
+                name: "coffee_pour".to_string(),
+            });
             interaction_context.fatigue_events.send(FatigueChangeEvent {
                 delta: COFFEE_FATIGUE_RESTORE,
             });
@@ -285,6 +296,9 @@ pub fn handle_precinct_interaction(
             });
         }
         PrecinctInteractable::CaptainDoor => {
+            interaction_context.sfx_events.send(PlaySfxEvent {
+                name: "door_open".to_string(),
+            });
             next_state.set(GameState::CareerView);
         }
         PrecinctInteractable::Locker => {
