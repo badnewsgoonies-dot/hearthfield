@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use std::fs;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::{Path, PathBuf};
 
 use bevy::prelude::*;
@@ -12,21 +13,23 @@ use crate::shared::{
     ShiftClock, ShiftEndEvent, Skills, UpdatePhase,
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 const SAVE_DIR_ENV: &str = "PRECINCT_SAVE_DIR";
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_SAVE_DIR: &str = "saves";
 const DEFAULT_SAVE_SLOT: u8 = 0;
 const SAVE_SLOT_COUNT: u8 = 3;
-#[cfg(target_arch = "wasm32")]
-const STORAGE_KEY_PREFIX: &str = "precinct_save_";
 
 pub struct SavePlugin;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Resource, Debug, Clone)]
 struct SaveConfig {
     directory: PathBuf,
     current_slot: u8,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Default for SaveConfig {
     fn default() -> Self {
         let directory = std::env::var_os(SAVE_DIR_ENV)
@@ -35,6 +38,21 @@ impl Default for SaveConfig {
 
         Self {
             directory,
+            current_slot: DEFAULT_SAVE_SLOT,
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Resource, Debug, Clone)]
+struct SaveConfig {
+    current_slot: u8,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Default for SaveConfig {
+    fn default() -> Self {
+        Self {
             current_slot: DEFAULT_SAVE_SLOT,
         }
     }
@@ -81,6 +99,7 @@ fn ensure_save_dir(config: Res<SaveConfig>) {
 #[cfg(target_arch = "wasm32")]
 fn ensure_save_dir(_config: Res<SaveConfig>) {}
 
+#[cfg(not(target_arch = "wasm32"))]
 #[allow(clippy::too_many_arguments)]
 fn handle_save(
     mut save_requests: EventReader<SaveRequestEvent>,
@@ -123,6 +142,28 @@ fn handle_save(
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+#[allow(clippy::too_many_arguments)]
+fn handle_save(
+    mut save_requests: EventReader<SaveRequestEvent>,
+    _config: Res<SaveConfig>,
+    _shift_clock: Res<ShiftClock>,
+    _player_state: Res<PlayerState>,
+    _inventory: Res<Inventory>,
+    _case_board: Res<CaseBoard>,
+    _evidence_locker: Res<EvidenceLocker>,
+    _npc_registry: Res<NpcRegistry>,
+    _partner_arc: Res<PartnerArc>,
+    _economy: Res<Economy>,
+    _skills: Res<Skills>,
+    _patrol_state: Res<PatrolState>,
+) {
+    if save_requests.read().next().is_some() {
+        bevy::log::warn!("save not supported in browser");
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 #[allow(clippy::too_many_arguments)]
 fn handle_load(
     mut load_requests: EventReader<LoadRequestEvent>,
@@ -171,6 +212,29 @@ fn handle_load(
     next_state.set(GameState::Playing);
 }
 
+#[cfg(target_arch = "wasm32")]
+#[allow(clippy::too_many_arguments)]
+fn handle_load(
+    mut load_requests: EventReader<LoadRequestEvent>,
+    mut config: ResMut<SaveConfig>,
+    _next_state: ResMut<NextState<GameState>>,
+    _shift_clock: ResMut<ShiftClock>,
+    _player_state: ResMut<PlayerState>,
+    _inventory: ResMut<Inventory>,
+    _case_board: ResMut<CaseBoard>,
+    _evidence_locker: ResMut<EvidenceLocker>,
+    _npc_registry: ResMut<NpcRegistry>,
+    _partner_arc: ResMut<PartnerArc>,
+    _economy: ResMut<Economy>,
+    _skills: ResMut<Skills>,
+    _patrol_state: ResMut<PatrolState>,
+) {
+    if let Some(requested_slot) = load_requests.read().last().map(|event| event.slot) {
+        config.current_slot = normalized_slot(requested_slot);
+        bevy::log::warn!("save not supported in browser");
+    }
+}
+
 fn auto_save(
     mut shift_end_events: EventReader<ShiftEndEvent>,
     mut save_requests: EventWriter<SaveRequestEvent>,
@@ -180,57 +244,27 @@ fn auto_save(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn write_save_data(config: &SaveConfig, save_data: &FullSaveData) -> Result<(), String> {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        fs::create_dir_all(&config.directory).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&config.directory).map_err(|error| error.to_string())?;
 
-        let payload = serde_json::to_string_pretty(save_data)
-            .map_err(|error| format!("serialize: {error}"))?;
-        fs::write(save_path(&config.directory, config.current_slot), payload)
-            .map_err(|error| error.to_string())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        let payload = serde_json::to_string_pretty(save_data)
-            .map_err(|error| format!("serialize: {error}"))?;
-        browser_storage()?
-            .set_item(&storage_key(config.current_slot), &payload)
-            .map_err(|error| format!("localStorage set_item failed: {error:?}"))
-    }
+    let payload =
+        serde_json::to_string_pretty(save_data).map_err(|error| format!("serialize: {error}"))?;
+    fs::write(save_path(&config.directory, config.current_slot), payload)
+        .map_err(|error| error.to_string())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn read_save_data(config: &SaveConfig) -> Result<FullSaveData, String> {
-    #[cfg(not(target_arch = "wasm32"))]
     let payload = fs::read_to_string(save_path(&config.directory, config.current_slot))
         .map_err(|error| error.to_string())?;
-
-    #[cfg(target_arch = "wasm32")]
-    let payload = browser_storage()?
-        .get_item(&storage_key(config.current_slot))
-        .map_err(|error| format!("localStorage get_item failed: {error:?}"))?
-        .ok_or_else(|| format!("missing save slot {}", normalized_slot(config.current_slot)))?;
 
     serde_json::from_str(&payload).map_err(|error| format!("deserialize: {error}"))
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn save_path(directory: &Path, slot: u8) -> PathBuf {
     directory.join(format!("save_{}.json", normalized_slot(slot)))
-}
-
-#[cfg(target_arch = "wasm32")]
-fn storage_key(slot: u8) -> String {
-    format!("{STORAGE_KEY_PREFIX}{}.json", normalized_slot(slot))
-}
-
-#[cfg(target_arch = "wasm32")]
-fn browser_storage() -> Result<web_sys::Storage, String> {
-    let window = web_sys::window().ok_or_else(|| "window is not available".to_string())?;
-    let storage = window
-        .local_storage()
-        .map_err(|error| format!("localStorage lookup failed: {error:?}"))?;
-    storage.ok_or_else(|| "localStorage is unavailable in this browser context".to_string())
 }
 
 fn normalized_slot(slot: u8) -> u8 {
@@ -242,6 +276,7 @@ mod tests {
     use super::*;
 
     use std::collections::{HashMap, HashSet};
+    use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use bevy::state::app::StatesPlugin;

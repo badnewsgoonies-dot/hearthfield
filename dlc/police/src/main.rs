@@ -26,6 +26,8 @@ use domains::world::WorldPlugin;
 use shared::*;
 
 fn main() {
+    #[cfg(target_arch = "wasm32")]
+    console_error_panic_hook::set_once();
     #[cfg(not(target_arch = "wasm32"))]
     let asset_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("assets")
