@@ -182,12 +182,13 @@ pub fn spawn_falling_leaves(
     }
 
     // Accumulate time and emit at ~60fps cadence.
+    // Spawn rate: 1 leaf every ~45 frames for denser autumn atmosphere.
     accum.frames += time.delta_secs() * 60.0;
 
-    if accum.frames < 60.0 {
+    if accum.frames < 45.0 {
         return;
     }
-    accum.frames -= 60.0;
+    accum.frames -= 45.0;
 
     let camera_pos = camera_query
         .iter()
@@ -202,24 +203,32 @@ pub fn spawn_falling_leaves(
     let spawn_x = camera_pos.x + rng.gen_range(-half_w..half_w);
     let spawn_y = camera_pos.y + SCREEN_HEIGHT * 0.5 + 16.0; // above top edge
 
-    // Pick a leaf colour: orange or deep red.
-    let color = if rng.gen_bool(0.5) {
-        Color::srgb(1.0, 0.55, 0.15) // vivid orange
-    } else {
-        Color::srgb(0.85, 0.25, 0.10) // deep red
+    // Pick a leaf colour: orange, deep red, golden yellow, or brown.
+    let color = match rng.gen_range(0u32..4) {
+        0 => Color::srgb(1.0, 0.55, 0.15),  // vivid orange
+        1 => Color::srgb(0.85, 0.25, 0.10),  // deep red
+        2 => Color::srgb(1.0, 0.85, 0.15),   // golden yellow
+        _ => Color::srgb(0.6, 0.35, 0.15),   // brown
     };
 
     let fall_speed = rng.gen_range(20.0_f32..40.0);
     let frequency = rng.gen_range(1.5_f32..3.5);
     let amplitude = rng.gen_range(8.0_f32..20.0);
 
+    // Vary leaf size between 2 and 6 pixels for natural look.
+    let leaf_size = rng.gen_range(2.0_f32..6.0);
+
+    // Slight initial rotation for variety.
+    let rotation = rng.gen_range(0.0_f32..std::f32::consts::TAU);
+
     commands.spawn((
         Sprite {
             color,
-            custom_size: Some(Vec2::new(4.0, 4.0)),
+            custom_size: Some(Vec2::new(leaf_size, leaf_size)),
             ..default()
         },
-        Transform::from_translation(Vec3::new(spawn_x, spawn_y, Z_SEASONAL)),
+        Transform::from_translation(Vec3::new(spawn_x, spawn_y, Z_SEASONAL))
+            .with_rotation(Quat::from_rotation_z(rotation)),
         FallingLeaf {
             age: 0.0,
             base_x: spawn_x,
@@ -267,6 +276,10 @@ pub fn update_falling_leaves(
         // Sine-wave horizontal oscillation.
         let x_offset = leaf.amplitude * (leaf.age * leaf.frequency).sin();
         transform.translation.x = leaf.base_x + x_offset;
+
+        // Gentle rotation tied to the oscillation for a natural tumble.
+        let rot = leaf.age * leaf.frequency * 0.5;
+        transform.rotation = Quat::from_rotation_z(rot);
     }
 
     // If we're no longer in Fall, despawn all remaining leaves.
