@@ -105,6 +105,16 @@ Whenever a player-facing surface is Hardened, check:
 
 If the feature is reachable but feels wrong, it is not finished.
 
+### 1.5 Feel repair protocol
+
+When a feel check dimension fails:
+
+1. Name which dimension failed (clarity, feedback, responsiveness, pacing, or edge behavior) and what the player actually experienced.
+2. File as P1 if the surface is not on the first-60-seconds path. File as P0 if it is.
+3. At Tier S: fix in the current session before committing. At Tier M/C: fix in the current wave if the orchestrator is finishing; defer to next wave if still scaffolding.
+4. After the fix, re-run the feel check on that dimension only. Do not re-run the full check unless the fix touched adjacent surfaces.
+5. If the same dimension fails twice on the same surface, the problem is likely architectural (wrong feedback channel, missing state, bad data flow) not cosmetic. Escalate to a targeted investigation before attempting a third fix.
+
 -----
 
 ## 2. Single-Session Mode (Tier S)
@@ -161,7 +171,7 @@ For the touched surface, verify:
 
 Create or confirm:
 
-- `src/shared/types.ts` or equivalent
+- `src/shared/types.ts` (or language equivalent: `shared/mod.rs`, `types.go`, etc.)
 - `.contract.sha256` if shared shapes changed
 - `MANIFEST.md`
 - `docs/spec.md`
@@ -313,8 +323,8 @@ project/
 │   ├── clamp-scope.sh
 │   └── run-gates.sh
 ├── src/
-│   ├── shared/types.ts
-│   ├── data/tuning.toml
+│   ├── shared/types.ts (or lang equivalent)
+│   ├── data/tuning.toml (or lang equivalent)
 │   └── domains/
 ├── MANIFEST.md
 └── .contract.sha256
@@ -433,11 +443,18 @@ boot → menu → new/load → spawn → movement → first interaction → firs
 
 ### 5.3 Asset Reachability Gate
 
-Classify assets as:
+Classify assets by presence:
 
 - **runtime-used**
 - **present-but-unreferenced**
 - **referenced-but-missing**
+
+Classify runtime-used assets by quality:
+
+- **style-consistent** — matches the visual standard of adjacent assets at the same player-facing surface
+- **placeholder** — functionally correct but visibly mismatched in resolution, palette, or detail level compared to neighboring assets
+
+A surface with placeholder assets adjacent to production assets fails this gate. The fix is either replacing the placeholder or downgrading the production assets to match — not shipping the mismatch.
 
 ### 5.4 Content Reachability Gate
 
@@ -552,7 +569,7 @@ Do not blame. Do not moralize. Do not widen scope unless the seam is actually wr
 7. **Graduation failure** — missing P0, too much P1 debt, or premature graduation of [Inferred]/[Assumed] claims
 8. **Critical-path uncertainty** — first-60-seconds path is not fully [Observed] at release
 9. **Blame-thrash loop** — repairs become accusatory, abstract, or scope-widening
-10. **Identity collapse** — one session is forced to be architect, worker, and reviewer at once in a campaign-scale build
+10. **Identity collapse** — a build that should be Tier M or Tier C is operating as Tier S to avoid dispatch overhead, forcing one session to be architect, worker, and reviewer on a campaign-scale problem. Tier S operating solo by design is not identity collapse — it is the intended mode for small changes.
 
 -----
 
