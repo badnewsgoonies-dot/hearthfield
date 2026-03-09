@@ -53,6 +53,10 @@ pub enum WorldObjectKind {
     Bush,
     LargeRock,
     Log,
+    Dock,
+    PalmTree,
+    Coral,
+    Driftwood,
 }
 
 // ═══════════════════════════════════════════════════════════════════════

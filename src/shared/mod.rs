@@ -592,6 +592,7 @@ pub enum MapId {
     Beach,
     Forest,
     DeepForest,
+    CoralIsland,
     MineEntrance,
     Mine, // + floor number in MineState
     PlayerHouse,
@@ -1876,6 +1877,27 @@ pub fn world_to_grid(wx: f32, wy: f32) -> IVec2 {
 #[derive(Resource, Default)]
 pub struct DebugOverlayState {
     pub visible: bool,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BOAT / SAILING
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Tracks whether the player is currently in a boat.
+/// When active, water tiles become walkable and land tiles become impassable.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct BoatMode {
+    pub active: bool,
+    pub stamina_drain_per_tile: f32,
+}
+
+impl BoatMode {
+    pub fn new() -> Self {
+        Self {
+            active: false,
+            stamina_drain_per_tile: 0.5,
+        }
+    }
 }
 
 #[cfg(test)]
