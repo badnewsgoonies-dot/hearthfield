@@ -8,6 +8,7 @@ pub mod tool_anim;
 mod tools;
 
 use crate::shared::*;
+use crate::world::maps::WorldObjectKind;
 use crate::world::WorldMap;
 use bevy::prelude::*;
 
@@ -75,6 +76,13 @@ impl Plugin for PlayerPlugin {
             Update,
             camera::camera_follow_player
                 .in_set(UpdatePhase::Presentation)
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        app.add_systems(
+            Update,
+            handle_boat_toggle
+                .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -166,6 +174,64 @@ pub struct CameraSnap {
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers shared across sub-modules
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// Toggle boat mode when the player presses F near a Dock object.
+///
+/// Boarding: player must be within 2 tiles of a Dock and have "boat" in inventory.
+/// Docking:  player must be on a water tile within 2 tiles of a Dock.
+pub fn handle_boat_toggle(
+    player_query: Query<&GridPosition, With<Player>>,
+    world_map: Res<WorldMap>,
+    inventory: Res<Inventory>,
+    mut boat_mode: ResMut<BoatMode>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut toast: EventWriter<ToastEvent>,
+) {
+    if !keys.just_pressed(KeyCode::KeyF) {
+        return;
+    }
+
+    let Ok(grid_pos) = player_query.get_single() else {
+        return;
+    };
+
+    let Some(ref map_def) = world_map.map_def else {
+        return;
+    };
+
+    let near_dock = map_def.objects.iter().any(|obj| {
+        obj.kind == WorldObjectKind::Dock
+            && (obj.x - grid_pos.x).abs() <= 2
+            && (obj.y - grid_pos.y).abs() <= 2
+    });
+
+    if !boat_mode.active {
+        if near_dock && inventory.has("boat", 1) {
+            boat_mode.active = true;
+            toast.send(ToastEvent {
+                message: "Launched boat!".to_string(),
+                duration_secs: 2.0,
+            });
+        }
+    } else {
+        let on_water = world_map
+            .map_def
+            .as_ref()
+            .map(|md| {
+                let tile = md.get_tile(grid_pos.x, grid_pos.y);
+                matches!(tile, TileKind::Water)
+            })
+            .unwrap_or(false);
+
+        if on_water && near_dock {
+            boat_mode.active = false;
+            toast.send(ToastEvent {
+                message: "Docked!".to_string(),
+                duration_secs: 2.0,
+            });
+        }
+    }
+}
 
 /// Stamina cost for each tool kind.
 pub fn stamina_cost(tool: &ToolKind) -> f32 {

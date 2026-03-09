@@ -1,5 +1,6 @@
 use super::{CollisionMap, DistanceAnimator};
 use crate::shared::*;
+use crate::world::WorldMap;
 use bevy::prelude::*;
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
@@ -11,6 +12,8 @@ pub fn player_movement(
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
     input_blocks: Res<InputBlocks>,
+    boat_mode: Res<BoatMode>,
+    world_map: Res<WorldMap>,
     mut query: Query<(&mut LogicalPosition, &mut PlayerMovement, &mut GridPosition), With<Player>>,
 ) {
     if input_blocks.is_blocked() {
@@ -50,20 +53,30 @@ pub fn player_movement(
         let candidate_x = logical_pos.0.x + delta.x;
         let candidate_y = logical_pos.0.y + delta.y;
 
-        let can_move_x = !is_blocked(
-            candidate_x,
-            logical_pos.0.y,
-            &collision_map,
-            &farm_state,
-            &player_state,
-        );
-        let can_move_y = !is_blocked(
-            logical_pos.0.x,
-            candidate_y,
-            &collision_map,
-            &farm_state,
-            &player_state,
-        );
+        let can_move_x = if boat_mode.active {
+            let g = world_to_grid(candidate_x, logical_pos.0.y);
+            world_map.is_walkable_sailing(g.x, g.y)
+        } else {
+            !is_blocked(
+                candidate_x,
+                logical_pos.0.y,
+                &collision_map,
+                &farm_state,
+                &player_state,
+            )
+        };
+        let can_move_y = if boat_mode.active {
+            let g = world_to_grid(logical_pos.0.x, candidate_y);
+            world_map.is_walkable_sailing(g.x, g.y)
+        } else {
+            !is_blocked(
+                logical_pos.0.x,
+                candidate_y,
+                &collision_map,
+                &farm_state,
+                &player_state,
+            )
+        };
 
         if can_move_x {
             logical_pos.0.x = candidate_x;
