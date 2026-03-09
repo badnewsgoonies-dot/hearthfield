@@ -582,44 +582,102 @@ fn write_save(
 }
 
 #[cfg(target_arch = "wasm32")]
+#[allow(clippy::too_many_arguments)]
 fn write_save(
-    _slot: u8,
-    _calendar: &Calendar,
-    _player_state: &PlayerState,
-    _inventory: &Inventory,
-    _farm_state: &FarmState,
-    _animal_state: &AnimalState,
-    _relationships: &Relationships,
-    _mine_state: &MineState,
-    _unlocked_recipes: &UnlockedRecipes,
-    _shipping_bin: &ShippingBin,
-    _statistics: &GameStatistics,
-    _house_state: &HouseState,
-    _marriage_state: &MarriageState,
-    _quest_log: &QuestLog,
-    _sprinkler_state: &SprinklerState,
-    _active_buffs: &ActiveBuffs,
-    _evaluation_score: &EvaluationScore,
-    _relationship_stages: &RelationshipStages,
-    _achievements: &Achievements,
-    _tutorial_state: &TutorialState,
-    _play_stats: &PlayStats,
-    _building_levels: &BuildingLevels,
-    _shipping_log: &ShippingLog,
-    _fish_encyclopedia: &crate::fishing::FishEncyclopedia,
-    _fishing_skill: &crate::fishing::skill::FishingSkill,
-    _harvest_stats: &crate::economy::stats::HarvestStats,
-    _animal_product_stats: &crate::economy::stats::AnimalProductStats,
-    _economy_stats: &crate::economy::gold::EconomyStats,
-    _daily_talk_tracker: &crate::npcs::dialogue::DailyTalkTracker,
-    _gift_decay_tracker: &crate::npcs::map_events::GiftDecayTracker,
-    _tool_upgrade_queue: &ToolUpgradeQueue,
-    _shipping_bin_quality: &ShippingBinQuality,
-    _festival_state: &FestivalState,
-    _farm_visit_tracker: &FarmVisitTracker,
-    _chests: &[StorageChest],
-    _placed_machines: &[SavedMachine],
+    slot: u8,
+    calendar: &Calendar,
+    player_state: &PlayerState,
+    inventory: &Inventory,
+    farm_state: &FarmState,
+    animal_state: &AnimalState,
+    relationships: &Relationships,
+    mine_state: &MineState,
+    unlocked_recipes: &UnlockedRecipes,
+    shipping_bin: &ShippingBin,
+    statistics: &GameStatistics,
+    house_state: &HouseState,
+    marriage_state: &MarriageState,
+    quest_log: &QuestLog,
+    sprinkler_state: &SprinklerState,
+    active_buffs: &ActiveBuffs,
+    evaluation_score: &EvaluationScore,
+    relationship_stages: &RelationshipStages,
+    achievements: &Achievements,
+    tutorial_state: &TutorialState,
+    play_stats: &PlayStats,
+    building_levels: &BuildingLevels,
+    shipping_log: &ShippingLog,
+    fish_encyclopedia: &crate::fishing::FishEncyclopedia,
+    fishing_skill: &crate::fishing::skill::FishingSkill,
+    harvest_stats: &crate::economy::stats::HarvestStats,
+    animal_product_stats: &crate::economy::stats::AnimalProductStats,
+    economy_stats: &crate::economy::gold::EconomyStats,
+    daily_talk_tracker: &crate::npcs::dialogue::DailyTalkTracker,
+    gift_decay_tracker: &crate::npcs::map_events::GiftDecayTracker,
+    tool_upgrade_queue: &ToolUpgradeQueue,
+    shipping_bin_quality: &ShippingBinQuality,
+    festival_state: &FestivalState,
+    farm_visit_tracker: &FarmVisitTracker,
+    chests: &[StorageChest],
+    placed_machines: &[SavedMachine],
 ) -> Result<(), String> {
+    let file = FullSaveFile {
+        version: SAVE_VERSION,
+        slot,
+        save_timestamp: current_timestamp(),
+        play_time_seconds: statistics.play_time_seconds,
+        farm_name: statistics.farm_name.clone(),
+        calendar: calendar.clone(),
+        player_state: player_state.clone(),
+        inventory: inventory.clone(),
+        farm_state: farm_state.clone(),
+        animal_state: animal_state.clone(),
+        relationships: relationships.clone(),
+        mine_state: mine_state.clone(),
+        unlocked_recipes: unlocked_recipes.clone(),
+        shipping_bin: shipping_bin.clone(),
+        total_gold_earned: statistics.total_gold_earned,
+        total_items_shipped: statistics.total_items_shipped,
+        house_state: house_state.clone(),
+        marriage_state: marriage_state.clone(),
+        quest_log: quest_log.clone(),
+        sprinkler_state: sprinkler_state.clone(),
+        active_buffs: active_buffs.clone(),
+        evaluation_score: evaluation_score.clone(),
+        relationship_stages: relationship_stages.clone(),
+        achievements: achievements.clone(),
+        tutorial_state: tutorial_state.clone(),
+        play_stats: play_stats.clone(),
+        building_levels: building_levels.clone(),
+        shipping_log: shipping_log.clone(),
+        fish_encyclopedia: fish_encyclopedia.clone(),
+        fishing_skill: fishing_skill.clone(),
+        harvest_stats: harvest_stats.clone(),
+        animal_product_stats: animal_product_stats.clone(),
+        economy_stats: economy_stats.clone(),
+        daily_talk_tracker: daily_talk_tracker.clone(),
+        gift_decay_tracker: gift_decay_tracker.clone(),
+        tool_upgrade_queue: tool_upgrade_queue.clone(),
+        shipping_bin_quality: shipping_bin_quality.clone(),
+        festival_state: festival_state.clone(),
+        farm_visit_tracker: farm_visit_tracker.clone(),
+        chests: chests.to_vec(),
+        placed_machines: placed_machines.to_vec(),
+    };
+
+    let json =
+        serde_json::to_string(&file).map_err(|e| format!("Serialization failed: {}", e))?;
+
+    let key = format!("hearthfield_save_{}", slot);
+    let storage = web_sys::window()
+        .ok_or_else(|| "No browser window".to_string())?
+        .local_storage()
+        .map_err(|_| "Failed to access localStorage".to_string())?
+        .ok_or_else(|| "localStorage not available".to_string())?;
+    storage
+        .set_item(&key, &json)
+        .map_err(|_| "Failed to write to localStorage".to_string())?;
+
     Ok(())
 }
 
@@ -654,8 +712,35 @@ fn read_save(slot: u8) -> Result<FullSaveFile, String> {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn read_save(_slot: u8) -> Result<FullSaveFile, String> {
-    Err("Saves not available in browser".to_string())
+fn read_save(slot: u8) -> Result<FullSaveFile, String> {
+    let key = format!("hearthfield_save_{}", slot);
+    let storage = web_sys::window()
+        .ok_or_else(|| "No browser window".to_string())?
+        .local_storage()
+        .map_err(|_| "Failed to access localStorage".to_string())?
+        .ok_or_else(|| "localStorage not available".to_string())?;
+    let json = storage
+        .get_item(&key)
+        .map_err(|_| "Failed to read from localStorage".to_string())?
+        .ok_or_else(|| format!("Save slot {} does not exist", slot))?;
+    let file: FullSaveFile =
+        serde_json::from_str(&json).map_err(|e| format!("Deserialization failed: {}", e))?;
+
+    if file.version > SAVE_VERSION {
+        return Err(format!(
+            "Save slot {} uses version {} but this game only supports up to version {}. \
+             Please update the game.",
+            slot, file.version, SAVE_VERSION
+        ));
+    }
+    if file.version < SAVE_VERSION {
+        warn!(
+            "Save slot {} has older version {} (current: {}). Loading with defaults for new fields.",
+            slot, file.version, SAVE_VERSION
+        );
+    }
+
+    Ok(file)
 }
 
 fn peek_save(slot: u8) -> Option<SaveSlotInfo> {
@@ -946,7 +1031,17 @@ fn handle_load_request(
                     use crate::crafting::machines::item_to_machine_type;
                     let world_x = saved.grid_x as f32 * TILE_SIZE;
                     let world_y = saved.grid_y as f32 * TILE_SIZE;
-                    let machine_sprite = if machines.furniture.loaded {
+                    let machine_sprite = if machines.furniture.machine_anim_layout != Handle::default() {
+                        let mut s = Sprite::from_atlas_image(
+                            machines.furniture.machine_anim_image.clone(),
+                            TextureAtlas {
+                                layout: machines.furniture.machine_anim_layout.clone(),
+                                index: 0,
+                            },
+                        );
+                        s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+                        s
+                    } else if machines.furniture.loaded {
                         let mut s =
                             Sprite::from_image(machines.furniture.processing_machine_image.clone());
                         s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
@@ -991,6 +1086,7 @@ fn handle_load_request(
                             Transform::from_xyz(world_x, world_y, Z_ENTITY_BASE),
                             LogicalPosition(Vec2::new(world_x, world_y)),
                             YSorted,
+                            crate::crafting::machines::MachineAnimTimer::default(),
                             Interactable {
                                 kind: InteractionKind::Machine,
                                 label: display_label,

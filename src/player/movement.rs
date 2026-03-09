@@ -113,11 +113,12 @@ pub fn animate_player_sprite(
     >,
 ) {
     for (pos, movement, mut sprite, mut anim) in query.iter_mut() {
+        // Spritesheet layout: Row 0=Down, Row 1=Left, Row 2=Right, Row 3=Up
         let base: usize = match movement.facing {
             Facing::Down => 0,
-            Facing::Up => 4,
-            Facing::Left => 8,
-            Facing::Right => 12,
+            Facing::Left => 4,
+            Facing::Right => 8,
+            Facing::Up => 12,
         };
 
         match movement.anim_state {

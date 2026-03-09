@@ -405,9 +405,9 @@ mod tests {
             .unwrap()
             .happiness;
 
-        // Both animals are unfed: -20. Outside animal also gets +5 outdoor bonus.
-        // 100 - 20 + 5 = 85 for outside, 100 - 20 = 80 for not outside.
-        assert_eq!(outside_happiness, 85);
-        assert_eq!(not_outside_happiness, 80);
+        // Both animals are unfed: -12. Outside animal also gets +5 outdoor bonus.
+        // 100 - 12 + 5 = 93 for outside, 100 - 12 = 88 for not outside.
+        assert_eq!(outside_happiness, 93);
+        assert_eq!(not_outside_happiness, 88);
     }
 }

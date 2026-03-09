@@ -30,9 +30,9 @@ pub fn spawn_player(
     // Load the character spritesheet.
     // Sheet is 192×192, laid out as a 4×4 grid of 48×48 frames:
     //   Row 0 (indices  0- 3): Walk down
-    //   Row 1 (indices  4- 7): Walk up
-    //   Row 2 (indices  8-11): Walk left
-    //   Row 3 (indices 12-15): Walk right
+    //   Row 1 (indices  4- 7): Walk left
+    //   Row 2 (indices  8-11): Walk right
+    //   Row 3 (indices 12-15): Walk up
     let texture = asset_server.load("sprites/character_spritesheet.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::new(48, 48), 4, 4, None, None);
     let layout_handle = layouts.add(layout);
@@ -40,6 +40,15 @@ pub fn spawn_player(
     // Cache handles so we don't reload on re-entry (e.g. after loading screen).
     sprite_data.image = texture.clone();
     sprite_data.layout = layout_handle.clone();
+
+    // Load action sprite sheet.
+    // character_actions.png is 2x12 grid of 48x48.
+    let action_tex = asset_server.load("sprites/character_actions.png");
+    let action_layout = TextureAtlasLayout::from_grid(UVec2::new(48, 48), 2, 12, None, None);
+    let action_layout_handle = layouts.add(action_layout);
+    sprite_data.action_image = action_tex;
+    sprite_data.action_layout = action_layout_handle;
+
     sprite_data.loaded = true;
 
     commands.spawn((
@@ -61,6 +70,7 @@ pub fn spawn_player(
                 },
             );
             s.anchor = bevy::sprite::Anchor::BottomCenter;
+            s.custom_size = Some(Vec2::new(28.0, 28.0));
             s
         },
         // Logical position for pixel-perfect rendering (movement writes here)

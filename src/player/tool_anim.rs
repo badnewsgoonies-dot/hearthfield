@@ -54,23 +54,33 @@ pub fn animate_tool_use(
         {
             let duration = tool_frame_duration(tool);
 
-            // Facing-direction base index in the walk atlas
+            // Spritesheet layout: Row 0=Down, Row 1=Left, Row 2=Right, Row 3=Up
             let facing_base: usize = match movement.facing {
                 Facing::Down => 0,
-                Facing::Up => 4,
-                Facing::Left => 8,
-                Facing::Right => 12,
+                Facing::Left => 4,
+                Facing::Right => 8,
+                Facing::Up => 12,
             };
 
             if frame == 0 && *frame_timer == 0.0 {
-                // First frame: set the bob start index only.
-                // Do NOT overwrite sprite.image — spawn.rs already set the correct
-                // spritesheet handle. Overwriting with walk_sprites.image risks using a
-                // stale or default handle, causing the sprite to vanish.
+                // First frame: swap to action atlas, set base index
+                sprite.image = walk_sprites.action_image.clone();
                 if let Some(atlas) = &mut sprite.texture_atlas {
-                    atlas.index = facing_base + 1;
+                    atlas.layout = walk_sprites.action_layout.clone();
+
+                    let tool_idx = match tool {
+                        ToolKind::Hoe => 0,
+                        ToolKind::WateringCan => 1,
+                        ToolKind::Axe => 2,
+                        ToolKind::Pickaxe => 3,
+                        ToolKind::FishingRod => 4,
+                        ToolKind::Scythe => 5,
+                    };
+                    atlas.index = tool_idx * 4;
                 }
                 *impact_fired = false;
+                // Wind-up tint: slightly dim the sprite
+                sprite.color = Color::srgb(0.85, 0.85, 0.9);
             }
 
             // Accumulate time
@@ -79,6 +89,8 @@ pub fn animate_tool_use(
             // Emit impact event on frame 2 (once)
             if frame >= 2 && !*impact_fired {
                 *impact_fired = true;
+                // Impact flash: bright white burst so tool use is clearly visible
+                sprite.color = Color::srgb(1.5, 1.5, 1.2);
                 let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
                 let (px, py) = (g.x, g.y);
                 let (dx, dy) = facing_offset(&movement.facing);
@@ -96,8 +108,11 @@ pub fn animate_tool_use(
                 let new_frame = frame + 1;
 
                 if new_frame >= total_frames {
-                    // Animation complete — return to idle pose
+                    // Animation complete — return to idle pose and normal color
+                    sprite.color = Color::WHITE;
+                    sprite.image = walk_sprites.image.clone();
                     if let Some(atlas) = &mut sprite.texture_atlas {
+                        atlas.layout = walk_sprites.layout.clone();
                         atlas.index = facing_base;
                     }
                     movement.anim_state = if movement.is_moving {
@@ -108,10 +123,21 @@ pub fn animate_tool_use(
                     *frame_timer = 0.0;
                     *impact_fired = false;
                 } else {
-                    // Bob through walk frames: cycle 1 → 2 → 3 → 0
+                    // Update action frame
                     if let Some(atlas) = &mut sprite.texture_atlas {
-                        let walk_frame = (new_frame as usize + 1) % 4;
-                        atlas.index = facing_base + walk_frame;
+                        let tool_idx = match tool {
+                            ToolKind::Hoe => 0,
+                            ToolKind::WateringCan => 1,
+                            ToolKind::Axe => 2,
+                            ToolKind::Pickaxe => 3,
+                            ToolKind::FishingRod => 4,
+                            ToolKind::Scythe => 5,
+                        };
+                        atlas.index = tool_idx * 4 + new_frame as usize;
+                    }
+                    // Recovery frame: fade back toward normal
+                    if new_frame == 3 {
+                        sprite.color = Color::srgb(1.15, 1.15, 1.05);
                     }
                     movement.anim_state = PlayerAnimState::ToolUse {
                         tool,

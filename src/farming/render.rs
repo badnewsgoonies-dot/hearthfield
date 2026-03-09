@@ -10,6 +10,7 @@ use super::{
     FarmingAtlases, SoilTileEntity,
 };
 use crate::shared::*;
+use crate::world::objects::WindSway;
 use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -436,6 +437,11 @@ pub fn sync_crop_sprites(
                     },
                     crop,
                     growth_anim,
+                    WindSway {
+                        offset: (pos.0 * pos.1) as f32,
+                        speed: 1.2,
+                        amount: 0.03,
+                    },
                 ))
                 .id()
         } else {
@@ -463,6 +469,11 @@ pub fn sync_crop_sprites(
                     },
                     crop,
                     growth_anim,
+                    WindSway {
+                        offset: (pos.0 * pos.1) as f32,
+                        speed: 1.2,
+                        amount: 0.03,
+                    },
                 ))
                 .id()
         };

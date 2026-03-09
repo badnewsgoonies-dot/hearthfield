@@ -228,9 +228,9 @@ pub fn load_animal_sprites(
 /// `bob_non_atlas_animals` in PostUpdate after position sync.
 pub fn animate_animal_sprites(
     time: Res<Time>,
-    mut query: Query<(&WanderAi, &mut Sprite, &mut AnimalAnimTimer)>,
+    mut query: Query<(&WanderAi, Option<&Facing>, &mut Sprite, &mut AnimalAnimTimer)>,
 ) {
-    for (wander, mut sprite, mut anim) in query.iter_mut() {
+    for (wander, facing_opt, mut sprite, mut anim) in query.iter_mut() {
         let is_moving = wander.target.is_some();
 
         if is_moving {
@@ -244,7 +244,27 @@ pub fn animate_animal_sprites(
         }
 
         if let Some(atlas) = &mut sprite.texture_atlas {
-            atlas.index = anim.current_frame;
+            // Calculate base index based on facing.
+            // Layout: Row 0=Down, 1=Left, 2=Right, 3=Up
+            // Each row has 6 frames, but the grid is 24 cols.
+            // Wait, the grid is 24 cols, 4 rows.
+            // If it's 24 cols * 4 rows, each row has 24 columns!
+            // Actually, the original comment said "Each sprite sheet has 24 cols = 6 frames * 4 directions."
+            // This means there is 1 row, or the columns themselves contain the directions.
+            // Let's assume the directions are distributed along the 24 columns:
+            // Down: 0..5, Left: 6..11, Right: 12..17, Up: 18..23
+            let dir_offset = if let Some(facing) = facing_opt {
+                match facing {
+                    Facing::Down => 0,
+                    Facing::Left => 6,
+                    Facing::Right => 12,
+                    Facing::Up => 18,
+                }
+            } else {
+                0
+            };
+
+            atlas.index = dir_offset + anim.current_frame;
         }
     }
 }

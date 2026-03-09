@@ -11,11 +11,11 @@ use rand::Rng;
 
 pub fn handle_animal_wander(
     time: Res<Time>,
-    mut query: Query<(&mut LogicalPosition, &mut Transform, &mut WanderAi, &Animal)>,
+    mut query: Query<(&mut LogicalPosition, &mut Transform, &mut WanderAi, &Animal, Option<&mut Facing>)>,
 ) {
     let mut rng = rand::thread_rng();
 
-    for (mut logical_pos, mut transform, mut wander, _animal) in query.iter_mut() {
+    for (mut logical_pos, mut transform, mut wander, _animal, facing_opt) in query.iter_mut() {
         // Advance the timer.
         wander.timer.tick(time.delta());
 
@@ -41,9 +41,18 @@ pub fn handle_animal_wander(
                 logical_pos.0.x = logical_pos.0.x.clamp(wander.pen_min.x, wander.pen_max.x);
                 logical_pos.0.y = logical_pos.0.y.clamp(wander.pen_min.y, wander.pen_max.y);
 
-                // Flip sprite horizontally based on direction.
-                if movement.x.abs() > 0.1 {
-                    transform.scale.x = if movement.x > 0.0 { 1.0 } else { -1.0 };
+                // Update facing direction based on movement.
+                if let Some(mut facing) = facing_opt {
+                    if movement.x.abs() > movement.y.abs() {
+                        *facing = if movement.x > 0.0 { Facing::Right } else { Facing::Left };
+                    } else if movement.y.abs() > 0.1 {
+                        *facing = if movement.y > 0.0 { Facing::Up } else { Facing::Down };
+                    }
+                } else {
+                    // Fallback for animals without Facing (should not happen now, but just in case)
+                    if movement.x.abs() > 0.1 {
+                        transform.scale.x = if movement.x > 0.0 { 1.0 } else { -1.0 };
+                    }
                 }
             }
         } else if wander.timer.just_finished() {

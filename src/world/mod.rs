@@ -31,11 +31,11 @@ use lighting::{
 use map_data::MapRegistry;
 use maps::{generate_map, MapDef};
 use objects::{
-    handle_forageable_pickup, handle_tool_use_on_objects, handle_weed_scythe,
-    regrow_trees_on_season_change, spawn_building_signs, spawn_building_sprites,
-    spawn_carpenter_board, spawn_crafting_bench, spawn_daily_weeds, spawn_forageables,
-    spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects, update_forage_sparkles,
-    update_tree_sprites_on_season_change, WorldObject,
+    animate_doors, animate_wind_sway, handle_forageable_pickup, handle_tool_use_on_objects,
+    handle_weed_scythe, regrow_trees_on_season_change, spawn_building_signs,
+    spawn_building_sprites, spawn_carpenter_board, spawn_crafting_bench, spawn_daily_weeds,
+    spawn_forageables, spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects,
+    update_forage_sparkles, update_tree_sprites_on_season_change, WorldObject,
 };
 use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
@@ -124,6 +124,9 @@ impl Plugin for WorldPlugin {
                     spawn_grass_decorations,
                     // Water tile animation
                     animate_water_tiles,
+                    // Wind sway and door animations
+                    animate_wind_sway,
+                    animate_doors,
                 )
                     .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
@@ -520,23 +523,17 @@ fn tile_atlas_info(
             417,
         )),
 
-        // Water: use grass-water transition tiles from terrain atlas when bordering land.
-        // Pure water centers (no land neighbors) use the dedicated water.png atlas
-        // which has 4 proper animation frames.
+        // Water: always use terrain atlas transition tiles.
+        // water.png contains wrong art (gold decorative, not water), so we avoid it.
+        // Pure water centers (land_mask=0) get terrain atlas index 49 (water center).
         TileKind::Water => {
             let land_mask = neighbor_bitmask(tiles, x, y, width, height, |t| t != TileKind::Water);
-            if land_mask == 0 {
-                // Pure water center → use water.png for animation (4 frames, start at 0)
-                Some((atlases.water_image.clone(), atlases.water_layout.clone(), 0))
-            } else {
-                // Water bordering land → use terrain atlas transition tile
-                let index = water_grass_transition_index(land_mask);
-                Some((
-                    atlases.terrain_image.clone(),
-                    atlases.terrain_layout.clone(),
-                    index,
-                ))
-            }
+            let index = water_grass_transition_index(land_mask);
+            Some((
+                atlases.terrain_image.clone(),
+                atlases.terrain_layout.clone(),
+                index,
+            ))
         }
 
         // Sand: modern_farm_terrain.png, row 5 col 1 (idx 161) — uniform sand.
@@ -908,17 +905,12 @@ fn spawn_tile_sprites(
                         )),
                         MapTile,
                     ));
-                    // Tag water tiles for animation cycling and spawn edge overlays
+                    // Tag water tiles for edge overlays (no animation — terrain atlas
+                    // indices are not consecutive animation frames).
                     if tile == TileKind::Water {
                         let mask =
                             water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
                         entity_cmd.insert((WaterTile, WaterEdgeMask(mask)));
-                        // Only add animation base index for pure water centers (no land neighbors).
-                        // Transition tiles have grass edges and should not cycle through
-                        // adjacent atlas indices which are different transition shapes.
-                        if mask == 0 {
-                            entity_cmd.insert(WaterBaseIndex(index));
-                        }
                         if mask != 0 {
                             spawn_water_edge_overlays(commands, x, y, mask, season);
                         }

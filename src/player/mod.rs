@@ -108,6 +108,8 @@ pub struct PlayerSpriteData {
     pub loaded: bool,
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
+    pub action_image: Handle<Image>,
+    pub action_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Drives walk-cycle frames based on distance traveled, not time.

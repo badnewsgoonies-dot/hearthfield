@@ -176,9 +176,8 @@ pub fn spawn_npcs_for_map(
                 index: 0,
             },
         );
-        // Both player and NPC sprites fill the full 48×48 frame.
-        // No custom_size needed — native size + camera zoom gives correct scale.
         sprite.anchor = bevy::sprite::Anchor::BottomCenter;
+        sprite.custom_size = Some(Vec2::new(24.0, 24.0));
 
         let entity = commands
             .spawn((
@@ -196,6 +195,7 @@ pub fn spawn_npcs_for_map(
                     timer: Timer::from_seconds(0.15, TimerMode::Repeating),
                     frame_count: 4,
                     current_frame: 0,
+                    last_base: 0, // default facing down; updated on first movement
                 },
                 NpcMapTag(map),
                 sprite,
@@ -215,7 +215,7 @@ pub fn spawn_npcs_for_map(
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 50.0, 0.1),
+                Transform::from_xyz(0.0, 26.0, 0.1),
             ));
         });
 

@@ -104,6 +104,8 @@ pub struct ObjectAtlases {
     pub house_roof_layout: Handle<TextureAtlasLayout>,
     pub doors_image: Handle<Image>,
     pub doors_layout: Handle<TextureAtlasLayout>,
+    pub door_anim_image: Handle<Image>,
+    pub door_anim_layout: Handle<TextureAtlasLayout>,
     pub hills_image: Handle<Image>,
     pub hills_layout: Handle<TextureAtlasLayout>,
     pub wood_bridge_image: Handle<Image>,
@@ -185,6 +187,16 @@ pub fn ensure_object_atlases_loaded(
         UVec2::new(16, 16),
         1,
         4,
+        None,
+        None,
+    ));
+
+    // door_anim.png
+    atlases.door_anim_image = asset_server.load("sprites/door_anim.png");
+    atlases.door_anim_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        7,
+        1,
         None,
         None,
     ));
@@ -485,6 +497,60 @@ impl WorldObjectKind {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ANIMATIONS (WIND SWAY & DOORS)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[derive(Component)]
+pub struct WindSway {
+    pub offset: f32,
+    pub speed: f32,
+    pub amount: f32,
+}
+
+pub fn animate_wind_sway(
+    time: Res<Time>,
+    mut query: Query<(&WindSway, &mut Transform)>,
+) {
+    let t = time.elapsed_secs();
+    for (sway, mut transform) in query.iter_mut() {
+        let angle = (t * sway.speed + sway.offset).sin() * sway.amount;
+        transform.rotation = Quat::from_rotation_z(angle);
+    }
+}
+
+#[derive(Component)]
+pub struct DoorAnimTimer {
+    pub timer: Timer,
+    pub frames: usize,
+    pub current_frame: usize,
+    pub ping_pong_dir: i32,
+}
+
+pub fn animate_doors(
+    time: Res<Time>,
+    mut query: Query<(&mut DoorAnimTimer, &mut Sprite)>,
+) {
+    for (mut anim, mut sprite) in query.iter_mut() {
+        anim.timer.tick(time.delta());
+        if anim.timer.just_finished() {
+            let mut next = anim.current_frame as i32 + anim.ping_pong_dir;
+            if next < 0 {
+                next = 1;
+                anim.ping_pong_dir = 1;
+            } else if next >= anim.frames as i32 {
+                next = anim.frames as i32 - 2;
+                anim.ping_pong_dir = -1;
+            }
+            anim.current_frame = next as usize;
+            
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                atlas.index = anim.current_frame;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // SPAWNING
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -549,13 +615,21 @@ pub fn spawn_world_objects(
             sprite.custom_size = Some(size);
 
             let wc = grid_to_world_center(placement.x, placement.y);
-            commands.spawn((
+            let mut entity_cmds = commands.spawn((
                 sprite,
                 Transform::from_translation(Vec3::new(wc.x, wc.y + y_offset, Z_ENTITY_BASE)),
                 WorldObject,
                 YSorted,
                 data,
             ));
+            
+            if is_tree || matches!(kind, WorldObjectKind::Bush) {
+                entity_cmds.insert(WindSway {
+                    offset: (placement.x * placement.y) as f32, // varied start phase
+                    speed: 1.5,
+                    amount: if is_tree { 0.05 } else { 0.03 },
+                });
+            }
         } else {
             // Fallback: colored rectangle if atlases failed to load
             let wc = grid_to_world_center(placement.x, placement.y);
@@ -1026,6 +1100,11 @@ pub fn spawn_daily_weeds(
                 Weed {
                     grid_x: x,
                     grid_y: y,
+                },
+                WindSway {
+                    offset: (x * y) as f32,
+                    speed: 1.2,
+                    amount: 0.03,
                 },
             ));
 
@@ -1699,13 +1778,19 @@ pub fn spawn_building_sprites(
             // --- DOOR ---
             let dwc = grid_to_world_center(bld.door_x, bld.door_y);
             let mut door_sprite = Sprite::from_atlas_image(
-                object_atlases.doors_image.clone(),
+                object_atlases.door_anim_image.clone(),
                 TextureAtlas {
-                    layout: object_atlases.doors_layout.clone(),
-                    index: 1,
+                    layout: object_atlases.door_anim_layout.clone(),
+                    index: 0,
                 },
             );
-            door_sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
+            // The door sprite is 32x32, which spans two tiles horizontally.
+            // We'll scale it to TILE_SIZE*2 for width and TILE_SIZE*2 for height to match the art ratio,
+            // or perhaps keep it original size and just position it.
+            // Wait, we'll just set it to 32x32 (Vec2::new(32., 32.)) or custom_size = None.
+            // Let's use custom_size = None to draw it at 32x32 natively.
+            // Since it's larger, it might overlap other tiles, but that's typical for building components.
+            door_sprite.custom_size = Some(Vec2::splat(TILE_SIZE * 2.0));
 
             commands.spawn((
                 BuildingOverlay,
@@ -1713,6 +1798,12 @@ pub fn spawn_building_sprites(
                 door_sprite,
                 Transform::from_xyz(dwc.x, dwc.y, Z_GROUND + 2.0),
                 Visibility::default(),
+                DoorAnimTimer {
+                    timer: Timer::from_seconds(0.4, TimerMode::Repeating),
+                    frames: 7,
+                    current_frame: 0,
+                    ping_pong_dir: 1,
+                },
             ));
         }
     }

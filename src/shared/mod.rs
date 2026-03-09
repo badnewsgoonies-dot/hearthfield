@@ -154,7 +154,7 @@ impl Calendar {
 // PLAYER
 // ═══════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, Component)]
 pub enum Facing {
     Up,
     #[default]
