@@ -67,11 +67,7 @@ fn variant_hash(x: usize, y: usize) -> u32 {
 
 /// Returns (atlas_index, should_spawn) for a grass decoration at (x,y).
 /// `threshold` controls what % of tiles get decorations (lower = more).
-fn decoration_for_season(
-    season: Season,
-    x: usize,
-    y: usize,
-) -> Option<usize> {
+fn decoration_for_season(season: Season, x: usize, y: usize) -> Option<usize> {
     let h = tile_hash(x, y);
     let v = variant_hash(x, y);
 

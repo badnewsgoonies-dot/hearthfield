@@ -1,16 +1,19 @@
-use super::{facing_offset, ActionSpriteData, PlayerSpriteData};
+use super::{facing_offset, PlayerSpriteData};
 use crate::shared::*;
 use bevy::prelude::*;
 
-// Action atlas base indices (2 cols × 12 rows, indexed left-to-right, top-to-bottom)
-// Each tool gets 4 frames (2 frames × 2 rows per tool direction).
-// Layout: 6 tools × 4 frames = 24 total
-const ACTION_HOE_BASE: usize = 0;
-const ACTION_WATER_BASE: usize = 4;
-const ACTION_AXE_BASE: usize = 8;
-const ACTION_PICK_BASE: usize = 12;
-const ACTION_FISH_BASE: usize = 16;
-const ACTION_SCYTHE_BASE: usize = 20;
+/// Per-tool frame duration in seconds. Heavy tools feel weighty,
+/// light tools feel snappy. Total animation = duration × 4 frames.
+fn tool_frame_duration(tool: ToolKind) -> f32 {
+    match tool {
+        ToolKind::Axe => 0.15,         // 0.60s total — heavy, impactful chop
+        ToolKind::Pickaxe => 0.14,     // 0.56s total — heavy swing
+        ToolKind::Hoe => 0.12,         // 0.48s total — deliberate tilling
+        ToolKind::FishingRod => 0.11,  // 0.44s total — quick cast flick
+        ToolKind::WateringCan => 0.10, // 0.40s total — smooth pour
+        ToolKind::Scythe => 0.08,      // 0.32s total — fast sweep
+    }
+}
 
 /// Plays a sound effect when a tool impact occurs.
 pub fn handle_tool_impact_sfx(
@@ -32,48 +35,18 @@ pub fn handle_tool_impact_sfx(
     }
 }
 
-/// Map (tool, frame) → atlas index in character_actions.png.
-fn action_atlas_index(tool: ToolKind, frame: usize) -> usize {
-    let tool_offset = match tool {
-        ToolKind::Hoe => ACTION_HOE_BASE,
-        ToolKind::WateringCan => ACTION_WATER_BASE,
-        ToolKind::Axe => ACTION_AXE_BASE,
-        ToolKind::Pickaxe => ACTION_PICK_BASE,
-        ToolKind::FishingRod => ACTION_FISH_BASE,
-        ToolKind::Scythe => ACTION_SCYTHE_BASE,
-    };
-    tool_offset + frame
-}
-
-/// Per-tool frame duration in seconds. Heavy tools feel weighty,
-/// light tools feel snappy. Total animation = duration × 4 frames.
-fn tool_frame_duration(tool: ToolKind) -> f32 {
-    match tool {
-        ToolKind::Axe => 0.15,         // 0.60s total — heavy, impactful chop
-        ToolKind::Pickaxe => 0.14,     // 0.56s total — heavy swing
-        ToolKind::Hoe => 0.12,         // 0.48s total — deliberate tilling
-        ToolKind::FishingRod => 0.11,  // 0.44s total — quick cast flick
-        ToolKind::WateringCan => 0.10, // 0.40s total — smooth pour
-        ToolKind::Scythe => 0.08,      // 0.32s total — fast sweep
-    }
-}
-
-/// System: when PlayerAnimState is ToolUse, swap to action atlas and
-/// advance frames on a timer. Each tool has a distinct frame duration
-/// so heavy tools feel weighty and light tools feel snappy.
+/// System: when PlayerAnimState is ToolUse, cycle through the walk frames
+/// in the current facing direction to create a "bob" effect.
+/// Each tool has a distinct frame duration so heavy tools feel weighty.
 pub fn animate_tool_use(
     time: Res<Time>,
-    action_sprites: Option<Res<ActionSpriteData>>,
     walk_sprites: Res<PlayerSpriteData>,
     mut query: Query<(Entity, &mut PlayerMovement, &mut Sprite, &LogicalPosition), With<Player>>,
     mut impact_events: EventWriter<ToolImpactEvent>,
     mut frame_timer: Local<f32>,
     mut impact_fired: Local<bool>,
 ) {
-    let Some(action_data) = action_sprites else {
-        return;
-    };
-    if !action_data.loaded {
+    if !walk_sprites.loaded {
         return;
     }
 
@@ -86,15 +59,21 @@ pub fn animate_tool_use(
         {
             let duration = tool_frame_duration(tool);
 
+            // Facing-direction base index in the walk atlas
+            let facing_base: usize = match movement.facing {
+                Facing::Down => 0,
+                Facing::Up => 4,
+                Facing::Left => 8,
+                Facing::Right => 12,
+            };
+
             if frame == 0 && *frame_timer == 0.0 {
-                // First frame: swap atlas to action sheet, reset impact flag
-                sprite.image = action_data.image.clone();
+                // First frame: ensure walk atlas, set to walk frame 1 (bob start)
+                sprite.image = walk_sprites.image.clone();
                 if let Some(atlas) = &mut sprite.texture_atlas {
-                    atlas.layout = action_data.layout.clone();
-                    atlas.index = action_atlas_index(tool, 0);
+                    atlas.layout = walk_sprites.layout.clone();
+                    atlas.index = facing_base + 1;
                 }
-                // Mirror sprite when facing left for directional tool animations
-                sprite.flip_x = movement.facing == Facing::Left;
                 *impact_fired = false;
             }
 
@@ -121,21 +100,10 @@ pub fn animate_tool_use(
                 let new_frame = frame + 1;
 
                 if new_frame >= total_frames {
-                    // Animation complete — swap back to walk atlas
-                    sprite.image = walk_sprites.image.clone();
-                    let facing_base: usize = match movement.facing {
-                        Facing::Down => 0,
-                        Facing::Up => 4,
-                        Facing::Left => 8,
-                        Facing::Right => 12,
-                    };
+                    // Animation complete — return to idle pose
                     if let Some(atlas) = &mut sprite.texture_atlas {
-                        atlas.layout = walk_sprites.layout.clone();
                         atlas.index = facing_base;
                     }
-                    // Reset flip since walk animation handles its own flipping
-                    sprite.flip_x = false;
-                    // Avoid 1-frame idle flicker: if player is moving, go straight to Walk
                     movement.anim_state = if movement.is_moving {
                         PlayerAnimState::Walk
                     } else {
@@ -144,9 +112,10 @@ pub fn animate_tool_use(
                     *frame_timer = 0.0;
                     *impact_fired = false;
                 } else {
-                    // Advance frame
+                    // Bob through walk frames: cycle 1 → 2 → 3 → 0
                     if let Some(atlas) = &mut sprite.texture_atlas {
-                        atlas.index = action_atlas_index(tool, new_frame as usize);
+                        let walk_frame = (new_frame as usize + 1) % 4;
+                        atlas.index = facing_base + walk_frame;
                     }
                     movement.anim_state = PlayerAnimState::ToolUse {
                         tool,
@@ -161,4 +130,58 @@ pub fn animate_tool_use(
             *impact_fired = false;
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tile cursor: highlights the tile the equipped tool will act on
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Marker component for the tile cursor entity.
+#[derive(Component)]
+pub struct ToolTileCursor;
+
+/// Spawn the tile cursor entity once on entering Playing state.
+pub fn spawn_tool_cursor(mut commands: Commands) {
+    commands.spawn((
+        ToolTileCursor,
+        Sprite {
+            color: Color::srgba(1.0, 1.0, 0.6, 0.35),
+            custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+            anchor: bevy::sprite::Anchor::BottomLeft,
+            ..default()
+        },
+        Transform::from_xyz(0.0, 0.0, Z_FARM_OVERLAY + 1.0),
+        Visibility::default(),
+    ));
+}
+
+/// Each frame, move the cursor to the tile the player is facing.
+pub fn update_tool_cursor(
+    player_query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
+    mut cursor_query: Query<(&mut Transform, &mut Visibility), With<ToolTileCursor>>,
+    input_blocks: Res<InputBlocks>,
+) {
+    let Ok((pos, movement)) = player_query.get_single() else {
+        return;
+    };
+    let Ok((mut cursor_tf, mut cursor_vis)) = cursor_query.get_single_mut() else {
+        return;
+    };
+
+    // Hide cursor when input is blocked (menus, dialogue, etc.)
+    if input_blocks.is_blocked() {
+        *cursor_vis = Visibility::Hidden;
+        return;
+    }
+
+    *cursor_vis = Visibility::Inherited;
+
+    let g = world_to_grid(pos.0.x, pos.0.y);
+    let (dx, dy) = facing_offset(&movement.facing);
+    let target_x = g.x + dx;
+    let target_y = g.y + dy;
+
+    // Position cursor at the target tile's bottom-left corner
+    cursor_tf.translation.x = target_x as f32 * TILE_SIZE;
+    cursor_tf.translation.y = target_y as f32 * TILE_SIZE;
 }

@@ -1406,9 +1406,11 @@ struct BuildingDef {
 }
 
 /// Town building definitions.
+/// All use composite sprites (farmhouse/barn) with distinct tints.
+/// The legacy tile-by-tile path had invisible roofs (empty tileset rows).
 fn town_buildings() -> Vec<BuildingDef> {
     vec![
-        // General Store (north-west)
+        // General Store (north-west) — warm tint
         BuildingDef {
             x: 2,
             y: 2,
@@ -1416,10 +1418,10 @@ fn town_buildings() -> Vec<BuildingDef> {
             h: 5,
             door_x: 5,
             door_y: 2,
-            roof_tint: Color::srgb(0.85, 0.55, 0.4),
-            composite: None,
+            roof_tint: Color::srgb(0.95, 0.85, 0.75),
+            composite: Some(BuildingImage::Farmhouse),
         },
-        // Animal Shop (north-east)
+        // Animal Shop (north-east) — cool blue tint
         BuildingDef {
             x: 18,
             y: 2,
@@ -1427,10 +1429,10 @@ fn town_buildings() -> Vec<BuildingDef> {
             h: 5,
             door_x: 22,
             door_y: 2,
-            roof_tint: Color::srgb(0.5, 0.7, 0.85),
-            composite: None,
+            roof_tint: Color::srgb(0.75, 0.85, 0.95),
+            composite: Some(BuildingImage::Farmhouse),
         },
-        // Blacksmith (east, below plaza)
+        // Blacksmith (east, below plaza) — dark metallic tint
         BuildingDef {
             x: 20,
             y: 13,
@@ -1438,10 +1440,10 @@ fn town_buildings() -> Vec<BuildingDef> {
             h: 4,
             door_x: 22,
             door_y: 13,
-            roof_tint: Color::srgb(0.6, 0.55, 0.55),
-            composite: None,
+            roof_tint: Color::srgb(0.7, 0.65, 0.65),
+            composite: Some(BuildingImage::Barn),
         },
-        // NPC House 1 (west, below plaza — doc/librarian area)
+        // NPC House 1 (west, below plaza — doc/librarian area) — green tint
         BuildingDef {
             x: 2,
             y: 13,
@@ -1449,10 +1451,10 @@ fn town_buildings() -> Vec<BuildingDef> {
             h: 3,
             door_x: 3,
             door_y: 13,
-            roof_tint: Color::srgb(0.75, 0.85, 0.6),
-            composite: None,
+            roof_tint: Color::srgb(0.8, 0.9, 0.75),
+            composite: Some(BuildingImage::Farmhouse),
         },
-        // NPC House 2 (center-west, below plaza — fisher/kid)
+        // NPC House 2 (center-west, below plaza — fisher/kid) — golden tint
         BuildingDef {
             x: 8,
             y: 13,
@@ -1460,8 +1462,8 @@ fn town_buildings() -> Vec<BuildingDef> {
             h: 3,
             door_x: 9,
             door_y: 13,
-            roof_tint: Color::srgb(0.85, 0.75, 0.55),
-            composite: None,
+            roof_tint: Color::srgb(0.95, 0.88, 0.7),
+            composite: Some(BuildingImage::Farmhouse),
         },
     ]
 }
@@ -1564,6 +1566,7 @@ pub fn spawn_building_sprites(
             let handle = resolve_building_image(img, &object_atlases);
             let mut sprite = Sprite::from_image(handle);
             sprite.custom_size = Some(Vec2::new(render_w, render_h));
+            sprite.color = bld.roof_tint;
 
             commands.spawn((
                 BuildingOverlay,

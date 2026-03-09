@@ -14,8 +14,8 @@ pub use bench::{CraftItemEvent, CraftingUiState, OpenCraftingEvent};
 pub use buffs::food_buff_for_item;
 pub use machines::{
     item_to_machine_type, machine_atlas_index, CollectMachineOutputEvent, InsertMachineInputEvent,
-    MachineAnimTimer, MachineType, PlaceMachineEvent, ProcessingMachine,
-    ProcessingMachineRegistry, SavedMachine,
+    MachineAnimTimer, MachineType, PlaceMachineEvent, ProcessingMachine, ProcessingMachineRegistry,
+    SavedMachine,
 };
 pub use recipes::{
     make_cooking_recipe, make_crafting_recipe, populate_recipe_registry, ALL_COOKING_RECIPE_IDS,
@@ -87,8 +87,7 @@ impl Plugin for CraftingPlugin {
             // ------------------------------------------------------------------
             .add_systems(
                 PostUpdate,
-                machines::animate_processing_machines
-                    .run_if(in_state(GameState::Playing)),
+                machines::animate_processing_machines.run_if(in_state(GameState::Playing)),
             );
     }
 }

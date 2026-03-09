@@ -333,7 +333,10 @@ mod tests {
 
     #[test]
     fn test_fishing_skill_max_level_cap() {
-        let mut skill = FishingSkill { xp: 5000, ..FishingSkill::default() };
+        let mut skill = FishingSkill {
+            xp: 5000,
+            ..FishingSkill::default()
+        };
         skill.recalculate();
         assert_eq!(skill.level, 10);
         // bite_speed_bonus caps at 0.5
@@ -351,7 +354,10 @@ mod tests {
 
     #[test]
     fn test_apply_bite_speed_with_bonus() {
-        let mut skill = FishingSkill { xp: 10, ..FishingSkill::default() };
+        let mut skill = FishingSkill {
+            xp: 10,
+            ..FishingSkill::default()
+        };
         skill.recalculate();
         let result = skill.apply_bite_speed(10.0);
         // level 1 -> 0.05 bonus: 10.0 * (1.0 - 0.05) = 9.5
@@ -360,7 +366,10 @@ mod tests {
 
     #[test]
     fn test_apply_bite_speed_zero_input() {
-        let mut skill = FishingSkill { xp: 100, ..FishingSkill::default() };
+        let mut skill = FishingSkill {
+            xp: 100,
+            ..FishingSkill::default()
+        };
         skill.recalculate();
         let result = skill.apply_bite_speed(0.0);
         assert!(
@@ -371,7 +380,10 @@ mod tests {
 
     #[test]
     fn test_apply_catch_zone_with_bonus() {
-        let mut skill = FishingSkill { xp: 25, ..FishingSkill::default() };
+        let mut skill = FishingSkill {
+            xp: 25,
+            ..FishingSkill::default()
+        };
         skill.recalculate();
         assert_eq!(skill.level, 2);
         let result = skill.apply_catch_zone(50.0);

@@ -580,8 +580,57 @@
         Void,
         Void,
     ],
-    objects: [],
-    forage_points: [],
+    objects: [
+        // Scattered breakable rocks throughout the mine floor
+        // -- North wall area --
+        (x: 4, y: 20, kind: LargeRock),
+        (x: 8, y: 21, kind: Rock),
+        (x: 12, y: 20, kind: Rock),
+        (x: 16, y: 21, kind: LargeRock),
+        (x: 19, y: 20, kind: Rock),
+        // -- East side --
+        (x: 19, y: 17, kind: Rock),
+        (x: 20, y: 15, kind: LargeRock),
+        (x: 18, y: 13, kind: Rock),
+        (x: 20, y: 10, kind: Rock),
+        (x: 19, y: 7, kind: LargeRock),
+        (x: 20, y: 4, kind: Rock),
+        // -- West side --
+        (x: 3, y: 17, kind: Rock),
+        (x: 2, y: 15, kind: LargeRock),
+        (x: 4, y: 13, kind: Rock),
+        (x: 3, y: 10, kind: Rock),
+        (x: 2, y: 7, kind: LargeRock),
+        (x: 3, y: 4, kind: Rock),
+        // -- Central clusters (avoid spawn at 12,12 and exit at 7-8,12-13) --
+        (x: 6, y: 18, kind: Rock),
+        (x: 10, y: 17, kind: Rock),
+        (x: 14, y: 18, kind: LargeRock),
+        (x: 11, y: 15, kind: Rock),
+        (x: 15, y: 16, kind: Rock),
+        (x: 5, y: 8, kind: Rock),
+        (x: 9, y: 6, kind: LargeRock),
+        (x: 14, y: 7, kind: Rock),
+        (x: 17, y: 5, kind: Rock),
+        (x: 7, y: 4, kind: Rock),
+        // -- Near the dirt dig site --
+        (x: 5, y: 10, kind: Rock),
+        (x: 8, y: 10, kind: Rock),
+        // -- Near the wood staging area --
+        (x: 13, y: 10, kind: Rock),
+        (x: 16, y: 10, kind: Rock),
+        // -- South area --
+        (x: 5, y: 2, kind: LargeRock),
+        (x: 10, y: 2, kind: Rock),
+        (x: 15, y: 3, kind: Rock),
+        (x: 19, y: 2, kind: LargeRock),
+    ],
+    forage_points: [
+        (6, 14),
+        (8, 8),
+        (15, 14),
+        (17, 8),
+    ],
     spawn_pos: (12, 12),
     transitions: [
         (

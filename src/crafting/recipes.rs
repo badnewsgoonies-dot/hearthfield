@@ -285,10 +285,7 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
         "lamppost" => Recipe {
             id: "lamppost".into(),
             name: "Lamppost".into(),
-            ingredients: vec![
-                ("iron_bar".into(), 3),
-                ("coal".into(), 1),
-            ],
+            ingredients: vec![("iron_bar".into(), 3), ("coal".into(), 1)],
             result: "lamppost".into(),
             result_quantity: 1,
             is_cooking: false,

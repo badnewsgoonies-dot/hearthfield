@@ -681,6 +681,20 @@
             y: 7,
             kind: Bush,
         ),
+        // Plaza area decoration
+        (x: 11, y: 9, kind: Bush),
+        (x: 16, y: 9, kind: Bush),
+        // Between buildings and paths
+        (x: 1, y: 8, kind: Bush),
+        (x: 26, y: 8, kind: Bush),
+        // Along south edge
+        (x: 14, y: 17, kind: Tree),
+        (x: 17, y: 17, kind: Tree),
+        (x: 24, y: 0, kind: Bush),
+        (x: 12, y: 0, kind: Bush),
+        // Near town pond
+        (x: 10, y: 18, kind: Bush),
+        (x: 15, y: 18, kind: Bush),
     ],
     forage_points: [
         (1, 19),

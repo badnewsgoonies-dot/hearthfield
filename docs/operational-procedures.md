@@ -105,6 +105,16 @@ Whenever a player-facing surface is Hardened, check:
 
 If the feature is reachable but feels wrong, it is not finished.
 
+### 1.5 Feel repair protocol
+
+When a feel check dimension fails:
+
+1. Name which dimension failed (clarity, feedback, responsiveness, pacing, or edge behavior) and what the player actually experienced.
+1. File as P1 if the surface is not on the first-60-seconds path. File as P0 if it is.
+1. At Tier S: fix in the current session before committing. At Tier M/C: fix in the current wave if the orchestrator is finishing; defer to next wave if still scaffolding.
+1. After the fix, re-run the feel check on that dimension only. Do not re-run the full check unless the fix touched adjacent surfaces.
+1. If the same dimension fails twice on the same surface, the problem is likely architectural (wrong feedback channel, missing state, bad data flow) not cosmetic. Escalate to a targeted investigation before attempting a third fix.
+
 -----
 
 ## 2. Single-Session Mode (Tier S)
@@ -118,7 +128,7 @@ Use when the orchestrator is also the implementer.
 1. Implement.
 1. Run compile/test gate.
 1. Run a light Harden pass.
-1. Graduate at least one verified player-facing invariant if the change matters to the loop.
+1. Graduate at least one verified player-facing invariant if the change affects a recurring player-facing behavior. One-off fixes (typos, cosmetic tweaks) do not require graduation.
 
 ### 2.2 Minimum Harden artifact
 
@@ -161,13 +171,13 @@ For the touched surface, verify:
 
 Create or confirm:
 
-- `src/shared/types.ts` or equivalent
+- `src/shared/types.ts` (or language equivalent: `shared/mod.rs`, `types.go`, etc.)
 - `.contract.sha256` if shared shapes changed
 - `MANIFEST.md`
 - `docs/spec.md`
 - relevant `docs/domains/*.md`
 
-Freeze shared shapes before parallel workers launch.
+Freeze shared shapes before parallel workers launch. If ambiguity touches seam placement, shared contract shape, or integration ownership, do not invent a new boundary — escalate to the orchestrator.
 
 ### 3.2 Required artifacts
 
@@ -189,6 +199,8 @@ Optional:
 
 Use workers for scaffold work. Use the orchestrator for integration and finishing.
 
+Delegation depth by domain count: 10 or fewer domains, dispatch workers flat from the orchestrator. 10–20 domains, add domain leads between orchestrator and workers. 20+ domains, add an architect layer above domain leads. Each extra handoff is lossy — disk specs become more critical as depth increases.
+
 Required worker template:
 
 ```markdown
@@ -198,6 +210,8 @@ Scope:
 - Allowed path(s): [exact allowlist]
 - No edits outside scope
 - Do not modify shared contract unless explicitly assigned
+- Do not create orchestration infrastructure. Implement only domain deliverables.
+- Do not redefine shared types locally. Import from the contract.
 
 Read in order:
 1. docs/spec.md
@@ -313,8 +327,8 @@ project/
 │   ├── clamp-scope.sh
 │   └── run-gates.sh
 ├── src/
-│   ├── shared/types.ts
-│   ├── data/tuning.toml
+│   ├── shared/types.ts (or lang equivalent)
+│   ├── data/tuning.toml (or lang equivalent)
 │   └── domains/
 ├── MANIFEST.md
 └── .contract.sha256
@@ -342,7 +356,7 @@ Do not freeze:
 Required:
 
 - worker .md
-- worker .json
+- worker .json (required only if automated audit tooling consumes them; otherwise markdown reports are sufficient)
 - per-wave player trace
 - per-wave value audit when tuning changed
 - runtime-surfaces artifact
@@ -397,6 +411,8 @@ Track:
 
 ### 4.6 Integration
 
+Do not carry the full orchestration conversation forward into integration. Start a fresh session. The orchestration conversation is mostly re-read cost by this point — integration needs only the artifacts on disk.
+
 Integration ingests only:
 
 - contract + checksum
@@ -433,11 +449,18 @@ boot → menu → new/load → spawn → movement → first interaction → firs
 
 ### 5.3 Asset Reachability Gate
 
-Classify assets as:
+Classify assets by presence:
 
 - **runtime-used**
 - **present-but-unreferenced**
 - **referenced-but-missing**
+
+Classify runtime-used assets by quality:
+
+- **style-consistent** — matches the visual standard of adjacent assets at the same player-facing surface
+- **placeholder** — functionally correct but visibly mismatched in resolution, palette, or detail level compared to neighboring assets
+
+A surface with placeholder assets adjacent to production assets fails this gate. The fix is either replacing the placeholder or downgrading the production assets to match — not shipping the mismatch.
 
 ### 5.4 Content Reachability Gate
 
@@ -456,6 +479,8 @@ For each event:
 - **consumer(s)**
 
 Fail if either side is missing unless marked future work.
+
+Quick mechanical fallback: `grep -R "shared/types" src/domains/*/` — any domain with zero shared contract imports is hermetic and fails this gate regardless of event wiring claims.
 
 ### 5.6 Save/Load Round-Trip Gate
 
@@ -552,7 +577,9 @@ Do not blame. Do not moralize. Do not widen scope unless the seam is actually wr
 1. **Graduation failure** — missing P0, too much P1 debt, or premature graduation of [Inferred]/[Assumed] claims
 1. **Critical-path uncertainty** — first-60-seconds path is not fully [Observed] at release
 1. **Blame-thrash loop** — repairs become accusatory, abstract, or scope-widening
-1. **Identity collapse** — one session is forced to be architect, worker, and reviewer at once in a campaign-scale build
+1. **Identity collapse** — a build that should be Tier M or Tier C is operating as Tier S to avoid dispatch overhead, forcing one session to be architect, worker, and reviewer on a campaign-scale problem. Tier S operating solo by design is not identity collapse — it is the intended mode for small changes.
+1. **Abstraction reflex** — worker builds orchestration frameworks, dispatch infrastructure, or meta-tools instead of implementing domain deliverables. The fix is not more instruction — it is a narrower worker spec with "Do not create orchestration infrastructure" enforced mechanically via the allowlist.
+1. **Self-model error** — agent claims it cannot do things it can (e.g., "I don't have bash access"), or claims resource states that are false (e.g., reporting 87% context remaining when 2% remains). Do not trust the agent's self-report. Trust the mechanical indicator.
 
 -----
 

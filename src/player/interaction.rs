@@ -169,10 +169,13 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
         }
     }
     if *map == MapId::MineEntrance {
+        if gx >= max_x && (5..=6).contains(&gy) {
+            return Some((MapId::Farm, 1, 9));
+        }
         if gy <= min_y {
             return Some((MapId::Forest, 11, 16));
         }
-        if (6..=7).contains(&gx) && (1..=2).contains(&gy) {
+        if (6..=7).contains(&gx) && gy == 3 {
             return Some((MapId::Mine, 8, 14));
         }
     }
@@ -229,6 +232,33 @@ mod tests {
         assert_eq!(
             edge_transition_from_registry(&MapId::Farm, 0, 10, &reg),
             Some((MapId::MineEntrance, 12, 6))
+        );
+    }
+
+    #[test]
+    fn mine_entrance_east_path_returns_to_farm() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::MineEntrance, 13, 5, &reg),
+            Some((MapId::Farm, 1, 9))
+        );
+    }
+
+    #[test]
+    fn mine_entrance_cave_mouth_enters_mine() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::MineEntrance, 7, 3, &reg),
+            Some((MapId::Mine, 8, 14))
+        );
+    }
+
+    #[test]
+    fn mine_exit_spawn_does_not_immediately_reenter_cave() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::MineEntrance, 7, 4, &reg),
+            None
         );
     }
 }

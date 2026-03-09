@@ -710,7 +710,7 @@ fn generate_mine_entrance() -> MapDef {
         // Cave entrance -> Mine floor 1
         MapTransition {
             from_map: MapId::MineEntrance,
-            from_rect: (6, 1, 2, 2),
+            from_rect: (6, 3, 2, 1),
             to_map: MapId::Mine,
             to_pos: (8, 14),
         },

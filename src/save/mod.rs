@@ -947,9 +947,8 @@ fn handle_load_request(
                     let world_x = saved.grid_x as f32 * TILE_SIZE;
                     let world_y = saved.grid_y as f32 * TILE_SIZE;
                     let machine_sprite = if machines.furniture.loaded {
-                        let mut s = Sprite::from_image(
-                            machines.furniture.processing_machine_image.clone(),
-                        );
+                        let mut s =
+                            Sprite::from_image(machines.furniture.processing_machine_image.clone());
                         s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
                         s
                     } else {

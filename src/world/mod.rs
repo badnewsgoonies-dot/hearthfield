@@ -23,6 +23,7 @@ pub mod seasonal;
 pub mod weather_fx;
 pub mod ysort;
 
+use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use lighting::{
     despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
     update_lightning_flash, LightningFlash,
@@ -40,7 +41,6 @@ use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
     SeasonalTintApplied,
 };
-use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
     update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
@@ -324,10 +324,18 @@ fn neighbor_bitmask(
     pred: impl Fn(TileKind) -> bool,
 ) -> u8 {
     let mut mask: u8 = 0;
-    if neighbor_is(tiles, x, y, width, height, 0, 1, &pred) { mask |= 0b0001; } // north (+y)
-    if neighbor_is(tiles, x, y, width, height, 1, 0, &pred) { mask |= 0b0010; } // east (+x)
-    if neighbor_is(tiles, x, y, width, height, 0, -1, &pred) { mask |= 0b0100; } // south (-y)
-    if neighbor_is(tiles, x, y, width, height, -1, 0, &pred) { mask |= 0b1000; } // west (-x)
+    if neighbor_is(tiles, x, y, width, height, 0, 1, &pred) {
+        mask |= 0b0001;
+    } // north (+y)
+    if neighbor_is(tiles, x, y, width, height, 1, 0, &pred) {
+        mask |= 0b0010;
+    } // east (+x)
+    if neighbor_is(tiles, x, y, width, height, 0, -1, &pred) {
+        mask |= 0b0100;
+    } // south (-y)
+    if neighbor_is(tiles, x, y, width, height, -1, 0, &pred) {
+        mask |= 0b1000;
+    } // west (-x)
     mask
 }
 
@@ -484,9 +492,7 @@ fn tile_atlas_info(
         // Dirt: use grass-dirt transition tiles when bordering grass.
         // Falls back to uniform dirt (idx 291) when no grass neighbors.
         TileKind::Dirt => {
-            let grass_mask = neighbor_bitmask(tiles, x, y, width, height, |t| {
-                t == TileKind::Grass
-            });
+            let grass_mask = neighbor_bitmask(tiles, x, y, width, height, |t| t == TileKind::Grass);
             let index = if grass_mask != 0 {
                 dirt_grass_transition_index(grass_mask)
             } else {
@@ -517,16 +523,10 @@ fn tile_atlas_info(
         // Pure water centers (no land neighbors) use the dedicated water.png atlas
         // which has 4 proper animation frames.
         TileKind::Water => {
-            let land_mask = neighbor_bitmask(tiles, x, y, width, height, |t| {
-                t != TileKind::Water
-            });
+            let land_mask = neighbor_bitmask(tiles, x, y, width, height, |t| t != TileKind::Water);
             if land_mask == 0 {
                 // Pure water center → use water.png for animation (4 frames, start at 0)
-                Some((
-                    atlases.water_image.clone(),
-                    atlases.water_layout.clone(),
-                    0,
-                ))
+                Some((atlases.water_image.clone(), atlases.water_layout.clone(), 0))
             } else {
                 // Water bordering land → use terrain atlas transition tile
                 let index = water_grass_transition_index(land_mask);
@@ -894,7 +894,8 @@ fn spawn_tile_sprites(
                     ));
                     // Tag water tiles for animation cycling and spawn edge overlays
                     if tile == TileKind::Water {
-                        let mask = water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
+                        let mask =
+                            water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
                         entity_cmd.insert((WaterTile, WaterEdgeMask(mask)));
                         // Only add animation base index for pure water centers (no land neighbors).
                         // Transition tiles have grass edges and should not cycle through
@@ -928,7 +929,6 @@ fn spawn_tile_sprites(
     }
 }
 
-
 /// Compute the water edge bitmask for the tile at (x, y).
 /// bit 0 = north (y+1), bit 1 = east (x+1), bit 2 = south (y-1), bit 3 = west (x-1).
 /// A bit is set when the neighbor in that direction is non-water (or out of bounds).
@@ -940,10 +940,18 @@ fn water_edge_mask(x: usize, y: usize, tiles: &[TileKind], width: usize, height:
         }
         tiles[ny as usize * width + nx as usize] != TileKind::Water
     };
-    if is_non_water(x as i32, y as i32 + 1) { mask |= 0b0001; } // north
-    if is_non_water(x as i32 + 1, y as i32) { mask |= 0b0010; } // east
-    if is_non_water(x as i32, y as i32 - 1) { mask |= 0b0100; } // south
-    if is_non_water(x as i32 - 1, y as i32) { mask |= 0b1000; } // west
+    if is_non_water(x as i32, y as i32 + 1) {
+        mask |= 0b0001;
+    } // north
+    if is_non_water(x as i32 + 1, y as i32) {
+        mask |= 0b0010;
+    } // east
+    if is_non_water(x as i32, y as i32 - 1) {
+        mask |= 0b0100;
+    } // south
+    if is_non_water(x as i32 - 1, y as i32) {
+        mask |= 0b1000;
+    } // west
     mask
 }
 
@@ -982,41 +990,71 @@ fn spawn_water_edge_overlays(
     let outer_offset = half - outer_thick / 2.0;
 
     // Helper: spawn two overlays (inner + outer) for one edge direction
-    let spawn_edge = |cmds: &mut Commands, size_inner: Vec2, pos_inner: Vec3, size_outer: Vec2, pos_outer: Vec3| {
+    let spawn_edge = |cmds: &mut Commands,
+                      size_inner: Vec2,
+                      pos_inner: Vec3,
+                      size_outer: Vec2,
+                      pos_outer: Vec3| {
         cmds.spawn((
-            Sprite { color: outer_color, custom_size: Some(size_outer), ..default() },
+            Sprite {
+                color: outer_color,
+                custom_size: Some(size_outer),
+                ..default()
+            },
             Transform::from_translation(pos_outer),
-            MapTile, WaterEdgeOverlay,
+            MapTile,
+            WaterEdgeOverlay,
         ));
         cmds.spawn((
-            Sprite { color: inner_color, custom_size: Some(size_inner), ..default() },
+            Sprite {
+                color: inner_color,
+                custom_size: Some(size_inner),
+                ..default()
+            },
             Transform::from_translation(pos_inner),
-            MapTile, WaterEdgeOverlay,
+            MapTile,
+            WaterEdgeOverlay,
         ));
     };
 
-    if mask & 0b0001 != 0 { // north
-        spawn_edge(commands,
-            Vec2::new(TILE_SIZE, inner_thick), Vec3::new(cx, cy + inner_offset, z),
-            Vec2::new(TILE_SIZE, outer_thick), Vec3::new(cx, cy + outer_offset, z),
+    if mask & 0b0001 != 0 {
+        // north
+        spawn_edge(
+            commands,
+            Vec2::new(TILE_SIZE, inner_thick),
+            Vec3::new(cx, cy + inner_offset, z),
+            Vec2::new(TILE_SIZE, outer_thick),
+            Vec3::new(cx, cy + outer_offset, z),
         );
     }
-    if mask & 0b0010 != 0 { // east
-        spawn_edge(commands,
-            Vec2::new(inner_thick, TILE_SIZE), Vec3::new(cx + inner_offset, cy, z),
-            Vec2::new(outer_thick, TILE_SIZE), Vec3::new(cx + outer_offset, cy, z),
+    if mask & 0b0010 != 0 {
+        // east
+        spawn_edge(
+            commands,
+            Vec2::new(inner_thick, TILE_SIZE),
+            Vec3::new(cx + inner_offset, cy, z),
+            Vec2::new(outer_thick, TILE_SIZE),
+            Vec3::new(cx + outer_offset, cy, z),
         );
     }
-    if mask & 0b0100 != 0 { // south
-        spawn_edge(commands,
-            Vec2::new(TILE_SIZE, inner_thick), Vec3::new(cx, cy - inner_offset, z),
-            Vec2::new(TILE_SIZE, outer_thick), Vec3::new(cx, cy - outer_offset, z),
+    if mask & 0b0100 != 0 {
+        // south
+        spawn_edge(
+            commands,
+            Vec2::new(TILE_SIZE, inner_thick),
+            Vec3::new(cx, cy - inner_offset, z),
+            Vec2::new(TILE_SIZE, outer_thick),
+            Vec3::new(cx, cy - outer_offset, z),
         );
     }
-    if mask & 0b1000 != 0 { // west
-        spawn_edge(commands,
-            Vec2::new(inner_thick, TILE_SIZE), Vec3::new(cx - inner_offset, cy, z),
-            Vec2::new(outer_thick, TILE_SIZE), Vec3::new(cx - outer_offset, cy, z),
+    if mask & 0b1000 != 0 {
+        // west
+        spawn_edge(
+            commands,
+            Vec2::new(inner_thick, TILE_SIZE),
+            Vec3::new(cx - inner_offset, cy, z),
+            Vec2::new(outer_thick, TILE_SIZE),
+            Vec3::new(cx - outer_offset, cy, z),
         );
     }
 }
@@ -1223,7 +1261,12 @@ pub fn sync_collision_map(
     }
 }
 
-type SeasonTileQuery<'w, 's> = Query<'w, 's, (&'static Transform, &'static mut Sprite), (With<MapTile>, Without<WaterEdgeOverlay>)>;
+type SeasonTileQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static Transform, &'static mut Sprite),
+    (With<MapTile>, Without<WaterEdgeOverlay>),
+>;
 
 /// Handle SeasonChangeEvent: update tile sprites for the new season.
 /// For atlas-based tiles, we swap the atlas index to the seasonal variant.

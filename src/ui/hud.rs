@@ -1264,9 +1264,7 @@ pub fn update_interaction_prompt(
             let label = if has_gift {
                 format!(
                     "[{}] Talk to {} | [{}] Give Gift",
-                    interact_key,
-                    name,
-                    secondary_key
+                    interact_key, name, secondary_key
                 )
             } else {
                 format!("[{}] Talk to {}", interact_key, name)

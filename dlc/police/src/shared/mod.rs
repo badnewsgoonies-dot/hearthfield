@@ -117,16 +117,16 @@ pub enum Weather {
 
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct ShiftClock {
-    pub shift_number: u32,        // total shifts worked (1-indexed)
-    pub day: u32,                 // current day (1-indexed)
+    pub shift_number: u32, // total shifts worked (1-indexed)
+    pub day: u32,          // current day (1-indexed)
     pub day_of_week: DayOfWeek,
-    pub hour: u8,                 // 0–23
-    pub minute: u8,               // 0–59
+    pub hour: u8,   // 0–23
+    pub minute: u8, // 0–59
     pub shift_type: ShiftType,
     pub on_duty: bool,
     pub weather: Weather,
     pub rank: Rank,
-    pub time_scale: f32,          // game-minutes per real-second
+    pub time_scale: f32, // game-minutes per real-second
     pub time_paused: bool,
     pub elapsed_real_seconds: f32,
 }
@@ -251,8 +251,8 @@ pub struct InventorySlot {
 
 #[derive(Resource, Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Inventory {
-    pub evidence_slots: Vec<Option<InventorySlot>>,   // 12 slots
-    pub personal_slots: Vec<Option<InventorySlot>>,    // 6 slots
+    pub evidence_slots: Vec<Option<InventorySlot>>, // 12 slots
+    pub personal_slots: Vec<Option<InventorySlot>>, // 6 slots
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -341,7 +341,7 @@ pub struct EvidencePiece {
     pub name: String,
     pub category: EvidenceCategory,
     pub description: String,
-    pub quality: f32,              // 0.0–1.0
+    pub quality: f32, // 0.0–1.0
     pub linked_case: Option<CaseId>,
     pub processing_state: EvidenceProcessingState,
     pub collected_shift: u32,
@@ -389,8 +389,8 @@ pub struct NpcDef {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NpcRelationship {
     pub npc_id: NpcId,
-    pub trust: i32,       // -100 to +100
-    pub pressure: i32,    // 0 to 100
+    pub trust: i32,    // -100 to +100
+    pub pressure: i32, // 0 to 100
     pub favors_done: u32,
     pub dialogue_flags: HashSet<String>,
 }
@@ -449,8 +449,8 @@ impl Default for PartnerArc {
 
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct Economy {
-    pub reputation: i32,           // -100 to +100
-    pub department_budget: i32,    // shared resource for equipment
+    pub reputation: i32,        // -100 to +100
+    pub department_budget: i32, // shared resource for equipment
     pub weekly_expenses: i32,
     pub total_earned: i32,
 }
@@ -482,10 +482,10 @@ pub enum SkillTree {
 pub struct Skills {
     pub total_xp: u32,
     pub available_points: u32,
-    pub investigation_level: u8,   // 0–5
-    pub interrogation_level: u8,   // 0–5
-    pub patrol_level: u8,          // 0–5
-    pub leadership_level: u8,      // 0–5
+    pub investigation_level: u8, // 0–5
+    pub interrogation_level: u8, // 0–5
+    pub patrol_level: u8,        // 0–5
+    pub leadership_level: u8,    // 0–5
 }
 
 impl Default for Skills {
@@ -593,7 +593,7 @@ pub enum TileKind {
     Road,
     Grass,
     Water,
-    CrimeTape,  // restricted area
+    CrimeTape, // restricted area
     Interactable,
 }
 

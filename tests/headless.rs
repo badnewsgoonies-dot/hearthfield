@@ -10,6 +10,11 @@
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
+use hearthfield::calendar::festivals::{
+    check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
+};
+use hearthfield::crafting::food_buff_for_item;
+use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
 use hearthfield::data::DataPlugin;
 use hearthfield::economy::achievements::{
     check_achievements, track_achievement_progress, ACHIEVEMENTS,
@@ -35,19 +40,14 @@ use hearthfield::farming::crops::{advance_crop_growth, reset_soil_watered_state}
 use hearthfield::farming::events_handler::on_day_end as farming_on_day_end;
 use hearthfield::farming::sprinklers::{handle_place_sprinkler, sprinkler_affected_tiles};
 use hearthfield::farming::{FarmEntities, TrackedDayWeather};
+use hearthfield::fishing::legendaries::{is_legendary, legendary_fish_defs};
+use hearthfield::fishing::skill::{xp_for_rarity, FishingSkill};
 use hearthfield::npcs::quests::{expire_quests, handle_quest_completed};
 use hearthfield::npcs::romance::{
     handle_bouquet, handle_proposal, handle_wedding, tick_wedding_timer, WeddingTimer,
 };
 use hearthfield::shared::*;
 use hearthfield::world::objects::seasonal_forageables;
-use hearthfield::calendar::festivals::{
-    check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
-};
-use hearthfield::crafting::food_buff_for_item;
-use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
-use hearthfield::fishing::legendaries::{is_legendary, legendary_fish_defs};
-use hearthfield::fishing::skill::{xp_for_rarity, FishingSkill};
 use std::collections::HashMap;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3056,10 +3056,7 @@ fn test_festival_no_activation_on_normal_day() {
     app.update();
 
     let festival = app.world().resource::<FestivalState>();
-    assert_eq!(
-        festival.active, None,
-        "Spring 5 is not a festival day"
-    );
+    assert_eq!(festival.active, None, "Spring 5 is not a festival day");
 }
 
 #[test]
@@ -3085,10 +3082,16 @@ fn test_festival_cleanup_on_day_end() {
     app.update();
 
     let festival = app.world().resource::<FestivalState>();
-    assert_eq!(festival.active, None, "Festival should be cleared after day end");
+    assert_eq!(
+        festival.active, None,
+        "Festival should be cleared after day end"
+    );
     assert!(!festival.started, "Festival started should be reset");
     assert_eq!(festival.score, 0, "Festival score should be reset");
-    assert_eq!(festival.items_collected, 0, "Festival items_collected should be reset");
+    assert_eq!(
+        festival.items_collected, 0,
+        "Festival items_collected should be reset"
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -3205,7 +3208,11 @@ fn test_baby_animal_stays_baby_before_threshold() {
     app.update();
 
     let animal = app.world().entity(baby_id).get::<Animal>().unwrap();
-    assert_eq!(animal.age, AnimalAge::Baby, "Should still be a baby at 4 days old");
+    assert_eq!(
+        animal.age,
+        AnimalAge::Baby,
+        "Should still be a baby at 4 days old"
+    );
     assert_eq!(animal.days_old, 4);
     assert!(!animal.product_ready, "Baby should not produce");
 }
@@ -3242,7 +3249,10 @@ fn test_fishing_skill_level_up_progression() {
 
 #[test]
 fn test_fishing_skill_max_level_bonuses_capped() {
-    let mut skill = FishingSkill { xp: 10_000, ..FishingSkill::default() };
+    let mut skill = FishingSkill {
+        xp: 10_000,
+        ..FishingSkill::default()
+    };
     skill.recalculate();
 
     assert_eq!(skill.level, 10);
@@ -3278,7 +3288,10 @@ fn test_fishing_skill_bar_size_scales_with_level() {
 #[test]
 fn test_legendary_fish_identification() {
     let defs = legendary_fish_defs();
-    assert!(!defs.is_empty(), "Should have at least one legendary fish definition");
+    assert!(
+        !defs.is_empty(),
+        "Should have at least one legendary fish definition"
+    );
 
     // All legendary defs should be identified as legendary
     for def in &defs {
@@ -3301,9 +3314,18 @@ fn test_legendary_fish_identification() {
 #[test]
 fn test_mine_state_default_values() {
     let mine = MineState::default();
-    assert_eq!(mine.current_floor, 0, "Default mine floor should be 0 (not in mine)");
-    assert_eq!(mine.deepest_floor_reached, 0, "Default deepest floor should be 0");
-    assert!(mine.elevator_floors.is_empty(), "Default elevator floors should be empty");
+    assert_eq!(
+        mine.current_floor, 0,
+        "Default mine floor should be 0 (not in mine)"
+    );
+    assert_eq!(
+        mine.deepest_floor_reached, 0,
+        "Default deepest floor should be 0"
+    );
+    assert!(
+        mine.elevator_floors.is_empty(),
+        "Default elevator floors should be empty"
+    );
 }
 
 #[test]
@@ -3334,7 +3356,11 @@ fn test_mine_elevator_unlocks_every_5_floors() {
         mine2.elevator_floors.contains(&10),
         "Elevator should have floor 10 unlocked"
     );
-    assert_eq!(mine2.elevator_floors.len(), 3, "Should have 3 stops: 0, 5, 10");
+    assert_eq!(
+        mine2.elevator_floors.len(),
+        3,
+        "Should have 3 stops: 0, 5, 10"
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

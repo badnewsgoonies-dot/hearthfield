@@ -325,10 +325,15 @@ fn doors_for(map_id: MapId) -> Vec<DoorDef> {
             DoorDef { x_min: 22, x_max: 23, y: 13, to_map: MapId::Blacksmith, to_x: 6, to_y: 10 },
         ],
         MapId::MineEntrance => vec![
-            // Cave entrance (top center, tiles 6-7 at y=1-2) → Mine floor 1
-            // Modelled as a transition zone in edges, not a door.
-            // Actually in the hardcoded code it's checked as a range, so
-            // we handle it via a transition zone below.
+            // Cave mouth at the end of the entrance path → Mine floor 1.
+            DoorDef {
+                x_min: 6,
+                x_max: 7,
+                y: 3,
+                to_map: MapId::Mine,
+                to_x: 8,
+                to_y: 14,
+            },
         ],
         _ => Vec::new(),
     }
@@ -365,7 +370,7 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         MapId::MineEntrance => EdgeDefs {
             north: None,
             south: Some((MapId::Forest, EdgeTarget::Fixed(11, 16))),
-            east: None,
+            east: Some((MapId::Farm, EdgeTarget::Fixed(1, 9))),
             west: None,
         },
         MapId::PlayerHouse => EdgeDefs {

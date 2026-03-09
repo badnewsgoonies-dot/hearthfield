@@ -285,21 +285,27 @@
         Water,
     ],
     objects: [
-        (
-            x: 17,
-            y: 1,
-            kind: Rock,
-        ),
-        (
-            x: 7,
-            y: 7,
-            kind: Log,
-        ),
-        (
-            x: 12,
-            y: 6,
-            kind: Log,
-        ),
+        // Driftwood along shoreline
+        (x: 7, y: 7, kind: Log),
+        (x: 12, y: 6, kind: Log),
+        (x: 3, y: 5, kind: Log),
+        (x: 16, y: 5, kind: Log),
+        // Rocks scattered on sand
+        (x: 17, y: 1, kind: Rock),
+        (x: 5, y: 3, kind: Rock),
+        (x: 14, y: 4, kind: Rock),
+        (x: 9, y: 3, kind: Rock),
+        (x: 18, y: 4, kind: LargeRock),
+        // Beach vegetation (upper grass area)
+        (x: 2, y: 12, kind: Bush),
+        (x: 8, y: 12, kind: Bush),
+        (x: 14, y: 11, kind: Bush),
+        (x: 19, y: 12, kind: Bush),
+        // Trees at top edge
+        (x: 0, y: 13, kind: Tree),
+        (x: 5, y: 13, kind: Tree),
+        (x: 11, y: 13, kind: Tree),
+        (x: 16, y: 13, kind: Tree),
     ],
     forage_points: [
         (4, 5),

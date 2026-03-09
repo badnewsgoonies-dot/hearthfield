@@ -239,9 +239,9 @@ pub fn update_product_indicators(
                 // Other animals: colored squares (no dedicated sprite)
                 _ => {
                     let color = match animal.kind {
-                        AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0),   // pale blue — wool
-                        AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9),  // lavender — foot
-                        AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),    // brown — truffle
+                        AnimalKind::Sheep => Color::srgb(0.8, 0.8, 1.0), // pale blue — wool
+                        AnimalKind::Rabbit => Color::srgb(0.9, 0.7, 0.9), // lavender — foot
+                        AnimalKind::Pig => Color::srgb(0.6, 0.45, 0.3),  // brown — truffle
                         _ => Color::srgb(1.0, 1.0, 1.0),
                     };
                     Sprite {

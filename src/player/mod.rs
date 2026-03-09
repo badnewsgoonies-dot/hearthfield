@@ -19,12 +19,14 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<CollisionMap>();
         app.init_resource::<CameraSnap>();
         app.init_resource::<PlayerSpriteData>();
-        app.init_resource::<ActionSpriteData>();
-
-        // -- Spawn player when we enter Playing --
+        // -- Spawn player + tile cursor when we enter Playing --
         app.add_systems(
             OnEnter(GameState::Playing),
-            (spawn::spawn_player, interaction::grant_starter_items),
+            (
+                spawn::spawn_player,
+                interaction::grant_starter_items,
+                tool_anim::spawn_tool_cursor,
+            ),
         );
 
         // -- Interaction dispatchers: run BEFORE all legacy F-key systems --
@@ -55,6 +57,7 @@ impl Plugin for PlayerPlugin {
                     .after(tool_anim::animate_tool_use),
                 tool_anim::animate_tool_use.after(movement::player_movement),
                 tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),
+                tool_anim::update_tool_cursor.after(movement::player_movement),
                 tools::tool_cycle,
                 tools::stamina_drain_handler,
                 tools::stamina_low_warning,
@@ -93,14 +96,6 @@ impl Plugin for PlayerPlugin {
 /// reference them without reloading on every call.
 #[derive(Resource, Default)]
 pub struct PlayerSpriteData {
-    pub loaded: bool,
-    pub image: Handle<Image>,
-    pub layout: Handle<TextureAtlasLayout>,
-}
-
-/// Holds the loaded character_actions.png atlas handles for tool animations.
-#[derive(Resource, Default)]
-pub struct ActionSpriteData {
     pub loaded: bool,
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,

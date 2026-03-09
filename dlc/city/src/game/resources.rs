@@ -544,7 +544,7 @@ pub enum CoworkerPersonality {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ManagerArcStage {
     #[default]
-    Stranger,     // trust < 10
+    Stranger, // trust < 10
     Acquaintance, // trust 10-29
     Mentor,       // trust 30-59, affinity >= 20
     Evaluator,    // trust 30-59, affinity < 20
@@ -718,10 +718,10 @@ pub struct SocialGraphState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AffinityMilestone {
-    CoffeeInvite,   // affinity >= 15
-    LunchTogether,  // affinity >= 30
-    ProjectCollab,  // affinity >= 50, trust >= 30
-    WorkBuddy,      // affinity >= 70, trust >= 50
+    CoffeeInvite,  // affinity >= 15
+    LunchTogether, // affinity >= 30
+    ProjectCollab, // affinity >= 50, trust >= 30
+    WorkBuddy,     // affinity >= 70, trust >= 50
 }
 
 impl Default for SocialGraphState {
@@ -903,8 +903,16 @@ impl SocialGraphState {
             let candidates = [
                 (AffinityMilestone::CoffeeInvite, affinity >= 15, true),
                 (AffinityMilestone::LunchTogether, affinity >= 30, true),
-                (AffinityMilestone::ProjectCollab, affinity >= 50 && trust >= 30, true),
-                (AffinityMilestone::WorkBuddy, affinity >= 70 && trust >= 50, true),
+                (
+                    AffinityMilestone::ProjectCollab,
+                    affinity >= 50 && trust >= 30,
+                    true,
+                ),
+                (
+                    AffinityMilestone::WorkBuddy,
+                    affinity >= 70 && trust >= 50,
+                    true,
+                ),
             ];
 
             for (milestone, condition, _) in candidates {

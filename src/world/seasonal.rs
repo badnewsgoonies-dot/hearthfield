@@ -124,7 +124,14 @@ fn object_tint(season: Season) -> Color {
 pub fn apply_seasonal_tint(
     calendar: Res<Calendar>,
     mut tint_applied: ResMut<SeasonalTintApplied>,
-    mut tile_query: Query<&mut Sprite, (With<MapTile>, Without<WorldObject>, Without<WaterEdgeOverlay>)>,
+    mut tile_query: Query<
+        &mut Sprite,
+        (
+            With<MapTile>,
+            Without<WorldObject>,
+            Without<WaterEdgeOverlay>,
+        ),
+    >,
     mut object_query: Query<(&mut Sprite, &WorldObjectData), (With<WorldObject>, Without<MapTile>)>,
 ) {
     let current_season = calendar.season;
@@ -206,9 +213,9 @@ pub fn spawn_falling_leaves(
     // Pick a leaf colour: orange, deep red, golden yellow, or brown.
     let color = match rng.gen_range(0u32..4) {
         0 => Color::srgb(1.0, 0.55, 0.15),  // vivid orange
-        1 => Color::srgb(0.85, 0.25, 0.10),  // deep red
-        2 => Color::srgb(1.0, 0.85, 0.15),   // golden yellow
-        _ => Color::srgb(0.6, 0.35, 0.15),   // brown
+        1 => Color::srgb(0.85, 0.25, 0.10), // deep red
+        2 => Color::srgb(1.0, 0.85, 0.15),  // golden yellow
+        _ => Color::srgb(0.6, 0.35, 0.15),  // brown
     };
 
     let fall_speed = rng.gen_range(20.0_f32..40.0);

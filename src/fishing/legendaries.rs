@@ -22,7 +22,14 @@ use crate::shared::*;
 
 /// Entry in the legendary fish table.
 /// (fish_id, required_map, required_season, minigame_difficulty, spawn_chance, weather_required)
-type LegendaryEntry = (&'static str, MapId, Option<Season>, f32, f64, Option<Weather>);
+type LegendaryEntry = (
+    &'static str,
+    MapId,
+    Option<Season>,
+    f32,
+    f64,
+    Option<Weather>,
+);
 
 /// Static table of all legendary fish and their requirements.
 ///
@@ -136,12 +143,7 @@ pub fn legendary_fish_defs() -> Vec<FishDef> {
                 location: map_to_location(req_map),
                 seasons: match req_season {
                     Some(s) => vec![s],
-                    None => vec![
-                        Season::Spring,
-                        Season::Summer,
-                        Season::Fall,
-                        Season::Winter,
-                    ],
+                    None => vec![Season::Spring, Season::Summer, Season::Fall, Season::Winter],
                 },
                 // Legendary fish are active all day
                 time_range: (6.0, 26.0),

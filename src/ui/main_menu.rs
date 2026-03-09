@@ -284,10 +284,13 @@ pub fn update_main_menu_visuals(
         visual_state.previous_mode = state.mode;
         visual_state.transition_t = 0.0;
     } else {
-        visual_state.transition_t =
-            (visual_state.transition_t + time.delta_secs() / MENU_MODE_FADE_DURATION).clamp(0.0, 1.0);
+        visual_state.transition_t = (visual_state.transition_t
+            + time.delta_secs() / MENU_MODE_FADE_DURATION)
+            .clamp(0.0, 1.0);
     }
-    let fade_in = visual_state.transition_t * visual_state.transition_t * (3.0 - 2.0 * visual_state.transition_t);
+    let fade_in = visual_state.transition_t
+        * visual_state.transition_t
+        * (3.0 - 2.0 * visual_state.transition_t);
     let pulse = ((time.elapsed_secs() * 4.5).sin() * 0.5 + 0.5) * 0.75;
     let option_count = current_option_count(state.mode);
 
@@ -299,7 +302,12 @@ pub fn update_main_menu_visuals(
         *visibility = Visibility::Visible;
         let selected = item.index == state.cursor;
         let selected_pulse = if selected { pulse } else { 0.0 };
-        set_button_visual_animated(&mut image_node, selected, selected_pulse, 0.85 + fade_in * 0.15);
+        set_button_visual_animated(
+            &mut image_node,
+            selected,
+            selected_pulse,
+            0.85 + fade_in * 0.15,
+        );
     }
 
     for (btn_text, mut text, mut color) in &mut text_query {
@@ -308,7 +316,9 @@ pub fn update_main_menu_visuals(
             continue;
         }
 
-        let Some((label, enabled)) = menu_option_label(state.mode, btn_text.index, cache.as_deref()) else {
+        let Some((label, enabled)) =
+            menu_option_label(state.mode, btn_text.index, cache.as_deref())
+        else {
             text.0.clear();
             continue;
         };

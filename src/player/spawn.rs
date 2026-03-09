@@ -1,4 +1,4 @@
-use super::{ActionSpriteData, DistanceAnimator, PlayerSpriteData};
+use super::{DistanceAnimator, PlayerSpriteData};
 use crate::shared::*;
 use bevy::prelude::*;
 
@@ -14,7 +14,6 @@ pub fn spawn_player(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut sprite_data: ResMut<PlayerSpriteData>,
-    mut action_data: ResMut<ActionSpriteData>,
     mut player_state: ResMut<PlayerState>,
 ) {
     // Guard: don't double-spawn if returning to Playing state.
@@ -51,8 +50,8 @@ pub fn spawn_player(
         // Grid position for tile-based lookups
         GridPosition::new(SPAWN_GRID_X, SPAWN_GRID_Y),
         // Animated sprite — frame 0 = idle-down (first frame of Row 0).
-        // The 48×48 frame at PIXEL_SCALE 3.0 renders as 144px on screen
-        // because the camera uses Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)).
+        // Art fills the full 48×48 frame; no custom_size needed.
+        // At PIXEL_SCALE 3.0 the camera's 1/3 zoom makes 48px render as 16px on screen.
         {
             let mut s = Sprite::from_atlas_image(
                 texture,
@@ -61,7 +60,6 @@ pub fn spawn_player(
                     index: 0,
                 },
             );
-            s.custom_size = Some(Vec2::new(48.0, 48.0));
             s.anchor = bevy::sprite::Anchor::BottomCenter;
             s
         },
@@ -79,19 +77,4 @@ pub fn spawn_player(
             ..default()
         },
     ));
-
-    // Load character_actions.png atlas (tool-use animations)
-    if !action_data.loaded {
-        let action_texture = asset_server.load("sprites/character_actions.png");
-        let action_layout = layouts.add(TextureAtlasLayout::from_grid(
-            UVec2::new(48, 48),
-            2,
-            12,
-            None,
-            None,
-        ));
-        action_data.image = action_texture;
-        action_data.layout = action_layout;
-        action_data.loaded = true;
-    }
 }

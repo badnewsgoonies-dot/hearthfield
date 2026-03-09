@@ -78,7 +78,8 @@ pub struct FarmingAtlases {
     /// Per-crop sprite atlases keyed by crop_id. Each entry is (image, layout).
     /// Crops with per-crop sheets use sequential column indices (0, 1, 2, ...)
     /// for growth stages. Crops without an entry fall back to plants.png.
-    pub crop_atlases: std::collections::HashMap<String, (Handle<Image>, Handle<TextureAtlasLayout>)>,
+    pub crop_atlases:
+        std::collections::HashMap<String, (Handle<Image>, Handle<TextureAtlasLayout>)>,
     /// Standalone sprinkler sprite (16x16).
     pub sprinkler_image: Handle<Image>,
     /// Animated sprinkler sprite sheet (1344x192, 32x32 tiles, 42 cols x 6 rows).
@@ -292,15 +293,15 @@ fn load_farming_atlases(
     // Per-crop sprite sheets: all are 7 cols of 16×16 with varying row counts.
     // crop_id → (filename, cols, rows)
     let crop_sheets: &[(&str, &str, u32, u32)] = &[
-        ("turnip",      "sprites/crop_turnip.png",      7, 3),
-        ("cauliflower", "sprites/crop_cauliflower.png",  7, 2),
-        ("strawberry",  "sprites/crop_strawberry.png",   7, 2),
-        ("tomato",      "sprites/crop_tomato.png",       7, 4),
-        ("corn",        "sprites/crop_corn.png",         7, 4),
-        ("pumpkin",     "sprites/crop_pumpkin.png",      7, 4),
-        ("wheat",       "sprites/crop_wheat.png",        7, 2),
-        ("coffee",      "sprites/crop_coffee.png",       7, 4),
-        ("watermelon",  "sprites/crop_watermelon.png",   7, 4),
+        ("turnip", "sprites/crop_turnip.png", 7, 3),
+        ("cauliflower", "sprites/crop_cauliflower.png", 7, 2),
+        ("strawberry", "sprites/crop_strawberry.png", 7, 2),
+        ("tomato", "sprites/crop_tomato.png", 7, 4),
+        ("corn", "sprites/crop_corn.png", 7, 4),
+        ("pumpkin", "sprites/crop_pumpkin.png", 7, 4),
+        ("wheat", "sprites/crop_wheat.png", 7, 2),
+        ("coffee", "sprites/crop_coffee.png", 7, 4),
+        ("watermelon", "sprites/crop_watermelon.png", 7, 4),
     ];
 
     for &(crop_id, path, cols, rows) in crop_sheets {
@@ -312,7 +313,9 @@ fn load_farming_atlases(
             None,
             None,
         ));
-        atlases.crop_atlases.insert(crop_id.to_string(), (image, layout));
+        atlases
+            .crop_atlases
+            .insert(crop_id.to_string(), (image, layout));
     }
 
     // Standalone farm object sprites

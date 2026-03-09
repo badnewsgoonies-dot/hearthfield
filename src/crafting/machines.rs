@@ -25,17 +25,17 @@ impl MachineType {
     /// Processing time in game-hours.
     pub fn processing_hours(&self) -> f32 {
         match self {
-            MachineType::Furnace => 0.5,        // 30 game-minutes
-            MachineType::PreservesJar => 4.0,    // 240 game-minutes
-            MachineType::CheesePress => 3.0,     // 180 game-minutes
-            MachineType::Loom => 4.0,            // 240 game-minutes
-            MachineType::Keg => 72.0,            // 3 days × 24h
-            MachineType::OilMaker => 24.0,       // 1 day
+            MachineType::Furnace => 0.5,            // 30 game-minutes
+            MachineType::PreservesJar => 4.0,       // 240 game-minutes
+            MachineType::CheesePress => 3.0,        // 180 game-minutes
+            MachineType::Loom => 4.0,               // 240 game-minutes
+            MachineType::Keg => 72.0,               // 3 days × 24h
+            MachineType::OilMaker => 24.0,          // 1 day
             MachineType::MayonnaiseMachine => 24.0, // 1 day
-            MachineType::Tapper => 168.0,        // 7 days × 24h
-            MachineType::BeeHouse => 96.0,       // 4 days × 24h
-            MachineType::RecyclingMachine => 24.0, // 1 day
-            MachineType::CrabPot => 24.0,        // 1 day
+            MachineType::Tapper => 168.0,           // 7 days × 24h
+            MachineType::BeeHouse => 96.0,          // 4 days × 24h
+            MachineType::RecyclingMachine => 24.0,  // 1 day
+            MachineType::CrabPot => 24.0,           // 1 day
         }
     }
 
