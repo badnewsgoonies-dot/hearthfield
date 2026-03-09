@@ -1633,19 +1633,23 @@ pub fn spawn_building_sprites(
                     let is_right = dx == bld.w - 1;
 
                     let roof_index = if ry == 0 {
+                        // Row 0 (indices 0-4): peak/top tiles
                         if is_left {
-                            31
+                            0
                         } else if is_right {
-                            34
+                            4
                         } else {
-                            32
+                            2
                         }
-                    } else if is_left {
-                        22
-                    } else if is_right {
-                        27
                     } else {
-                        25
+                        // Row 1 (indices 5-9): eave/bottom tiles
+                        if is_left {
+                            5
+                        } else if is_right {
+                            9
+                        } else {
+                            7
+                        }
                     };
 
                     let wc = grid_to_world_center(gx, gy);
