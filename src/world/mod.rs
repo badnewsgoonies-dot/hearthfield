@@ -251,12 +251,12 @@ fn ensure_atlases_loaded(
         None,
     ));
 
-    // wood_bridge.png: 80x48px -> 16x16 tiles, 5 columns x 3 rows
+    // wood_bridge.png: 32x16px -> 16x16 tiles, 2 columns x 1 row
     atlases.bridge_image = asset_server.load("sprites/wood_bridge.png");
     atlases.bridge_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
-        5,
-        3,
+        2,
+        1,
         None,
         None,
     ));
@@ -572,11 +572,11 @@ fn tile_atlas_info(
             ))
         }
 
-        // Bridge: wood_bridge.png atlas, center plank tile (row 1, col 2 = index 7).
+        // Bridge: wood_bridge.png atlas, center plank tile (row 0, col 0 = index 0).
         TileKind::Bridge => Some((
             atlases.bridge_image.clone(),
             atlases.bridge_layout.clone(),
-            7,
+            0,
         )),
 
         // Void: hills for outdoor maps, dark color for indoor maps.
