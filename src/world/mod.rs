@@ -787,7 +787,7 @@ fn load_map(
     // and interior maps (where it serves as floor/counters).
     let stone_is_solid = matches!(
         map_id,
-        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::MineEntrance
+        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::DeepForest | MapId::MineEntrance
     );
     for y in 0..map_def.height {
         for x in 0..map_def.width {

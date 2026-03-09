@@ -638,6 +638,7 @@ fn map_display_name(map: MapId) -> &'static str {
         MapId::Town => "Willowbrook",
         MapId::Beach => "Tide Pool Beach",
         MapId::Forest => "Briarwood Forest",
+        MapId::DeepForest => "Deep Briarwood",
         MapId::MineEntrance => "The Mines",
         MapId::Mine => "Mine Floor",
         MapId::PlayerHouse => "Home",

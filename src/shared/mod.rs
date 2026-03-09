@@ -591,6 +591,7 @@ pub enum MapId {
     Town,
     Beach,
     Forest,
+    DeepForest,
     MineEntrance,
     Mine, // + floor number in MineState
     PlayerHouse,

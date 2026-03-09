@@ -24,6 +24,7 @@ fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
         MapId::Town => (0, 27, 0, 21),
         MapId::Beach => (0, 19, 0, 13),
         MapId::Forest => (0, 21, 0, 17),
+        MapId::DeepForest => (0, 29, 0, 27),
         MapId::MineEntrance => (0, 13, 0, 11),
         MapId::Mine => (0, 23, 0, 23),
         MapId::PlayerHouse => (0, 15, 0, 15),

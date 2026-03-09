@@ -67,6 +67,7 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
         MapId::Town => (12, 8),
         MapId::Beach => (10, 6),
         MapId::Forest => (8, 8),
+        MapId::DeepForest => (3, 15),
         MapId::MineEntrance => (7, 6),
         MapId::Mine => (12, 12),
         MapId::PlayerHouse => (8, 8),
@@ -86,6 +87,7 @@ pub fn generate_map(map_id: MapId) -> MapDef {
         MapId::Town => generate_town(),
         MapId::Beach => generate_beach(),
         MapId::Forest => generate_forest(),
+        MapId::DeepForest => generate_deep_forest(),
         MapId::MineEntrance => generate_mine_entrance(),
         MapId::Mine => generate_mine_floor(),
         MapId::PlayerHouse => generate_player_house(),
@@ -652,6 +654,151 @@ fn generate_forest() -> MapDef {
 
     MapDef {
         id: MapId::Forest,
+        width: w,
+        height: h,
+        tiles,
+        transitions,
+        objects,
+        forage_points,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Deep Forest: 30x28  (large, dense)
+// ---------------------------------------------------------------------------
+fn generate_deep_forest() -> MapDef {
+    let w = 30usize;
+    let h = 28usize;
+    let mut tiles = vec![TileKind::Grass; w * h];
+
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
+                }
+            }
+        };
+
+    // ── Winding path from west entrance ──
+    fill_rect(&mut tiles, 0, 14, 8, 2, TileKind::Path);   // straight entry
+    fill_rect(&mut tiles, 7, 13, 2, 3, TileKind::Path);    // jog north
+    fill_rect(&mut tiles, 8, 12, 6, 2, TileKind::Path);    // east through center
+    fill_rect(&mut tiles, 13, 12, 2, 4, TileKind::Path);   // south bend
+    fill_rect(&mut tiles, 14, 15, 6, 2, TileKind::Path);   // east again
+    fill_rect(&mut tiles, 19, 13, 2, 3, TileKind::Path);   // jog north
+    fill_rect(&mut tiles, 20, 12, 4, 2, TileKind::Path);   // final stretch east
+
+    // ── Central pond ──
+    fill_rect(&mut tiles, 12, 8, 6, 4, TileKind::Water);
+
+    // ── Rocky outcropping (southeast) ──
+    fill_rect(&mut tiles, 22, 21, 6, 5, TileKind::Dirt);
+
+    // ── Mushroom clearing (northeast) ──
+    fill_rect(&mut tiles, 20, 2, 7, 5, TileKind::Grass);   // Already grass, just noting the clearing
+
+    // ── Flower meadow (southwest) ──
+    fill_rect(&mut tiles, 2, 20, 8, 5, TileKind::Grass);   // Open area
+
+    let transitions = vec![
+        MapTransition {
+            from_map: MapId::DeepForest,
+            from_rect: (0, 13, 1, 4),
+            to_map: MapId::Forest,
+            to_pos: (20, 8),
+        },
+    ];
+
+    let mut objects = Vec::new();
+
+    // ── Dense tree border (north edge) ──
+    for x in (0..30).step_by(2) {
+        objects.push(ObjectPlacement { x, y: 0, kind: WorldObjectKind::Tree });
+    }
+    for x in (1..28).step_by(3) {
+        objects.push(ObjectPlacement { x, y: 1, kind: WorldObjectKind::Pine });
+    }
+
+    // ── Dense tree border (east edge) ──
+    for y in (0..28).step_by(3) {
+        objects.push(ObjectPlacement { x: 28, y, kind: WorldObjectKind::Pine });
+        objects.push(ObjectPlacement { x: 29, y: y.saturating_add(1).min(27), kind: WorldObjectKind::Tree });
+    }
+
+    // ── Dense tree border (south edge) ──
+    for x in (0..20).step_by(2) {
+        objects.push(ObjectPlacement { x, y: 27, kind: WorldObjectKind::Tree });
+    }
+
+    // ── Interior tree clusters ──
+    let tree_positions: &[(i32, i32)] = &[
+        // Northwest grove
+        (2, 3), (4, 2), (6, 4), (3, 6), (5, 7), (1, 8),
+        // West of pond
+        (8, 6), (9, 9), (7, 10), (10, 5),
+        // East of pond
+        (19, 7), (20, 9), (18, 10),
+        // South scattered
+        (6, 17), (8, 19), (11, 18), (16, 20), (18, 22),
+        // Central area
+        (10, 16), (15, 8), (17, 6),
+    ];
+    for &(tx, ty) in tree_positions {
+        objects.push(ObjectPlacement { x: tx, y: ty, kind: WorldObjectKind::Tree });
+    }
+
+    // ── Pine trees (evergreen accents) ──
+    let pine_positions: &[(i32, i32)] = &[
+        (1, 5), (4, 9), (7, 3), (11, 4), (16, 4),
+        (3, 12), (6, 15), (9, 22), (14, 24), (22, 16),
+        (25, 10), (24, 4), (12, 20), (17, 18), (26, 20),
+    ];
+    for &(px, py) in pine_positions {
+        objects.push(ObjectPlacement { x: px, y: py, kind: WorldObjectKind::Pine });
+    }
+
+    // ── Bushes (scattered undergrowth) ──
+    let bush_positions: &[(i32, i32)] = &[
+        (3, 21), (5, 22), (4, 24), (7, 23),  // Flower meadow area
+        (2, 10), (8, 14), (15, 10), (21, 6),
+    ];
+    for &(bx, by) in bush_positions {
+        objects.push(ObjectPlacement { x: bx, y: by, kind: WorldObjectKind::Bush });
+    }
+
+    // ── Stumps and logs ──
+    objects.push(ObjectPlacement { x: 6, y: 11, kind: WorldObjectKind::Stump });
+    objects.push(ObjectPlacement { x: 16, y: 17, kind: WorldObjectKind::Stump });
+    objects.push(ObjectPlacement { x: 11, y: 23, kind: WorldObjectKind::Log });
+    objects.push(ObjectPlacement { x: 19, y: 20, kind: WorldObjectKind::Log });
+
+    // ── Rocky outcropping (southeast) ──
+    objects.push(ObjectPlacement { x: 23, y: 22, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement { x: 25, y: 23, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement { x: 24, y: 24, kind: WorldObjectKind::LargeRock });
+    objects.push(ObjectPlacement { x: 26, y: 22, kind: WorldObjectKind::LargeRock });
+    objects.push(ObjectPlacement { x: 22, y: 24, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement { x: 27, y: 24, kind: WorldObjectKind::Rock });
+
+    // ── Forage points ──
+    let forage_points = vec![
+        // Mushroom clearing (northeast)
+        (21, 3), (23, 4), (25, 3), (22, 5),
+        // Flower meadow (southwest)
+        (3, 22), (5, 23), (6, 21),
+        // Scattered forest floor
+        (8, 7), (18, 9), (10, 18),
+        // Near pond
+        (11, 7), (18, 8),
+    ];
+
+    MapDef {
+        id: MapId::DeepForest,
         width: w,
         height: h,
         tiles,

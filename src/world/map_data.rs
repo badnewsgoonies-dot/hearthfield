@@ -176,6 +176,7 @@ pub fn build_map_registry() -> MapRegistry {
         MapId::Town,
         MapId::Beach,
         MapId::Forest,
+        MapId::DeepForest,
         MapId::MineEntrance,
         MapId::Mine,
         MapId::PlayerHouse,
@@ -266,6 +267,7 @@ pub fn export_all_maps() -> Vec<(MapId, MapData)> {
         MapId::Town,
         MapId::Beach,
         MapId::Forest,
+        MapId::DeepForest,
         MapId::MineEntrance,
         MapId::Mine,
         MapId::PlayerHouse,
@@ -364,8 +366,14 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         MapId::Forest => EdgeDefs {
             north: Some((MapId::MineEntrance, EdgeTarget::Fixed(7, 1))),
             south: None,
-            east: None,
+            east: Some((MapId::DeepForest, EdgeTarget::ClampY(1))),
             west: Some((MapId::Farm, EdgeTarget::ClampY(30))),
+        },
+        MapId::DeepForest => EdgeDefs {
+            north: None,
+            south: None,
+            east: None,
+            west: Some((MapId::Forest, EdgeTarget::ClampY(20))),
         },
         MapId::MineEntrance => EdgeDefs {
             north: None,
@@ -433,6 +441,7 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
         MapId::Town => "town",
         MapId::Beach => "beach",
         MapId::Forest => "forest",
+        MapId::DeepForest => "deep_forest",
         MapId::MineEntrance => "mine_entrance",
         MapId::Mine => "mine",
         MapId::PlayerHouse => "player_house",
@@ -449,12 +458,13 @@ mod tests {
     #[test]
     fn generate_ron_files() {
         write_all_ron_files().expect("Failed to write RON files");
-        // Verify all 10 files exist and round-trip correctly
+        // Verify all 11 files exist and round-trip correctly
         let all_maps = [
             MapId::Farm,
             MapId::Town,
             MapId::Beach,
             MapId::Forest,
+            MapId::DeepForest,
             MapId::MineEntrance,
             MapId::Mine,
             MapId::PlayerHouse,
@@ -488,6 +498,7 @@ mod tests {
             MapId::Town,
             MapId::Beach,
             MapId::Forest,
+            MapId::DeepForest,
             MapId::MineEntrance,
             MapId::Mine,
             MapId::PlayerHouse,

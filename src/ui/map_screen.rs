@@ -283,6 +283,7 @@ fn map_id_display_name(map_id: MapId) -> &'static str {
         MapId::Town => "Town",
         MapId::Beach => "Beach",
         MapId::Forest => "Forest",
+        MapId::DeepForest => "Deep Forest",
         MapId::MineEntrance => "Mine",
         MapId::Mine => "Mine (Deep)",
         MapId::PlayerHouse => "Player House",

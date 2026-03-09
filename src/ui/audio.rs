@@ -201,6 +201,7 @@ pub fn switch_music_on_map_change(
             MapId::Town => "town",
             MapId::Mine => "mine",
             MapId::Forest => "forest",
+            MapId::DeepForest => "forest",
             MapId::Beach => "beach",
             MapId::MineEntrance => "forest",
             MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith => {
