@@ -124,12 +124,12 @@ pub fn load_animal_sprites(
         None,
     ));
 
-    // cow.png: 1152×192, 36 cols × 6 rows of 32×32 frames
+    // cow.png: 1152×192, 24 cols × 4 rows of 48×48 frames
     sprite_data.cow_image = asset_server.load("sprites/cow.png");
     sprite_data.cow_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(32, 32),
-        36,
-        6,
+        UVec2::new(48, 48),
+        24,
+        4,
         None,
         None,
     ));
@@ -144,12 +144,12 @@ pub fn load_animal_sprites(
         None,
     ));
 
-    // goat.png: 768×192, 24 cols × 6 rows of 32×32 frames
+    // goat.png: 768×192, 24 cols × 4 rows of 32×48 frames
     sprite_data.goat_image = asset_server.load("sprites/goat.png");
     sprite_data.goat_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(32, 32),
+        UVec2::new(32, 48),
         24,
-        6,
+        4,
         None,
         None,
     ));
@@ -164,31 +164,31 @@ pub fn load_animal_sprites(
         None,
     ));
 
-    // duck.png: 829×128, 48 cols × 8 rows of 16×16 frames (ignore rightmost partial)
+    // duck.png: 829×128, 24 cols × 4 rows of 32×32 frames (rightmost 61px unused)
     sprite_data.duck_image = asset_server.load("sprites/duck.png");
     sprite_data.duck_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(16, 16),
-        48,
-        8,
+        UVec2::new(32, 32),
+        24,
+        4,
         None,
         None,
     ));
 
-    // rabbit.png: 768×128, 48 cols × 8 rows of 16×16 frames
+    // rabbit.png: 768×128, 24 cols × 4 rows of 32×32 frames
     sprite_data.rabbit_image = asset_server.load("sprites/rabbit.png");
     sprite_data.rabbit_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(16, 16),
-        48,
-        8,
+        UVec2::new(32, 32),
+        24,
+        4,
         None,
         None,
     ));
 
-    // dog.png: 1152×416, 36 cols × 13 rows of 32×32 frames
+    // dog.png: 1152×416, 24 cols × 13 rows of 48×32 frames
     sprite_data.dog_image = asset_server.load("sprites/dog.png");
     sprite_data.dog_layout = layouts.add(TextureAtlasLayout::from_grid(
-        UVec2::new(32, 32),
-        36,
+        UVec2::new(48, 32),
+        24,
         13,
         None,
         None,

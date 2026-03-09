@@ -3812,3 +3812,40 @@ fn test_save_roundtrip_empty_defaults() {
     let stats_r = serde_roundtrip(&stats);
     assert_eq!(stats_r.crops_harvested, 0);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Graduation: sprite_index uniqueness — prevents reintroduction of atlas
+// collisions where two items or fish share the same sprite_index.
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_no_duplicate_sprite_indices() {
+    let mut app = build_test_app();
+    app.add_plugins(DataPlugin);
+    app.update();
+    app.update();
+
+    // ── Item sprite_index uniqueness ────────────────────────────────────────
+    let item_registry = app.world().resource::<ItemRegistry>();
+    let mut seen_items: std::collections::HashMap<u32, String> = std::collections::HashMap::new();
+    for (id, item) in &item_registry.items {
+        if let Some(prev_id) = seen_items.insert(item.sprite_index, id.clone()) {
+            panic!(
+                "Item sprite_index collision: items '{}' and '{}' both use sprite_index {}",
+                prev_id, id, item.sprite_index
+            );
+        }
+    }
+
+    // ── Fish sprite_index uniqueness ────────────────────────────────────────
+    let fish_registry = app.world().resource::<FishRegistry>();
+    let mut seen_fish: std::collections::HashMap<u32, String> = std::collections::HashMap::new();
+    for (id, fish) in &fish_registry.fish {
+        if let Some(prev_id) = seen_fish.insert(fish.sprite_index, id.clone()) {
+            panic!(
+                "Fish sprite_index collision: fish '{}' and '{}' both use sprite_index {}",
+                prev_id, id, fish.sprite_index
+            );
+        }
+    }
+}
