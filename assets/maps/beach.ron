@@ -306,6 +306,9 @@
         (x: 5, y: 13, kind: Tree),
         (x: 11, y: 13, kind: Tree),
         (x: 16, y: 13, kind: Tree),
+        // Dock at south edge near water
+        (x: 9, y: 12, kind: Dock),
+        (x: 10, y: 12, kind: Dock),
     ],
     forage_points: [
         (4, 5),
@@ -325,7 +328,7 @@
     doors: [],
     edges: (
         north: Some((Town, ClampX(1))),
-        south: None,
+        south: Some((CoralIsland, Fixed(15, 1))),
         east: Some((Farm, ClampY(1))),
         west: None,
     ),

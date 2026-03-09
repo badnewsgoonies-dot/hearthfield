@@ -8,6 +8,7 @@ pub mod tool_anim;
 mod tools;
 
 use crate::shared::*;
+use crate::world::WorldMap;
 use bevy::prelude::*;
 
 pub struct PlayerPlugin;

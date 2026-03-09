@@ -72,6 +72,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<PreviousWeather>()
             .init_resource::<WeatherParticleCounts>()
             .init_resource::<GrassDecorState>()
+            .init_resource::<BoatMode>()
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
@@ -618,7 +619,7 @@ pub struct WorldMap {
 }
 
 impl WorldMap {
-    /// Check if a tile position is walkable.
+    /// Check if a tile position is walkable on foot (water is blocked).
     pub fn is_walkable(&self, x: i32, y: i32) -> bool {
         // Out of bounds is not walkable
         if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
@@ -634,6 +635,21 @@ impl WorldMap {
         if let Some(ref map_def) = self.map_def {
             let tile = map_def.get_tile(x, y);
             !matches!(tile, TileKind::Water | TileKind::Void)
+        } else {
+            false
+        }
+    }
+
+    /// Check if a tile position is walkable while sailing.
+    /// Water and Bridge tiles are passable; everything else is blocked.
+    pub fn is_walkable_sailing(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
+            return false;
+        }
+
+        if let Some(ref map_def) = self.map_def {
+            let tile = map_def.get_tile(x, y);
+            matches!(tile, TileKind::Water | TileKind::Bridge)
         } else {
             false
         }
@@ -787,7 +803,7 @@ fn load_map(
     // and interior maps (where it serves as floor/counters).
     let stone_is_solid = matches!(
         map_id,
-        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::DeepForest | MapId::MineEntrance
+        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::DeepForest | MapId::CoralIsland | MapId::MineEntrance
     );
     for y in 0..map_def.height {
         for x in 0..map_def.width {

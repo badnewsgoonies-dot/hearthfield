@@ -282,6 +282,29 @@ pub fn make_crafting_recipe(id: &str) -> Option<Recipe> {
             is_cooking: false,
             unlocked_by_default: true,
         },
+        // ── Sailing ─────────────────────────────────────────────────────────
+        "rope" => Recipe {
+            id: "rope".into(),
+            name: "Rope".into(),
+            ingredients: vec![("fiber".into(), 5)],
+            result: "rope".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
+        "boat" => Recipe {
+            id: "boat".into(),
+            name: "Boat".into(),
+            ingredients: vec![
+                ("wood".into(), 30),
+                ("hardwood".into(), 5),
+                ("rope".into(), 3),
+            ],
+            result: "boat".into(),
+            result_quantity: 1,
+            is_cooking: false,
+            unlocked_by_default: true,
+        },
         "lamppost" => Recipe {
             id: "lamppost".into(),
             name: "Lamppost".into(),
@@ -484,6 +507,8 @@ pub const ALL_CRAFTING_RECIPE_IDS: &[&str] = &[
     "worm_bin",
     "bench",
     "lamppost",
+    "rope",
+    "boat",
 ];
 
 /// All cooking recipe ids (for data plugin initialization).
