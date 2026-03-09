@@ -123,9 +123,15 @@ pub fn animate_tool_use(
                 if new_frame >= total_frames {
                     // Animation complete — swap back to walk atlas
                     sprite.image = walk_sprites.image.clone();
+                    let facing_base: usize = match movement.facing {
+                        Facing::Down => 0,
+                        Facing::Up => 4,
+                        Facing::Left => 8,
+                        Facing::Right => 12,
+                    };
                     if let Some(atlas) = &mut sprite.texture_atlas {
                         atlas.layout = walk_sprites.layout.clone();
-                        atlas.index = 0;
+                        atlas.index = facing_base;
                     }
                     // Reset flip since walk animation handles its own flipping
                     sprite.flip_x = false;
