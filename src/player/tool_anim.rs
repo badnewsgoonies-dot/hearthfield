@@ -1,4 +1,4 @@
-use super::{facing_offset, PlayerSpriteData};
+use super::facing_offset;
 use crate::shared::*;
 use bevy::prelude::*;
 
@@ -40,16 +40,11 @@ pub fn handle_tool_impact_sfx(
 /// Each tool has a distinct frame duration so heavy tools feel weighty.
 pub fn animate_tool_use(
     time: Res<Time>,
-    walk_sprites: Res<PlayerSpriteData>,
     mut query: Query<(Entity, &mut PlayerMovement, &mut Sprite, &LogicalPosition), With<Player>>,
     mut impact_events: EventWriter<ToolImpactEvent>,
     mut frame_timer: Local<f32>,
     mut impact_fired: Local<bool>,
 ) {
-    if !walk_sprites.loaded {
-        return;
-    }
-
     for (entity, mut movement, mut sprite, logical_pos) in query.iter_mut() {
         if let PlayerAnimState::ToolUse {
             tool,
@@ -68,10 +63,11 @@ pub fn animate_tool_use(
             };
 
             if frame == 0 && *frame_timer == 0.0 {
-                // First frame: ensure walk atlas, set to walk frame 1 (bob start)
-                sprite.image = walk_sprites.image.clone();
+                // First frame: set the bob start index only.
+                // Do NOT overwrite sprite.image — spawn.rs already set the correct
+                // spritesheet handle. Overwriting with walk_sprites.image risks using a
+                // stale or default handle, causing the sprite to vanish.
                 if let Some(atlas) = &mut sprite.texture_atlas {
-                    atlas.layout = walk_sprites.layout.clone();
                     atlas.index = facing_base + 1;
                 }
                 *impact_fired = false;
