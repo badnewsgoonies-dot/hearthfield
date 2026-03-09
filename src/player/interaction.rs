@@ -512,7 +512,8 @@ pub fn grant_starter_items(mut inventory: ResMut<Inventory>, item_registry: Res<
     }
 
     let starters = [
-        ("turnip_seeds", 15u8), // Spring crop — enough for a starter plot
+        ("hoe", 1u8),           // Required to till soil — first step in farming
+        ("turnip_seeds", 15),   // Spring crop — enough for a starter plot
         ("potato_seeds", 5),    // Second spring crop
         ("wood", 20),           // For crafting a chest or fence
         ("stone", 15),          // Basic materials
