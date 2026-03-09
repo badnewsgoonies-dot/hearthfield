@@ -1552,8 +1552,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 6.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
                 ScheduleEntry {
                     time: 9.0,
@@ -1564,8 +1564,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 12.0,
                     map: MapId::Farm,
-                    x: 14,
-                    y: 13,
+                    x: 6,
+                    y: 20,
                 },
                 ScheduleEntry {
                     time: 16.0,
@@ -1576,16 +1576,16 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 19.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
             ],
             weekend: vec![
                 ScheduleEntry {
                     time: 6.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
                 ScheduleEntry {
                     time: 11.0,
@@ -1602,16 +1602,16 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 19.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
             ],
             rain_override: Some(vec![
                 ScheduleEntry {
                     time: 6.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
                 ScheduleEntry {
                     time: 10.0,
@@ -1622,8 +1622,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 19.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
             ]),
             festival_override: None,
