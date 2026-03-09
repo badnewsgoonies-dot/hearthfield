@@ -199,6 +199,8 @@ Optional:
 
 Use workers for scaffold work. Use the orchestrator for integration and finishing.
 
+Delegation depth by domain count: 10 or fewer domains, dispatch workers flat from the orchestrator. 10–20 domains, add domain leads between orchestrator and workers. 20+ domains, add an architect layer above domain leads. Each extra handoff is lossy — disk specs become more critical as depth increases.
+
 Required worker template:
 
 ```markdown
@@ -208,6 +210,8 @@ Scope:
 - Allowed path(s): [exact allowlist]
 - No edits outside scope
 - Do not modify shared contract unless explicitly assigned
+- Do not create orchestration infrastructure. Implement only domain deliverables.
+- Do not redefine shared types locally. Import from the contract.
 
 Read in order:
 1. docs/spec.md
@@ -407,6 +411,8 @@ Track:
 
 ### 4.6 Integration
 
+Do not carry the full orchestration conversation forward into integration. Start a fresh session. The orchestration conversation is mostly re-read cost by this point — integration needs only the artifacts on disk.
+
 Integration ingests only:
 
 - contract + checksum
@@ -473,6 +479,8 @@ For each event:
 - **consumer(s)**
 
 Fail if either side is missing unless marked future work.
+
+Quick mechanical fallback: `grep -R "shared/types" src/domains/*/` — any domain with zero shared contract imports is hermetic and fails this gate regardless of event wiring claims.
 
 ### 5.6 Save/Load Round-Trip Gate
 
@@ -570,6 +578,8 @@ Do not blame. Do not moralize. Do not widen scope unless the seam is actually wr
 8. **Critical-path uncertainty** — first-60-seconds path is not fully [Observed] at release
 9. **Blame-thrash loop** — repairs become accusatory, abstract, or scope-widening
 10. **Identity collapse** — a build that should be Tier M or Tier C is operating as Tier S to avoid dispatch overhead, forcing one session to be architect, worker, and reviewer on a campaign-scale problem. Tier S operating solo by design is not identity collapse — it is the intended mode for small changes.
+11. **Abstraction reflex** — worker builds orchestration frameworks, dispatch infrastructure, or meta-tools instead of implementing domain deliverables. The fix is not more instruction — it is a narrower worker spec with "Do not create orchestration infrastructure" enforced mechanically via the allowlist.
+12. **Self-model error** — agent claims it cannot do things it can (e.g., "I don't have bash access"), or claims resource states that are false (e.g., reporting 87% context remaining when 2% remains). Do not trust the agent's self-report. Trust the mechanical indicator.
 
 -----
 
