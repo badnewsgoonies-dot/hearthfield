@@ -50,7 +50,9 @@ impl Plugin for PlayerPlugin {
                 tools::tool_use.before(movement::player_movement),
                 movement::player_movement,
                 movement::footstep_sfx.after(movement::player_movement),
-                movement::animate_player_sprite,
+                movement::animate_player_sprite
+                    .after(movement::player_movement)
+                    .after(tool_anim::animate_tool_use),
                 tool_anim::animate_tool_use.after(movement::player_movement),
                 tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),
                 tools::tool_cycle,

@@ -176,7 +176,10 @@ pub fn spawn_npcs_for_map(
                 index: 0,
             },
         );
-        sprite.custom_size = Some(Vec2::new(48.0, 48.0));
+        // NPC sprite sheets fill the full 48×48 frame while the player
+        // character is drawn at ~16px scale within 48×48.  Scale NPCs down
+        // so they match the player's visual size on screen.
+        sprite.custom_size = Some(Vec2::new(20.0, 20.0));
         sprite.anchor = bevy::sprite::Anchor::BottomCenter;
 
         let entity = commands
@@ -205,7 +208,7 @@ pub fn spawn_npcs_for_map(
             ))
             .id();
 
-        // Floating name tag above the NPC sprite.
+        // Floating name tag above the NPC sprite (20px sprite height + 2px gap).
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Text2d::new(npc_def.name.clone()),
@@ -214,7 +217,7 @@ pub fn spawn_npcs_for_map(
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 38.0, 0.1),
+                Transform::from_xyz(0.0, 22.0, 0.1),
             ));
         });
 
