@@ -78,6 +78,7 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
         MapId::GeneralStore => (6, 8),
         MapId::AnimalShop => (6, 8),
         MapId::Blacksmith => (6, 8),
+        MapId::CoralIsland => (15, 1),
     }
 }
 
@@ -98,6 +99,7 @@ pub fn generate_map(map_id: MapId) -> MapDef {
         MapId::GeneralStore => generate_general_store(),
         MapId::AnimalShop => generate_animal_shop(),
         MapId::Blacksmith => generate_blacksmith(),
+        MapId::CoralIsland => generate_coral_island(),
     }
 }
 
@@ -1246,5 +1248,137 @@ fn generate_blacksmith() -> MapDef {
         transitions,
         objects: Vec::new(),
         forage_points: Vec::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Coral Island map: 30x22  (Tropical island — accessible by boat)
+// Layout: water border, north dock, palm grove (NE), freshwater pond (CW),
+//         rocky tide pools (SE), west beach, central sand/grass mix
+// ---------------------------------------------------------------------------
+fn generate_coral_island() -> MapDef {
+    let w = 30usize;
+    let h = 22usize;
+    // Start with all water
+    let mut tiles = vec![TileKind::Water; w * h];
+
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
+                }
+            }
+        };
+
+    // Island interior — fill from (3, 2) to (26, 19) with Sand base
+    fill_rect(&mut tiles, 3, 2, 24, 18, TileKind::Sand);
+
+    // Central grass area
+    fill_rect(&mut tiles, 7, 5, 16, 12, TileKind::Grass);
+
+    // North dock approach: sand strip at y=1-2, x=13-17
+    fill_rect(&mut tiles, 13, 1, 5, 2, TileKind::Sand);
+    // Path leading south from dock
+    fill_rect(&mut tiles, 14, 3, 2, 4, TileKind::Path);
+
+    // West beach strip (x=3-6, full height island)
+    fill_rect(&mut tiles, 3, 2, 4, 18, TileKind::Sand);
+
+    // South beach strip
+    fill_rect(&mut tiles, 3, 18, 24, 2, TileKind::Sand);
+
+    // Northeast palm grove area — keep as sand with grass patches
+    fill_rect(&mut tiles, 19, 3, 8, 8, TileKind::Sand);
+    fill_rect(&mut tiles, 20, 4, 6, 6, TileKind::Grass);
+
+    // Southeast tide pool area — dirt tiles
+    fill_rect(&mut tiles, 20, 13, 7, 6, TileKind::Dirt);
+
+    // Freshwater pond (center-west): 4x3 water tiles around (8-11, 10-12)
+    fill_rect(&mut tiles, 8, 10, 4, 3, TileKind::Water);
+    // Pond shoreline
+    fill_rect(&mut tiles, 7, 9, 6, 5, TileKind::Sand);
+    fill_rect(&mut tiles, 8, 10, 4, 3, TileKind::Water); // restore water
+
+    let transitions = vec![
+        // North edge → Beach map (sail back)
+        MapTransition {
+            from_map: MapId::CoralIsland,
+            from_rect: (13, 0, 5, 1),
+            to_map: MapId::Beach,
+            to_pos: (10, 12),
+        },
+    ];
+
+    let mut objects = Vec::new();
+
+    // Dock pier objects at north arrival point
+    objects.push(ObjectPlacement { x: 14, y: 1, kind: WorldObjectKind::Dock });
+    objects.push(ObjectPlacement { x: 16, y: 1, kind: WorldObjectKind::Dock });
+
+    // Northeast PalmTree grove (8+ trees)
+    let palm_grove = [
+        (20, 3), (22, 3), (24, 3), (26, 3),
+        (21, 5), (23, 5), (25, 5),
+        (20, 7), (22, 7), (24, 7),
+        (26, 6), (27, 4),
+    ];
+    for (px, py) in &palm_grove {
+        objects.push(ObjectPlacement { x: *px, y: *py, kind: WorldObjectKind::PalmTree });
+    }
+
+    // Additional scattered PalmTrees (meet 15+ total)
+    let more_palms = [
+        (5, 3), (5, 7), (5, 12), (5, 17),
+        (27, 12), (27, 16),
+        (15, 18), (19, 18),
+    ];
+    for (px, py) in &more_palms {
+        objects.push(ObjectPlacement { x: *px, y: *py, kind: WorldObjectKind::PalmTree });
+    }
+
+    // Southeast tide pools: Coral objects (8+)
+    let coral_spots = [
+        (21, 14), (23, 14), (25, 14), (27, 14),
+        (20, 16), (22, 16), (24, 16), (26, 16),
+        (21, 18), (24, 18),
+    ];
+    for (cx, cy) in &coral_spots {
+        objects.push(ObjectPlacement { x: *cx, y: *cy, kind: WorldObjectKind::Coral });
+    }
+
+    // Southeast rocks (4+)
+    let rock_spots = [(22, 13), (25, 13), (20, 15), (26, 15)];
+    for (rx, ry) in &rock_spots {
+        objects.push(ObjectPlacement { x: *rx, y: *ry, kind: WorldObjectKind::Rock });
+    }
+
+    // West beach driftwood (5+)
+    let driftwood_spots = [(4, 5), (4, 9), (4, 13), (4, 17), (6, 19)];
+    for (dx, dy) in &driftwood_spots {
+        objects.push(ObjectPlacement { x: *dx, y: *dy, kind: WorldObjectKind::Driftwood });
+    }
+
+    // Forage points spread across the island (8+): shells, sea glass, tropical herbs
+    let forage_points = vec![
+        (6, 4), (6, 8), (6, 14), (6, 18),
+        (13, 7), (17, 7),
+        (10, 15), (15, 14),
+        (23, 10), (12, 19),
+    ];
+
+    MapDef {
+        id: MapId::CoralIsland,
+        width: w,
+        height: h,
+        tiles,
+        transitions,
+        objects,
+        forage_points,
     }
 }

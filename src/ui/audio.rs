@@ -207,6 +207,7 @@ pub fn switch_music_on_map_change(
             MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith => {
                 "indoor"
             }
+            MapId::CoralIsland => "beach",
         };
         music_events.send(PlayMusicEvent {
             track_id: track.to_string(),

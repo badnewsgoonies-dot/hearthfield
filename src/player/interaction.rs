@@ -31,6 +31,7 @@ fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
         MapId::GeneralStore => (0, 11, 0, 11),
         MapId::AnimalShop => (0, 11, 0, 11),
         MapId::Blacksmith => (0, 11, 0, 11),
+        MapId::CoralIsland => (0, 29, 0, 21),
     }
 }
 

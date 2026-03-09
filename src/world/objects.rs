@@ -351,6 +351,10 @@ impl WorldObjectKind {
             WorldObjectKind::Bush => 2,
             WorldObjectKind::LargeRock => 12,
             WorldObjectKind::Log => 4,
+            WorldObjectKind::Dock => 20,
+            WorldObjectKind::PalmTree => 12,
+            WorldObjectKind::Coral => 4,
+            WorldObjectKind::Driftwood => 6,
         }
     }
 
@@ -364,6 +368,10 @@ impl WorldObjectKind {
             WorldObjectKind::Log => ToolKind::Axe,
             WorldObjectKind::Rock => ToolKind::Pickaxe,
             WorldObjectKind::LargeRock => ToolKind::Pickaxe,
+            WorldObjectKind::Dock => ToolKind::Axe,
+            WorldObjectKind::PalmTree => ToolKind::Axe,
+            WorldObjectKind::Coral => ToolKind::Pickaxe,
+            WorldObjectKind::Driftwood => ToolKind::Axe,
         }
     }
 
@@ -404,6 +412,10 @@ impl WorldObjectKind {
             WorldObjectKind::Bush => vec![("fiber", 3), ("wild_berry", 1)],
             WorldObjectKind::Rock => vec![("stone", 3), ("copper_ore", 1)],
             WorldObjectKind::LargeRock => vec![("stone", 5), ("copper_ore", 2), ("geode", 1)],
+            WorldObjectKind::Dock => vec![("wood", 8), ("hardwood", 2)],
+            WorldObjectKind::PalmTree => vec![("wood", 6), ("coconut", 2)],
+            WorldObjectKind::Coral => vec![("coral_piece", 3)],
+            WorldObjectKind::Driftwood => vec![("wood", 4), ("rope", 1)],
         }
     }
 
@@ -417,6 +429,10 @@ impl WorldObjectKind {
             WorldObjectKind::Bush => Color::srgb(0.2, 0.55, 0.25),
             WorldObjectKind::Rock => Color::srgb(0.55, 0.55, 0.58),
             WorldObjectKind::LargeRock => Color::srgb(0.45, 0.45, 0.5),
+            WorldObjectKind::Dock => Color::srgb(0.55, 0.4, 0.25),
+            WorldObjectKind::PalmTree => Color::srgb(0.3, 0.6, 0.2),
+            WorldObjectKind::Coral => Color::srgb(0.9, 0.5, 0.6),
+            WorldObjectKind::Driftwood => Color::srgb(0.6, 0.5, 0.35),
         }
     }
 
@@ -426,6 +442,9 @@ impl WorldObjectKind {
             WorldObjectKind::Tree => Vec2::new(TILE_SIZE * 2.0, TILE_SIZE * 3.0),
             WorldObjectKind::Pine => Vec2::new(TILE_SIZE * 2.0, TILE_SIZE * 3.0),
             WorldObjectKind::LargeRock => Vec2::new(TILE_SIZE * 1.5, TILE_SIZE * 1.5),
+            WorldObjectKind::Dock => Vec2::new(TILE_SIZE * 2.0, TILE_SIZE * 1.5),
+            WorldObjectKind::PalmTree => Vec2::new(TILE_SIZE * 2.0, TILE_SIZE * 3.0),
+            WorldObjectKind::Driftwood => Vec2::new(TILE_SIZE * 1.5, TILE_SIZE),
             _ => Vec2::new(TILE_SIZE, TILE_SIZE),
         }
     }
@@ -457,6 +476,10 @@ impl WorldObjectKind {
             WorldObjectKind::Rock => 29,      // row 3, col 2 — rock
             WorldObjectKind::LargeRock => 38, // row 4, col 2 — large rock
             WorldObjectKind::Log => 36,       // row 4, col 0 — log
+            WorldObjectKind::Dock => 36,      // row 4, col 0 — log-like planks
+            WorldObjectKind::PalmTree => 10,  // row 1, col 1 — tree top fallback
+            WorldObjectKind::Coral => 29,     // row 3, col 2 — rock-like
+            WorldObjectKind::Driftwood => 36, // row 4, col 0 — log-like
         }
     }
 }

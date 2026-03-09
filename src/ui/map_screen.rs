@@ -290,6 +290,7 @@ fn map_id_display_name(map_id: MapId) -> &'static str {
         MapId::GeneralStore => "General Store",
         MapId::AnimalShop => "Animal Shop",
         MapId::Blacksmith => "Blacksmith",
+        MapId::CoralIsland => "Coral Island",
     }
 }
 

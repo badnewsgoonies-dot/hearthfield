@@ -183,6 +183,7 @@ pub fn build_map_registry() -> MapRegistry {
         MapId::GeneralStore,
         MapId::AnimalShop,
         MapId::Blacksmith,
+        MapId::CoralIsland,
     ];
 
     let mut registry = MapRegistry {
@@ -274,6 +275,7 @@ pub fn export_all_maps() -> Vec<(MapId, MapData)> {
         MapId::GeneralStore,
         MapId::AnimalShop,
         MapId::Blacksmith,
+        MapId::CoralIsland,
     ];
 
     let mut results = Vec::new();
@@ -359,7 +361,7 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         },
         MapId::Beach => EdgeDefs {
             north: Some((MapId::Town, EdgeTarget::ClampX(1))),
-            south: None,
+            south: Some((MapId::CoralIsland, EdgeTarget::Fixed(15, 1))),
             east: Some((MapId::Farm, EdgeTarget::ClampY(1))),
             west: None,
         },
@@ -411,6 +413,12 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             east: None,
             west: None,
         },
+        MapId::CoralIsland => EdgeDefs {
+            north: Some((MapId::Beach, EdgeTarget::Fixed(10, 12))),
+            south: None,
+            east: None,
+            west: None,
+        },
     }
 }
 
@@ -448,6 +456,7 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
         MapId::GeneralStore => "general_store",
         MapId::AnimalShop => "animal_shop",
         MapId::Blacksmith => "blacksmith",
+        MapId::CoralIsland => "coral_island",
     }
 }
 
@@ -458,7 +467,7 @@ mod tests {
     #[test]
     fn generate_ron_files() {
         write_all_ron_files().expect("Failed to write RON files");
-        // Verify all 11 files exist and round-trip correctly
+        // Verify all 12 files exist and round-trip correctly
         let all_maps = [
             MapId::Farm,
             MapId::Town,
@@ -471,6 +480,7 @@ mod tests {
             MapId::GeneralStore,
             MapId::AnimalShop,
             MapId::Blacksmith,
+            MapId::CoralIsland,
         ];
         for &map_id in &all_maps {
             let name = map_id_filename(map_id);
@@ -505,6 +515,7 @@ mod tests {
             MapId::GeneralStore,
             MapId::AnimalShop,
             MapId::Blacksmith,
+            MapId::CoralIsland,
         ];
 
         for &map_id in &all_maps {
