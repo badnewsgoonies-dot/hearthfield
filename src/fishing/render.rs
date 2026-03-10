@@ -1,14 +1,16 @@
 //! Minigame UI rendering, bobber animation, and fish display animations.
 
 use bevy::prelude::*;
+use rand::Rng;
 
 use super::minigame::{
     zone_to_screen_y, MINIGAME_BAR_HEIGHT, MINIGAME_BAR_WIDTH, PROGRESS_BAR_HEIGHT,
     PROGRESS_BAR_WIDTH, PROGRESS_BAR_Y,
 };
 use super::{
-    Bobber, FishingMinigameState, FishingState, MinigameBgBar, MinigameCatchBar, MinigameFishZone,
-    MinigameProgressBg, MinigameProgressFill, MinigameRoot,
+    Bobber, BobberRippleTimer, BobberSplashSpawned, FishingMinigameState, FishingPhase,
+    FishingState, MinigameBgBar, MinigameCatchBar, MinigameFishZone, MinigameProgressBg,
+    MinigameProgressFill, MinigameRoot, WaterDroplet, WaterRipple,
 };
 use crate::shared::*;
 
@@ -212,8 +214,6 @@ pub fn animate_bobber(
     fishing_state: Res<FishingState>,
     time: Res<Time>,
 ) {
-    use super::FishingPhase;
-
     for (mut transform, mut bobber) in bobber_query.iter_mut() {
         let is_bite = fishing_state.phase == FishingPhase::BitePending;
 
@@ -395,4 +395,246 @@ pub fn spawn_fish_display(
     }
 
     fish_entity
+}
+
+// ─── Water Splash / Ripple helpers ───────────────────────────────────────────
+
+/// Parameters for a single water splash burst.
+struct SplashParams {
+    pos: Vec3,
+    count: usize,
+    /// Square droplet side length (world units).
+    droplet_size: f32,
+    speed_min: f32,
+    speed_max: f32,
+    ripple_start: f32,
+    ripple_end: f32,
+    ripple_alpha: f32,
+}
+
+/// Spawn a burst of water droplet particles plus an initial ripple at `params.pos`.
+fn spawn_water_splash(commands: &mut Commands, rng: &mut impl rand::Rng, p: &SplashParams) {
+    // Droplets
+    for _ in 0..p.count {
+        // Upward burst: angle biased upward (between 30° and 150° from horizontal)
+        let angle = rng.gen_range(
+            std::f32::consts::FRAC_PI_6..std::f32::consts::PI - std::f32::consts::FRAC_PI_6,
+        );
+        let speed = rng.gen_range(p.speed_min..p.speed_max);
+        let vx = angle.cos() * speed * rng.gen_range(-1.0f32..1.0).signum();
+        let vy = angle.sin() * speed;
+        let lifetime_secs = rng.gen_range(0.3f32..0.4);
+
+        commands.spawn((
+            WaterDroplet {
+                lifetime: Timer::from_seconds(lifetime_secs, TimerMode::Once),
+                velocity: Vec2::new(vx, vy),
+                gravity: 80.0,
+                initial_alpha: 0.6,
+            },
+            Sprite {
+                color: Color::srgba(0.5, 0.7, 1.0, 0.6),
+                custom_size: Some(Vec2::splat(p.droplet_size)),
+                ..default()
+            },
+            Transform::from_translation(p.pos),
+        ));
+    }
+
+    // Ripple circle
+    commands.spawn((
+        WaterRipple {
+            lifetime: Timer::from_seconds(0.3, TimerMode::Once),
+            start_size: p.ripple_start,
+            end_size: p.ripple_end,
+            start_alpha: p.ripple_alpha,
+        },
+        Sprite {
+            color: Color::srgba(0.4, 0.6, 1.0, p.ripple_alpha),
+            custom_size: Some(Vec2::splat(p.ripple_start)),
+            ..default()
+        },
+        Transform::from_translation(p.pos),
+    ));
+}
+
+// ─── System: spawn landing splash when bobber first appears ──────────────────
+
+/// Query filter for bobbers that haven't yet received their landing splash.
+type NewBobberQuery<'w, 's> =
+    Query<'w, 's, (Entity, &'static Transform), (With<Bobber>, Without<BobberSplashSpawned>)>;
+
+/// Detects newly spawned bobber entities (those without `BobberSplashSpawned`)
+/// and fires the landing water splash effect.
+pub fn spawn_bobber_landing_splash(mut commands: Commands, new_bobbers: NewBobberQuery) {
+    let mut rng = rand::thread_rng();
+
+    for (entity, transform) in new_bobbers.iter() {
+        let pos = transform.translation;
+        // Landing splash: 3-4 droplets, 2×2 px, 20-40 px/s, ripple 6→12, alpha 0.2
+        let droplet_count = rng.gen_range(3..=4);
+        spawn_water_splash(
+            &mut commands,
+            &mut rng,
+            &SplashParams {
+                pos: Vec3::new(pos.x, pos.y, Z_EFFECTS),
+                count: droplet_count,
+                droplet_size: 2.0,
+                speed_min: 20.0,
+                speed_max: 40.0,
+                ripple_start: 6.0,
+                ripple_end: 12.0,
+                ripple_alpha: 0.2,
+            },
+        );
+
+        // Mark spawned and add the ambient ripple timer (fires every 1.0–1.5 s)
+        let ripple_interval = rng.gen_range(1.0f32..1.5);
+        commands.entity(entity).insert((
+            BobberSplashSpawned,
+            BobberRippleTimer {
+                timer: Timer::from_seconds(ripple_interval, TimerMode::Repeating),
+            },
+        ));
+    }
+}
+
+// ─── System: ambient ripple while bobber waits for a bite ────────────────────
+
+/// Spawns a small ripple every 1.0–1.5 seconds at the bobber's current position.
+pub fn tick_bobber_ambient_ripple(
+    mut commands: Commands,
+    mut bobber_query: Query<(&Transform, &mut BobberRippleTimer), With<Bobber>>,
+    fishing_state: Res<FishingState>,
+    time: Res<Time>,
+) {
+    // Only during WaitingForBite phase
+    if fishing_state.phase != FishingPhase::WaitingForBite {
+        return;
+    }
+
+    for (transform, mut ripple_timer) in bobber_query.iter_mut() {
+        ripple_timer.timer.tick(time.delta());
+
+        if ripple_timer.timer.just_finished() {
+            let pos = transform.translation;
+            commands.spawn((
+                WaterRipple {
+                    lifetime: Timer::from_seconds(0.3, TimerMode::Once),
+                    start_size: 4.0,
+                    end_size: 8.0,
+                    start_alpha: 0.1,
+                },
+                Sprite {
+                    color: Color::srgba(0.4, 0.6, 1.0, 0.1),
+                    custom_size: Some(Vec2::splat(4.0)),
+                    ..default()
+                },
+                Transform::from_xyz(pos.x, pos.y, Z_EFFECTS),
+            ));
+
+            // Randomise the next interval
+            let mut rng = rand::thread_rng();
+            let next = rng.gen_range(1.0f32..1.5);
+            ripple_timer.timer = Timer::from_seconds(next, TimerMode::Repeating);
+        }
+    }
+}
+
+// ─── System: bite splash when FishingPhase transitions to BitePending ────────
+
+/// Detects the first frame the phase becomes `BitePending` and fires a larger
+/// splash to signal "FISH ON!" visually.
+pub fn spawn_bite_splash(
+    mut commands: Commands,
+    fishing_state: Res<FishingState>,
+    bobber_query: Query<&Transform, With<Bobber>>,
+    mut was_bite_pending: Local<bool>,
+) {
+    let now_bite = fishing_state.phase == FishingPhase::BitePending;
+
+    if now_bite && !*was_bite_pending {
+        // First frame of BitePending — fire the bite splash
+        if let Ok(transform) = bobber_query.get_single() {
+            let pos = transform.translation;
+            let mut rng = rand::thread_rng();
+            // Bite splash: 5-6 droplets, 3×3 px, 40-80 px/s, ripple 8→16, alpha 0.25
+            let droplet_count = rng.gen_range(5..=6);
+            spawn_water_splash(
+                &mut commands,
+                &mut rng,
+                &SplashParams {
+                    pos: Vec3::new(pos.x, pos.y, Z_EFFECTS),
+                    count: droplet_count,
+                    droplet_size: 3.0,
+                    speed_min: 40.0,
+                    speed_max: 80.0,
+                    ripple_start: 8.0,
+                    ripple_end: 16.0,
+                    ripple_alpha: 0.25,
+                },
+            );
+        }
+    }
+
+    *was_bite_pending = now_bite;
+}
+
+// ─── System: update water droplets ───────────────────────────────────────────
+
+/// Move droplets, apply gravity, fade alpha, despawn when lifetime expires.
+pub fn update_water_droplets(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &mut Sprite, &mut WaterDroplet)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut tf, mut sprite, mut droplet) in query.iter_mut() {
+        droplet.lifetime.tick(time.delta());
+
+        if droplet.lifetime.finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        // Move
+        tf.translation.x += droplet.velocity.x * dt;
+        tf.translation.y += droplet.velocity.y * dt;
+
+        // Apply gravity
+        droplet.velocity.y -= droplet.gravity * dt;
+
+        // Fade alpha
+        let fraction = 1.0 - droplet.lifetime.fraction();
+        let alpha = droplet.initial_alpha * fraction;
+        sprite.color = Color::srgba(0.5, 0.7, 1.0, alpha);
+    }
+}
+
+// ─── System: update water ripples ────────────────────────────────────────────
+
+/// Expand ripple circles and fade them to transparent, then despawn.
+pub fn update_water_ripples(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &mut Sprite, &mut WaterRipple)>,
+) {
+    for (entity, mut tf, mut sprite, mut ripple) in query.iter_mut() {
+        ripple.lifetime.tick(time.delta());
+
+        if ripple.lifetime.finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        let t = ripple.lifetime.fraction(); // 0.0 → 1.0
+
+        // Interpolate size
+        let size = ripple.start_size + (ripple.end_size - ripple.start_size) * t;
+        tf.scale = Vec3::splat(size / ripple.start_size);
+
+        // Fade alpha from start_alpha → 0
+        let alpha = ripple.start_alpha * (1.0 - t);
+        sprite.color = Color::srgba(0.4, 0.6, 1.0, alpha);
+    }
 }

@@ -20,6 +20,7 @@ pub mod map_data;
 pub mod maps;
 pub mod objects;
 pub mod seasonal;
+pub mod tree_fx;
 pub mod weather_fx;
 pub mod ysort;
 
@@ -46,6 +47,10 @@ use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
     update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
     WeatherSprites,
+};
+use tree_fx::{
+    on_axe_tree_impact, on_tree_destruction, update_leaf_particles, update_tree_destruction_poof,
+    update_tree_flash, update_tree_shake,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -103,6 +108,9 @@ impl Plugin for WorldPlugin {
                     chests::close_chest_on_escape,
                     // Weed scythe clearing
                     handle_weed_scythe,
+                    // Tree axe-hit feedback triggers (read events, spawn VFX)
+                    on_axe_tree_impact,
+                    on_tree_destruction,
                 )
                     .in_set(UpdatePhase::Simulation)
                     .run_if(in_state(GameState::Playing)),
@@ -136,6 +144,18 @@ impl Plugin for WorldPlugin {
                     animate_doors,
                     spawn_chimney_smoke,
                     update_chimney_smoke,
+                )
+                    .in_set(UpdatePhase::Presentation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
+                    // Tree axe-hit feedback: shake, flash, leaf burst, destruction poof
+                    update_tree_shake,
+                    update_tree_flash,
+                    update_leaf_particles,
+                    update_tree_destruction_poof,
                 )
                     .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),

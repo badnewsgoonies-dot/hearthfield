@@ -19,6 +19,7 @@ mod render;
 mod soil;
 mod sprinkler;
 pub mod sprinklers;
+mod tool_fx;
 use sprinklers::{auto_water_sprinklers, handle_place_sprinkler, remove_sprinkler};
 
 /// Event to place a farm object (fence, scarecrow, etc.) at a grid position.
@@ -189,6 +190,23 @@ impl Plugin for FarmingPlugin {
                     handle_place_farm_object,
                     // Harvest particle animation
                     harvest::update_harvest_particles,
+                )
+                    .run_if(in_state(GameState::Playing)),
+            )
+            // ------------------------------------------------------------------
+            // Tool visual effects — watering can and scythe impact visuals
+            // ------------------------------------------------------------------
+            .add_systems(
+                Update,
+                (
+                    tool_fx::spawn_water_splash,
+                    tool_fx::update_water_splash,
+                    tool_fx::spawn_water_drips,
+                    tool_fx::update_water_drips,
+                    tool_fx::spawn_scythe_arc,
+                    tool_fx::update_scythe_arc,
+                    tool_fx::spawn_cut_debris,
+                    tool_fx::update_cut_debris,
                 )
                     .run_if(in_state(GameState::Playing)),
             )

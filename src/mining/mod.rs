@@ -20,6 +20,7 @@ mod hud;
 mod ladder;
 mod movement;
 mod rock_breaking;
+mod rock_impact;
 mod spawning;
 mod transitions;
 
@@ -27,6 +28,7 @@ use crate::shared::*;
 use bevy::prelude::*;
 use components::*;
 use movement::MineMoveCooldown;
+use rock_impact::{RockDestroyedEvent, RockHitEvent};
 
 pub struct MiningPlugin;
 
@@ -43,6 +45,8 @@ impl Plugin for MiningPlugin {
         app.init_resource::<spawning::EnemyAtlas>();
         app.init_resource::<anim::ProceduralEnemySprites>();
         app.add_event::<MonsterSlainEvent>();
+        app.add_event::<RockHitEvent>();
+        app.add_event::<RockDestroyedEvent>();
 
         // === Systems that run during Playing state ===
         app.add_systems(
@@ -88,10 +92,27 @@ impl Plugin for MiningPlugin {
                 hud::update_floor_label,
                 hud::show_elevator_prompt,
                 hud::despawn_mine_hud,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // === Rock impact visual feedback systems ===
+        app.add_systems(
+            Update,
+            (
                 // Animations
                 anim::animate_enemy_idle,
                 anim::animate_ore_shimmer,
                 anim::update_shimmer_particles,
+                // Rock hit / destroy reactions
+                rock_impact::handle_rock_hit_effects,
+                rock_impact::handle_rock_destroyed_effects,
+                // Per-frame feedback updates
+                rock_impact::update_rock_shake,
+                rock_impact::update_damage_flash,
+                rock_impact::update_rock_sparks,
+                rock_impact::update_stone_fragments,
+                rock_impact::update_rock_destroy_poof,
             )
                 .run_if(in_state(GameState::Playing)),
         );
