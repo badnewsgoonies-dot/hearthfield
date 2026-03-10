@@ -21,6 +21,7 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<CollisionMap>();
         app.init_resource::<CameraSnap>();
         app.init_resource::<PlayerSpriteData>();
+        app.init_resource::<tool_anim::ProceduralToolSprites>();
         // -- Spawn player + tile cursor when we enter Playing --
         app.add_systems(
             OnEnter(GameState::Playing),
@@ -29,6 +30,7 @@ impl Plugin for PlayerPlugin {
                 interaction::grant_starter_items,
                 tool_anim::spawn_tool_cursor,
                 tool_anim::spawn_player_shadow,
+                tool_anim::load_procedural_tool_sprites,
             ),
         );
 
@@ -81,6 +83,14 @@ impl Plugin for PlayerPlugin {
                 tool_anim::animate_player_breathing
                     .after(movement::player_movement)
                     .after(tool_anim::animate_tool_use),
+                tool_anim::update_held_tool_sprite
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::spawn_impact_particles
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::spawn_till_poof
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::update_impact_particles,
+                tool_anim::update_till_poof,
             )
                 .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
