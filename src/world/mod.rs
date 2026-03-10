@@ -503,18 +503,14 @@ fn tile_atlas_info(
     height: usize,
 ) -> Option<(Handle<Image>, Handle<TextureAtlasLayout>, usize)> {
     match kind {
-        // Grass: modern_farm_terrain.png (32 cols × 23 rows).
-        // Use positional hash for visual variety. We pick from 4 grass variants
-        // using a deterministic hash of (x, y) so it's stable without runtime cost.
-        // Seasonal tints are applied via apply_seasonal_tint; base tiles stay green.
+        // Grass: use only clean center-fill tiles from the terrain sheet.
+        // The previous mapping sampled transition fragments, which baked dirt
+        // corners into ordinary grass fields. Seasonal tint is applied later by
+        // apply_seasonal_tint; the base tiles here stay neutral green.
         TileKind::Grass => {
             let variant = (x.wrapping_mul(7).wrapping_add(y.wrapping_mul(13))) % 4;
-            // Four distinct grass center tiles from the terrain atlas:
-            //   idx 5  (row 0, col 5)  — bright green
-            //   idx 6  (row 0, col 6)  — bright green variant
-            //   idx 67 (row 2, col 3)  — medium green
-            //   idx 101 (row 3, col 5) — slightly darker green
-            let grass_tiles: [usize; 4] = [5, 6, 67, 101];
+            // Verified clean grass centers from modern_farm_terrain.png.
+            let grass_tiles: [usize; 4] = [67, 75, 84, 392];
             Some((
                 atlases.terrain_image.clone(),
                 atlases.terrain_layout.clone(),
