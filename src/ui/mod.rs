@@ -23,6 +23,7 @@ mod shop_screen;
 pub mod stats_screen;
 mod toast;
 pub mod transitions;
+pub mod tool_tutorial;
 pub mod tutorial;
 
 use crate::shared::*;
@@ -314,7 +315,10 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::Dialogue),
-            dialogue_box::despawn_dialogue_box,
+            (
+                dialogue_box::despawn_dialogue_box,
+                tool_tutorial::despawn_tool_tutorial_overlay,
+            ),
         );
         app.add_systems(
             Update,
@@ -323,6 +327,14 @@ impl Plugin for UiPlugin {
                 dialogue_box::advance_dialogue,
             )
                 .chain()
+                .run_if(in_state(GameState::Dialogue)),
+        );
+
+        // ─── TOOL TUTORIAL OVERLAY — runs during Dialogue state ───
+        app.add_systems(
+            Update,
+            tool_tutorial::update_tool_tutorial_overlay
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::Dialogue)),
         );
 

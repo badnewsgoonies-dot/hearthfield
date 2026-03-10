@@ -65,6 +65,35 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     });
     steps.push_back(CutsceneStep::WaitForDialogueEnd);
 
+    // Tool tutorial — Mayor Rex walks the player through each tool.
+    // Set the flag so the overlay system knows to show tool sprites.
+    steps.push_back(CutsceneStep::SetFlag("tool_tutorial_active".into(), true));
+    steps.push_back(CutsceneStep::StartDialogueCustom {
+        npc_id: "mayor_rex".into(),
+        lines: vec![
+            // Line 0 — intro (no overlay)
+            "Let me show you your tools! Every farmer needs to know their equipment.".into(),
+            // Line 1 — HOE overlay shown
+            "This is your HOE. Till the soil with SPACE, then plant seeds.".into(),
+            // Line 2 — WATERING CAN overlay
+            "The WATERING CAN keeps crops alive. Water them every day!".into(),
+            // Line 3 — AXE overlay
+            "Your AXE chops trees for wood. You'll need lumber for upgrades.".into(),
+            // Line 4 — PICKAXE overlay
+            "The PICKAXE breaks rocks in the mines. Find ores and gems!".into(),
+            // Line 5 — SCYTHE overlay
+            "The SCYTHE cuts grass and harvests ripe crops. Fast and efficient!".into(),
+            // Line 6 — FISHING ROD overlay
+            "And this FISHING ROD — cast into water, wait for a bite, then reel in!".into(),
+            // Line 7 — outro (no overlay)
+            "That's everything! Use [ ] to cycle tools, or 1-6 for quick select. Good luck!".into(),
+        ],
+        portrait_index: Some(7),
+    });
+    steps.push_back(CutsceneStep::WaitForDialogueEnd);
+    // Clear the tutorial flag now that it's been shown.
+    steps.push_back(CutsceneStep::SetFlag("tool_tutorial_active".into(), false));
+
     // Clean up — Mayor Rex returns to his scheduled location.
     steps.push_back(CutsceneStep::SetFlag("mayor_intro_visit".into(), false));
 
