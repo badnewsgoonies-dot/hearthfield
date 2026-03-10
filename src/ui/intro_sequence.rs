@@ -43,6 +43,9 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
         8.0,
     ));
 
+    // Signal NPC spawning to place Mayor Rex on the farm for the intro greeting.
+    steps.push_back(CutsceneStep::SetFlag("mayor_intro_visit".into(), true));
+
     // Reveal the farm.
     steps.push_back(CutsceneStep::FadeIn(1.5));
 
@@ -61,6 +64,9 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
         portrait_index: Some(7),
     });
     steps.push_back(CutsceneStep::WaitForDialogueEnd);
+
+    // Clean up — Mayor Rex returns to his scheduled location.
+    steps.push_back(CutsceneStep::SetFlag("mayor_intro_visit".into(), false));
 
     steps
 }

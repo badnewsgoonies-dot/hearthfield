@@ -39,7 +39,9 @@ use schedules::{
     apply_enhanced_schedules, check_farm_visits, refresh_schedules_on_season_change,
     FarmVisitTracker,
 };
-use spawning::{preload_npc_sprites, spawn_initial_npcs, NpcSpriteData, SpawnedNpcs};
+use spawning::{
+    preload_npc_sprites, spawn_initial_npcs, spawn_mayor_for_intro, NpcSpriteData, SpawnedNpcs,
+};
 
 pub struct NpcPlugin;
 
@@ -71,6 +73,12 @@ impl Plugin for NpcPlugin {
                 spawn_initial_npcs,
             )
                 .chain(),
+        );
+
+        // During cutscenes, force-spawn Mayor Rex on the Farm for the intro greeting.
+        app.add_systems(
+            Update,
+            spawn_mayor_for_intro.run_if(in_state(GameState::Cutscene)),
         );
 
         // NPC interaction runs before the world interaction dispatcher so NPCs

@@ -2002,17 +2002,17 @@ struct FurniturePlacement {
 fn player_house_furniture() -> Vec<FurniturePlacement> {
     vec![
         // ── Bedroom (upper-right area) ──
-        // Bed (2-tile wide)
+        // Bed frame (2-tile wide, using counter surface tiles as bed frame)
         FurniturePlacement {
             x: 12,
             y: 2,
-            index: 2,
+            index: 32,
             wide: false,
         },
         FurniturePlacement {
             x: 13,
             y: 2,
-            index: 3,
+            index: 33,
             wide: false,
         },
         // Nightstand beside bed
@@ -2069,24 +2069,24 @@ fn player_house_furniture() -> Vec<FurniturePlacement> {
             index: 27,
             wide: false,
         },
-        // Kitchen table
+        // Kitchen table (2-tile wide)
         FurniturePlacement {
             x: 3,
             y: 4,
-            index: 0,
+            index: 14,
             wide: false,
         },
         FurniturePlacement {
             x: 4,
             y: 4,
-            index: 1,
+            index: 15,
             wide: false,
         },
         // Stools at table
         FurniturePlacement {
             x: 3,
             y: 5,
-            index: 5,
+            index: 4,
             wide: false,
         },
         FurniturePlacement {
@@ -2466,8 +2466,8 @@ fn town_house_east_furniture() -> Vec<FurniturePlacement> {
         // ── Storage chest (upper-right) ──
         FurniturePlacement { x: 8, y: 2, index: 21, wide: false },  // chest / dresser
         // ── Fancy table with vase (center) ──
-        FurniturePlacement { x: 4, y: 5, index: 6, wide: false },   // fancy table left
-        FurniturePlacement { x: 5, y: 5, index: 7, wide: false },   // fancy table right
+        FurniturePlacement { x: 4, y: 5, index: 14, wide: false },  // table left
+        FurniturePlacement { x: 5, y: 5, index: 15, wide: false },  // table right
         FurniturePlacement { x: 4, y: 6, index: 4, wide: false },   // chair at table
         // ── Vase display ──
         FurniturePlacement { x: 1, y: 5, index: 23, wide: false },  // vase / urn
@@ -2499,9 +2499,9 @@ fn animal_shop_furniture() -> Vec<FurniturePlacement> {
         FurniturePlacement {
             x: 3,
             y: 1,
-            index: 42,
+            index: 29,
             wide: false,
-        }, // hay bale variant
+        }, // feed sack
         FurniturePlacement {
             x: 1,
             y: 2,
@@ -2569,7 +2569,7 @@ fn animal_shop_furniture() -> Vec<FurniturePlacement> {
         FurniturePlacement {
             x: 1,
             y: 6,
-            index: 29,
+            index: 42,
             wide: false,
         }, // feed trough
         FurniturePlacement {
