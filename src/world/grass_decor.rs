@@ -1,11 +1,13 @@
 //! Grass decoration system: spawn small decorative sprites on grass tiles.
 //!
-//! Uses positional hashing to deterministically place decorations on ~15-20%
-//! of grass tiles. Decorations vary by season:
-//!   Spring = flowers and small plants
-//!   Summer = dry tufts and weeds
-//!   Fall = sparse decorations (fewer, muted)
-//!   Winter = snow patches / bare ground
+//! Currently DISABLED — the grass_biome.png sprites are from an old art pack
+//! and don't match the modern farm terrain. The base terrain already provides
+//! 4 grass tile variants for visual variety.
+//!
+//! To re-enable: replace grass_biome.png with matching art, then uncomment
+//! the system registration in mod.rs.
+
+#![allow(dead_code)]
 
 use bevy::prelude::*;
 

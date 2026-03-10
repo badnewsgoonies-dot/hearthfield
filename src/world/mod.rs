@@ -24,7 +24,8 @@ pub mod tree_fx;
 pub mod weather_fx;
 pub mod ysort;
 
-use grass_decor::{spawn_grass_decorations, GrassDecorState};
+// Grass decorations disabled — old grass_biome.png sprites don't match new art pack.
+// use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use lighting::{
     despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
     update_lightning_flash, LightningFlash,
@@ -79,7 +80,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<PreviousWeather>()
             .init_resource::<WeatherParticleCounts>()
             .init_resource::<WeatherSprites>()
-            .init_resource::<GrassDecorState>()
+            // .init_resource::<GrassDecorState>()
             .init_resource::<ChimneySmokeTimer>()
             .init_resource::<BoatMode>()
             // Spawn overlay + initial map when entering Playing state
@@ -134,8 +135,9 @@ impl Plugin for WorldPlugin {
                     update_forage_sparkles,
                     // Indoor candle flicker animation
                     update_candle_flicker,
-                    // Grass decorations (flowers, tufts, etc.)
-                    spawn_grass_decorations,
+                    // Grass decorations disabled — the grass_biome.png sprites
+                    // look bad as scattered overlays. Base terrain provides enough variety.
+                    // spawn_grass_decorations,
                     // Water tile animation
                     animate_water_tiles,
                     // Wind sway, bush rustle, door animations, and chimney smoke
