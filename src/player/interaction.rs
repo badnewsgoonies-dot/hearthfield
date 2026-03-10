@@ -28,10 +28,22 @@ fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
         MapId::MineEntrance => (0, 13, 0, 11),
         MapId::Mine => (0, 23, 0, 23),
         MapId::PlayerHouse => (0, 15, 0, 15),
+        MapId::TownHouseWest => (0, 11, 0, 11),
+        MapId::TownHouseEast => (0, 11, 0, 11),
         MapId::GeneralStore => (0, 11, 0, 11),
         MapId::AnimalShop => (0, 11, 0, 11),
         MapId::Blacksmith => (0, 11, 0, 11),
         MapId::CoralIsland => (0, 29, 0, 21),
+    }
+}
+
+/// Clamp a carried edge coordinate to the interior of the destination map so
+/// corner transitions don't strand the player on the receiving border.
+fn clamp_to_interior(value: i32, min: i32, max: i32) -> i32 {
+    if max - min >= 2 {
+        value.clamp(min + 1, max - 1)
+    } else {
+        value.clamp(min, max)
     }
 }
 
@@ -45,12 +57,12 @@ fn resolve_edge_target(
 ) -> (i32, i32) {
     match target {
         EdgeTarget::ClampX(fixed_y) => {
-            let (_, max_x, _, _) = map_bounds_from_registry(&target_map, registry);
-            (gx.clamp(0, max_x), *fixed_y)
+            let (min_x, max_x, _, _) = map_bounds_from_registry(&target_map, registry);
+            (clamp_to_interior(gx, min_x, max_x), *fixed_y)
         }
         EdgeTarget::ClampY(fixed_x) => {
-            let (_, _, _, max_y) = map_bounds_from_registry(&target_map, registry);
-            (*fixed_x, gy.clamp(0, max_y))
+            let (_, _, min_y, max_y) = map_bounds_from_registry(&target_map, registry);
+            (*fixed_x, clamp_to_interior(gy, min_y, max_y))
         }
         EdgeTarget::Fixed(fx, fy) => (*fx, *fy),
     }
@@ -130,14 +142,20 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
     if *map == MapId::Town && (22..=23).contains(&gx) && gy == 13 {
         return Some((MapId::Blacksmith, 6, 10));
     }
+    if *map == MapId::Town && (3..=4).contains(&gx) && gy == 13 {
+        return Some((MapId::TownHouseWest, 6, 10));
+    }
+    if *map == MapId::Town && (9..=10).contains(&gx) && gy == 13 {
+        return Some((MapId::TownHouseEast, 6, 10));
+    }
 
     // ── Edge-boundary transitions ────────────────────────────────────
     if *map == MapId::Farm {
         if gy <= min_y {
-            return Some((MapId::Town, gx.clamp(0, 27), 20));
+            return Some((MapId::Town, clamp_to_interior(gx, 0, 27), 20));
         }
         if gx >= max_x {
-            return Some((MapId::Forest, 1, gy.clamp(0, 17)));
+            return Some((MapId::Forest, 1, clamp_to_interior(gy, 0, 17)));
         }
         if gx <= min_x {
             return Some((MapId::MineEntrance, 12, 6));
@@ -145,26 +163,26 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
     }
     if *map == MapId::Town {
         if gy >= max_y {
-            return Some((MapId::Farm, gx.clamp(0, 31), 1));
+            return Some((MapId::Farm, clamp_to_interior(gx, 0, 31), 1));
         }
         if gy <= min_y {
-            return Some((MapId::Beach, gx.clamp(0, 19), 7));
+            return Some((MapId::Beach, clamp_to_interior(gx, 0, 19), 7));
         }
         if gx >= max_x {
-            return Some((MapId::Forest, 1, gy.clamp(0, 17)));
+            return Some((MapId::Forest, 1, clamp_to_interior(gy, 0, 17)));
         }
     }
     if *map == MapId::Beach {
         if gy >= max_y {
-            return Some((MapId::Town, gx.clamp(0, 27), 1));
+            return Some((MapId::Town, clamp_to_interior(gx, 0, 27), 1));
         }
         if gx >= max_x {
-            return Some((MapId::Farm, 1, gy.clamp(0, 23)));
+            return Some((MapId::Farm, 1, clamp_to_interior(gy, 0, 23)));
         }
     }
     if *map == MapId::Forest {
         if gx <= min_x {
-            return Some((MapId::Farm, 30, gy.clamp(0, 23)));
+            return Some((MapId::Farm, 30, clamp_to_interior(gy, 0, 23)));
         }
         if gy >= max_y {
             return Some((MapId::MineEntrance, 7, 1));
@@ -183,6 +201,12 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
     }
     if *map == MapId::PlayerHouse && gy >= max_y {
         return Some((MapId::Farm, 16, 3));
+    }
+    if *map == MapId::TownHouseWest && gy >= max_y {
+        return Some((MapId::Town, 3, 14));
+    }
+    if *map == MapId::TownHouseEast && gy >= max_y {
+        return Some((MapId::Town, 9, 14));
     }
     if *map == MapId::GeneralStore && gy >= max_y {
         return Some((MapId::Town, 6, 8));
@@ -234,6 +258,53 @@ mod tests {
         assert_eq!(
             edge_transition_from_registry(&MapId::Farm, 0, 10, &reg),
             Some((MapId::MineEntrance, 12, 6))
+        );
+    }
+
+    #[test]
+    fn farm_south_corner_transition_lands_inside_town_not_on_corner() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Farm, 0, 0, &reg),
+            Some((MapId::Town, 1, 20))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Farm, 31, 0, &reg),
+            Some((MapId::Town, 26, 20))
+        );
+    }
+
+    #[test]
+    fn town_east_corner_transition_lands_inside_forest_not_on_corner() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Town, 27, 1, &reg),
+            Some((MapId::Forest, 1, 1))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Town, 27, 20, &reg),
+            Some((MapId::Forest, 1, 16))
+        );
+    }
+
+    #[test]
+    fn town_houses_have_enter_and_exit_transitions() {
+        let reg = test_registry();
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Town, 3, 13, &reg),
+            Some((MapId::TownHouseWest, 6, 10))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::TownHouseWest, 6, 11, &reg),
+            Some((MapId::Town, 3, 14))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Town, 9, 13, &reg),
+            Some((MapId::TownHouseEast, 6, 10))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::TownHouseEast, 6, 11, &reg),
+            Some((MapId::Town, 9, 14))
         );
     }
 

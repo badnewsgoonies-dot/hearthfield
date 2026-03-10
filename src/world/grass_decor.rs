@@ -160,7 +160,12 @@ pub fn spawn_grass_decorations(
     // Don't spawn decorations on indoor maps.
     if matches!(
         map_id,
-        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+        MapId::PlayerHouse
+            | MapId::TownHouseWest
+            | MapId::TownHouseEast
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith
     ) {
         state.spawned_for_map = Some(map_id);
         state.spawned_for_season = Some(season);

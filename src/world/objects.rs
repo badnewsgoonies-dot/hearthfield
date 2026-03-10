@@ -2239,6 +2239,38 @@ fn blacksmith_furniture() -> Vec<FurniturePlacement> {
     ]
 }
 
+fn town_house_west_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        FurniturePlacement { x: 1, y: 1, index: 9, wide: false },
+        FurniturePlacement { x: 2, y: 1, index: 10, wide: false },
+        FurniturePlacement { x: 3, y: 1, index: 11, wide: false },
+        FurniturePlacement { x: 7, y: 2, index: 31, wide: false },
+        FurniturePlacement { x: 8, y: 2, index: 2, wide: false },
+        FurniturePlacement { x: 9, y: 2, index: 3, wide: false },
+        FurniturePlacement { x: 3, y: 6, index: 0, wide: false },
+        FurniturePlacement { x: 4, y: 6, index: 1, wide: false },
+        FurniturePlacement { x: 3, y: 7, index: 5, wide: false },
+        FurniturePlacement { x: 4, y: 7, index: 5, wide: false },
+        FurniturePlacement { x: 10, y: 8, index: 22, wide: false },
+    ]
+}
+
+fn town_house_east_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        FurniturePlacement { x: 1, y: 1, index: 45, wide: false },
+        FurniturePlacement { x: 2, y: 1, index: 46, wide: false },
+        FurniturePlacement { x: 3, y: 1, index: 47, wide: false },
+        FurniturePlacement { x: 8, y: 2, index: 36, wide: false },
+        FurniturePlacement { x: 9, y: 2, index: 37, wide: false },
+        FurniturePlacement { x: 8, y: 3, index: 38, wide: false },
+        FurniturePlacement { x: 2, y: 6, index: 48, wide: false },
+        FurniturePlacement { x: 3, y: 6, index: 49, wide: false },
+        FurniturePlacement { x: 5, y: 7, index: 4, wide: false },
+        FurniturePlacement { x: 9, y: 8, index: 27, wide: false },
+        FurniturePlacement { x: 10, y: 8, index: 36, wide: false },
+    ]
+}
+
 fn animal_shop_furniture() -> Vec<FurniturePlacement> {
     vec![
         // ── Hay/feed storage (back-left, on dirt) ──
@@ -2356,6 +2388,8 @@ pub fn spawn_interior_decorations(
 
     let placements = match player_state.current_map {
         MapId::PlayerHouse => player_house_furniture(),
+        MapId::TownHouseWest => town_house_west_furniture(),
+        MapId::TownHouseEast => town_house_east_furniture(),
         MapId::GeneralStore => general_store_furniture(),
         MapId::Blacksmith => blacksmith_furniture(),
         MapId::AnimalShop => animal_shop_furniture(),

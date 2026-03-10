@@ -15,6 +15,11 @@ fn tool_frame_duration(tool: ToolKind) -> f32 {
     }
 }
 
+/// Map a tool animation frame number onto the walk-frame bob cycle.
+fn tool_bob_frame(frame: usize) -> usize {
+    (frame + 1) % 4
+}
+
 /// Plays a sound effect when a tool impact occurs.
 pub fn handle_tool_impact_sfx(
     mut impact_events: EventReader<ToolImpactEvent>,
@@ -54,7 +59,10 @@ pub fn animate_tool_use(
         {
             let duration = tool_frame_duration(tool);
 
-            // Spritesheet layout: Row 0=Down, Row 1=Left, Row 2=Right, Row 3=Up
+            // Walk atlas layout: Row 0=Down, Row 1=Left, Row 2=Right, Row 3=Up.
+            // We deliberately stay on the walk sheet here because the current
+            // action atlas content is placeholder/misaligned and causes the
+            // player to visually pop into the wrong character during tool use.
             let facing_base: usize = match movement.facing {
                 Facing::Down => 0,
                 Facing::Left => 4,
@@ -63,20 +71,10 @@ pub fn animate_tool_use(
             };
 
             if frame == 0 && *frame_timer == 0.0 {
-                // First frame: swap to action atlas, set base index
-                sprite.image = walk_sprites.action_image.clone();
+                // First frame: start the bob on the next walk frame.
+                sprite.flip_x = false;
                 if let Some(atlas) = &mut sprite.texture_atlas {
-                    atlas.layout = walk_sprites.action_layout.clone();
-
-                    let tool_idx = match tool {
-                        ToolKind::Hoe => 0,
-                        ToolKind::WateringCan => 1,
-                        ToolKind::Axe => 2,
-                        ToolKind::Pickaxe => 3,
-                        ToolKind::FishingRod => 4,
-                        ToolKind::Scythe => 5,
-                    };
-                    atlas.index = tool_idx * 4;
+                    atlas.index = facing_base + 1;
                 }
                 *impact_fired = false;
                 // Wind-up tint: slightly dim the sprite
@@ -110,9 +108,8 @@ pub fn animate_tool_use(
                 if new_frame >= total_frames {
                     // Animation complete — return to idle pose and normal color
                     sprite.color = Color::WHITE;
-                    sprite.image = walk_sprites.image.clone();
+                    sprite.flip_x = false;
                     if let Some(atlas) = &mut sprite.texture_atlas {
-                        atlas.layout = walk_sprites.layout.clone();
                         atlas.index = facing_base;
                     }
                     movement.anim_state = if movement.is_moving {
@@ -123,17 +120,11 @@ pub fn animate_tool_use(
                     *frame_timer = 0.0;
                     *impact_fired = false;
                 } else {
-                    // Update action frame
+                    // Bob through walk frames to sell the swing without swapping art sets.
+                    sprite.flip_x = false;
                     if let Some(atlas) = &mut sprite.texture_atlas {
-                        let tool_idx = match tool {
-                            ToolKind::Hoe => 0,
-                            ToolKind::WateringCan => 1,
-                            ToolKind::Axe => 2,
-                            ToolKind::Pickaxe => 3,
-                            ToolKind::FishingRod => 4,
-                            ToolKind::Scythe => 5,
-                        };
-                        atlas.index = tool_idx * 4 + new_frame as usize;
+                        let walk_frame = tool_bob_frame(new_frame as usize);
+                        atlas.index = facing_base + walk_frame;
                     }
                     // Recovery frame: fade back toward normal
                     if new_frame == 3 {
@@ -151,6 +142,16 @@ pub fn animate_tool_use(
             *frame_timer = 0.0;
             *impact_fired = false;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn tool_bob_uses_walk_frame_cycle() {
+        assert_eq!(super::tool_bob_frame(1), 2);
+        assert_eq!(super::tool_bob_frame(2), 3);
+        assert_eq!(super::tool_bob_frame(3), 0);
     }
 }
 

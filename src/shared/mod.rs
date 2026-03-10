@@ -596,6 +596,8 @@ pub enum MapId {
     MineEntrance,
     Mine, // + floor number in MineState
     PlayerHouse,
+    TownHouseWest,
+    TownHouseEast,
     GeneralStore,
     AnimalShop,
     Blacksmith,

@@ -173,38 +173,6 @@
         Stone,
     ],
     objects: [
-        // Frame the cave mouth with rocks
-        (
-            x: 4,
-            y: 3,
-            kind: LargeRock,
-        ),
-        (
-            x: 9,
-            y: 3,
-            kind: LargeRock,
-        ),
-        (
-            x: 3,
-            y: 2,
-            kind: Rock,
-        ),
-        (
-            x: 10,
-            y: 2,
-            kind: Rock,
-        ),
-        (
-            x: 5,
-            y: 3,
-            kind: Rock,
-        ),
-        (
-            x: 8,
-            y: 3,
-            kind: Rock,
-        ),
-        // Scatter rocks on mountainside
         (
             x: 1,
             y: 2,
@@ -216,17 +184,6 @@
             kind: LargeRock,
         ),
         (
-            x: 2,
-            y: 4,
-            kind: Rock,
-        ),
-        (
-            x: 11,
-            y: 4,
-            kind: Rock,
-        ),
-        // Midfield rocks
-        (
             x: 3,
             y: 6,
             kind: LargeRock,
@@ -236,7 +193,16 @@
             y: 6,
             kind: LargeRock,
         ),
-        // Trees flanking the approach
+        (
+            x: 5,
+            y: 10,
+            kind: LargeRock,
+        ),
+        (
+            x: 9,
+            y: 10,
+            kind: LargeRock,
+        ),
         (
             x: 1,
             y: 8,
@@ -246,37 +212,6 @@
             x: 12,
             y: 8,
             kind: Pine,
-        ),
-        (
-            x: 0,
-            y: 10,
-            kind: Pine,
-        ),
-        (
-            x: 13,
-            y: 10,
-            kind: Pine,
-        ),
-        // Bushes along edges
-        (
-            x: 5,
-            y: 10,
-            kind: Bush,
-        ),
-        (
-            x: 9,
-            y: 10,
-            kind: Bush,
-        ),
-        (
-            x: 2,
-            y: 9,
-            kind: Bush,
-        ),
-        (
-            x: 11,
-            y: 9,
-            kind: Bush,
         ),
     ],
     forage_points: [

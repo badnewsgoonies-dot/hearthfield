@@ -70,7 +70,12 @@ const MAX_WEATHER_PARTICLES: usize = 600;
 fn is_indoor_map(map_id: MapId) -> bool {
     matches!(
         map_id,
-        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+        MapId::PlayerHouse
+            | MapId::TownHouseWest
+            | MapId::TownHouseEast
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith
     )
 }
 

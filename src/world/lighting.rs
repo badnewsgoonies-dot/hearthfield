@@ -159,7 +159,12 @@ fn sample_tint(time: f32) -> ((f32, f32, f32), f32) {
 fn is_indoor_map(map_id: MapId) -> bool {
     matches!(
         map_id,
-        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+        MapId::PlayerHouse
+            | MapId::TownHouseWest
+            | MapId::TownHouseEast
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith
     )
 }
 

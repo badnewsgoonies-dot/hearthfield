@@ -642,6 +642,8 @@ fn map_display_name(map: MapId) -> &'static str {
         MapId::MineEntrance => "The Mines",
         MapId::Mine => "Mine Floor",
         MapId::PlayerHouse => "Home",
+        MapId::TownHouseWest => "Town House West",
+        MapId::TownHouseEast => "Town House East",
         MapId::GeneralStore => "General Store",
         MapId::AnimalShop => "Animal Shop",
         MapId::Blacksmith => "Elena's Forge",

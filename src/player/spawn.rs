@@ -5,6 +5,9 @@ use bevy::prelude::*;
 /// Starting grid position inside the player's house (center of living room).
 const SPAWN_GRID_X: i32 = 8;
 const SPAWN_GRID_Y: i32 = 8;
+/// Match the NPC character scale so the player doesn't tower over other
+/// people or read like a tree-sized sprite.
+const PLAYER_RENDER_SIZE: f32 = 24.0;
 
 /// Spawn the player entity with all necessary components.
 /// Runs once on `OnEnter(GameState::Playing)`.
@@ -59,8 +62,7 @@ pub fn spawn_player(
         // Grid position for tile-based lookups
         GridPosition::new(SPAWN_GRID_X, SPAWN_GRID_Y),
         // Animated sprite — frame 0 = idle-down (first frame of Row 0).
-        // Art fills the full 48×48 frame; no custom_size needed.
-        // At PIXEL_SCALE 3.0 the camera's 1/3 zoom makes 48px render as 16px on screen.
+        // Downscale the 48px source frame to the same character scale used by NPCs.
         {
             let mut s = Sprite::from_atlas_image(
                 texture,
@@ -70,7 +72,7 @@ pub fn spawn_player(
                 },
             );
             s.anchor = bevy::sprite::Anchor::BottomCenter;
-            s.custom_size = Some(Vec2::new(28.0, 28.0));
+            s.custom_size = Some(Vec2::splat(PLAYER_RENDER_SIZE));
             s
         },
         // Logical position for pixel-perfect rendering (movement writes here)
@@ -87,4 +89,14 @@ pub fn spawn_player(
             ..default()
         },
     ));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn player_render_size_matches_character_scale() {
+        assert_eq!(PLAYER_RENDER_SIZE, 24.0);
+    }
 }

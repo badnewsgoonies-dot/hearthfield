@@ -75,6 +75,8 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
         MapId::MineEntrance => (7, 6),
         MapId::Mine => (12, 12),
         MapId::PlayerHouse => (8, 8),
+        MapId::TownHouseWest => (6, 8),
+        MapId::TownHouseEast => (6, 8),
         MapId::GeneralStore => (6, 8),
         MapId::AnimalShop => (6, 8),
         MapId::Blacksmith => (6, 8),
@@ -96,6 +98,8 @@ pub fn generate_map(map_id: MapId) -> MapDef {
         MapId::MineEntrance => generate_mine_entrance(),
         MapId::Mine => generate_mine_floor(),
         MapId::PlayerHouse => generate_player_house(),
+        MapId::TownHouseWest => generate_town_house_west(),
+        MapId::TownHouseEast => generate_town_house_east(),
         MapId::GeneralStore => generate_general_store(),
         MapId::AnimalShop => generate_animal_shop(),
         MapId::Blacksmith => generate_blacksmith(),
@@ -355,6 +359,20 @@ fn generate_town() -> MapDef {
             to_map: MapId::Blacksmith,
             to_pos: (6, 10),
         },
+        // West town house entrance
+        MapTransition {
+            from_map: MapId::Town,
+            from_rect: (3, 13, 2, 1),
+            to_map: MapId::TownHouseWest,
+            to_pos: (6, 10),
+        },
+        // East town house entrance
+        MapTransition {
+            from_map: MapId::Town,
+            from_rect: (9, 13, 2, 1),
+            to_map: MapId::TownHouseEast,
+            to_pos: (6, 10),
+        },
         // East exit -> Beach
         MapTransition {
             from_map: MapId::Town,
@@ -391,18 +409,6 @@ fn generate_town() -> MapDef {
         y: 17,
         kind: WorldObjectKind::Tree,
     });
-    // Bushes near plaza
-    objects.push(ObjectPlacement {
-        x: 10,
-        y: 7,
-        kind: WorldObjectKind::Bush,
-    });
-    objects.push(ObjectPlacement {
-        x: 17,
-        y: 7,
-        kind: WorldObjectKind::Bush,
-    });
-
     let forage_points = vec![(1, 19), (9, 20), (26, 19)];
 
     MapDef {
@@ -1026,6 +1032,120 @@ fn generate_player_house() -> MapDef {
 
     MapDef {
         id: MapId::PlayerHouse,
+        width: w,
+        height: h,
+        tiles,
+        transitions,
+        objects: Vec::new(),
+        forage_points: Vec::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Town House West: 12x12 — modest scholar/doctor home, scenic only
+// ---------------------------------------------------------------------------
+fn generate_town_house_west() -> MapDef {
+    let w = 12usize;
+    let h = 12usize;
+    let mut tiles = vec![TileKind::WoodFloor; w * h];
+
+    let fill =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
+                }
+            }
+        };
+
+    for x in 0..w {
+        tiles[x] = TileKind::Void;
+        tiles[(h - 1) * w + x] = TileKind::Void;
+    }
+    for y in 0..h {
+        tiles[y * w] = TileKind::Void;
+        tiles[y * w + (w - 1)] = TileKind::Void;
+    }
+
+    tiles[11 * w + 5] = TileKind::WoodFloor;
+    tiles[11 * w + 6] = TileKind::WoodFloor;
+    tiles[10 * w + 5] = TileKind::Path;
+    tiles[10 * w + 6] = TileKind::Path;
+
+    fill(&mut tiles, 1, 1, 3, 2, TileKind::Stone);
+    fill(&mut tiles, 7, 1, 3, 2, TileKind::Path);
+    fill(&mut tiles, 3, 5, 5, 2, TileKind::Path);
+
+    let transitions = vec![MapTransition {
+        from_map: MapId::TownHouseWest,
+        from_rect: (5, 11, 2, 1),
+        to_map: MapId::Town,
+        to_pos: (3, 14),
+    }];
+
+    MapDef {
+        id: MapId::TownHouseWest,
+        width: w,
+        height: h,
+        tiles,
+        transitions,
+        objects: Vec::new(),
+        forage_points: Vec::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Town House East: 12x12 — cozy fisher/kid home, scenic only
+// ---------------------------------------------------------------------------
+fn generate_town_house_east() -> MapDef {
+    let w = 12usize;
+    let h = 12usize;
+    let mut tiles = vec![TileKind::WoodFloor; w * h];
+
+    let fill =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
+                }
+            }
+        };
+
+    for x in 0..w {
+        tiles[x] = TileKind::Void;
+        tiles[(h - 1) * w + x] = TileKind::Void;
+    }
+    for y in 0..h {
+        tiles[y * w] = TileKind::Void;
+        tiles[y * w + (w - 1)] = TileKind::Void;
+    }
+
+    tiles[11 * w + 5] = TileKind::WoodFloor;
+    tiles[11 * w + 6] = TileKind::WoodFloor;
+    tiles[10 * w + 5] = TileKind::Path;
+    tiles[10 * w + 6] = TileKind::Path;
+
+    fill(&mut tiles, 1, 1, 4, 2, TileKind::Path);
+    fill(&mut tiles, 7, 1, 3, 3, TileKind::Stone);
+    fill(&mut tiles, 2, 6, 6, 2, TileKind::Path);
+
+    let transitions = vec![MapTransition {
+        from_map: MapId::TownHouseEast,
+        from_rect: (5, 11, 2, 1),
+        to_map: MapId::Town,
+        to_pos: (9, 14),
+    }];
+
+    MapDef {
+        id: MapId::TownHouseEast,
         width: w,
         height: h,
         tiles,

@@ -2266,6 +2266,7 @@ dependencies = [
  "ron",
  "serde",
  "serde_json",
+ "web-sys",
 ]
 
 [[package]]

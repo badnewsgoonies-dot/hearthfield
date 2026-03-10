@@ -581,7 +581,12 @@ fn tile_atlas_info(
         TileKind::Void => {
             let is_indoor = matches!(
                 map_id,
-                MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+                MapId::PlayerHouse
+                    | MapId::TownHouseWest
+                    | MapId::TownHouseEast
+                    | MapId::GeneralStore
+                    | MapId::AnimalShop
+                    | MapId::Blacksmith
             );
             if is_indoor {
                 // Return None → solid dark color fallback via tile_color()
@@ -837,6 +842,12 @@ fn load_map(
         // Blacksmith door at (22-23, 13)
         world_map.solid_tiles.remove(&(22, 13));
         world_map.solid_tiles.remove(&(23, 13));
+        // West town house door at (3-4, 13)
+        world_map.solid_tiles.remove(&(3, 13));
+        world_map.solid_tiles.remove(&(4, 13));
+        // East town house door at (9-10, 13)
+        world_map.solid_tiles.remove(&(9, 13));
+        world_map.solid_tiles.remove(&(10, 13));
     }
 
     // Spawn tile sprites using texture atlases
