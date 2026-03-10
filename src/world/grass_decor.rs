@@ -1,11 +1,8 @@
 //! Grass decoration system: spawn small decorative sprites on grass tiles.
 //!
-//! Uses positional hashing to deterministically place decorations on ~15-20%
-//! of grass tiles. Decorations vary by season:
-//!   Spring = flowers and small plants
-//!   Summer = dry tufts and weeds
-//!   Fall = sparse decorations (fewer, muted)
-//!   Winter = snow patches / bare ground
+//! The legacy `grass_biome.png` decoration art no longer matches the active
+//! terrain pack, so this system stays hard-disabled until matching replacement
+//! sprites exist.
 
 use bevy::prelude::*;
 
@@ -39,6 +36,9 @@ pub struct GrassDecorState {
 
 /// Z layer for grass decorations — between ground (0.0) and farm overlay (10.0).
 const Z_GRASS_DECOR: f32 = 5.0;
+
+/// Temporary kill-switch for stale grass_biome decorations.
+const LEGACY_GRASS_DECOR_ENABLED: bool = false;
 
 // ═══════════════════════════════════════════════════════════════════════
 // POSITIONAL HASH
@@ -152,6 +152,12 @@ pub fn spawn_grass_decorations(
         commands.entity(entity).despawn();
     }
 
+    if !LEGACY_GRASS_DECOR_ENABLED {
+        state.spawned_for_map = Some(map_id);
+        state.spawned_for_season = Some(season);
+        return;
+    }
+
     // Need the map def to know which tiles are grass.
     let Some(ref map_def) = world_map.map_def else {
         return;
@@ -238,4 +244,53 @@ pub fn spawn_grass_decorations(
 
     state.spawned_for_map = Some(map_id);
     state.spawned_for_season = Some(season);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world::maps::MapDef;
+    use std::collections::HashSet;
+
+    #[test]
+    fn disabled_legacy_grass_decor_spawns_nothing_and_clears_existing_entities() {
+        let mut app = App::new();
+        app.insert_resource(WorldMap {
+            map_def: Some(MapDef {
+                id: MapId::Farm,
+                width: 1,
+                height: 1,
+                tiles: vec![TileKind::Grass],
+                transitions: vec![],
+                objects: vec![],
+                forage_points: vec![],
+            }),
+            solid_tiles: HashSet::new(),
+            width: 1,
+            height: 1,
+        });
+        app.insert_resource(Calendar {
+            season: Season::Spring,
+            ..default()
+        });
+        app.insert_resource(PlayerState {
+            current_map: MapId::Farm,
+            ..default()
+        });
+        app.insert_resource(ObjectAtlases {
+            loaded: true,
+            ..default()
+        });
+        app.insert_resource(GrassDecorState::default());
+        app.add_systems(Update, spawn_grass_decorations);
+
+        app.world_mut().spawn((GrassDecoration, MapTile));
+
+        app.update();
+
+        let mut query = app
+            .world_mut()
+            .query_filtered::<Entity, With<GrassDecoration>>();
+        assert_eq!(query.iter(app.world()).count(), 0);
+    }
 }
