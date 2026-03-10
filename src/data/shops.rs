@@ -79,6 +79,18 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 60,
             season_available: Some(Season::Fall),
         },
+        // ── Ancient Seeds (rare, spring only) ─────────────────────
+        ShopListing {
+            item_id: "ancient_seeds".into(),
+            price: 1000,
+            season_available: Some(Season::Spring),
+        },
+        // ── Hops Seeds (summer crop) ────────────────────────────
+        ShopListing {
+            item_id: "hops_seeds".into(),
+            price: 60,
+            season_available: Some(Season::Summer),
+        },
         // ── Multi-Season Seeds (available in their first season) ──
         // Wheat: summer and fall
         ShopListing {

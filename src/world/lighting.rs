@@ -238,7 +238,7 @@ pub fn update_day_night_tint(
     // Sample the keyframes
     let (tint, intensity) = sample_tint(time);
 
-    // Update the shared resource
+    // Update the shared resource so other systems can read current tint values
     day_night_tint.intensity = intensity;
     day_night_tint.tint = tint;
 
