@@ -1,3 +1,4 @@
+use crate::npcs::spawning::SpawnedNpcs;
 use crate::shared::*;
 use bevy::prelude::*;
 
@@ -42,6 +43,8 @@ pub fn on_enter_shop(
     mut active_shop: ResMut<ActiveShop>,
     mut next_state: ResMut<NextState<GameState>>,
     current_state: Res<State<GameState>>,
+    spawned_npcs: Res<SpawnedNpcs>,
+    mut toast_writer: EventWriter<ToastEvent>,
 ) {
     for ev in map_events.read() {
         let shop_id = match ev.to_map {
@@ -50,6 +53,25 @@ pub fn on_enter_shop(
             MapId::Blacksmith => ShopId::Blacksmith,
             _ => continue,
         };
+
+        // Check if the shopkeeper NPC is actually present on this map.
+        let shopkeeper_id = match shop_id {
+            ShopId::GeneralStore => "margaret",
+            ShopId::AnimalShop => "mira",
+            ShopId::Blacksmith => "elena",
+        };
+
+        if !spawned_npcs.entities.contains_key(shopkeeper_id) {
+            info!(
+                "[Economy] Shop {:?} closed — shopkeeper '{}' not present",
+                shop_id, shopkeeper_id
+            );
+            toast_writer.send(ToastEvent {
+                message: "The shop is closed right now.".to_string(),
+                duration_secs: 3.0,
+            });
+            continue;
+        }
 
         // Only transition if we are currently Playing (avoid re-triggering from within Shop).
         if *current_state.get() == GameState::Playing {

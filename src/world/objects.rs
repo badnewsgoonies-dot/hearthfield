@@ -472,26 +472,46 @@ impl WorldObjectKind {
     }
 
     /// Atlas index in grass_biome.png for this object kind.
-    /// grass_biome.png is 9 columns x 5 rows of 16x16 tiles.
+    /// grass_biome.png is 9 columns x 5 rows of 16x16 tiles (indices 0-44).
     /// Typical layout:
     ///   Row 0: grass decorations / small plants
     ///   Row 1: bushes, small tree tops
     ///   Row 2: tree trunk / mid sections
     ///   Row 3: rocks, stumps
     ///   Row 4: logs, large rocks
+    ///
+    /// Each distinct object type uses a UNIQUE index so they are visually
+    /// distinguishable. Types that share the same base shape are further
+    /// differentiated via runtime tinting (see `object_tint_color`).
     pub fn atlas_index(self) -> usize {
         match self {
-            WorldObjectKind::Tree => 10,      // row 1, col 1 — tree/bush top
+            WorldObjectKind::Tree => 10,      // row 1, col 1 — tree/bush top (fallback; uses tree_sprites)
             WorldObjectKind::Pine => 10,      // fallback; pine uses tree_sprites atlas
             WorldObjectKind::Bush => 1,       // row 0, col 1 — small bush/grass
-            WorldObjectKind::Stump => 27,     // row 3, col 0 — stump/rock-like
-            WorldObjectKind::Rock => 29,      // row 3, col 2 — rock
+            WorldObjectKind::Stump => 27,     // row 3, col 0 — stump
+            WorldObjectKind::Rock => 29,      // row 3, col 2 — grey rock
             WorldObjectKind::LargeRock => 38, // row 4, col 2 — large rock
-            WorldObjectKind::Log => 36,       // row 4, col 0 — log
-            WorldObjectKind::Dock => 36,      // row 4, col 0 — log-like planks
-            WorldObjectKind::PalmTree => 10,  // row 1, col 1 — tree top fallback
-            WorldObjectKind::Coral => 29,     // row 3, col 2 — rock-like
-            WorldObjectKind::Driftwood => 36, // row 4, col 0 — log-like
+            WorldObjectKind::Log => 36,       // row 4, col 0 — horizontal log
+            WorldObjectKind::Dock => 37,      // row 4, col 1 — plank/wood piece (distinct from log)
+            WorldObjectKind::PalmTree => 22,  // row 2, col 4 — leafy top (tinted tropical green)
+            WorldObjectKind::Coral => 30,     // row 3, col 3 — small rock shape (tinted cyan)
+            WorldObjectKind::Driftwood => 39, // row 4, col 3 — wood fragment (tinted bleached)
+        }
+    }
+
+    /// Returns an optional tint color to further distinguish object types that
+    /// could otherwise look similar. `None` means use default white (no tint).
+    pub fn object_tint_color(self) -> Option<Color> {
+        match self {
+            // Coral: cyan-ish tint to evoke underwater reef
+            WorldObjectKind::Coral => Some(Color::srgb(0.7, 0.9, 1.0)),
+            // Driftwood: bleached / sun-faded appearance
+            WorldObjectKind::Driftwood => Some(Color::srgb(0.9, 0.85, 0.75)),
+            // PalmTree: warm tropical green
+            WorldObjectKind::PalmTree => Some(Color::srgb(0.8, 1.0, 0.7)),
+            // Dock: weathered grey-brown wood
+            WorldObjectKind::Dock => Some(Color::srgb(0.85, 0.8, 0.7)),
+            _ => None,
         }
     }
 }
@@ -691,6 +711,11 @@ pub fn spawn_world_objects(
             if matches!(kind, WorldObjectKind::Bush) {
                 let bh = bush_tint_hash(placement.x, placement.y);
                 sprite.color = bush_variant_color(bh);
+            }
+
+            // Apply per-type tint for visual uniqueness (coral, driftwood, palm, dock)
+            if let Some(tint) = kind.object_tint_color() {
+                sprite.color = tint;
             }
 
             let wc = grid_to_world_center(placement.x, placement.y);
