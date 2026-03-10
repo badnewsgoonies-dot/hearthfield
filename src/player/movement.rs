@@ -1,9 +1,11 @@
 use super::{CollisionMap, DistanceAnimator};
 use crate::shared::*;
+use crate::world::WorldMap;
 use bevy::prelude::*;
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
 /// updates facing direction, snaps grid position, and checks collisions.
+#[allow(clippy::too_many_arguments)]
 pub fn player_movement(
     time: Res<Time>,
     player_input: Res<PlayerInput>,
@@ -11,6 +13,8 @@ pub fn player_movement(
     farm_state: Res<FarmState>,
     player_state: Res<PlayerState>,
     input_blocks: Res<InputBlocks>,
+    boat_mode: Res<BoatMode>,
+    world_map: Res<WorldMap>,
     mut query: Query<(&mut LogicalPosition, &mut PlayerMovement, &mut GridPosition), With<Player>>,
 ) {
     if input_blocks.is_blocked() {
@@ -50,20 +54,30 @@ pub fn player_movement(
         let candidate_x = logical_pos.0.x + delta.x;
         let candidate_y = logical_pos.0.y + delta.y;
 
-        let can_move_x = !is_blocked(
-            candidate_x,
-            logical_pos.0.y,
-            &collision_map,
-            &farm_state,
-            &player_state,
-        );
-        let can_move_y = !is_blocked(
-            logical_pos.0.x,
-            candidate_y,
-            &collision_map,
-            &farm_state,
-            &player_state,
-        );
+        let can_move_x = if boat_mode.active {
+            let g = world_to_grid(candidate_x, logical_pos.0.y);
+            world_map.is_walkable_sailing(g.x, g.y)
+        } else {
+            !is_blocked(
+                candidate_x,
+                logical_pos.0.y,
+                &collision_map,
+                &farm_state,
+                &player_state,
+            )
+        };
+        let can_move_y = if boat_mode.active {
+            let g = world_to_grid(logical_pos.0.x, candidate_y);
+            world_map.is_walkable_sailing(g.x, g.y)
+        } else {
+            !is_blocked(
+                logical_pos.0.x,
+                candidate_y,
+                &collision_map,
+                &farm_state,
+                &player_state,
+            )
+        };
 
         if can_move_x {
             logical_pos.0.x = candidate_x;
@@ -100,11 +114,12 @@ pub fn animate_player_sprite(
     >,
 ) {
     for (pos, movement, mut sprite, mut anim) in query.iter_mut() {
+        // Spritesheet layout: Row 0=Down, Row 1=Left, Row 2=Right, Row 3=Up
         let base: usize = match movement.facing {
             Facing::Down => 0,
-            Facing::Up => 4,
-            Facing::Left => 8,
-            Facing::Right => 12,
+            Facing::Left => 4,
+            Facing::Right => 8,
+            Facing::Up => 12,
         };
 
         match movement.anim_state {

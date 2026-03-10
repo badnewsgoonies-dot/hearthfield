@@ -11,6 +11,7 @@ pub mod definitions;
 pub mod dialogue;
 pub mod emotes;
 mod gifts;
+pub mod idle_behavior;
 pub mod map_events;
 pub mod quests;
 pub mod romance;
@@ -22,6 +23,7 @@ use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
 use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, NpcEmoteEvent};
 use gifts::{handle_gift_input, handle_gifts};
+use idle_behavior::{attach_npc_shadows, npc_idle_behavior_system, ShadowSpriteCache};
 use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
 use quests::{
     check_story_quests, expire_quests, handle_quest_accepted, handle_quest_completed,
@@ -37,7 +39,9 @@ use schedules::{
     apply_enhanced_schedules, check_farm_visits, refresh_schedules_on_season_change,
     FarmVisitTracker,
 };
-use spawning::{preload_npc_sprites, spawn_initial_npcs, NpcSpriteData, SpawnedNpcs};
+use spawning::{
+    preload_npc_sprites, spawn_initial_npcs, spawn_mayor_for_intro, NpcSpriteData, SpawnedNpcs,
+};
 
 pub struct NpcPlugin;
 
@@ -53,6 +57,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<WeddingTimer>()
             .init_resource::<FarmVisitTracker>()
             .init_resource::<EmoteSprites>()
+            .init_resource::<ShadowSpriteCache>()
             .add_event::<NpcEmoteEvent>();
 
         // NPC data is populated by DataPlugin during OnEnter(Loading).
@@ -68,6 +73,12 @@ impl Plugin for NpcPlugin {
                 spawn_initial_npcs,
             )
                 .chain(),
+        );
+
+        // During cutscenes, force-spawn Mayor Rex on the Farm for the intro greeting.
+        app.add_systems(
+            Update,
+            spawn_mayor_for_intro.run_if(in_state(GameState::Cutscene)),
         );
 
         // NPC interaction runs before the world interaction dispatcher so NPCs
@@ -102,6 +113,8 @@ impl Plugin for NpcPlugin {
                 check_farm_visits,
                 spawn_emote_bubbles,
                 animate_emote_bubbles,
+                npc_idle_behavior_system,
+                attach_npc_shadows,
                 reset_daily_talks,
             )
                 .in_set(UpdatePhase::Simulation)

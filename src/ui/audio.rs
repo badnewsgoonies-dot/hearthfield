@@ -201,11 +201,16 @@ pub fn switch_music_on_map_change(
             MapId::Town => "town",
             MapId::Mine => "mine",
             MapId::Forest => "forest",
+            MapId::DeepForest => "forest",
             MapId::Beach => "beach",
             MapId::MineEntrance => "forest",
-            MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith => {
-                "indoor"
-            }
+            MapId::PlayerHouse
+            | MapId::TownHouseWest
+            | MapId::TownHouseEast
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith => "indoor",
+            MapId::CoralIsland => "beach",
         };
         music_events.send(PlayMusicEvent {
             track_id: track.to_string(),
@@ -255,7 +260,12 @@ pub fn door_sfx_on_map_change(
     fn is_interior(map: MapId) -> bool {
         matches!(
             map,
-            MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+            MapId::PlayerHouse
+                | MapId::TownHouseWest
+                | MapId::TownHouseEast
+                | MapId::GeneralStore
+                | MapId::AnimalShop
+                | MapId::Blacksmith
         )
     }
 

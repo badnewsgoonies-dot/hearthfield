@@ -428,6 +428,7 @@ pub fn handle_animal_purchase(
                         AnimalKind::Horse => 30.0,
                     },
                 },
+                Facing::Down,
             ))
             .id();
 

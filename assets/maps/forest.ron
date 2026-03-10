@@ -606,7 +606,7 @@
     edges: (
         north: Some((MineEntrance, Fixed(7, 1))),
         south: None,
-        east: None,
+        east: Some((DeepForest, ClampY(1))),
         west: Some((Farm, ClampY(30))),
     ),
     buildings: [],

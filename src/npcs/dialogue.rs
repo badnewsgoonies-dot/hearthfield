@@ -537,7 +537,11 @@ pub fn build_gift_response_lines(
             vec![format!("{}{}", birthday_prefix, response)]
         }
         GiftPreference::Liked => {
-            vec![format!("{}{}", birthday_prefix, liked_response(npc_id, item_name))]
+            vec![format!(
+                "{}{}",
+                birthday_prefix,
+                liked_response(npc_id, item_name)
+            )]
         }
         GiftPreference::Neutral => {
             vec![format!(
@@ -546,7 +550,11 @@ pub fn build_gift_response_lines(
             )]
         }
         GiftPreference::Disliked => {
-            vec![format!("{}{}", birthday_prefix, disliked_response(npc_id, item_name))]
+            vec![format!(
+                "{}{}",
+                birthday_prefix,
+                disliked_response(npc_id, item_name)
+            )]
         }
         GiftPreference::Hated => {
             let response = hated_response(npc_id, item_name);
@@ -734,10 +742,7 @@ fn liked_response(npc_id: &str, item_name: &str) -> String {
             item_name
         ),
 
-        ("doc", 0) => format!(
-            "A {}! That's a kind thought. I'll enjoy this.",
-            item_name
-        ),
+        ("doc", 0) => format!("A {}! That's a kind thought. I'll enjoy this.", item_name),
         ("doc", _) => format!("Oh, a {}. Very considerate of you. Thank you.", item_name),
 
         ("mayor_rex", 0) => format!(

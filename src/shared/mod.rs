@@ -154,7 +154,7 @@ impl Calendar {
 // PLAYER
 // ═══════════════════════════════════════════════════════════════════════
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, Component)]
 pub enum Facing {
     Up,
     #[default]
@@ -591,9 +591,13 @@ pub enum MapId {
     Town,
     Beach,
     Forest,
+    DeepForest,
+    CoralIsland,
     MineEntrance,
     Mine, // + floor number in MineState
     PlayerHouse,
+    TownHouseWest,
+    TownHouseEast,
     GeneralStore,
     AnimalShop,
     Blacksmith,
@@ -1875,6 +1879,29 @@ pub fn world_to_grid(wx: f32, wy: f32) -> IVec2 {
 #[derive(Resource, Default)]
 pub struct DebugOverlayState {
     pub visible: bool,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BOAT / SAILING
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Tracks whether the player is currently in a boat.
+/// When active, water tiles become walkable and land tiles become impassable.
+#[allow(dead_code)]
+#[derive(Resource, Debug, Clone, Default)]
+pub struct BoatMode {
+    pub active: bool,
+    pub stamina_drain_per_tile: f32,
+}
+
+#[allow(dead_code)]
+impl BoatMode {
+    pub fn new() -> Self {
+        Self {
+            active: false,
+            stamina_drain_per_tile: 0.5,
+        }
+    }
 }
 
 #[cfg(test)]

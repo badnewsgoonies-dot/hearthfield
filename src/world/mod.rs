@@ -20,9 +20,11 @@ pub mod map_data;
 pub mod maps;
 pub mod objects;
 pub mod seasonal;
+pub mod tree_fx;
 pub mod weather_fx;
 pub mod ysort;
 
+use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use lighting::{
     despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
     update_lightning_flash, LightningFlash,
@@ -30,20 +32,25 @@ use lighting::{
 use map_data::MapRegistry;
 use maps::{generate_map, MapDef};
 use objects::{
-    handle_forageable_pickup, handle_tool_use_on_objects, handle_weed_scythe,
-    regrow_trees_on_season_change, spawn_building_signs, spawn_building_sprites,
-    spawn_carpenter_board, spawn_crafting_bench, spawn_daily_weeds, spawn_forageables,
-    spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects, update_forage_sparkles,
-    update_tree_sprites_on_season_change, WorldObject,
+    animate_bush_rustle, animate_doors, animate_wind_sway, handle_forageable_pickup,
+    handle_tool_use_on_objects, handle_weed_scythe, regrow_trees_on_season_change,
+    spawn_building_signs, spawn_building_sprites, spawn_carpenter_board, spawn_chimney_smoke,
+    spawn_crafting_bench, spawn_daily_weeds, spawn_forageables, spawn_interior_decorations,
+    spawn_shipping_bin, spawn_world_objects, update_candle_flicker, update_chimney_smoke,
+    update_forage_sparkles, update_tree_sprites_on_season_change, ChimneySmokeTimer, WorldObject,
 };
 use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
     SeasonalTintApplied,
 };
-use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
     update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
+    WeatherSprites,
+};
+use tree_fx::{
+    on_axe_tree_impact, on_tree_destruction, update_leaf_particles, update_tree_destruction_poof,
+    update_tree_flash, update_tree_shake,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -71,7 +78,10 @@ impl Plugin for WorldPlugin {
             .init_resource::<LightningFlash>()
             .init_resource::<PreviousWeather>()
             .init_resource::<WeatherParticleCounts>()
+            .init_resource::<WeatherSprites>()
             .init_resource::<GrassDecorState>()
+            .init_resource::<ChimneySmokeTimer>()
+            .init_resource::<BoatMode>()
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
                 OnEnter(GameState::Playing),
@@ -98,6 +108,9 @@ impl Plugin for WorldPlugin {
                     chests::close_chest_on_escape,
                     // Weed scythe clearing
                     handle_weed_scythe,
+                    // Tree axe-hit feedback triggers (read events, spawn VFX)
+                    on_axe_tree_impact,
+                    on_tree_destruction,
                 )
                     .in_set(UpdatePhase::Simulation)
                     .run_if(in_state(GameState::Playing)),
@@ -119,10 +132,30 @@ impl Plugin for WorldPlugin {
                     weather_change_notification,
                     // Forageable sparkle particles
                     update_forage_sparkles,
+                    // Indoor candle flicker animation
+                    update_candle_flicker,
                     // Grass decorations (flowers, tufts, etc.)
                     spawn_grass_decorations,
                     // Water tile animation
                     animate_water_tiles,
+                    // Wind sway, bush rustle, door animations, and chimney smoke
+                    animate_wind_sway,
+                    animate_bush_rustle,
+                    animate_doors,
+                    spawn_chimney_smoke,
+                    update_chimney_smoke,
+                )
+                    .in_set(UpdatePhase::Presentation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
+                    // Tree axe-hit feedback: shake, flash, leaf burst, destruction poof
+                    update_tree_shake,
+                    update_tree_flash,
+                    update_leaf_particles,
+                    update_tree_destruction_poof,
                 )
                     .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),
@@ -251,12 +284,12 @@ fn ensure_atlases_loaded(
         None,
     ));
 
-    // wood_bridge.png: 80x48px -> 16x16 tiles, 5 columns x 3 rows
+    // wood_bridge.png: 32x16px -> 16x16 tiles, 2 columns x 1 row
     atlases.bridge_image = asset_server.load("sprites/wood_bridge.png");
     atlases.bridge_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
-        5,
-        3,
+        2,
+        1,
         None,
         None,
     ));
@@ -324,10 +357,18 @@ fn neighbor_bitmask(
     pred: impl Fn(TileKind) -> bool,
 ) -> u8 {
     let mut mask: u8 = 0;
-    if neighbor_is(tiles, x, y, width, height, 0, 1, &pred) { mask |= 0b0001; } // north (+y)
-    if neighbor_is(tiles, x, y, width, height, 1, 0, &pred) { mask |= 0b0010; } // east (+x)
-    if neighbor_is(tiles, x, y, width, height, 0, -1, &pred) { mask |= 0b0100; } // south (-y)
-    if neighbor_is(tiles, x, y, width, height, -1, 0, &pred) { mask |= 0b1000; } // west (-x)
+    if neighbor_is(tiles, x, y, width, height, 0, 1, &pred) {
+        mask |= 0b0001;
+    } // north (+y)
+    if neighbor_is(tiles, x, y, width, height, 1, 0, &pred) {
+        mask |= 0b0010;
+    } // east (+x)
+    if neighbor_is(tiles, x, y, width, height, 0, -1, &pred) {
+        mask |= 0b0100;
+    } // south (-y)
+    if neighbor_is(tiles, x, y, width, height, -1, 0, &pred) {
+        mask |= 0b1000;
+    } // west (-x)
     mask
 }
 
@@ -484,9 +525,7 @@ fn tile_atlas_info(
         // Dirt: use grass-dirt transition tiles when bordering grass.
         // Falls back to uniform dirt (idx 291) when no grass neighbors.
         TileKind::Dirt => {
-            let grass_mask = neighbor_bitmask(tiles, x, y, width, height, |t| {
-                t == TileKind::Grass
-            });
+            let grass_mask = neighbor_bitmask(tiles, x, y, width, height, |t| t == TileKind::Grass);
             let index = if grass_mask != 0 {
                 dirt_grass_transition_index(grass_mask)
             } else {
@@ -513,29 +552,17 @@ fn tile_atlas_info(
             417,
         )),
 
-        // Water: use grass-water transition tiles from terrain atlas when bordering land.
-        // Pure water centers (no land neighbors) use the dedicated water.png atlas
-        // which has 4 proper animation frames.
+        // Water: always use terrain atlas transition tiles.
+        // water.png contains wrong art (gold decorative, not water), so we avoid it.
+        // Pure water centers (land_mask=0) get terrain atlas index 49 (water center).
         TileKind::Water => {
-            let land_mask = neighbor_bitmask(tiles, x, y, width, height, |t| {
-                t != TileKind::Water
-            });
-            if land_mask == 0 {
-                // Pure water center → use water.png for animation (4 frames, start at 0)
-                Some((
-                    atlases.water_image.clone(),
-                    atlases.water_layout.clone(),
-                    0,
-                ))
-            } else {
-                // Water bordering land → use terrain atlas transition tile
-                let index = water_grass_transition_index(land_mask);
-                Some((
-                    atlases.terrain_image.clone(),
-                    atlases.terrain_layout.clone(),
-                    index,
-                ))
-            }
+            let land_mask = neighbor_bitmask(tiles, x, y, width, height, |t| t != TileKind::Water);
+            let index = water_grass_transition_index(land_mask);
+            Some((
+                atlases.terrain_image.clone(),
+                atlases.terrain_layout.clone(),
+                index,
+            ))
         }
 
         // Sand: modern_farm_terrain.png, row 5 col 1 (idx 161) — uniform sand.
@@ -572,18 +599,23 @@ fn tile_atlas_info(
             ))
         }
 
-        // Bridge: wood_bridge.png atlas, center plank tile (row 1, col 2 = index 7).
+        // Bridge: wood_bridge.png atlas, center plank tile (row 0, col 0 = index 0).
         TileKind::Bridge => Some((
             atlases.bridge_image.clone(),
             atlases.bridge_layout.clone(),
-            7,
+            0,
         )),
 
         // Void: hills for outdoor maps, dark color for indoor maps.
         TileKind::Void => {
             let is_indoor = matches!(
                 map_id,
-                MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+                MapId::PlayerHouse
+                    | MapId::TownHouseWest
+                    | MapId::TownHouseEast
+                    | MapId::GeneralStore
+                    | MapId::AnimalShop
+                    | MapId::Blacksmith
             );
             if is_indoor {
                 // Return None → solid dark color fallback via tile_color()
@@ -618,7 +650,7 @@ pub struct WorldMap {
 }
 
 impl WorldMap {
-    /// Check if a tile position is walkable.
+    /// Check if a tile position is walkable on foot (water is blocked).
     pub fn is_walkable(&self, x: i32, y: i32) -> bool {
         // Out of bounds is not walkable
         if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
@@ -634,6 +666,21 @@ impl WorldMap {
         if let Some(ref map_def) = self.map_def {
             let tile = map_def.get_tile(x, y);
             !matches!(tile, TileKind::Water | TileKind::Void)
+        } else {
+            false
+        }
+    }
+
+    /// Check if a tile position is walkable while sailing.
+    /// Water and Bridge tiles are passable; everything else is blocked.
+    pub fn is_walkable_sailing(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
+            return false;
+        }
+
+        if let Some(ref map_def) = self.map_def {
+            let tile = map_def.get_tile(x, y);
+            matches!(tile, TileKind::Water | TileKind::Bridge)
         } else {
             false
         }
@@ -787,7 +834,7 @@ fn load_map(
     // and interior maps (where it serves as floor/counters).
     let stone_is_solid = matches!(
         map_id,
-        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::MineEntrance
+        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::DeepForest | MapId::CoralIsland | MapId::MineEntrance
     );
     for y in 0..map_def.height {
         for x in 0..map_def.width {
@@ -824,6 +871,12 @@ fn load_map(
         // Blacksmith door at (22-23, 13)
         world_map.solid_tiles.remove(&(22, 13));
         world_map.solid_tiles.remove(&(23, 13));
+        // West town house door at (3-4, 13)
+        world_map.solid_tiles.remove(&(3, 13));
+        world_map.solid_tiles.remove(&(4, 13));
+        // East town house door at (9-10, 13)
+        world_map.solid_tiles.remove(&(9, 13));
+        world_map.solid_tiles.remove(&(10, 13));
     }
 
     // Spawn tile sprites using texture atlases
@@ -892,16 +945,12 @@ fn spawn_tile_sprites(
                         )),
                         MapTile,
                     ));
-                    // Tag water tiles for animation cycling and spawn edge overlays
+                    // Tag water tiles for edge overlays (no animation — terrain atlas
+                    // indices are not consecutive animation frames).
                     if tile == TileKind::Water {
-                        let mask = water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
+                        let mask =
+                            water_edge_mask(x, y, &map_def.tiles, map_def.width, map_def.height);
                         entity_cmd.insert((WaterTile, WaterEdgeMask(mask)));
-                        // Only add animation base index for pure water centers (no land neighbors).
-                        // Transition tiles have grass edges and should not cycle through
-                        // adjacent atlas indices which are different transition shapes.
-                        if mask == 0 {
-                            entity_cmd.insert(WaterBaseIndex(index));
-                        }
                         if mask != 0 {
                             spawn_water_edge_overlays(commands, x, y, mask, season);
                         }
@@ -928,7 +977,6 @@ fn spawn_tile_sprites(
     }
 }
 
-
 /// Compute the water edge bitmask for the tile at (x, y).
 /// bit 0 = north (y+1), bit 1 = east (x+1), bit 2 = south (y-1), bit 3 = west (x-1).
 /// A bit is set when the neighbor in that direction is non-water (or out of bounds).
@@ -940,10 +988,18 @@ fn water_edge_mask(x: usize, y: usize, tiles: &[TileKind], width: usize, height:
         }
         tiles[ny as usize * width + nx as usize] != TileKind::Water
     };
-    if is_non_water(x as i32, y as i32 + 1) { mask |= 0b0001; } // north
-    if is_non_water(x as i32 + 1, y as i32) { mask |= 0b0010; } // east
-    if is_non_water(x as i32, y as i32 - 1) { mask |= 0b0100; } // south
-    if is_non_water(x as i32 - 1, y as i32) { mask |= 0b1000; } // west
+    if is_non_water(x as i32, y as i32 + 1) {
+        mask |= 0b0001;
+    } // north
+    if is_non_water(x as i32 + 1, y as i32) {
+        mask |= 0b0010;
+    } // east
+    if is_non_water(x as i32, y as i32 - 1) {
+        mask |= 0b0100;
+    } // south
+    if is_non_water(x as i32 - 1, y as i32) {
+        mask |= 0b1000;
+    } // west
     mask
 }
 
@@ -982,41 +1038,71 @@ fn spawn_water_edge_overlays(
     let outer_offset = half - outer_thick / 2.0;
 
     // Helper: spawn two overlays (inner + outer) for one edge direction
-    let spawn_edge = |cmds: &mut Commands, size_inner: Vec2, pos_inner: Vec3, size_outer: Vec2, pos_outer: Vec3| {
+    let spawn_edge = |cmds: &mut Commands,
+                      size_inner: Vec2,
+                      pos_inner: Vec3,
+                      size_outer: Vec2,
+                      pos_outer: Vec3| {
         cmds.spawn((
-            Sprite { color: outer_color, custom_size: Some(size_outer), ..default() },
+            Sprite {
+                color: outer_color,
+                custom_size: Some(size_outer),
+                ..default()
+            },
             Transform::from_translation(pos_outer),
-            MapTile, WaterEdgeOverlay,
+            MapTile,
+            WaterEdgeOverlay,
         ));
         cmds.spawn((
-            Sprite { color: inner_color, custom_size: Some(size_inner), ..default() },
+            Sprite {
+                color: inner_color,
+                custom_size: Some(size_inner),
+                ..default()
+            },
             Transform::from_translation(pos_inner),
-            MapTile, WaterEdgeOverlay,
+            MapTile,
+            WaterEdgeOverlay,
         ));
     };
 
-    if mask & 0b0001 != 0 { // north
-        spawn_edge(commands,
-            Vec2::new(TILE_SIZE, inner_thick), Vec3::new(cx, cy + inner_offset, z),
-            Vec2::new(TILE_SIZE, outer_thick), Vec3::new(cx, cy + outer_offset, z),
+    if mask & 0b0001 != 0 {
+        // north
+        spawn_edge(
+            commands,
+            Vec2::new(TILE_SIZE, inner_thick),
+            Vec3::new(cx, cy + inner_offset, z),
+            Vec2::new(TILE_SIZE, outer_thick),
+            Vec3::new(cx, cy + outer_offset, z),
         );
     }
-    if mask & 0b0010 != 0 { // east
-        spawn_edge(commands,
-            Vec2::new(inner_thick, TILE_SIZE), Vec3::new(cx + inner_offset, cy, z),
-            Vec2::new(outer_thick, TILE_SIZE), Vec3::new(cx + outer_offset, cy, z),
+    if mask & 0b0010 != 0 {
+        // east
+        spawn_edge(
+            commands,
+            Vec2::new(inner_thick, TILE_SIZE),
+            Vec3::new(cx + inner_offset, cy, z),
+            Vec2::new(outer_thick, TILE_SIZE),
+            Vec3::new(cx + outer_offset, cy, z),
         );
     }
-    if mask & 0b0100 != 0 { // south
-        spawn_edge(commands,
-            Vec2::new(TILE_SIZE, inner_thick), Vec3::new(cx, cy - inner_offset, z),
-            Vec2::new(TILE_SIZE, outer_thick), Vec3::new(cx, cy - outer_offset, z),
+    if mask & 0b0100 != 0 {
+        // south
+        spawn_edge(
+            commands,
+            Vec2::new(TILE_SIZE, inner_thick),
+            Vec3::new(cx, cy - inner_offset, z),
+            Vec2::new(TILE_SIZE, outer_thick),
+            Vec3::new(cx, cy - outer_offset, z),
         );
     }
-    if mask & 0b1000 != 0 { // west
-        spawn_edge(commands,
-            Vec2::new(inner_thick, TILE_SIZE), Vec3::new(cx - inner_offset, cy, z),
-            Vec2::new(outer_thick, TILE_SIZE), Vec3::new(cx - outer_offset, cy, z),
+    if mask & 0b1000 != 0 {
+        // west
+        spawn_edge(
+            commands,
+            Vec2::new(inner_thick, TILE_SIZE),
+            Vec3::new(cx - inner_offset, cy, z),
+            Vec2::new(outer_thick, TILE_SIZE),
+            Vec3::new(cx - outer_offset, cy, z),
         );
     }
 }
@@ -1223,7 +1309,12 @@ pub fn sync_collision_map(
     }
 }
 
-type SeasonTileQuery<'w, 's> = Query<'w, 's, (&'static Transform, &'static mut Sprite), (With<MapTile>, Without<WaterEdgeOverlay>)>;
+type SeasonTileQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static Transform, &'static mut Sprite),
+    (With<MapTile>, Without<WaterEdgeOverlay>),
+>;
 
 /// Handle SeasonChangeEvent: update tile sprites for the new season.
 /// For atlas-based tiles, we swap the atlas index to the seasonal variant.

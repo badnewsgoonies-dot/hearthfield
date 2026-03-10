@@ -159,7 +159,12 @@ fn sample_tint(time: f32) -> ((f32, f32, f32), f32) {
 fn is_indoor_map(map_id: MapId) -> bool {
     matches!(
         map_id,
-        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+        MapId::PlayerHouse
+            | MapId::TownHouseWest
+            | MapId::TownHouseEast
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith
     )
 }
 
@@ -215,12 +220,14 @@ pub fn update_day_night_tint(
     mut overlay_query: Query<&mut BackgroundColor, With<DayNightOverlay>>,
     lightning: Option<Res<LightningFlash>>,
 ) {
-    // If we're on an indoor map, force no tint
+    // Indoor maps: consistent warm ambient lighting instead of day/night cycle.
+    // Subtle warm tint: Color::srgb(1.0, 0.97, 0.92) at very low intensity.
     if is_indoor_map(player_state.current_map) {
-        day_night_tint.intensity = 0.0;
-        day_night_tint.tint = (1.0, 1.0, 1.0);
+        day_night_tint.intensity = 0.04;
+        day_night_tint.tint = (1.0, 0.97, 0.92);
         for mut bg in &mut overlay_query {
-            *bg = BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0));
+            // Very subtle warm overlay: slight amber at low alpha
+            *bg = BackgroundColor(Color::srgba(0.95, 0.85, 0.55, 0.04));
         }
         return;
     }
@@ -231,7 +238,7 @@ pub fn update_day_night_tint(
     // Sample the keyframes
     let (tint, intensity) = sample_tint(time);
 
-    // Update the shared resource
+    // Update the shared resource so other systems can read current tint values
     day_night_tint.intensity = intensity;
     day_night_tint.tint = tint;
 

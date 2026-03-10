@@ -254,8 +254,7 @@ pub fn check_minigame_result(
             }
 
             // Wild bait double-catch: 15% chance for a bonus fish (wild_bait only)
-            if bait_id.as_deref() == Some("wild_bait")
-                && super::cast::wild_bait_double_catch_roll()
+            if bait_id.as_deref() == Some("wild_bait") && super::cast::wild_bait_double_catch_roll()
             {
                 if let Some(ref fid) = selected_fish {
                     item_pickup_events.send(ItemPickupEvent {

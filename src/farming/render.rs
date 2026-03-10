@@ -10,6 +10,7 @@ use super::{
     FarmingAtlases, SoilTileEntity,
 };
 use crate::shared::*;
+use crate::world::objects::WindSway;
 use bevy::prelude::*;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,7 +244,12 @@ pub fn sync_crop_sprites(
     farm_state: Res<FarmState>,
     crop_registry: Res<CropRegistry>,
     atlases: Res<FarmingAtlases>,
-    mut crop_query: Query<(&CropTileEntity, &mut Sprite, &mut CropTile, Option<&mut CropGrowthAnim>)>,
+    mut crop_query: Query<(
+        &CropTileEntity,
+        &mut Sprite,
+        &mut CropTile,
+        Option<&mut CropGrowthAnim>,
+    )>,
 ) {
     // Incremental short-circuit for unchanged state/defs/atlas handles.
     if !farm_state.is_changed() && !crop_registry.is_changed() && !atlases.is_changed() {
@@ -409,7 +415,11 @@ pub fn sync_crop_sprites(
                     (ci.clone(), cl.clone(), crop.current_stage as usize)
                 } else {
                     let idx = crop_atlas_index(crop.current_stage, total_stages);
-                    (atlases.plants_image.clone(), atlases.plants_layout.clone(), idx)
+                    (
+                        atlases.plants_image.clone(),
+                        atlases.plants_layout.clone(),
+                        idx,
+                    )
                 };
             commands
                 .spawn((
@@ -427,6 +437,11 @@ pub fn sync_crop_sprites(
                     },
                     crop,
                     growth_anim,
+                    WindSway {
+                        offset: (pos.0 * pos.1) as f32,
+                        speed: 1.2,
+                        amount: 0.03,
+                    },
                 ))
                 .id()
         } else {
@@ -454,6 +469,11 @@ pub fn sync_crop_sprites(
                     },
                     crop,
                     growth_anim,
+                    WindSway {
+                        offset: (pos.0 * pos.1) as f32,
+                        speed: 1.2,
+                        amount: 0.03,
+                    },
                 ))
                 .id()
         };
@@ -486,10 +506,7 @@ pub fn sync_crop_sprites(
 /// over the timer duration (0.3 s).  The multiplier is applied on top of the
 /// base custom_size that `sync_crop_sprites` already set, using the stored
 /// `base_size` to avoid frame-over-frame compounding.
-pub fn animate_crop_growth(
-    time: Res<Time>,
-    mut query: Query<(&mut CropGrowthAnim, &mut Sprite)>,
-) {
+pub fn animate_crop_growth(time: Res<Time>, mut query: Query<(&mut CropGrowthAnim, &mut Sprite)>) {
     for (mut anim, mut sprite) in query.iter_mut() {
         if !anim.animating {
             continue;
@@ -641,7 +658,9 @@ pub fn sync_farm_objects_sprites(
                     ))
                     .id()
             }
-        } else if matches!(obj, FarmObject::Sprinkler) && farming_atlases.sprinkler_anim_layout != Handle::default() {
+        } else if matches!(obj, FarmObject::Sprinkler)
+            && farming_atlases.sprinkler_anim_layout != Handle::default()
+        {
             // Sprinkler with animated atlas — row 0, frame 0 (idle)
             let mut sprite = Sprite::from_atlas_image(
                 farming_atlases.sprinkler_anim_image.clone(),

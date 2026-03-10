@@ -23,6 +23,7 @@ mod shop_screen;
 pub mod stats_screen;
 mod toast;
 pub mod transitions;
+pub mod tool_tutorial;
 pub mod tutorial;
 
 use crate::shared::*;
@@ -179,6 +180,7 @@ impl Plugin for UiPlugin {
                 hud::update_hotbar,
                 hud::hydrate_hotbar_icons,
                 hud::update_hotbar_icons,
+                hud::bob_selected_hotbar_icon,
                 minimap::update_minimap,
                 hud::update_map_name,
                 hud::update_objective_display,
@@ -313,7 +315,10 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::Dialogue),
-            dialogue_box::despawn_dialogue_box,
+            (
+                dialogue_box::despawn_dialogue_box,
+                tool_tutorial::despawn_tool_tutorial_overlay,
+            ),
         );
         app.add_systems(
             Update,
@@ -322,6 +327,14 @@ impl Plugin for UiPlugin {
                 dialogue_box::advance_dialogue,
             )
                 .chain()
+                .run_if(in_state(GameState::Dialogue)),
+        );
+
+        // ─── TOOL TUTORIAL OVERLAY — runs during Dialogue state ───
+        app.add_systems(
+            Update,
+            tool_tutorial::update_tool_tutorial_overlay
+                .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::Dialogue)),
         );
 
@@ -410,6 +423,7 @@ impl Plugin for UiPlugin {
                 chest_screen::update_chest_inv_display,
                 chest_screen::update_chest_storage_display,
                 chest_screen::update_chest_cursor,
+                chest_screen::update_chest_quality_borders,
                 chest_screen::handle_chest_input,
             )
                 .run_if(in_state(GameState::Playing)),

@@ -14,8 +14,8 @@ pub use bench::{CraftItemEvent, CraftingUiState, OpenCraftingEvent};
 pub use buffs::food_buff_for_item;
 pub use machines::{
     item_to_machine_type, machine_atlas_index, CollectMachineOutputEvent, InsertMachineInputEvent,
-    MachineAnimTimer, MachineType, PlaceMachineEvent, ProcessingMachine,
-    ProcessingMachineRegistry, SavedMachine,
+    MachineAnimTimer, MachineParticle, MachineType, PlaceMachineEvent, ProcessingMachine,
+    ProcessingMachineRegistry, ProceduralMachineSprites, SavedMachine,
 };
 pub use recipes::{
     make_cooking_recipe, make_crafting_recipe, populate_recipe_registry, ALL_COOKING_RECIPE_IDS,
@@ -31,6 +31,7 @@ impl Plugin for CraftingPlugin {
             // Crafting-specific resources
             .init_resource::<CraftingUiState>()
             .init_resource::<ProcessingMachineRegistry>()
+            .init_resource::<ProceduralMachineSprites>()
             // Crafting-specific events
             .add_event::<CraftItemEvent>()
             .add_event::<OpenCraftingEvent>()
@@ -87,8 +88,18 @@ impl Plugin for CraftingPlugin {
             // ------------------------------------------------------------------
             .add_systems(
                 PostUpdate,
-                machines::animate_processing_machines
+                (
+                    machines::animate_processing_machines,
+                    machines::shake_active_machines,
+                    machines::spawn_machine_particles,
+                    machines::update_machine_particles,
+                )
                     .run_if(in_state(GameState::Playing)),
+            )
+            // Cleanup particles when leaving Playing state
+            .add_systems(
+                OnExit(GameState::Playing),
+                machines::despawn_machine_particles,
             );
     }
 }

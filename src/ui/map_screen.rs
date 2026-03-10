@@ -202,6 +202,18 @@ fn spawn_map_layout(parent: &mut ChildBuilder, font: &Handle<Font>, current_map:
         current_map,
         &[MapNode::Location(MapId::PlayerHouse)],
     );
+
+    // Row 9:  [Town House W]  [Town House E]
+    spawn_map_row(
+        parent,
+        font,
+        current_map,
+        &[
+            MapNode::Location(MapId::TownHouseWest),
+            MapNode::Spacer("   "),
+            MapNode::Location(MapId::TownHouseEast),
+        ],
+    );
 }
 
 enum MapNode {
@@ -283,12 +295,16 @@ fn map_id_display_name(map_id: MapId) -> &'static str {
         MapId::Town => "Town",
         MapId::Beach => "Beach",
         MapId::Forest => "Forest",
+        MapId::DeepForest => "Deep Forest",
         MapId::MineEntrance => "Mine",
         MapId::Mine => "Mine (Deep)",
         MapId::PlayerHouse => "Player House",
+        MapId::TownHouseWest => "Town House West",
+        MapId::TownHouseEast => "Town House East",
         MapId::GeneralStore => "General Store",
         MapId::AnimalShop => "Animal Shop",
         MapId::Blacksmith => "Blacksmith",
+        MapId::CoralIsland => "Coral Island",
     }
 }
 

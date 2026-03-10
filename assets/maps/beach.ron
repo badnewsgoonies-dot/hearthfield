@@ -319,7 +319,7 @@
     doors: [],
     edges: (
         north: Some((Town, ClampX(1))),
-        south: None,
+        south: Some((CoralIsland, Fixed(15, 1))),
         east: Some((Farm, ClampY(1))),
         west: None,
     ),

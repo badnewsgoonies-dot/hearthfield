@@ -203,14 +203,11 @@ pub fn update_minimap(
 
     let w = minimap.map_width;
     let h = minimap.map_height;
-    let player_tile = player_query
-        .get_single()
-        .ok()
-        .and_then(|grid| {
-            let px = grid.x as usize;
-            let py = grid.y as usize;
-            (px < w && py < h).then_some((px, py))
-        });
+    let player_tile = player_query.get_single().ok().and_then(|grid| {
+        let px = grid.x as usize;
+        let py = grid.y as usize;
+        (px < w && py < h).then_some((px, py))
+    });
     let player_blink_on = player_tile.map(|_| (time.elapsed_secs() * 4.0).sin() > 0.0);
     let mut npc_tiles = Vec::new();
     for (_npc, tf) in &npc_query {

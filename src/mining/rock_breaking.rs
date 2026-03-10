@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use rand::prelude::*;
 
 use super::components::*;
+use super::rock_impact::{RockDestroyedEvent, RockHitEvent};
 use super::spawning::{cave_tiles, MiningAtlases};
 use crate::shared::*;
 
@@ -34,12 +35,14 @@ fn pickaxe_stamina_cost(tier: ToolTier) -> f32 {
 pub fn handle_rock_breaking(
     mut commands: Commands,
     mut tool_events: EventReader<ToolUseEvent>,
-    mut rocks: Query<(Entity, &MineGridPos, &mut MineRock)>,
+    mut rocks: Query<(Entity, &MineGridPos, &mut MineRock, &Transform)>,
     mut active_floor: ResMut<ActiveFloor>,
     mut ladders: Query<(&MineGridPos, &mut MineLadder, &mut Sprite), Without<MineRock>>,
     mut pickup_events: EventWriter<ItemPickupEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
+    mut rock_hit_events: EventWriter<RockHitEvent>,
+    mut rock_destroyed_events: EventWriter<RockDestroyedEvent>,
     in_mine: Res<InMine>,
     atlases: Res<MiningAtlases>,
 ) {
@@ -56,8 +59,11 @@ pub fn handle_rock_breaking(
         let stamina_cost = pickaxe_stamina_cost(event.tier);
 
         // Find a rock at the target position
+        // hit_rock = Some((entity, drop_item, drop_qty, grid_x, grid_y, world_x, world_y))
         let mut hit_rock = None;
-        for (entity, grid_pos, mut rock) in rocks.iter_mut() {
+        let mut hit_and_survived: Option<(Entity, f32, f32)> = None;
+
+        for (entity, grid_pos, mut rock, transform) in rocks.iter_mut() {
             if grid_pos.x == event.target_x && grid_pos.y == event.target_y {
                 // Apply damage
                 let _effective_dmg = damage.min(rock.health);
@@ -72,17 +78,38 @@ pub fn handle_rock_breaking(
                     amount: stamina_cost,
                 });
 
+                let wx = transform.translation.x;
+                let wy = transform.translation.y;
+
                 if rock.health == 0 {
                     // Rock is destroyed
                     let drop_item = rock.drop_item.clone();
                     let drop_qty = rock.drop_quantity;
-                    hit_rock = Some((entity, drop_item, drop_qty, grid_pos.x, grid_pos.y));
+                    hit_rock = Some((entity, drop_item, drop_qty, grid_pos.x, grid_pos.y, wx, wy));
+                } else {
+                    // Rock survived — queue hit feedback
+                    hit_and_survived = Some((entity, wx, wy));
                 }
                 break;
             }
         }
 
-        if let Some((entity, drop_item, drop_qty, rx, ry)) = hit_rock {
+        // Fire hit-survived feedback event
+        if let Some((entity, wx, wy)) = hit_and_survived {
+            rock_hit_events.send(RockHitEvent {
+                rock_entity: entity,
+                world_x: wx,
+                world_y: wy,
+            });
+        }
+
+        if let Some((entity, drop_item, drop_qty, rx, ry, wx, wy)) = hit_rock {
+            // Fire destruction feedback event BEFORE despawning
+            rock_destroyed_events.send(RockDestroyedEvent {
+                world_x: wx,
+                world_y: wy,
+            });
+
             // Despawn the rock
             commands.entity(entity).despawn();
 

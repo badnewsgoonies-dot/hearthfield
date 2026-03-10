@@ -638,12 +638,16 @@ fn map_display_name(map: MapId) -> &'static str {
         MapId::Town => "Willowbrook",
         MapId::Beach => "Tide Pool Beach",
         MapId::Forest => "Briarwood Forest",
+        MapId::DeepForest => "Deep Briarwood",
         MapId::MineEntrance => "The Mines",
         MapId::Mine => "Mine Floor",
         MapId::PlayerHouse => "Home",
+        MapId::TownHouseWest => "Town House West",
+        MapId::TownHouseEast => "Town House East",
         MapId::GeneralStore => "General Store",
         MapId::AnimalShop => "Animal Shop",
         MapId::Blacksmith => "Elena's Forge",
+        MapId::CoralIsland => "Coral Island",
     }
 }
 
@@ -877,10 +881,11 @@ pub fn update_hotbar(
     mut qty_text_query: Query<(&HotbarQuantityText, &mut Text), Without<HotbarItemText>>,
     mut icon_query: Query<(&HotbarItemIcon, &mut Visibility), Without<HotbarSlot>>,
 ) {
-    // Update slot backgrounds (highlight selected)
+    // Update slot backgrounds (highlight selected with brighter tint)
     for (slot, mut bg, mut border) in &mut slot_query {
         if slot.index == inventory.selected_slot {
-            *bg = BackgroundColor(Color::srgba(0.3, 0.25, 0.15, 0.95));
+            // Selected slot: slightly brighter background (1.1x multiplier effect)
+            *bg = BackgroundColor(Color::srgba(0.33, 0.28, 0.17, 0.95));
             *border = BorderColor(Color::srgb(1.0, 0.84, 0.0));
         } else {
             *bg = BackgroundColor(Color::srgba(0.15, 0.12, 0.1, 0.85));
@@ -1010,6 +1015,28 @@ pub fn update_hotbar_icons(
                     }
                 }
             }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SELECTED TOOL BOB — gentle vertical oscillation on active hotbar icon
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Applies a subtle vertical bob (+/-1 pixel at 0.5 Hz) to the icon in the
+/// currently selected hotbar slot. Unselected icons reset to zero offset.
+pub fn bob_selected_hotbar_icon(
+    time: Res<Time>,
+    inventory: Res<Inventory>,
+    mut icon_query: Query<(&HotbarItemIcon, &mut Node)>,
+) {
+    let bob_offset = (time.elapsed_secs() * 0.5 * std::f32::consts::TAU).sin() * 1.0;
+
+    for (icon, mut node) in &mut icon_query {
+        if icon.index == inventory.selected_slot {
+            node.top = Val::Px(-bob_offset); // negative = bob upward when sin > 0
+        } else {
+            node.top = Val::Px(0.0);
         }
     }
 }
@@ -1264,9 +1291,7 @@ pub fn update_interaction_prompt(
             let label = if has_gift {
                 format!(
                     "[{}] Talk to {} | [{}] Give Gift",
-                    interact_key,
-                    name,
-                    secondary_key
+                    interact_key, name, secondary_key
                 )
             } else {
                 format!("[{}] Talk to {}", interact_key, name)

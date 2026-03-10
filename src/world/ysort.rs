@@ -63,13 +63,14 @@ mod tests {
 
         app.update();
 
-        let tf = app.world().entity(ysorted_with_pos).get::<Transform>().unwrap();
+        let tf = app
+            .world()
+            .entity(ysorted_with_pos)
+            .get::<Transform>()
+            .unwrap();
         assert_eq!(tf.translation.x, 10.0);
         assert_eq!(tf.translation.y, 21.0);
-        assert_eq!(
-            tf.translation.z,
-            Z_ENTITY_BASE - 20.51 * Z_Y_SORT_SCALE
-        );
+        assert_eq!(tf.translation.z, Z_ENTITY_BASE - 20.51 * Z_Y_SORT_SCALE);
 
         let tf = app
             .world()
@@ -80,7 +81,11 @@ mod tests {
         assert_eq!(tf.translation.y, 4.0);
         assert_eq!(tf.translation.z, 77.0);
 
-        let tf = app.world().entity(ysorted_no_pos).get::<Transform>().unwrap();
+        let tf = app
+            .world()
+            .entity(ysorted_no_pos)
+            .get::<Transform>()
+            .unwrap();
         assert_eq!(tf.translation.x, 5.0);
         assert_eq!(tf.translation.y, 6.75);
         assert_eq!(tf.translation.z, Z_ENTITY_BASE - 6.75 * Z_Y_SORT_SCALE);

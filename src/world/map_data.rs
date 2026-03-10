@@ -176,12 +176,16 @@ pub fn build_map_registry() -> MapRegistry {
         MapId::Town,
         MapId::Beach,
         MapId::Forest,
+        MapId::DeepForest,
         MapId::MineEntrance,
         MapId::Mine,
         MapId::PlayerHouse,
+        MapId::TownHouseWest,
+        MapId::TownHouseEast,
         MapId::GeneralStore,
         MapId::AnimalShop,
         MapId::Blacksmith,
+        MapId::CoralIsland,
     ];
 
     let mut registry = MapRegistry {
@@ -266,12 +270,16 @@ pub fn export_all_maps() -> Vec<(MapId, MapData)> {
         MapId::Town,
         MapId::Beach,
         MapId::Forest,
+        MapId::DeepForest,
         MapId::MineEntrance,
         MapId::Mine,
         MapId::PlayerHouse,
+        MapId::TownHouseWest,
+        MapId::TownHouseEast,
         MapId::GeneralStore,
         MapId::AnimalShop,
         MapId::Blacksmith,
+        MapId::CoralIsland,
     ];
 
     let mut results = Vec::new();
@@ -323,12 +331,19 @@ fn doors_for(map_id: MapId) -> Vec<DoorDef> {
             DoorDef { x_min: 5, x_max: 6, y: 2, to_map: MapId::GeneralStore, to_x: 6, to_y: 10 },
             DoorDef { x_min: 22, x_max: 23, y: 2, to_map: MapId::AnimalShop, to_x: 6, to_y: 10 },
             DoorDef { x_min: 22, x_max: 23, y: 13, to_map: MapId::Blacksmith, to_x: 6, to_y: 10 },
+            DoorDef { x_min: 3, x_max: 4, y: 13, to_map: MapId::TownHouseWest, to_x: 6, to_y: 10 },
+            DoorDef { x_min: 9, x_max: 10, y: 13, to_map: MapId::TownHouseEast, to_x: 6, to_y: 10 },
         ],
         MapId::MineEntrance => vec![
-            // Cave entrance (top center, tiles 6-7 at y=1-2) → Mine floor 1
-            // Modelled as a transition zone in edges, not a door.
-            // Actually in the hardcoded code it's checked as a range, so
-            // we handle it via a transition zone below.
+            // Cave mouth at the end of the entrance path → Mine floor 1.
+            DoorDef {
+                x_min: 6,
+                x_max: 7,
+                y: 3,
+                to_map: MapId::Mine,
+                to_x: 8,
+                to_y: 14,
+            },
         ],
         _ => Vec::new(),
     }
@@ -352,24 +367,42 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         },
         MapId::Beach => EdgeDefs {
             north: Some((MapId::Town, EdgeTarget::ClampX(1))),
-            south: None,
+            south: Some((MapId::CoralIsland, EdgeTarget::Fixed(15, 1))),
             east: Some((MapId::Farm, EdgeTarget::ClampY(1))),
             west: None,
         },
         MapId::Forest => EdgeDefs {
             north: Some((MapId::MineEntrance, EdgeTarget::Fixed(7, 1))),
             south: None,
-            east: None,
+            east: Some((MapId::DeepForest, EdgeTarget::ClampY(1))),
             west: Some((MapId::Farm, EdgeTarget::ClampY(30))),
+        },
+        MapId::DeepForest => EdgeDefs {
+            north: None,
+            south: None,
+            east: None,
+            west: Some((MapId::Forest, EdgeTarget::ClampY(20))),
         },
         MapId::MineEntrance => EdgeDefs {
             north: None,
             south: Some((MapId::Forest, EdgeTarget::Fixed(11, 16))),
-            east: None,
+            east: Some((MapId::Farm, EdgeTarget::Fixed(1, 9))),
             west: None,
         },
         MapId::PlayerHouse => EdgeDefs {
             north: Some((MapId::Farm, EdgeTarget::Fixed(16, 3))),
+            south: None,
+            east: None,
+            west: None,
+        },
+        MapId::TownHouseWest => EdgeDefs {
+            north: Some((MapId::Town, EdgeTarget::Fixed(3, 14))),
+            south: None,
+            east: None,
+            west: None,
+        },
+        MapId::TownHouseEast => EdgeDefs {
+            north: Some((MapId::Town, EdgeTarget::Fixed(9, 14))),
             south: None,
             east: None,
             west: None,
@@ -394,6 +427,12 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         },
         MapId::Mine => EdgeDefs {
             north: None,
+            south: None,
+            east: None,
+            west: None,
+        },
+        MapId::CoralIsland => EdgeDefs {
+            north: Some((MapId::Beach, EdgeTarget::Fixed(10, 12))),
             south: None,
             east: None,
             west: None,
@@ -428,12 +467,16 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
         MapId::Town => "town",
         MapId::Beach => "beach",
         MapId::Forest => "forest",
+        MapId::DeepForest => "deep_forest",
         MapId::MineEntrance => "mine_entrance",
         MapId::Mine => "mine",
         MapId::PlayerHouse => "player_house",
+        MapId::TownHouseWest => "town_house_west",
+        MapId::TownHouseEast => "town_house_east",
         MapId::GeneralStore => "general_store",
         MapId::AnimalShop => "animal_shop",
         MapId::Blacksmith => "blacksmith",
+        MapId::CoralIsland => "coral_island",
     }
 }
 
@@ -444,18 +487,22 @@ mod tests {
     #[test]
     fn generate_ron_files() {
         write_all_ron_files().expect("Failed to write RON files");
-        // Verify all 10 files exist and round-trip correctly
+        // Verify all 12 files exist and round-trip correctly
         let all_maps = [
             MapId::Farm,
             MapId::Town,
             MapId::Beach,
             MapId::Forest,
+            MapId::DeepForest,
             MapId::MineEntrance,
             MapId::Mine,
             MapId::PlayerHouse,
+            MapId::TownHouseWest,
+            MapId::TownHouseEast,
             MapId::GeneralStore,
             MapId::AnimalShop,
             MapId::Blacksmith,
+            MapId::CoralIsland,
         ];
         for &map_id in &all_maps {
             let name = map_id_filename(map_id);
@@ -483,12 +530,16 @@ mod tests {
             MapId::Town,
             MapId::Beach,
             MapId::Forest,
+            MapId::DeepForest,
             MapId::MineEntrance,
             MapId::Mine,
             MapId::PlayerHouse,
+            MapId::TownHouseWest,
+            MapId::TownHouseEast,
             MapId::GeneralStore,
             MapId::AnimalShop,
             MapId::Blacksmith,
+            MapId::CoralIsland,
         ];
 
         for &map_id in &all_maps {

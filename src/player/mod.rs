@@ -8,6 +8,8 @@ pub mod tool_anim;
 mod tools;
 
 use crate::shared::*;
+use crate::world::maps::WorldObjectKind;
+use crate::world::WorldMap;
 use bevy::prelude::*;
 
 pub struct PlayerPlugin;
@@ -19,12 +21,17 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<CollisionMap>();
         app.init_resource::<CameraSnap>();
         app.init_resource::<PlayerSpriteData>();
-        app.init_resource::<ActionSpriteData>();
-
-        // -- Spawn player when we enter Playing --
+        app.init_resource::<tool_anim::ProceduralToolSprites>();
+        // -- Spawn player + tile cursor when we enter Playing --
         app.add_systems(
             OnEnter(GameState::Playing),
-            (spawn::spawn_player, interaction::grant_starter_items),
+            (
+                spawn::spawn_player,
+                interaction::grant_starter_items,
+                tool_anim::spawn_tool_cursor,
+                tool_anim::spawn_player_shadow,
+                tool_anim::load_procedural_tool_sprites,
+            ),
         );
 
         // -- Interaction dispatchers: run BEFORE all legacy F-key systems --
@@ -55,6 +62,7 @@ impl Plugin for PlayerPlugin {
                     .after(tool_anim::animate_tool_use),
                 tool_anim::animate_tool_use.after(movement::player_movement),
                 tool_anim::handle_tool_impact_sfx.after(tool_anim::animate_tool_use),
+                tool_anim::update_tool_cursor.after(movement::player_movement),
                 tools::tool_cycle,
                 tools::stamina_drain_handler,
                 tools::stamina_low_warning,
@@ -67,10 +75,37 @@ impl Plugin for PlayerPlugin {
                 .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
         );
+        // -- Player visual polish: shadow + breathing --
+        app.add_systems(
+            Update,
+            (
+                tool_anim::update_player_shadow.after(movement::player_movement),
+                tool_anim::animate_player_breathing
+                    .after(movement::player_movement)
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::update_held_tool_sprite
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::spawn_impact_particles
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::spawn_till_poof
+                    .after(tool_anim::animate_tool_use),
+                tool_anim::update_impact_particles,
+                tool_anim::update_till_poof,
+            )
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
+        );
         app.add_systems(
             Update,
             camera::camera_follow_player
                 .in_set(UpdatePhase::Presentation)
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        app.add_systems(
+            Update,
+            handle_boat_toggle
+                .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
         );
 
@@ -96,14 +131,8 @@ pub struct PlayerSpriteData {
     pub loaded: bool,
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
-}
-
-/// Holds the loaded character_actions.png atlas handles for tool animations.
-#[derive(Resource, Default)]
-pub struct ActionSpriteData {
-    pub loaded: bool,
-    pub image: Handle<Image>,
-    pub layout: Handle<TextureAtlasLayout>,
+    pub action_image: Handle<Image>,
+    pub action_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Drives walk-cycle frames based on distance traveled, not time.
@@ -170,6 +199,64 @@ pub struct CameraSnap {
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers shared across sub-modules
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// Toggle boat mode when the player presses F near a Dock object.
+///
+/// Boarding: player must be within 2 tiles of a Dock and have "boat" in inventory.
+/// Docking:  player must be on a water tile within 2 tiles of a Dock.
+pub fn handle_boat_toggle(
+    player_query: Query<&GridPosition, With<Player>>,
+    world_map: Res<WorldMap>,
+    inventory: Res<Inventory>,
+    mut boat_mode: ResMut<BoatMode>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut toast: EventWriter<ToastEvent>,
+) {
+    if !keys.just_pressed(KeyCode::KeyF) {
+        return;
+    }
+
+    let Ok(grid_pos) = player_query.get_single() else {
+        return;
+    };
+
+    let Some(ref map_def) = world_map.map_def else {
+        return;
+    };
+
+    let near_dock = map_def.objects.iter().any(|obj| {
+        obj.kind == WorldObjectKind::Dock
+            && (obj.x - grid_pos.x).abs() <= 2
+            && (obj.y - grid_pos.y).abs() <= 2
+    });
+
+    if !boat_mode.active {
+        if near_dock && inventory.has("boat", 1) {
+            boat_mode.active = true;
+            toast.send(ToastEvent {
+                message: "Launched boat!".to_string(),
+                duration_secs: 2.0,
+            });
+        }
+    } else {
+        let on_water = world_map
+            .map_def
+            .as_ref()
+            .map(|md| {
+                let tile = md.get_tile(grid_pos.x, grid_pos.y);
+                matches!(tile, TileKind::Water)
+            })
+            .unwrap_or(false);
+
+        if on_water && near_dock {
+            boat_mode.active = false;
+            toast.send(ToastEvent {
+                message: "Docked!".to_string(),
+                duration_secs: 2.0,
+            });
+        }
+    }
+}
 
 /// Stamina cost for each tool kind.
 pub fn stamina_cost(tool: &ToolKind) -> f32 {

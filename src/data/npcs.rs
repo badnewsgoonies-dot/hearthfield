@@ -1319,11 +1319,16 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 "Hey! Do you like music? I'm teaching myself guitar.".into(),
                 "This town is kind of boring. No offense. The farm is cool though.".into(),
                 "I'm going to be a rock star someday. Just wait and see.".into(),
-                "I played until 2am last night. My fingers are destroyed but totally worth it.".into(),
-                "I write the best songs when I'm hungry. Don't know why. That's just how it works.".into(),
-                "The guitar used to feel clunky. Now it feels like part of me. Weird, right?".into(),
-                "I made a playlist of all the songs I want to cover. It's longer than I expected.".into(),
-                "Every great musician started somewhere small. This town is my somewhere small.".into(),
+                "I played until 2am last night. My fingers are destroyed but totally worth it."
+                    .into(),
+                "I write the best songs when I'm hungry. Don't know why. That's just how it works."
+                    .into(),
+                "The guitar used to feel clunky. Now it feels like part of me. Weird, right?"
+                    .into(),
+                "I made a playlist of all the songs I want to cover. It's longer than I expected."
+                    .into(),
+                "Every great musician started somewhere small. This town is my somewhere small."
+                    .into(),
             ],
         );
         heart_dialogue.insert(3, vec![
@@ -1547,8 +1552,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 6.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
                 ScheduleEntry {
                     time: 9.0,
@@ -1559,8 +1564,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 12.0,
                     map: MapId::Farm,
-                    x: 14,
-                    y: 13,
+                    x: 6,
+                    y: 20,
                 },
                 ScheduleEntry {
                     time: 16.0,
@@ -1571,16 +1576,16 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 19.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
             ],
             weekend: vec![
                 ScheduleEntry {
                     time: 6.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
                 ScheduleEntry {
                     time: 11.0,
@@ -1597,16 +1602,16 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 19.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
             ],
             rain_override: Some(vec![
                 ScheduleEntry {
                     time: 6.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
                 ScheduleEntry {
                     time: 10.0,
@@ -1617,8 +1622,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 ScheduleEntry {
                     time: 19.0,
                     map: MapId::Farm,
-                    x: 15,
-                    y: 14,
+                    x: 5,
+                    y: 18,
                 },
             ]),
             festival_override: None,

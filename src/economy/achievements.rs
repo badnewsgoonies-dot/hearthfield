@@ -488,11 +488,7 @@ mod tests {
     fn test_all_achievement_ids_unique() {
         let mut ids = std::collections::HashSet::new();
         for def in ACHIEVEMENTS {
-            assert!(
-                ids.insert(def.id),
-                "Duplicate achievement id: {}",
-                def.id
-            );
+            assert!(ids.insert(def.id), "Duplicate achievement id: {}", def.id);
         }
     }
 
@@ -500,7 +496,11 @@ mod tests {
     fn test_all_achievements_have_nonempty_fields() {
         for def in ACHIEVEMENTS {
             assert!(!def.id.is_empty(), "Achievement has empty id");
-            assert!(!def.name.is_empty(), "Achievement '{}' has empty name", def.id);
+            assert!(
+                !def.name.is_empty(),
+                "Achievement '{}' has empty name",
+                def.id
+            );
             assert!(
                 !def.description.is_empty(),
                 "Achievement '{}' has empty description",

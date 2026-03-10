@@ -110,6 +110,27 @@ impl Plugin for FishingPlugin {
                 render::animate_bobber
                     .run_if(in_state(GameState::Playing).or(in_state(GameState::Fishing))),
             )
+            // Water splash/ripple effects (only while waiting in Playing state)
+            .add_systems(
+                Update,
+                (
+                    render::spawn_bobber_landing_splash,
+                    render::tick_bobber_ambient_ripple,
+                    render::spawn_bite_splash,
+                    render::update_water_droplets,
+                    render::update_water_ripples,
+                )
+                    .run_if(in_state(GameState::Playing)),
+            )
+            // Fish display swimming animation + rarity glow (runs in Playing state)
+            .add_systems(
+                Update,
+                (
+                    render::animate_fish_display,
+                    render::animate_fish_rarity_glow,
+                )
+                    .run_if(in_state(GameState::Playing)),
+            )
             // Escape key to cancel fishing (in Playing state while waiting)
             .add_systems(
                 Update,
@@ -421,6 +442,43 @@ pub struct Bobber {
     pub bob_timer: Timer,
     pub _bob_direction: f32,
     pub original_y: f32,
+}
+
+/// Marker: placed on the bobber entity after the landing splash fires so it
+/// only triggers once (the query filters `Without<BobberSplashSpawned>`).
+#[derive(Component)]
+pub struct BobberSplashSpawned;
+
+/// Timer that drives ongoing ambient ripple spawning while the bobber sits in water.
+#[derive(Component)]
+pub struct BobberRippleTimer {
+    pub timer: Timer,
+}
+
+/// A small water-droplet particle spawned on splash.
+#[derive(Component)]
+pub struct WaterDroplet {
+    /// Remaining lifetime.
+    pub lifetime: Timer,
+    /// Current velocity (px/s).
+    pub velocity: Vec2,
+    /// Downward gravity (px/s²).
+    pub gravity: f32,
+    /// Starting alpha for fade.
+    pub initial_alpha: f32,
+}
+
+/// An expanding water-ripple circle.
+#[derive(Component)]
+pub struct WaterRipple {
+    /// Total duration of the ripple.
+    pub lifetime: Timer,
+    /// Start size (world units).
+    pub start_size: f32,
+    /// End size (world units).
+    pub end_size: f32,
+    /// Starting alpha.
+    pub start_alpha: f32,
 }
 
 /// Marks the fishing minigame root UI container.

@@ -194,6 +194,26 @@ pub const MILESTONE_RECIPE_UNLOCKS: &[MilestoneRecipeUnlock] = &[
         trigger_item: "truffle",
         recipe_id: "oil_maker",
     },
+    // Recycling machine — unlocked when the player picks up trash (thematic: fishing trash)
+    MilestoneRecipeUnlock {
+        trigger_item: "trash",
+        recipe_id: "recycling_machine",
+    },
+    // Recycling machine (data registry key) — same trigger
+    MilestoneRecipeUnlock {
+        trigger_item: "trash",
+        recipe_id: "recipe_recycling_machine",
+    },
+    // Lightning rod — unlocked when the player picks up bat_wing (mine drop, thematic)
+    MilestoneRecipeUnlock {
+        trigger_item: "bat_wing",
+        recipe_id: "lightning_rod",
+    },
+    // Lightning rod (data registry key) — same trigger
+    MilestoneRecipeUnlock {
+        trigger_item: "bat_wing",
+        recipe_id: "recipe_lightning_rod",
+    },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────

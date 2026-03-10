@@ -179,6 +179,20 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 160,
             sprite_stages: vec![110, 111, 112, 113, 114],
         },
+        // ── Hops (Summer) ──────────────────────────────────────────────────────
+        CropDef {
+            id: "hops".into(),
+            name: "Hops".into(),
+            seed_id: "hops_seeds".into(),
+            harvest_id: "hops".into(),
+            seasons: vec![Season::Summer],
+            // 11 total days, 5 stages
+            growth_days: vec![1, 2, 3, 3, 2],
+            regrows: false,
+            regrow_days: 0,
+            sell_price: 25,
+            sprite_stages: vec![120, 121, 122, 123, 124],
+        },
         // ── Any-Season Crops ─────────────────────────────────────────────────────
         CropDef {
             id: "wheat".into(),

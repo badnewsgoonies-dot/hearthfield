@@ -209,11 +209,23 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             description: "An ancient seed of mysterious origin. Grows any season, taking 28 days. Regrows every 7 days forever.".into(),
             category: ItemCategory::Seed,
             sell_price: 30,
-            buy_price: None, // Not buyable — rare find
+            buy_price: Some(1000), // Rare, available in Spring at General Store
             stack_size: 99,
             edible: false,
             energy_restore: 0.0,
             sprite_index: 14,
+        },
+        ItemDef {
+            id: "hops_seeds".into(),
+            name: "Hops Seeds".into(),
+            description: "Plant in summer. Grows in 11 days. Harvested hops can be brewed into pale ale.".into(),
+            category: ItemCategory::Seed,
+            sell_price: 30,
+            buy_price: Some(60),
+            stack_size: 99,
+            edible: false,
+            energy_restore: 0.0,
+            sprite_index: 15,
         },
 
         // ─── CROPS ────────────────────────────────────────────────────────────────
@@ -372,6 +384,18 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             edible: false,
             energy_restore: 0.0,
             sprite_index: 32,
+        },
+        ItemDef {
+            id: "hops".into(),
+            name: "Hops".into(),
+            description: "A bitter flower used to brew pale ale in a keg.".into(),
+            category: ItemCategory::Crop,
+            sell_price: 25,
+            buy_price: None,
+            stack_size: 99,
+            edible: false,
+            energy_restore: 0.0,
+            sprite_index: 222,
         },
         ItemDef {
             id: "rice".into(),
@@ -1592,6 +1616,18 @@ pub fn populate_items(registry: &mut ItemRegistry) {
             edible: false,
             energy_restore: 0.0,
             sprite_index: 220,
+        },
+        ItemDef {
+            id: "mega_bomb".into(),
+            name: "Mega Bomb".into(),
+            description: "A powerful explosive that destroys rocks in a large radius.".into(),
+            category: ItemCategory::CraftingMaterial,
+            sell_price: 300,
+            buy_price: Some(1000),
+            stack_size: 99,
+            edible: false,
+            energy_restore: 0.0,
+            sprite_index: 221,
         },
 
         // ── Animals (purchased at Animal Shop) ──────────────────────

@@ -671,16 +671,6 @@
             y: 17,
             kind: Tree,
         ),
-        (
-            x: 10,
-            y: 7,
-            kind: Bush,
-        ),
-        (
-            x: 17,
-            y: 7,
-            kind: Bush,
-        ),
     ],
     forage_points: [
         (1, 19),
@@ -714,6 +704,18 @@
             to_y: 10,
         ),
         (
+            from_rect: (3, 13, 2, 1),
+            to_map: TownHouseWest,
+            to_x: 6,
+            to_y: 10,
+        ),
+        (
+            from_rect: (9, 13, 2, 1),
+            to_map: TownHouseEast,
+            to_x: 6,
+            to_y: 10,
+        ),
+        (
             from_rect: (27, 10, 1, 4),
             to_map: Beach,
             to_x: 1,
@@ -742,6 +744,22 @@
             x_max: 23,
             y: 13,
             to_map: Blacksmith,
+            to_x: 6,
+            to_y: 10,
+        ),
+        (
+            x_min: 3,
+            x_max: 4,
+            y: 13,
+            to_map: TownHouseWest,
+            to_x: 6,
+            to_y: 10,
+        ),
+        (
+            x_min: 9,
+            x_max: 10,
+            y: 13,
+            to_map: TownHouseEast,
             to_x: 6,
             to_y: 10,
         ),

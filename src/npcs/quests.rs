@@ -1129,7 +1129,11 @@ pub fn post_seasonal_quests(
             giver: tmpl.giver.to_string(),
             objective: seasonal_obj_to_objective(tmpl.objective),
             reward_gold: tmpl.reward_gold,
-            reward_items: tmpl.reward_items.iter().map(|(id, qty)| (id.to_string(), *qty)).collect(),
+            reward_items: tmpl
+                .reward_items
+                .iter()
+                .map(|(id, qty)| (id.to_string(), *qty))
+                .collect(),
             reward_friendship: tmpl.reward_friendship,
             days_remaining: Some(28),
             accepted_day: (1, current_season_idx, calendar.year as u16),
@@ -1137,7 +1141,9 @@ pub fn post_seasonal_quests(
 
         tracker.push(tracker_key);
         let quest_id = quest.id.clone();
-        posted_events.send(QuestPostedEvent { quest: quest.clone() });
+        posted_events.send(QuestPostedEvent {
+            quest: quest.clone(),
+        });
         quest_log.active.push(quest);
         accepted_events.send(QuestAcceptedEvent { quest_id });
     }

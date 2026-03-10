@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::shared::*;
 
-use super::objects::ObjectAtlases;
+use super::objects::{ObjectAtlases, WindSway};
 use super::{MapTile, WorldMap};
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -67,11 +67,7 @@ fn variant_hash(x: usize, y: usize) -> u32 {
 
 /// Returns (atlas_index, should_spawn) for a grass decoration at (x,y).
 /// `threshold` controls what % of tiles get decorations (lower = more).
-fn decoration_for_season(
-    season: Season,
-    x: usize,
-    y: usize,
-) -> Option<usize> {
+fn decoration_for_season(season: Season, x: usize, y: usize) -> Option<usize> {
     let h = tile_hash(x, y);
     let v = variant_hash(x, y);
 
@@ -164,7 +160,12 @@ pub fn spawn_grass_decorations(
     // Don't spawn decorations on indoor maps.
     if matches!(
         map_id,
-        MapId::PlayerHouse | MapId::GeneralStore | MapId::AnimalShop | MapId::Blacksmith
+        MapId::PlayerHouse
+            | MapId::TownHouseWest
+            | MapId::TownHouseEast
+            | MapId::GeneralStore
+            | MapId::AnimalShop
+            | MapId::Blacksmith
     ) {
         state.spawned_for_map = Some(map_id);
         state.spawned_for_season = Some(season);
@@ -214,11 +215,22 @@ pub fn spawn_grass_decorations(
                     Season::Winter => Color::srgb(0.85, 0.90, 1.0),
                 };
 
+                // Grass sway: sinusoidal rotation ±4-8° at 0.8-1.2 Hz.
+                // Phase offset from positional hash for visual variety.
+                let phase_offset = (vh as f32).sin() * std::f32::consts::TAU;
+                let sway_speed = 0.8 + (vh % 5) as f32 * 0.1; // 0.8-1.2 Hz
+                let sway_amount = 0.07 + (vh % 4) as f32 * 0.007; // ~4-8 degrees in radians
+
                 commands.spawn((
                     sprite,
                     Transform::from_translation(Vec3::new(wx, wy, Z_GRASS_DECOR)),
                     MapTile, // will despawn with the map
                     GrassDecoration,
+                    WindSway {
+                        offset: phase_offset,
+                        speed: sway_speed,
+                        amount: sway_amount,
+                    },
                 ));
             }
         }
