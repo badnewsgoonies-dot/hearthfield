@@ -43,14 +43,14 @@ use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
     SeasonalTintApplied,
 };
+use tree_fx::{
+    on_axe_tree_impact, on_tree_destruction, update_leaf_particles, update_tree_destruction_poof,
+    update_tree_flash, update_tree_shake,
+};
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
     update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
     WeatherSprites,
-};
-use tree_fx::{
-    on_axe_tree_impact, on_tree_destruction, update_leaf_particles, update_tree_destruction_poof,
-    update_tree_flash, update_tree_shake,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -518,19 +518,14 @@ fn tile_atlas_info(
             ))
         }
 
-        // Dirt: use grass-dirt transition tiles when bordering grass.
-        // Falls back to uniform dirt (idx 291) when no grass neighbors.
+        // Dirt: always use the modern terrain dirt transition block.
+        // The center tile in that block is the correct plain dirt fill.
         TileKind::Dirt => {
             let grass_mask = neighbor_bitmask(tiles, x, y, width, height, |t| t == TileKind::Grass);
-            let index = if grass_mask != 0 {
-                dirt_grass_transition_index(grass_mask)
-            } else {
-                291 // plain dirt center (row 9, col 3)
-            };
             Some((
                 atlases.terrain_image.clone(),
                 atlases.terrain_layout.clone(),
-                index,
+                dirt_grass_transition_index(grass_mask),
             ))
         }
 
@@ -571,8 +566,12 @@ fn tile_atlas_info(
         // Stone: use hills.png for a proper rocky/stone texture (index 0, top-left).
         TileKind::Stone => Some((atlases.hills_image.clone(), atlases.hills_layout.clone(), 0)),
 
-        // Wood floor: tilled_dirt.png with a plank-like tile (index 6, row 0 col 6).
-        TileKind::WoodFloor => Some((atlases.dirt_image.clone(), atlases.dirt_layout.clone(), 6)),
+        // Wood floor: modern_farm_terrain.png plank tile (row 17, col 0 = index 544).
+        TileKind::WoodFloor => Some((
+            atlases.terrain_image.clone(),
+            atlases.terrain_layout.clone(),
+            544,
+        )),
 
         TileKind::Path => {
             let mut mask: u8 = 0;
@@ -830,7 +829,13 @@ fn load_map(
     // and interior maps (where it serves as floor/counters).
     let stone_is_solid = matches!(
         map_id,
-        MapId::Farm | MapId::Town | MapId::Beach | MapId::Forest | MapId::DeepForest | MapId::CoralIsland | MapId::MineEntrance
+        MapId::Farm
+            | MapId::Town
+            | MapId::Beach
+            | MapId::Forest
+            | MapId::DeepForest
+            | MapId::CoralIsland
+            | MapId::MineEntrance
     );
     for y in 0..map_def.height {
         for x in 0..map_def.width {
@@ -1391,5 +1396,48 @@ pub fn highlight_nearby_interactables(
         } else {
             sprite.color = Color::WHITE;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dirt_without_grass_neighbors_uses_modern_center_fill() {
+        let tiles = [TileKind::Dirt];
+        let (_, _, index) = tile_atlas_info(
+            TileKind::Dirt,
+            Season::Spring,
+            &TerrainAtlases::default(),
+            MapId::Farm,
+            0,
+            0,
+            &tiles,
+            1,
+            1,
+        )
+        .expect("dirt should render from an atlas");
+
+        assert_eq!(index, 33);
+    }
+
+    #[test]
+    fn wood_floor_uses_modern_plank_tile() {
+        let tiles = [TileKind::WoodFloor];
+        let (_, _, index) = tile_atlas_info(
+            TileKind::WoodFloor,
+            Season::Spring,
+            &TerrainAtlases::default(),
+            MapId::PlayerHouse,
+            0,
+            0,
+            &tiles,
+            1,
+            1,
+        )
+        .expect("wood floor should render from an atlas");
+
+        assert_eq!(index, 544);
     }
 }
