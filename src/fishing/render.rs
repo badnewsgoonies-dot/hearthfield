@@ -1,4 +1,4 @@
-//! Minigame UI rendering and bobber animation.
+//! Minigame UI rendering, bobber animation, and fish display animations.
 
 use bevy::prelude::*;
 
@@ -11,6 +11,45 @@ use super::{
     MinigameProgressBg, MinigameProgressFill, MinigameRoot,
 };
 use crate::shared::*;
+
+// ─── Fish Display Animation Components ───────────────────────────────────────
+
+/// Drives a gentle swimming animation on displayed fish sprites (catch popup, encyclopedia).
+/// Uses Transform-based sinusoidal oscillation: horizontal sway + slight rotation.
+#[derive(Component, Debug, Clone)]
+pub struct FishDisplayAnim {
+    /// Current phase accumulator (radians).
+    pub phase: f32,
+    /// Oscillation speed in radians per second. Smaller fish swim faster.
+    pub speed: f32,
+}
+
+impl FishDisplayAnim {
+    /// Create a new animation with speed derived from fish difficulty.
+    /// Lower difficulty (smaller/easier fish) → faster oscillation.
+    #[allow(dead_code)]
+    pub fn from_difficulty(difficulty: f32) -> Self {
+        // Map difficulty 0.0→1.0 to speed 4.0→1.5 rad/s (smaller fish are faster)
+        let speed = 4.0 - difficulty * 2.5;
+        Self { phase: 0.0, speed }
+    }
+}
+
+/// Marks a glow/aura backdrop entity behind a rare or legendary fish display.
+/// The glow pulses in alpha between `alpha_min` and `alpha_max`.
+#[derive(Component, Debug, Clone)]
+pub struct FishRarityGlow {
+    /// Phase accumulator for the pulse.
+    pub phase: f32,
+    /// Pulse frequency in Hz.
+    pub frequency: f32,
+    /// Minimum alpha value.
+    pub alpha_min: f32,
+    /// Maximum alpha value.
+    pub alpha_max: f32,
+    /// Base color (RGB) of the glow — alpha is overridden by the pulse.
+    pub base_color: (f32, f32, f32),
+}
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -213,4 +252,147 @@ pub fn update_progress_fill_color(
             sprite.color = color_progress_fill();
         }
     }
+}
+
+// ─── Fish Display Swimming Animation ─────────────────────────────────────────
+
+/// Animate fish display sprites with a gentle swimming motion.
+///
+/// Applies sinusoidal horizontal oscillation (±2.5 pixels) and slight rotation
+/// (±5 degrees) to any entity bearing `FishDisplayAnim`. The animation phase
+/// accumulates over time and the speed varies by fish size (smaller = faster).
+///
+/// Note: this system writes the x-offset and rotation directly from the phase,
+/// so the entity's base x position should remain at its spawn location. The
+/// oscillation is purely cosmetic.
+pub fn animate_fish_display(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &mut FishDisplayAnim)>,
+) {
+    let dt = time.delta_secs();
+    for (mut transform, mut anim) in query.iter_mut() {
+        anim.phase += anim.speed * dt;
+
+        // Horizontal sway: ±2.5 pixels via sin wave
+        // We apply the delta (difference between current and previous sin value)
+        // so the transform tracks the oscillation without drift.
+        let prev_phase = anim.phase - anim.speed * dt;
+        let dx = anim.phase.sin() * 2.5 - prev_phase.sin() * 2.5;
+        transform.translation.x += dx;
+
+        // Slight rotation: ±5 degrees (±0.087 radians)
+        let rotation_angle = anim.phase.sin() * 0.087;
+        transform.rotation = Quat::from_rotation_z(rotation_angle);
+    }
+}
+
+// ─── Fish Rarity Glow Animation ──────────────────────────────────────────────
+
+/// Pulse the alpha of rarity glow backdrop entities.
+///
+/// Legendary fish get a gold aura (1.0, 0.85, 0.2) and Rare fish get a silver
+/// aura (0.8, 0.85, 0.9). The glow pulses at ~0.7 Hz between alpha 0.2 and 0.5.
+pub fn animate_fish_rarity_glow(
+    time: Res<Time>,
+    mut query: Query<(&mut Sprite, &mut FishRarityGlow)>,
+) {
+    let dt = time.delta_secs();
+    for (mut sprite, mut glow) in query.iter_mut() {
+        glow.phase += std::f32::consts::TAU * glow.frequency * dt;
+
+        // Oscillate alpha between alpha_min and alpha_max using sin wave
+        let t = (glow.phase.sin() + 1.0) * 0.5; // map [-1,1] → [0,1]
+        let alpha = glow.alpha_min + t * (glow.alpha_max - glow.alpha_min);
+
+        sprite.color =
+            Color::srgba(glow.base_color.0, glow.base_color.1, glow.base_color.2, alpha);
+    }
+}
+
+// ─── Helper: Spawn a fish display with optional rarity glow ──────────────────
+
+/// Spawn a fish display entity with swimming animation and optional rarity glow.
+///
+/// This is a helper used by catch popups and the encyclopedia screen.
+/// Call from any system that has access to `Commands` and the fishing atlas.
+///
+/// - `position`: world-space position for the fish sprite
+/// - `sprite_index`: atlas index of the fish sprite
+/// - `difficulty`: the fish's difficulty rating (affects swim speed)
+/// - `rarity`: determines whether a glow backdrop is spawned
+/// - `atlas_image` / `atlas_layout`: the fishing sprite atlas handles
+///
+/// Returns the spawned entity.
+#[allow(dead_code)]
+pub fn spawn_fish_display(
+    commands: &mut Commands,
+    position: Vec3,
+    sprite_index: u32,
+    difficulty: f32,
+    rarity: Rarity,
+    atlas_image: Handle<Image>,
+    atlas_layout: Handle<TextureAtlasLayout>,
+) -> Entity {
+    let fish_entity = commands
+        .spawn((
+            Sprite::from_atlas_image(
+                atlas_image.clone(),
+                TextureAtlas {
+                    layout: atlas_layout.clone(),
+                    index: sprite_index as usize,
+                },
+            ),
+            Transform::from_translation(position),
+            FishDisplayAnim::from_difficulty(difficulty),
+        ))
+        .id();
+
+    // Spawn glow backdrop for Rare and Legendary fish
+    match rarity {
+        Rarity::Legendary => {
+            commands.spawn((
+                Sprite {
+                    color: Color::srgba(1.0, 0.85, 0.2, 0.3),
+                    custom_size: Some(Vec2::new(24.0, 24.0)), // slightly larger than 16x16 fish
+                    ..default()
+                },
+                Transform::from_translation(Vec3::new(
+                    position.x,
+                    position.y,
+                    position.z - 0.1, // behind the fish
+                )),
+                FishRarityGlow {
+                    phase: 0.0,
+                    frequency: 0.7,
+                    alpha_min: 0.2,
+                    alpha_max: 0.5,
+                    base_color: (1.0, 0.85, 0.2), // gold
+                },
+            ));
+        }
+        Rarity::Rare => {
+            commands.spawn((
+                Sprite {
+                    color: Color::srgba(0.8, 0.85, 0.9, 0.3),
+                    custom_size: Some(Vec2::new(24.0, 24.0)),
+                    ..default()
+                },
+                Transform::from_translation(Vec3::new(
+                    position.x,
+                    position.y,
+                    position.z - 0.1,
+                )),
+                FishRarityGlow {
+                    phase: 0.0,
+                    frequency: 0.7,
+                    alpha_min: 0.2,
+                    alpha_max: 0.5,
+                    base_color: (0.8, 0.85, 0.9), // silver
+                },
+            ));
+        }
+        _ => {}
+    }
+
+    fish_entity
 }

@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
 /// updates facing direction, snaps grid position, and checks collisions.
+#[allow(clippy::too_many_arguments)]
 pub fn player_movement(
     time: Res<Time>,
     player_input: Res<PlayerInput>,

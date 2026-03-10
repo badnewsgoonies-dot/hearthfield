@@ -497,7 +497,33 @@ impl WorldObjectKind {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ANIMATIONS (WIND SWAY & DOORS)
+// BUSH VARIANT TINTING
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Deterministic hash for bush tint variety.
+fn bush_tint_hash(x: i32, y: i32) -> u32 {
+    let h = (x as u32)
+        .wrapping_mul(1103515245)
+        .wrapping_add((y as u32).wrapping_mul(12345));
+    h % 100
+}
+
+/// Map a hash value to a bush color variant for visual variety.
+fn bush_variant_color(hash: u32) -> Color {
+    if hash < 30 {
+        // Slightly yellower (berry bush feel)
+        Color::srgb(1.0, 0.95, 0.8)
+    } else if hash < 60 {
+        // Darker green
+        Color::srgb(0.8, 0.95, 0.8)
+    } else {
+        // Default green
+        Color::WHITE
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ANIMATIONS (WIND SWAY, BUSH RUSTLE, SCARECROW GUST & DOORS)
 // ═══════════════════════════════════════════════════════════════════════
 
 #[derive(Component)]
@@ -507,14 +533,61 @@ pub struct WindSway {
     pub amount: f32,
 }
 
+/// Subtle scale oscillation for bush "rustle" effect.
+#[derive(Component)]
+pub struct BushRustle {
+    pub phase: f32,
+    pub freq: f32,
+}
+
+/// Scarecrow gust: occasionally spikes sway amplitude.
+#[derive(Component)]
+pub struct ScarecrowGust {
+    /// Time until next gust.
+    pub cooldown: f32,
+    /// Remaining gust duration (0 = no gust active).
+    pub gust_remaining: f32,
+}
+
 pub fn animate_wind_sway(
     time: Res<Time>,
-    mut query: Query<(&WindSway, &mut Transform)>,
+    mut query: Query<(&WindSway, &mut Transform, Option<&mut ScarecrowGust>)>,
 ) {
     let t = time.elapsed_secs();
-    for (sway, mut transform) in query.iter_mut() {
-        let angle = (t * sway.speed + sway.offset).sin() * sway.amount;
+    let dt = time.delta_secs();
+    for (sway, mut transform, gust) in query.iter_mut() {
+        let mut amp = sway.amount;
+
+        // Scarecrow gust logic: occasionally spike amplitude
+        if let Some(mut gust) = gust {
+            if gust.gust_remaining > 0.0 {
+                gust.gust_remaining -= dt;
+                amp *= 2.0; // double amplitude during gust
+            } else {
+                gust.cooldown -= dt;
+                if gust.cooldown <= 0.0 {
+                    // Trigger a gust — use elapsed time as pseudo-random seed
+                    gust.gust_remaining = 0.5;
+                    // Next gust in 3-7 seconds (deterministic from time)
+                    gust.cooldown = 3.0 + (t * 17.0).sin().abs() * 4.0;
+                }
+            }
+        }
+
+        let angle = (t * sway.speed + sway.offset).sin() * amp;
         transform.rotation = Quat::from_rotation_z(angle);
+    }
+}
+
+/// Animate bush rustle: subtle scale oscillation (0.97-1.03).
+pub fn animate_bush_rustle(
+    time: Res<Time>,
+    mut query: Query<(&BushRustle, &mut Transform)>,
+) {
+    let t = time.elapsed_secs();
+    for (rustle, mut transform) in query.iter_mut() {
+        let scale = 1.0 + 0.03 * (t * rustle.freq + rustle.phase).sin();
+        transform.scale = Vec3::splat(scale);
     }
 }
 
@@ -614,6 +687,12 @@ pub fn spawn_world_objects(
             let mut sprite = Sprite::from_atlas_image(image, TextureAtlas { layout, index });
             sprite.custom_size = Some(size);
 
+            // Apply bush variant tinting based on position hash
+            if matches!(kind, WorldObjectKind::Bush) {
+                let bh = bush_tint_hash(placement.x, placement.y);
+                sprite.color = bush_variant_color(bh);
+            }
+
             let wc = grid_to_world_center(placement.x, placement.y);
             let mut entity_cmds = commands.spawn((
                 sprite,
@@ -622,12 +701,36 @@ pub fn spawn_world_objects(
                 YSorted,
                 data,
             ));
-            
-            if is_tree || matches!(kind, WorldObjectKind::Bush) {
+
+            // Wind sway with per-type parameters
+            let phase_seed = (placement.x.wrapping_mul(2654435761_u32 as i32))
+                .wrapping_add(placement.y.wrapping_mul(2246822519_u32 as i32))
+                as f32;
+            if is_tree {
+                // Larger trees sway slower and gentler
+                let is_palm = matches!(kind, WorldObjectKind::PalmTree);
                 entity_cmds.insert(WindSway {
-                    offset: (placement.x * placement.y) as f32, // varied start phase
-                    speed: 1.5,
-                    amount: if is_tree { 0.05 } else { 0.03 },
+                    offset: phase_seed,
+                    speed: if is_palm { 0.7 } else { 0.6 },
+                    amount: if is_palm { 0.07 } else { 0.05 },
+                });
+            } else if matches!(kind, WorldObjectKind::Bush) {
+                entity_cmds.insert(WindSway {
+                    offset: phase_seed,
+                    speed: 0.8,
+                    amount: 0.04,
+                });
+                // Bush rustle: subtle scale oscillation
+                let rustle_freq = 0.6 + (phase_seed.abs() % 100.0) / 250.0; // 0.6-1.0 Hz
+                entity_cmds.insert(BushRustle {
+                    phase: phase_seed,
+                    freq: rustle_freq,
+                });
+            } else if matches!(kind, WorldObjectKind::PalmTree) {
+                entity_cmds.insert(WindSway {
+                    offset: phase_seed,
+                    speed: 0.7,
+                    amount: 0.07,
                 });
             }
         } else {
@@ -1817,6 +1920,76 @@ pub fn spawn_building_sprites(
 #[derive(Component)]
 pub struct InteriorDecoration;
 
+/// A flickering candle/torch light for indoor atmosphere.
+#[derive(Component)]
+pub struct CandleFlicker {
+    /// Phase offset so each candle flickers independently.
+    pub phase: f32,
+    /// Base alpha intensity for this candle.
+    pub base_intensity: f32,
+}
+
+/// Candle positions for each indoor map. Returns (grid_x, grid_y) pairs.
+fn candle_positions(map_id: MapId) -> Vec<(i32, i32)> {
+    match map_id {
+        MapId::PlayerHouse => vec![(1, 1), (14, 1), (1, 13), (14, 13)],
+        MapId::GeneralStore => vec![(1, 1), (10, 1), (1, 9)],
+        MapId::Blacksmith => vec![(1, 3), (10, 1), (5, 7)],
+        MapId::AnimalShop => vec![(1, 3), (10, 1), (10, 9)],
+        MapId::TownHouseWest => vec![(1, 3), (10, 1), (10, 8)],
+        MapId::TownHouseEast => vec![(1, 3), (10, 1), (1, 8)],
+        _ => vec![],
+    }
+}
+
+/// Spawn flickering candle entities for indoor maps.
+/// Called from `spawn_interior_decorations`.
+fn spawn_candles(commands: &mut Commands, map_id: MapId) {
+    let positions = candle_positions(map_id);
+    let mut rng = rand::thread_rng();
+    for (gx, gy) in positions {
+        let wc = grid_to_world_center(gx, gy);
+        let phase = rng.gen_range(0.0_f32..std::f32::consts::TAU);
+        let base_intensity = rng.gen_range(0.22_f32..0.30);
+        commands.spawn((
+            InteriorDecoration,
+            WorldObject,
+            CandleFlicker {
+                phase,
+                base_intensity,
+            },
+            Sprite {
+                color: Color::srgba(1.0, 0.92, 0.55, base_intensity),
+                custom_size: Some(Vec2::new(3.0, 3.0)),
+                ..default()
+            },
+            // Above furniture (Z_ENTITY_BASE) but below characters
+            Transform::from_xyz(wc.x, wc.y, Z_ENTITY_BASE + 0.5),
+            Visibility::default(),
+        ));
+    }
+}
+
+/// Animate candle flicker each frame.
+/// Combines two sine waves at different frequencies for an organic feel.
+pub fn update_candle_flicker(
+    time: Res<Time>,
+    mut candles: Query<(&CandleFlicker, &mut Sprite)>,
+) {
+    let t = time.elapsed_secs();
+    for (candle, mut sprite) in candles.iter_mut() {
+        // Two sine waves: slow (2.5 Hz) + fast (7 Hz) for organic flicker
+        let slow = (t * 2.5 * std::f32::consts::TAU + candle.phase).sin();
+        let fast = (t * 7.0 * std::f32::consts::TAU + candle.phase * 1.7).sin();
+        // Combine: 70% slow + 30% fast, normalize to 0..1 range
+        let combined = (slow * 0.7 + fast * 0.3 + 1.0) * 0.5;
+        // Map to alpha range 0.15 - 0.35, scaled by each candle's base_intensity
+        let scale = candle.base_intensity / 0.25; // normalize around 0.25 midpoint
+        let alpha = (0.15 + combined * 0.20) * scale;
+        sprite.color = Color::srgba(1.0, 0.92, 0.55, alpha.clamp(0.10, 0.40));
+    }
+}
+
 /// A furniture placement: grid position + atlas index in furniture.png.
 struct FurniturePlacement {
     x: i32,
@@ -2139,33 +2312,41 @@ fn general_store_furniture() -> Vec<FurniturePlacement> {
 }
 
 fn blacksmith_furniture() -> Vec<FurniturePlacement> {
+    // Industrial theme — anvil, forge, tool rack, bellows, metal shelves
     vec![
         // ── Forge area (back-right, on dirt) ──
         FurniturePlacement {
             x: 7,
             y: 1,
-            index: 18,
+            index: 17,
             wide: false,
-        },
+        }, // forge left
         FurniturePlacement {
             x: 8,
             y: 1,
             index: 18,
             wide: false,
-        },
+        }, // forge right
         FurniturePlacement {
             x: 9,
             y: 2,
-            index: 27,
+            index: 28,
             wide: false,
-        }, // water barrel
+        }, // water barrel (quench)
+        // ── Bellows near forge ──
+        FurniturePlacement {
+            x: 9,
+            y: 1,
+            index: 20,
+            wide: false,
+        }, // bellows
         // ── Anvil workspace (center, on wood floor island) ──
         FurniturePlacement {
             x: 5,
             y: 6,
             index: 19,
             wide: false,
-        },
+        }, // anvil
         // ── Counter / reception (y=4) ──
         FurniturePlacement {
             x: 3,
@@ -2191,25 +2372,38 @@ fn blacksmith_furniture() -> Vec<FurniturePlacement> {
             y: 1,
             index: 36,
             wide: false,
-        },
+        }, // crate
         FurniturePlacement {
             x: 2,
             y: 1,
             index: 37,
             wide: false,
-        },
+        }, // crate variant
         FurniturePlacement {
             x: 1,
             y: 2,
             index: 38,
             wide: false,
-        },
+        }, // crate variant
         FurniturePlacement {
             x: 3,
             y: 1,
-            index: 36,
+            index: 39,
             wide: false,
-        },
+        }, // metal ingot stack
+        // ── Tool rack on right wall ──
+        FurniturePlacement {
+            x: 10,
+            y: 3,
+            index: 12,
+            wide: false,
+        }, // tool rack top
+        FurniturePlacement {
+            x: 10,
+            y: 4,
+            index: 30,
+            wide: false,
+        }, // tool rack bottom
         // ── Decorations ──
         FurniturePlacement {
             x: 1,
@@ -2220,141 +2414,164 @@ fn blacksmith_furniture() -> Vec<FurniturePlacement> {
         FurniturePlacement {
             x: 10,
             y: 5,
-            index: 27,
+            index: 28,
             wide: false,
         }, // barrel
         FurniturePlacement {
             x: 10,
             y: 8,
-            index: 36,
+            index: 38,
             wide: false,
         }, // crate near door
-        // ── Tool display on right wall ──
-        FurniturePlacement {
-            x: 10,
-            y: 3,
-            index: 9,
-            wide: false,
-        },
     ]
 }
 
 fn town_house_west_furniture() -> Vec<FurniturePlacement> {
+    // Scholar theme — desk, tall bookshelves, globe/map, chair, lamp, rug
     vec![
-        FurniturePlacement { x: 1, y: 1, index: 9, wide: false },
-        FurniturePlacement { x: 2, y: 1, index: 10, wide: false },
-        FurniturePlacement { x: 3, y: 1, index: 11, wide: false },
-        FurniturePlacement { x: 7, y: 2, index: 31, wide: false },
-        FurniturePlacement { x: 8, y: 2, index: 2, wide: false },
-        FurniturePlacement { x: 9, y: 2, index: 3, wide: false },
-        FurniturePlacement { x: 3, y: 6, index: 0, wide: false },
-        FurniturePlacement { x: 4, y: 6, index: 1, wide: false },
-        FurniturePlacement { x: 3, y: 7, index: 5, wide: false },
-        FurniturePlacement { x: 4, y: 7, index: 5, wide: false },
-        FurniturePlacement { x: 10, y: 8, index: 22, wide: false },
+        // ── Back wall: tall bookshelves ──
+        FurniturePlacement { x: 1, y: 1, index: 9, wide: false },   // bookshelf top-L
+        FurniturePlacement { x: 1, y: 2, index: 18, wide: false },  // bookshelf bot-L
+        FurniturePlacement { x: 2, y: 1, index: 10, wide: false },  // bookshelf top-M
+        FurniturePlacement { x: 2, y: 2, index: 18, wide: false },  // bookshelf bot-M
+        FurniturePlacement { x: 3, y: 1, index: 11, wide: false },  // bookshelf top-R
+        // ── Study desk (upper-right) ──
+        FurniturePlacement { x: 8, y: 2, index: 14, wide: false },  // desk left
+        FurniturePlacement { x: 9, y: 2, index: 15, wide: false },  // desk right
+        FurniturePlacement { x: 8, y: 3, index: 5, wide: false },   // chair at desk
+        // ── Globe / map display on wall ──
+        FurniturePlacement { x: 6, y: 1, index: 25, wide: false },  // globe/map decor
+        // ── Reading nook (center) ──
+        FurniturePlacement { x: 3, y: 6, index: 13, wide: false },  // armchair left
+        FurniturePlacement { x: 5, y: 6, index: 13, wide: false },  // armchair right
+        // ── Rug between chairs ──
+        FurniturePlacement { x: 4, y: 6, index: 48, wide: false },  // rug left
+        FurniturePlacement { x: 4, y: 7, index: 49, wide: false },  // rug right
+        // ── Floor lamp ──
+        FurniturePlacement { x: 10, y: 5, index: 24, wide: false }, // lamp
+        // ── Plant ──
+        FurniturePlacement { x: 10, y: 8, index: 22, wide: false }, // plant near door
     ]
 }
 
 fn town_house_east_furniture() -> Vec<FurniturePlacement> {
+    // Merchant theme — display cases, fancy table, chest, painting, vase
     vec![
-        FurniturePlacement { x: 1, y: 1, index: 45, wide: false },
-        FurniturePlacement { x: 2, y: 1, index: 46, wide: false },
-        FurniturePlacement { x: 3, y: 1, index: 47, wide: false },
-        FurniturePlacement { x: 8, y: 2, index: 36, wide: false },
-        FurniturePlacement { x: 9, y: 2, index: 37, wide: false },
-        FurniturePlacement { x: 8, y: 3, index: 38, wide: false },
-        FurniturePlacement { x: 2, y: 6, index: 48, wide: false },
-        FurniturePlacement { x: 3, y: 6, index: 49, wide: false },
-        FurniturePlacement { x: 5, y: 7, index: 4, wide: false },
-        FurniturePlacement { x: 9, y: 8, index: 27, wide: false },
-        FurniturePlacement { x: 10, y: 8, index: 36, wide: false },
+        // ── Display cases along back wall ──
+        FurniturePlacement { x: 1, y: 1, index: 45, wide: false },  // display case L
+        FurniturePlacement { x: 2, y: 1, index: 46, wide: false },  // display case M
+        FurniturePlacement { x: 3, y: 1, index: 47, wide: false },  // display case R
+        // ── Painting / wall art (right wall) ──
+        FurniturePlacement { x: 9, y: 1, index: 16, wide: false },  // painting
+        // ── Storage chest (upper-right) ──
+        FurniturePlacement { x: 8, y: 2, index: 21, wide: false },  // chest / dresser
+        // ── Fancy table with vase (center) ──
+        FurniturePlacement { x: 4, y: 5, index: 6, wide: false },   // fancy table left
+        FurniturePlacement { x: 5, y: 5, index: 7, wide: false },   // fancy table right
+        FurniturePlacement { x: 4, y: 6, index: 4, wide: false },   // chair at table
+        // ── Vase display ──
+        FurniturePlacement { x: 1, y: 5, index: 23, wide: false },  // vase / urn
+        // ── Rug near entrance ──
+        FurniturePlacement { x: 5, y: 8, index: 48, wide: false },  // rug left
+        FurniturePlacement { x: 6, y: 8, index: 49, wide: false },  // rug right
+        // ── Barrel + crate near door ──
+        FurniturePlacement { x: 9, y: 8, index: 28, wide: false },  // barrel
+        FurniturePlacement { x: 10, y: 8, index: 37, wide: false }, // crate
     ]
 }
 
 fn animal_shop_furniture() -> Vec<FurniturePlacement> {
+    // Rustic theme — hay bales, feed trough, wooden shelves, animal posters, crates
     vec![
         // ── Hay/feed storage (back-left, on dirt) ──
         FurniturePlacement {
             x: 1,
             y: 1,
-            index: 45,
+            index: 40,
             wide: false,
-        },
+        }, // hay bale
         FurniturePlacement {
             x: 2,
             y: 1,
-            index: 46,
+            index: 41,
             wide: false,
-        },
+        }, // hay bale variant
         FurniturePlacement {
             x: 3,
             y: 1,
-            index: 47,
+            index: 42,
             wide: false,
-        },
+        }, // hay bale variant
         FurniturePlacement {
             x: 1,
             y: 2,
-            index: 45,
+            index: 40,
             wide: false,
-        },
+        }, // hay bale
         FurniturePlacement {
             x: 2,
             y: 2,
-            index: 27,
+            index: 28,
             wide: false,
         }, // feed barrel
         // ── Counter (y=4, stone underneath) ──
         FurniturePlacement {
             x: 5,
             y: 4,
-            index: 32,
+            index: 34,
             wide: false,
-        },
+        }, // rustic counter L
         FurniturePlacement {
             x: 6,
             y: 4,
-            index: 33,
+            index: 35,
             wide: false,
-        },
+        }, // rustic counter M
         FurniturePlacement {
             x: 7,
             y: 4,
-            index: 32,
+            index: 34,
             wide: false,
-        },
-        // ── Back wall shelves (right side) ──
+        }, // rustic counter R
+        // ── Back wall: wooden shelves with supplies (right side) ──
         FurniturePlacement {
             x: 6,
             y: 1,
-            index: 10,
+            index: 43,
             wide: false,
-        },
+        }, // supply shelf
         FurniturePlacement {
             x: 7,
             y: 1,
-            index: 11,
+            index: 44,
             wide: false,
-        },
+        }, // supply shelf
         FurniturePlacement {
             x: 8,
             y: 1,
-            index: 10,
+            index: 43,
             wide: false,
-        },
+        }, // supply shelf
         FurniturePlacement {
             x: 9,
             y: 1,
-            index: 9,
+            index: 44,
             wide: false,
-        },
+        }, // supply shelf
+        // ── Animal poster on right wall ──
+        FurniturePlacement {
+            x: 10,
+            y: 3,
+            index: 26,
+            wide: false,
+        }, // animal poster
         // ── Customer area ──
         FurniturePlacement {
             x: 1,
             y: 6,
-            index: 28,
+            index: 29,
             wide: false,
-        }, // barrel
+        }, // feed trough
         FurniturePlacement {
             x: 10,
             y: 6,
@@ -2364,13 +2581,13 @@ fn animal_shop_furniture() -> Vec<FurniturePlacement> {
         FurniturePlacement {
             x: 10,
             y: 9,
-            index: 36,
+            index: 38,
             wide: false,
         }, // crate
         FurniturePlacement {
             x: 1,
             y: 9,
-            index: 27,
+            index: 28,
             wide: false,
         }, // barrel near door
     ]
@@ -2439,6 +2656,9 @@ pub fn spawn_interior_decorations(
         }
     }
 
+    // Spawn flickering candle lights for indoor ambiance
+    spawn_candles(&mut commands, player_state.current_map);
+
     // Spawn bed interactable for PlayerHouse
     if player_state.current_map == MapId::PlayerHouse {
         let bed_wc = grid_to_world_center(12, 2);
@@ -2499,5 +2719,142 @@ pub fn spawn_interior_decorations(
             YSorted,
             Visibility::default(),
         ));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CHIMNEY SMOKE — small procedural smoke particles above buildings
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Marker for chimney smoke particle entities.
+#[derive(Component, Debug)]
+pub struct ChimneySmoke {
+    /// Upward speed in pixels per second.
+    pub rise_speed: f32,
+    /// Lateral drift phase offset.
+    pub drift_phase: f32,
+    /// Total lifetime in seconds.
+    pub lifetime: f32,
+    /// Elapsed time.
+    pub elapsed: f32,
+    /// X origin for drift calculation.
+    pub origin_x: f32,
+    /// Initial alpha (for fade calculation).
+    pub initial_alpha: f32,
+}
+
+/// Timer that controls chimney smoke spawn rate.
+#[derive(Resource)]
+pub struct ChimneySmokeTimer(pub Timer);
+
+impl Default for ChimneySmokeTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.7, TimerMode::Repeating))
+    }
+}
+
+/// Chimney positions for each map (relative to map grid).
+/// Returns (world_x, world_y) for the chimney top.
+fn chimney_positions(map_id: MapId) -> Vec<Vec2> {
+    match map_id {
+        MapId::Farm => {
+            // Player house chimney: building at x=13, top at y=0+h=3
+            let wc = grid_to_world_center(15, 3);
+            vec![Vec2::new(wc.x + 4.0, wc.y + TILE_SIZE * 3.0)]
+        }
+        MapId::Town => {
+            // General Store chimney
+            let gs = grid_to_world_center(4, 7);
+            // Animal Shop chimney
+            let as_pos = grid_to_world_center(21, 7);
+            // Blacksmith chimney
+            let bs = grid_to_world_center(22, 17);
+            vec![
+                Vec2::new(gs.x, gs.y + TILE_SIZE * 2.0),
+                Vec2::new(as_pos.x, as_pos.y + TILE_SIZE * 2.0),
+                Vec2::new(bs.x, bs.y + TILE_SIZE * 1.5),
+            ]
+        }
+        _ => vec![],
+    }
+}
+
+/// Spawn chimney smoke particles at timed intervals.
+/// Only spawns on outdoor maps with buildings, only during daytime (hour 6-19).
+pub fn spawn_chimney_smoke(
+    mut commands: Commands,
+    time: Res<Time>,
+    calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
+    mut timer: ResMut<ChimneySmokeTimer>,
+) {
+    // Only during daytime
+    if calendar.hour >= 20 {
+        return;
+    }
+
+    timer.0.tick(time.delta());
+    if !timer.0.just_finished() {
+        return;
+    }
+
+    let positions = chimney_positions(player_state.current_map);
+    if positions.is_empty() {
+        return;
+    }
+
+    let t = time.elapsed_secs();
+    for (i, pos) in positions.iter().enumerate() {
+        // Pseudo-random values derived from time and position index
+        let seed = t + i as f32 * 17.3;
+        let rise_speed = 12.0 + (seed * 3.7).sin().abs() * 8.0; // 12-20 px/s
+        let drift_phase = (seed * 5.3).sin() * std::f32::consts::TAU;
+        let lifetime = 2.0 + (seed * 7.1).sin().abs() * 1.0; // 2-3s
+        let alpha = 0.15 + (seed * 11.0).sin().abs() * 0.15; // 0.15-0.30
+        let gray = 0.6 + (seed * 13.0).sin().abs() * 0.2; // 0.6-0.8
+
+        commands.spawn((
+            ChimneySmoke {
+                rise_speed,
+                drift_phase,
+                lifetime,
+                elapsed: 0.0,
+                origin_x: pos.x,
+                initial_alpha: alpha,
+            },
+            Sprite {
+                color: Color::srgba(gray, gray, gray, alpha),
+                custom_size: Some(Vec2::splat(3.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(pos.x, pos.y, Z_EFFECTS + 1.0)),
+        ));
+    }
+}
+
+/// Update chimney smoke particles: rise, drift, fade, and despawn.
+pub fn update_chimney_smoke(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut ChimneySmoke, &mut Transform, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut smoke, mut transform, mut sprite) in query.iter_mut() {
+        smoke.elapsed += dt;
+        if smoke.elapsed >= smoke.lifetime {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        // Rise upward
+        transform.translation.y += smoke.rise_speed * dt;
+        // Lateral sinusoidal drift (±5px)
+        transform.translation.x =
+            smoke.origin_x + (smoke.elapsed * 1.5 + smoke.drift_phase).sin() * 5.0;
+
+        // Fade out over lifetime
+        let progress = smoke.elapsed / smoke.lifetime;
+        let [r, g, b, _] = sprite.color.to_srgba().to_f32_array();
+        sprite.color = Color::srgba(r, g, b, smoke.initial_alpha * (1.0 - progress));
     }
 }

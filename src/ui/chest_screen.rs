@@ -292,12 +292,12 @@ pub fn update_chest_inv_display(
     }
 }
 
-/// Update the chest-side slot texts.
+/// Update the chest-side slot texts, with quality-colored text.
 pub fn update_chest_storage_display(
     interaction: Res<ChestInteraction>,
     chest_query: Query<&StorageChest>,
     item_registry: Res<ItemRegistry>,
-    mut text_query: Query<(&ChestStorageSlotText, &mut Text)>,
+    mut text_query: Query<(&ChestStorageSlotText, &mut Text, &mut TextColor)>,
 ) {
     let Some(entity) = interaction.entity else {
         return;
@@ -306,7 +306,7 @@ pub fn update_chest_storage_display(
         return;
     };
 
-    for (slot_comp, mut text) in &mut text_query {
+    for (slot_comp, mut text, mut tc) in &mut text_query {
         let idx = slot_comp.index;
         if idx < chest.slots.len() {
             if let Some(ref stack) = chest.slots[idx] {
@@ -326,12 +326,28 @@ pub fn update_chest_storage_display(
                     ItemQuality::Iridium => " [I]",
                 };
                 **text = format!("{}{} x{}", truncated, quality_str, stack.quantity);
+
+                // Tint text color by quality for visual distinction
+                tc.0 = quality_text_color(stack.quality);
             } else {
                 **text = "---".to_string();
+                tc.0 = Color::WHITE;
             }
         } else {
             **text = "---".to_string();
+            tc.0 = Color::WHITE;
         }
+    }
+}
+
+/// Returns a quality-appropriate text color: white for normal, silver shimmer,
+/// gold, or purple/prismatic for iridium.
+fn quality_text_color(quality: ItemQuality) -> Color {
+    match quality {
+        ItemQuality::Normal => Color::WHITE,
+        ItemQuality::Silver => Color::srgb(0.78, 0.82, 0.88),  // subtle silver
+        ItemQuality::Gold => Color::srgb(1.0, 0.84, 0.0),       // gold
+        ItemQuality::Iridium => Color::srgb(0.7, 0.4, 1.0),     // purple/prismatic
     }
 }
 
@@ -369,6 +385,62 @@ pub fn update_chest_cursor(
         } else {
             *bg = BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.9));
             *border = BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.5));
+        }
+    }
+}
+
+/// Applies quality-tinted border colors to chest storage slots that contain
+/// non-Normal quality items. Silver gets a pale border, Gold a warm glow,
+/// and Iridium a purple shimmer.
+pub fn update_chest_quality_borders(
+    time: Res<Time>,
+    interaction: Res<ChestInteraction>,
+    ui_state: Option<Res<ChestUiState>>,
+    chest_query: Query<&StorageChest>,
+    mut bg_query: Query<(&ChestStorageSlotBg, &mut BorderColor)>,
+) {
+    let Some(entity) = interaction.entity else {
+        return;
+    };
+    let Ok(chest) = chest_query.get(entity) else {
+        return;
+    };
+
+    let cursor_idx = ui_state.as_ref().map(|s| s.cursor).unwrap_or(usize::MAX);
+    let on_chest = ui_state.as_ref().is_some_and(|s| s.on_chest_side);
+
+    for (slot_bg, mut border) in &mut bg_query {
+        // Skip the currently-cursored slot — that has gold highlight already
+        if on_chest && slot_bg.index == cursor_idx {
+            continue;
+        }
+
+        let idx = slot_bg.index;
+        if idx < chest.slots.len() {
+            if let Some(ref stack) = chest.slots[idx] {
+                let t = time.elapsed_secs();
+                match stack.quality {
+                    ItemQuality::Normal => {
+                        *border = BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.5));
+                    }
+                    ItemQuality::Silver => {
+                        // Subtle silver shimmer: gentle pulse between 0.5 and 0.7 alpha
+                        let pulse = (t * 1.5).sin() * 0.1 + 0.6;
+                        *border = BorderColor(Color::srgba(0.78, 0.82, 0.88, pulse));
+                    }
+                    ItemQuality::Gold => {
+                        let pulse = (t * 1.2).sin() * 0.1 + 0.65;
+                        *border = BorderColor(Color::srgba(1.0, 0.84, 0.0, pulse));
+                    }
+                    ItemQuality::Iridium => {
+                        // Purple prismatic shimmer
+                        let pulse = (t * 2.0).sin() * 0.15 + 0.7;
+                        *border = BorderColor(Color::srgba(0.7, 0.4, 1.0, pulse));
+                    }
+                }
+            } else {
+                *border = BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.5));
+            }
         }
     }
 }

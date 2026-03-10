@@ -179,6 +179,7 @@ impl Plugin for UiPlugin {
                 hud::update_hotbar,
                 hud::hydrate_hotbar_icons,
                 hud::update_hotbar_icons,
+                hud::bob_selected_hotbar_icon,
                 minimap::update_minimap,
                 hud::update_map_name,
                 hud::update_objective_display,
@@ -410,6 +411,7 @@ impl Plugin for UiPlugin {
                 chest_screen::update_chest_inv_display,
                 chest_screen::update_chest_storage_display,
                 chest_screen::update_chest_cursor,
+                chest_screen::update_chest_quality_borders,
                 chest_screen::handle_chest_input,
             )
                 .run_if(in_state(GameState::Playing)),

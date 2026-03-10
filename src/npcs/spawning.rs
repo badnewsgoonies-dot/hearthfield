@@ -3,6 +3,7 @@
 
 use super::animation::NpcAnimationTimer;
 use super::definitions::{npc_color, npc_sprite_file, ALL_NPC_IDS};
+use super::idle_behavior::NpcIdleBehavior;
 use super::schedule::current_schedule_entry;
 use crate::shared::*;
 use bevy::prelude::*;
@@ -179,6 +180,16 @@ pub fn spawn_npcs_for_map(
         sprite.anchor = bevy::sprite::Anchor::BottomCenter;
         sprite.custom_size = Some(Vec2::new(24.0, 24.0));
 
+        // Per-NPC variation in idle behavior timing using a simple hash.
+        let npc_hash = {
+            let mut h: u32 = 5381;
+            for byte in npc_id.bytes() {
+                h = h.wrapping_mul(33).wrapping_add(byte as u32);
+            }
+            h
+        };
+        let initial_look_delay = 3.0 + (npc_hash % 500) as f32 / 100.0; // 3.0–8.0s
+
         let entity = commands
             .spawn((
                 Npc {
@@ -196,6 +207,11 @@ pub fn spawn_npcs_for_map(
                     frame_count: 4,
                     current_frame: 0,
                     last_base: 0, // default facing down; updated on first movement
+                },
+                NpcIdleBehavior {
+                    breath_phase: (npc_hash % 628) as f32 / 100.0, // stagger phases
+                    look_timer: Timer::from_seconds(initial_look_delay, TimerMode::Once),
+                    ..Default::default()
                 },
                 NpcMapTag(map),
                 sprite,

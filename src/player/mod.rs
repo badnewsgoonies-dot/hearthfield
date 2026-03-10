@@ -28,6 +28,7 @@ impl Plugin for PlayerPlugin {
                 spawn::spawn_player,
                 interaction::grant_starter_items,
                 tool_anim::spawn_tool_cursor,
+                tool_anim::spawn_player_shadow,
             ),
         );
 
@@ -68,6 +69,18 @@ impl Plugin for PlayerPlugin {
                 interaction::map_transition_check,
                 interaction::handle_map_transition,
                 interaction::check_stamina_consequences,
+            )
+                .in_set(UpdatePhase::Simulation)
+                .run_if(in_state(GameState::Playing)),
+        );
+        // -- Player visual polish: shadow + breathing --
+        app.add_systems(
+            Update,
+            (
+                tool_anim::update_player_shadow.after(movement::player_movement),
+                tool_anim::animate_player_breathing
+                    .after(movement::player_movement)
+                    .after(tool_anim::animate_tool_use),
             )
                 .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),

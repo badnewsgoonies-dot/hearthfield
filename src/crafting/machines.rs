@@ -1,5 +1,7 @@
 use crate::shared::*;
+use bevy::image::{Image, ImageSampler};
 use bevy::prelude::*;
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use serde::{Deserialize, Serialize};
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -97,6 +99,190 @@ impl Default for MachineAnimTimer {
             current_frame: 0,
         }
     }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MACHINE PARTICLE / SHAKE COMPONENTS
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Marker for steam/spark particles spawned above active machines.
+#[derive(Component)]
+pub struct MachineParticle {
+    pub lifetime: f32,
+    pub elapsed: f32,
+    pub velocity_y: f32,
+}
+
+/// Cooldown to throttle particle spawning per machine entity.
+#[derive(Component)]
+pub struct MachineParticleTimer {
+    pub timer: Timer,
+}
+
+impl Default for MachineParticleTimer {
+    fn default() -> Self {
+        Self {
+            timer: Timer::from_seconds(0.35, TimerMode::Repeating),
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PROCEDURAL MACHINE SPRITE CACHE
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Caches procedurally-generated machine sprite handles so they are only built once.
+#[derive(Resource, Default)]
+pub struct ProceduralMachineSprites {
+    pub sprites: std::collections::HashMap<String, Handle<Image>>,
+}
+
+/// Generate a 16x16 RGBA procedural image for a machine type.
+fn generate_machine_image(machine_type: MachineType) -> Image {
+    let w: usize = 16;
+    let h: usize = 16;
+    let mut data = vec![0u8; w * h * 4];
+
+    let set = |data: &mut Vec<u8>, x: usize, y: usize, r: u8, g: u8, b: u8, a: u8| {
+        if x < w && y < h {
+            let i = (y * w + x) * 4;
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = b;
+            data[i + 3] = a;
+        }
+    };
+
+    let fill_rect = |data: &mut Vec<u8>,
+                     x0: usize,
+                     y0: usize,
+                     x1: usize,
+                     y1: usize,
+                     r: u8,
+                     g: u8,
+                     b: u8,
+                     a: u8| {
+        for y in y0..=y1.min(h - 1) {
+            for x in x0..=x1.min(w - 1) {
+                let i = (y * w + x) * 4;
+                data[i] = r;
+                data[i + 1] = g;
+                data[i + 2] = b;
+                data[i + 3] = a;
+            }
+        }
+    };
+
+    match machine_type {
+        MachineType::Furnace => {
+            // Dark gray box with orange glow on top (fire)
+            fill_rect(&mut data, 3, 4, 12, 14, 60, 60, 65, 255); // body
+            fill_rect(&mut data, 4, 5, 11, 13, 50, 50, 55, 255); // inner
+            fill_rect(&mut data, 5, 6, 10, 10, 30, 28, 25, 255); // opening
+            // Fire glow
+            set(&mut data, 6, 2, 255, 160, 30, 255);
+            set(&mut data, 7, 1, 255, 100, 20, 200);
+            set(&mut data, 8, 2, 255, 140, 25, 255);
+            set(&mut data, 9, 3, 255, 180, 40, 230);
+            set(&mut data, 7, 3, 255, 200, 60, 255);
+            set(&mut data, 8, 3, 255, 220, 80, 255);
+            // Fire opening
+            set(&mut data, 6, 7, 255, 120, 20, 220);
+            set(&mut data, 7, 7, 255, 160, 40, 255);
+            set(&mut data, 8, 7, 255, 180, 50, 255);
+            set(&mut data, 9, 7, 255, 140, 30, 220);
+        }
+        MachineType::PreservesJar => {
+            // Green/brown jar shape with lid
+            fill_rect(&mut data, 5, 3, 10, 4, 120, 90, 50, 255); // lid
+            fill_rect(&mut data, 4, 5, 11, 13, 70, 120, 60, 255); // jar body
+            fill_rect(&mut data, 5, 6, 10, 12, 80, 140, 70, 255); // lighter center
+            // Highlight stripe
+            fill_rect(&mut data, 6, 7, 6, 11, 100, 170, 90, 200);
+        }
+        MachineType::CheesePress => {
+            // Wooden box with handle detail
+            fill_rect(&mut data, 2, 6, 13, 14, 140, 100, 50, 255); // wooden base
+            fill_rect(&mut data, 3, 7, 12, 13, 160, 115, 60, 255); // lighter wood
+            fill_rect(&mut data, 4, 3, 11, 5, 130, 90, 45, 255); // press top
+            // Handle
+            fill_rect(&mut data, 7, 1, 8, 3, 80, 80, 85, 255);
+            set(&mut data, 6, 1, 90, 90, 95, 255);
+            set(&mut data, 9, 1, 90, 90, 95, 255);
+        }
+        MachineType::Loom => {
+            // Wooden frame shape
+            fill_rect(&mut data, 2, 12, 13, 14, 140, 100, 50, 255); // base
+            // Vertical posts
+            fill_rect(&mut data, 3, 2, 4, 12, 130, 90, 45, 255);
+            fill_rect(&mut data, 11, 2, 12, 12, 130, 90, 45, 255);
+            // Top bar
+            fill_rect(&mut data, 3, 2, 12, 3, 150, 110, 55, 255);
+            // Threads
+            for x in 5..11 {
+                set(&mut data, x, 5, 220, 220, 200, 180);
+                set(&mut data, x, 7, 220, 220, 200, 180);
+                set(&mut data, x, 9, 220, 220, 200, 180);
+            }
+        }
+        MachineType::Keg => {
+            // Barrel shape (brown rectangle with hoops)
+            fill_rect(&mut data, 4, 3, 11, 13, 130, 85, 40, 255); // barrel body
+            fill_rect(&mut data, 5, 4, 10, 12, 150, 100, 50, 255); // lighter center
+            // Hoops (darker bands)
+            fill_rect(&mut data, 3, 5, 12, 5, 100, 100, 110, 255);
+            fill_rect(&mut data, 3, 11, 12, 11, 100, 100, 110, 255);
+            // Spigot
+            set(&mut data, 12, 8, 80, 80, 85, 255);
+            set(&mut data, 13, 8, 90, 90, 95, 255);
+        }
+        MachineType::OilMaker => {
+            // Metal cylinder with spout
+            fill_rect(&mut data, 4, 4, 11, 14, 140, 145, 150, 255); // cylinder
+            fill_rect(&mut data, 5, 5, 10, 13, 160, 165, 170, 255); // lighter
+            // Top cap
+            fill_rect(&mut data, 5, 3, 10, 4, 120, 125, 130, 255);
+            // Spout
+            fill_rect(&mut data, 11, 9, 13, 10, 120, 125, 130, 255);
+            set(&mut data, 14, 10, 200, 180, 50, 200); // oil drip
+        }
+        _ => {
+            // Generic machine fallback — gray box with darker border
+            fill_rect(&mut data, 3, 3, 12, 13, 100, 95, 90, 255);
+            fill_rect(&mut data, 4, 4, 11, 12, 120, 115, 110, 255);
+        }
+    }
+
+    let mut img = Image::new(
+        Extent3d {
+            width: w as u32,
+            height: h as u32,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        data,
+        TextureFormat::Rgba8UnormSrgb,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
+    img.sampler = ImageSampler::nearest();
+    img
+}
+
+/// Returns a cached handle for the procedural machine sprite, generating it on first call.
+fn get_procedural_machine_sprite(
+    machine_type: MachineType,
+    cache: &mut ProceduralMachineSprites,
+    images: &mut Assets<Image>,
+) -> Handle<Image> {
+    let key = format!("{:?}", machine_type);
+    cache
+        .sprites
+        .entry(key)
+        .or_insert_with(|| {
+            let img = generate_machine_image(machine_type);
+            images.add(img)
+        })
+        .clone()
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -576,6 +762,8 @@ pub fn handle_place_machine(
     furniture: Res<crate::world::objects::FurnitureAtlases>,
     mut toast_events: EventWriter<ToastEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
+    mut proc_sprites: ResMut<ProceduralMachineSprites>,
+    mut images: ResMut<Assets<Image>>,
 ) {
     for event in events.read() {
         // Validate item id maps to a machine type
@@ -633,7 +821,12 @@ pub fn handle_place_machine(
             s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
             s
         } else {
-            Sprite::from_color(Color::srgb(0.6, 0.4, 0.2), Vec2::new(TILE_SIZE, TILE_SIZE))
+            // Procedural sprite fallback — recognizable pixel art per machine type
+            let handle =
+                get_procedural_machine_sprite(machine_type, &mut proc_sprites, &mut images);
+            let mut s = Sprite::from_image(handle);
+            s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+            s
         };
         let machine_entity = commands
             .spawn((
@@ -644,6 +837,7 @@ pub fn handle_place_machine(
                 LogicalPosition(Vec2::new(world_x, world_y)),
                 YSorted,
                 MachineAnimTimer::default(),
+                MachineParticleTimer::default(),
                 Interactable {
                     kind: InteractionKind::Machine,
                     label: display_label,
@@ -707,5 +901,115 @@ pub fn animate_processing_machines(
             }
             anim.timer.reset();
         }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ACTIVE MACHINE SHAKE — subtle vibration for processing machines
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Applies a subtle positional oscillation (shake) to machines that are actively
+/// processing. The shake is +/-0.5 pixels at 5 Hz on both axes. When idle, the
+/// transform snaps back to the canonical LogicalPosition.
+pub fn shake_active_machines(
+    time: Res<Time>,
+    mut query: Query<(
+        &ProcessingMachine,
+        &LogicalPosition,
+        &mut Transform,
+    )>,
+) {
+    let t = time.elapsed_secs();
+    for (machine, logical_pos, mut transform) in query.iter_mut() {
+        if machine.is_processing() {
+            // 5 Hz oscillation, +/-0.5 pixel amplitude
+            let shake_x = (t * 5.0 * std::f32::consts::TAU).sin() * 0.5;
+            let shake_y = (t * 5.0 * std::f32::consts::TAU + 1.0).cos() * 0.5;
+            transform.translation.x = logical_pos.0.x + shake_x;
+            transform.translation.y = logical_pos.0.y + shake_y;
+        } else {
+            // Snap back to exact position when idle
+            transform.translation.x = logical_pos.0.x;
+            transform.translation.y = logical_pos.0.y;
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MACHINE PARTICLES — tiny steam puffs above active machines
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Spawns tiny 1x1 white "steam" sprites above actively processing machines.
+/// Particles float upward and fade out over ~0.8 seconds.
+pub fn spawn_machine_particles(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(&ProcessingMachine, &Transform, &mut MachineParticleTimer)>,
+) {
+    for (machine, transform, mut ptimer) in query.iter_mut() {
+        if !machine.is_processing() {
+            ptimer.timer.reset();
+            continue;
+        }
+
+        ptimer.timer.tick(time.delta());
+        if !ptimer.timer.just_finished() {
+            continue;
+        }
+
+        // Spawn a small particle above the machine
+        let offset_x = ((time.elapsed_secs() * 17.3).sin() * 4.0).round();
+        let spawn_pos = Vec3::new(
+            transform.translation.x + offset_x,
+            transform.translation.y + TILE_SIZE * 0.5 + 2.0,
+            Z_EFFECTS,
+        );
+
+        commands.spawn((
+            MachineParticle {
+                lifetime: 0.8,
+                elapsed: 0.0,
+                velocity_y: 12.0,
+            },
+            Sprite::from_color(
+                Color::srgba(1.0, 1.0, 1.0, 0.6),
+                Vec2::new(1.0, 1.0),
+            ),
+            Transform::from_translation(spawn_pos),
+        ));
+    }
+}
+
+/// Moves machine particles upward and fades them out, despawning when expired.
+pub fn update_machine_particles(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut MachineParticle, &mut Transform, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut particle, mut transform, mut sprite) in query.iter_mut() {
+        particle.elapsed += dt;
+        if particle.elapsed >= particle.lifetime {
+            commands.entity(entity).despawn_recursive();
+            continue;
+        }
+
+        // Float upward
+        transform.translation.y += particle.velocity_y * dt;
+
+        // Fade out
+        let progress = particle.elapsed / particle.lifetime;
+        let alpha = (1.0 - progress).clamp(0.0, 1.0) * 0.6;
+        sprite.color = Color::srgba(1.0, 1.0, 1.0, alpha);
+    }
+}
+
+/// Cleanup: despawn all machine particles (called on state exit).
+pub fn despawn_machine_particles(
+    mut commands: Commands,
+    query: Query<Entity, With<MachineParticle>>,
+) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
     }
 }

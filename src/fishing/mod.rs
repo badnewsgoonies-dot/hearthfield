@@ -110,6 +110,15 @@ impl Plugin for FishingPlugin {
                 render::animate_bobber
                     .run_if(in_state(GameState::Playing).or(in_state(GameState::Fishing))),
             )
+            // Fish display swimming animation + rarity glow (runs in Playing state)
+            .add_systems(
+                Update,
+                (
+                    render::animate_fish_display,
+                    render::animate_fish_rarity_glow,
+                )
+                    .run_if(in_state(GameState::Playing)),
+            )
             // Escape key to cancel fishing (in Playing state while waiting)
             .add_systems(
                 Update,

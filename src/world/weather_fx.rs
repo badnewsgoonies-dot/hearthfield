@@ -3,8 +3,14 @@
 //! Spawns world-space particle entities (Sprite + Transform) that simulate
 //! rain drops, snowflakes, and storm effects. Particles are spawned above the
 //! camera viewport and despawned when they fall below it.
+//!
+//! Weather particles use procedurally generated sprite images (cached in a
+//! Resource) rather than plain colored rectangles, giving rain a tapered
+//! raindrop shape and snow a cross/star pattern.
 
 use bevy::prelude::*;
+use bevy::image::Image;
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use rand::Rng;
 
 use crate::shared::*;
@@ -60,6 +66,117 @@ pub struct WeatherParticleCounts {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// PROCEDURAL WEATHER SPRITES — cached resource
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Cached procedural sprite images for weather particles.
+/// Created once on first use, then reused for all particles.
+#[derive(Resource, Default)]
+pub struct WeatherSprites {
+    pub loaded: bool,
+    /// 2x6 raindrop sprite handle.
+    pub rain_image: Handle<Image>,
+    /// 3x8 storm raindrop sprite handle.
+    pub storm_image: Handle<Image>,
+    /// 4x4 snowflake sprite handle.
+    pub snow_image: Handle<Image>,
+}
+
+/// Generate a raindrop Image (w x h pixels).
+/// Tapered top (1px wide), wider bottom (w px), light blue with alpha gradient.
+fn make_raindrop_image(w: u32, h: u32, r: f32, g: f32, b: f32) -> Image {
+    let mut data = vec![0u8; (w * h * 4) as usize];
+    for py in 0..h {
+        // Progress from top (0) to bottom (1)
+        let progress = py as f32 / (h - 1).max(1) as f32;
+        // Width at this row: 1px at top, w px at bottom
+        let row_width = (1.0 + progress * (w as f32 - 1.0)).round() as u32;
+        let start = (w - row_width) / 2;
+        // Alpha ramps from 0.3 at top to 0.9 at bottom
+        let alpha = 0.3 + progress * 0.6;
+        for px in start..(start + row_width) {
+            let idx = ((py * w + px) * 4) as usize;
+            data[idx] = (r * 255.0) as u8;
+            data[idx + 1] = (g * 255.0) as u8;
+            data[idx + 2] = (b * 255.0) as u8;
+            data[idx + 3] = (alpha * 255.0) as u8;
+        }
+    }
+    Image::new(
+        Extent3d {
+            width: w,
+            height: h,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        data,
+        TextureFormat::Rgba8UnormSrgb,
+        default(),
+    )
+}
+
+/// Generate a snowflake Image (4x4 cross/star pattern).
+fn make_snowflake_image() -> Image {
+    // 4x4 cross/star pattern
+    let w = 4u32;
+    let h = 4u32;
+    let mut data = vec![0u8; (w * h * 4) as usize];
+    // Cross pattern: center column and center row
+    // Plus diagonal corners for star effect
+    let pattern: [(u32, u32, f32); 12] = [
+        // Vertical bar (center column)
+        (1, 0, 0.5),
+        (2, 0, 0.5),
+        (1, 1, 0.9),
+        (2, 1, 0.9),
+        (1, 2, 0.9),
+        (2, 2, 0.9),
+        (1, 3, 0.5),
+        (2, 3, 0.5),
+        // Horizontal bar (center row)
+        (0, 1, 0.6),
+        (3, 1, 0.6),
+        (0, 2, 0.6),
+        (3, 2, 0.6),
+    ];
+    for (px, py, alpha) in pattern {
+        let idx = ((py * w + px) * 4) as usize;
+        data[idx] = 255; // white
+        data[idx + 1] = 255;
+        data[idx + 2] = 255;
+        data[idx + 3] = (alpha * 255.0) as u8;
+    }
+    Image::new(
+        Extent3d {
+            width: w,
+            height: h,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        data,
+        TextureFormat::Rgba8UnormSrgb,
+        default(),
+    )
+}
+
+/// Ensure weather sprite images are generated and cached.
+pub fn ensure_weather_sprites_loaded(
+    images: &mut Assets<Image>,
+    sprites: &mut WeatherSprites,
+) {
+    if sprites.loaded {
+        return;
+    }
+    // Rain: 2x6, light blue
+    sprites.rain_image = images.add(make_raindrop_image(2, 6, 0.5, 0.6, 1.0));
+    // Storm: 3x8, brighter blue
+    sprites.storm_image = images.add(make_raindrop_image(3, 8, 0.4, 0.5, 0.95));
+    // Snow: 4x4 cross/star
+    sprites.snow_image = images.add(make_snowflake_image());
+    sprites.loaded = true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -85,8 +202,8 @@ fn is_indoor_map(map_id: MapId) -> bool {
 
 /// Spawn weather particles each frame based on the current weather.
 ///
-/// Rain drops are thin blue rectangles that fall fast.
-/// Snowflakes are small white squares that drift laterally while falling slowly.
+/// Rain drops use a procedural tapered raindrop sprite.
+/// Snowflakes use a procedural cross/star pattern sprite.
 /// Particles are spawned at random X positions above the camera's visible area.
 pub fn spawn_weather_particles(
     mut commands: Commands,
@@ -94,6 +211,8 @@ pub fn spawn_weather_particles(
     player_state: Res<PlayerState>,
     camera_query: Query<&Transform, With<Camera2d>>,
     mut counts: ResMut<WeatherParticleCounts>,
+    mut images: ResMut<Assets<Image>>,
+    mut weather_sprites: ResMut<WeatherSprites>,
 ) {
     // Don't spawn weather particles on indoor maps.
     if is_indoor_map(player_state.current_map) {
@@ -110,18 +229,12 @@ pub fn spawn_weather_particles(
         return;
     }
 
+    // Ensure procedural sprites are generated
+    ensure_weather_sprites_loaded(&mut images, &mut weather_sprites);
+
     let mut rng = rand::thread_rng();
 
-    // The camera has a scale of 1/PIXEL_SCALE (set in main.rs), meaning
-    // the visible area in world units is:
-    //   visible_width  = SCREEN_WIDTH  * (1 / PIXEL_SCALE) = SCREEN_WIDTH / PIXEL_SCALE
-    //   visible_height = SCREEN_HEIGHT * (1 / PIXEL_SCALE) = SCREEN_HEIGHT / PIXEL_SCALE
-    //
-    // But the camera scale is applied via Transform::from_scale(Vec3::splat(1.0 / PIXEL_SCALE)),
-    // which means the orthographic projection sees a region of size:
-    //   half_width  = (SCREEN_WIDTH / 2) * (1 / PIXEL_SCALE)
-    //   half_height = (SCREEN_HEIGHT / 2) * (1 / PIXEL_SCALE)
-    let cam_scale = cam_tf.scale.x; // 1.0 / PIXEL_SCALE
+    let cam_scale = cam_tf.scale.x;
     let half_w = (SCREEN_WIDTH / 2.0) * cam_scale;
     let half_h = (SCREEN_HEIGHT / 2.0) * cam_scale;
 
@@ -143,13 +256,13 @@ pub fn spawn_weather_particles(
                 let y = spawn_top + rng.gen_range(0.0..20.0);
                 let speed = rng.gen_range(200.0..400.0);
 
+                let mut sprite = Sprite::from_image(weather_sprites.rain_image.clone());
+                sprite.custom_size = Some(Vec2::new(2.0, 8.0));
+                sprite.color = Color::srgba(0.5, 0.6, 1.0, 0.75);
+
                 commands.spawn((
                     RainDrop { speed },
-                    Sprite {
-                        color: Color::srgba(0.5, 0.6, 1.0, 0.75),
-                        custom_size: Some(Vec2::new(2.0, 8.0)),
-                        ..default()
-                    },
+                    sprite,
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
                 counts.rain += 1;
@@ -162,13 +275,13 @@ pub fn spawn_weather_particles(
                 let y = spawn_top + rng.gen_range(0.0..20.0);
                 let speed = rng.gen_range(250.0..450.0);
 
+                let mut sprite = Sprite::from_image(weather_sprites.storm_image.clone());
+                sprite.custom_size = Some(Vec2::new(3.0, 8.0));
+                sprite.color = Color::srgba(0.4, 0.5, 0.9, 0.8);
+
                 commands.spawn((
                     RainDrop { speed },
-                    Sprite {
-                        color: Color::srgba(0.4, 0.5, 0.9, 0.8),
-                        custom_size: Some(Vec2::new(2.5, 8.0)),
-                        ..default()
-                    },
+                    sprite,
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
                 counts.rain += 1;
@@ -179,15 +292,17 @@ pub fn spawn_weather_particles(
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                // Slower drift for a more peaceful, gentle snowfall.
                 let speed = rng.gen_range(20.0..45.0);
                 let drift_freq = rng.gen_range(0.8..2.5);
                 let drift_amp = rng.gen_range(5.0..15.0);
                 let drift_phase = rng.gen_range(0.0..std::f32::consts::TAU);
 
-                // Slightly larger snowflakes (5×5) with two white shades for variety.
                 let alpha = rng.gen_range(0.6_f32..0.85);
                 let brightness = rng.gen_range(0.92_f32..1.0);
+
+                let mut sprite = Sprite::from_image(weather_sprites.snow_image.clone());
+                sprite.custom_size = Some(Vec2::new(5.0, 5.0));
+                sprite.color = Color::srgba(brightness, brightness, 1.0, alpha);
 
                 commands.spawn((
                     SnowFlake {
@@ -198,11 +313,7 @@ pub fn spawn_weather_particles(
                         elapsed: 0.0,
                         origin_x: x,
                     },
-                    Sprite {
-                        color: Color::srgba(brightness, brightness, 1.0, alpha),
-                        custom_size: Some(Vec2::new(5.0, 5.0)),
-                        ..default()
-                    },
+                    sprite,
                     Transform::from_translation(Vec3::new(x, y, Z_WEATHER)),
                 ));
                 counts.snow += 1;

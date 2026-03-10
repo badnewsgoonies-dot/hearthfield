@@ -1887,12 +1887,14 @@ pub struct DebugOverlayState {
 
 /// Tracks whether the player is currently in a boat.
 /// When active, water tiles become walkable and land tiles become impassable.
+#[allow(dead_code)]
 #[derive(Resource, Debug, Clone, Default)]
 pub struct BoatMode {
     pub active: bool,
     pub stamina_drain_per_tile: f32,
 }
 
+#[allow(dead_code)]
 impl BoatMode {
     pub fn new() -> Self {
         Self {

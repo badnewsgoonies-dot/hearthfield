@@ -31,11 +31,12 @@ use lighting::{
 use map_data::MapRegistry;
 use maps::{generate_map, MapDef};
 use objects::{
-    animate_doors, animate_wind_sway, handle_forageable_pickup, handle_tool_use_on_objects,
-    handle_weed_scythe, regrow_trees_on_season_change, spawn_building_signs,
-    spawn_building_sprites, spawn_carpenter_board, spawn_crafting_bench, spawn_daily_weeds,
-    spawn_forageables, spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects,
-    update_forage_sparkles, update_tree_sprites_on_season_change, WorldObject,
+    animate_bush_rustle, animate_doors, animate_wind_sway, handle_forageable_pickup,
+    handle_tool_use_on_objects, handle_weed_scythe, regrow_trees_on_season_change,
+    spawn_building_signs, spawn_building_sprites, spawn_carpenter_board, spawn_chimney_smoke,
+    spawn_crafting_bench, spawn_daily_weeds, spawn_forageables, spawn_interior_decorations,
+    spawn_shipping_bin, spawn_world_objects, update_candle_flicker, update_chimney_smoke,
+    update_forage_sparkles, update_tree_sprites_on_season_change, ChimneySmokeTimer, WorldObject,
 };
 use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
@@ -44,6 +45,7 @@ use seasonal::{
 use weather_fx::{
     cleanup_all_weather_particles, cleanup_weather_on_change, spawn_weather_particles,
     update_weather_particles, weather_change_notification, PreviousWeather, WeatherParticleCounts,
+    WeatherSprites,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -71,7 +73,9 @@ impl Plugin for WorldPlugin {
             .init_resource::<LightningFlash>()
             .init_resource::<PreviousWeather>()
             .init_resource::<WeatherParticleCounts>()
+            .init_resource::<WeatherSprites>()
             .init_resource::<GrassDecorState>()
+            .init_resource::<ChimneySmokeTimer>()
             .init_resource::<BoatMode>()
             // Spawn overlay + initial map when entering Playing state
             .add_systems(
@@ -120,13 +124,18 @@ impl Plugin for WorldPlugin {
                     weather_change_notification,
                     // Forageable sparkle particles
                     update_forage_sparkles,
+                    // Indoor candle flicker animation
+                    update_candle_flicker,
                     // Grass decorations (flowers, tufts, etc.)
                     spawn_grass_decorations,
                     // Water tile animation
                     animate_water_tiles,
-                    // Wind sway and door animations
+                    // Wind sway, bush rustle, door animations, and chimney smoke
                     animate_wind_sway,
+                    animate_bush_rustle,
                     animate_doors,
+                    spawn_chimney_smoke,
+                    update_chimney_smoke,
                 )
                     .in_set(UpdatePhase::Presentation)
                     .run_if(in_state(GameState::Playing)),

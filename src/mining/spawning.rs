@@ -1,6 +1,8 @@
 //! Spawns mine floor entities into the ECS from a FloorBlueprint.
 
 use bevy::prelude::*;
+use rand::Rng;
+use super::anim::{EnemyIdleAnim, OreShimmer};
 
 use super::components::*;
 use super::floor_gen::{self, FloorBlueprint, MINE_HEIGHT, MINE_WIDTH};
@@ -222,7 +224,22 @@ fn rock_atlas_index(drop_item: &str) -> usize {
     }
 }
 
+/// Returns the shimmer color for a valuable ore, or None for plain stone/copper/iron.
+fn shimmer_color_for_ore(drop_item: &str) -> Option<Color> {
+    match drop_item {
+        "gold_ore" => Some(Color::srgb(1.0, 0.9, 0.3)),
+        "iridium_ore" => Some(Color::srgb(0.7, 0.5, 1.0)),
+        "diamond" => Some(Color::srgb(0.9, 0.95, 1.0)),
+        "ruby" => Some(Color::srgb(1.0, 0.3, 0.3)),
+        "emerald" => Some(Color::srgb(0.3, 1.0, 0.4)),
+        "quartz" => Some(Color::srgb(0.95, 0.92, 0.85)),
+        "amethyst" => Some(Color::srgb(0.75, 0.4, 0.95)),
+        _ => None,
+    }
+}
+
 fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &MiningAtlases) {
+    let mut rng = rand::thread_rng();
     for rock_bp in &blueprint.rocks {
         let world_x = rock_bp.x as f32 * TILE_SIZE;
         let world_y = rock_bp.y as f32 * TILE_SIZE;
@@ -247,7 +264,7 @@ fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &Mi
             }
         };
 
-        commands.spawn((
+        let mut entity_cmds = commands.spawn((
             sprite,
             Transform::from_xyz(world_x, world_y, 1.0),
             MineFloorEntity,
@@ -261,10 +278,20 @@ fn spawn_rocks(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &Mi
                 drop_quantity: rock_bp.drop_quantity,
             },
         ));
+
+        // Add shimmer to valuable ores (gold, iridium, gems)
+        if let Some(color) = shimmer_color_for_ore(&rock_bp.drop_item) {
+            let interval: f32 = rng.gen_range(2.5..4.5);
+            entity_cmds.insert(OreShimmer {
+                timer: Timer::from_seconds(interval, TimerMode::Repeating),
+                color,
+            });
+        }
     }
 }
 
 fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint, enemy_atlas: &EnemyAtlas) {
+    let mut rng = rand::thread_rng();
     for enemy_bp in &blueprint.enemies {
         let atlas_index = match enemy_bp.kind {
             MineEnemy::GreenSlime => 0,
@@ -280,6 +307,9 @@ fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint, enemy_atla
             MineEnemy::GreenSlime => 1.0,
             MineEnemy::RockCrab => 1.5,
         };
+
+        // Random initial phase so enemies don't animate in lockstep
+        let initial_phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
 
         commands.spawn((
             Sprite::from_atlas_image(
@@ -307,6 +337,9 @@ fn spawn_enemies(commands: &mut Commands, blueprint: &FloorBlueprint, enemy_atla
             },
             EnemyAttackCooldown {
                 timer: Timer::from_seconds(1.0, TimerMode::Repeating),
+            },
+            EnemyIdleAnim {
+                phase: initial_phase,
             },
         ));
     }

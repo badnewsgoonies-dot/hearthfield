@@ -12,6 +12,7 @@
 //! - Player knockout on death (gold penalty, return to surface)
 //! - Day-end handling (pass out penalty)
 
+mod anim;
 mod combat;
 mod components;
 mod floor_gen;
@@ -40,10 +41,17 @@ impl Plugin for MiningPlugin {
         app.init_resource::<ElevatorUiOpen>();
         app.init_resource::<spawning::MiningAtlases>();
         app.init_resource::<spawning::EnemyAtlas>();
+        app.init_resource::<anim::ProceduralEnemySprites>();
         app.add_event::<MonsterSlainEvent>();
 
         // === Systems that run during Playing state ===
-        app.add_systems(OnEnter(GameState::Playing), spawning::load_mining_atlas);
+        app.add_systems(
+            OnEnter(GameState::Playing),
+            (
+                spawning::load_mining_atlas,
+                anim::load_procedural_enemy_sprites,
+            ),
+        );
         app.add_systems(
             Update,
             (
@@ -80,6 +88,10 @@ impl Plugin for MiningPlugin {
                 hud::update_floor_label,
                 hud::show_elevator_prompt,
                 hud::despawn_mine_hud,
+                // Animations
+                anim::animate_enemy_idle,
+                anim::animate_ore_shimmer,
+                anim::update_shimmer_particles,
             )
                 .run_if(in_state(GameState::Playing)),
         );
