@@ -29,12 +29,12 @@ pub mod tutorial;
 use crate::shared::*;
 use bevy::prelude::*;
 
-/// `items_atlas.png` currently contains art for slots 0..56 only.
-const ITEM_ATLAS_FILLED_SLOTS: usize = 57;
+pub(crate) const ITEM_ATLAS_COLUMNS: usize = 13;
+pub(crate) const ITEM_ATLAS_ROWS: usize = 19;
 
 pub(crate) fn item_icon_index(sprite_index: u32) -> usize {
     let idx = sprite_index as usize;
-    if idx < ITEM_ATLAS_FILLED_SLOTS {
+    if matches!(idx, 0..=63 | 84..=89 | 112..=116 | 223..=240) {
         idx
     } else {
         0

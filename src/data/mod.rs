@@ -221,6 +221,23 @@ mod tests {
     }
 
     #[test]
+    fn item_sprite_indices_fit_ui_atlas_capacity() {
+        let mut item_registry = ItemRegistry::default();
+        items::populate_items(&mut item_registry);
+
+        let slot_count = crate::ui::ITEM_ATLAS_COLUMNS * crate::ui::ITEM_ATLAS_ROWS;
+        for item in item_registry.items.values() {
+            assert!(
+                (item.sprite_index as usize) < slot_count,
+                "item '{}' uses sprite_index {} beyond atlas capacity {}",
+                item.id,
+                item.sprite_index,
+                slot_count
+            );
+        }
+    }
+
+    #[test]
     fn crop_and_fish_ids_have_no_duplicates() {
         let mut crop_registry = CropRegistry::default();
         let mut fish_registry = FishRegistry::default();

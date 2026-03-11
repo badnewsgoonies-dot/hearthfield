@@ -1,4 +1,4 @@
-use super::item_icon_index;
+use super::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use super::UiFontHandle;
 use crate::input::{TouchZone, TouchZoneState};
 use crate::shared::*;
@@ -159,8 +159,8 @@ pub fn preload_item_atlas(
     atlas_data.image = asset_server.load("sprites/items_atlas.png");
     atlas_data.layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
-        13,
-        17,
+        ITEM_ATLAS_COLUMNS as u32,
+        ITEM_ATLAS_ROWS as u32,
         None,
         None,
     ));
@@ -965,8 +965,8 @@ pub fn hydrate_hotbar_icons(
         atlas_data.image = asset_server.load("sprites/items_atlas.png");
         atlas_data.layout = layouts.add(TextureAtlasLayout::from_grid(
             UVec2::new(16, 16),
-            13,
-            17,
+            ITEM_ATLAS_COLUMNS as u32,
+            ITEM_ATLAS_ROWS as u32,
             None,
             None,
         ));
