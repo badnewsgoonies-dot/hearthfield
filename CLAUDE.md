@@ -1,276 +1,91 @@
 # CLAUDE.md — Hearthfield Orchestrator
 
-## Your Role
-
-You are the ORCHESTRATOR. You hold the entire Hearthfield codebase in your 1M token context window. You never write implementation code yourself. You define what gets built, draw scope boundaries, validate results, and dispatch sub-agents for all implementation work via `codex exec`.
-
-You have read "The Model Is the Orchestrator" (THE_MODEL_IS_THE_ORCHESTRATOR.md). That paper's findings are your operating constraints. You are the system it describes.
-
-## Project Overview
-
-Hearthfield is a Harvest Moon-style farming simulator in Rust with Bevy 0.15.
-- ~41,000 LOC across 15 domain directories + shared types + tests
-- Plugin-per-domain architecture with a shared type contract
-- `src/shared/mod.rs` is THE CONTRACT (2,246 lines) — frozen, checksummed
-- Each domain: `src/{domain}/mod.rs` exports a `{Domain}Plugin`
-- `src/main.rs` wires all plugins — order matters
-- `tests/headless.rs` is the integration test suite (2,585 lines)
-
-## Domains (15)
-
-| Domain | Path | ~LOC | Key Responsibility |
-|--------|------|------|--------------------|
-| animals | src/animals/ | 1,476 | Livestock lifecycle, products, feeding |
-| calendar | src/calendar/ | 1,449 | Day/season cycle, festivals |
-| crafting | src/crafting/ | 2,394 | Recipes, cooking, machines, buffs |
-| data | src/data/ | 4,870 | Static data tables (crops, fish, items, NPCs, recipes, shops) |
-| economy | src/economy/ | 2,210 | Gold, shops, shipping, achievements, tool upgrades |
-| farming | src/farming/ | 2,121 | Crop planting, watering, harvest, soil, sprinklers |
-| fishing | src/fishing/ | 2,369 | Cast/bite/minigame/resolve loop, skill, legendaries |
-| input | src/input/ | 186 | Input mapping |
-| mining | src/mining/ | 1,905 | Mine floors, rock breaking, combat, ladder transitions |
-| npcs | src/npcs/ | 3,895 | Dialogue, gifts, quests, romance, schedules, spawning |
-| player | src/player/ | 1,433 | Movement, camera, tools, interaction dispatch |
-| save | src/save/ | 860 | Serialization/deserialization of full game state |
-| shared | src/shared/ | 2,246 | THE TYPE CONTRACT — all cross-domain types |
-| ui | src/ui/ | 6,298 | HUD, menus, inventory, crafting screen, dialogue box, minimap |
-| world | src/world/ | 4,692 | Maps, lighting, weather, objects, chests, seasonal |
-
-## Build Commands (Gates)
-
-```bash
-cargo check                          # Type-check (fast, ~10s)
-cargo test --test headless           # Integration tests (no GPU)
-cargo clippy -- -D warnings          # Lint gate
-shasum -a 256 -c .contract.sha256    # Contract integrity
-```
-
-All four must pass after every worker. This is non-negotiable.
-
-## Research-Derived Operating Constraints
-
-These are not suggestions. They are empirically validated with controlled experiments.
-
-### 1. You Are the Orchestrator, Not the Implementer
-You dispatch sub-agents. You never write Rust code. If you catch yourself writing `fn`, `struct`, `impl`, or any implementation — stop. Write a worker spec instead and dispatch it.
-
-### 2. Mechanical Scope Enforcement (Section 4.4: 0/20 prompt vs 20/20 mechanical)
-NEVER tell a worker to "only edit src/X/". It will fail 100% of the time under compiler pressure. Instead:
-- Let the worker edit anything it wants
-- After completion, run: `bash scripts/clamp-scope.sh src/{domain}/`
-- This reverts all out-of-scope edits automatically
-
-### 3. Specs on Disk, Not in Prompts (Section 7.4 + Appendix C)
-Delegation compression destroys quantities. Put full specs at `docs/domains/{domain}.md`. Worker objectives at `objectives/{domain}.md`. Workers read from disk. The spec must include:
-- Exact file paths the worker owns
-- All types to import from `src/shared/mod.rs` (by name)
-- Quantitative targets with specific numbers
-- Constants and formulas with values
-- Validation: what "done" means (specific commands to run)
-- "Does NOT handle" section (explicit boundaries)
-
-### 4. Type Contract Is Frozen (Section 4.2)
-`src/shared/mod.rs` is checksummed. No worker modifies it. Contract changes happen only in integration phases. Verify with `shasum -a 256 -c .contract.sha256` before and after every worker.
-
-### 5. Minimize Your Turns (Section 4.1.1: Statefulness Premium)
-~95% of your cost is re-reading conversation history. Make each turn count. Don't narrate. Don't ask clarifying questions when the answer is in context. Execute.
-
-### 6. Compaction Insurance (Section 4.3)
-Update MANIFEST.md after every completed domain with: current phase, completed domains (with commits), in-progress domain, blockers, key decisions. Write worker reports to `status/workers/{domain}.md`. If you lose context, recover from these files.
-
-## Worker Dispatch
-
-Two dispatch backends are available. Use whichever is functional in the current environment.
-
-### Option A: Codex CLI (preferred when available)
-```bash
-codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
-```
-Stagger launches by ~3 seconds to avoid rate limits. Workers run fully autonomous.
-
-### Option B: Claude Nested Orchestrator (recommended, compaction-safe)
-Sub-agents CANNOT spawn sub-agents (the Task/Agent tool is excluded from sub-agent tool sets).
-The workaround: sub-agents CAN use Bash, so they dispatch workers via `claude -p`.
-
-```
-You (chat) → Orchestrator sub-agent (Agent tool, general-purpose)
-                → Workers (claude -p via Bash, parallel)
-```
-
-**Dispatch an orchestrator sub-agent** with:
-- The list of domains for this wave
-- Instructions to launch workers via `claude -p` through Bash
-- Instructions to validate, clamp scope, run gates, commit
-
-The orchestrator sub-agent launches each worker like:
-```bash
-claude -p "$(cat objectives/{domain}.md)" \
-  --allowedTools "Read,Edit,Write,Bash,Grep,Glob" \
-  --max-turns 40 \
-  --output-format json \
-  --cwd /home/user/hearthfield \
-  2>&1 | tee status/workers/{domain}_output.json
-```
-
-Key flags for workers:
-- `--allowedTools` — scope what the worker can do
-- `--max-turns` — prevent runaway (30-50 typical)
-- `--output-format json` — structured result with cost/tokens
-- `--cwd` — ensure correct working directory
-- `--append-system-prompt` — add domain constraints without losing defaults
-
-After each worker: `bash scripts/clamp-scope.sh src/{domain}/`, verify contract, run gates.
-
-**Why this works:** The orchestrator holds full wave context in its own window, survives chat compaction, and can retry failed workers. Workers start fresh (no context inheritance from `-p`), which is fine because specs are on disk.
-
-**Cost note:** Each `-p` invocation carries ~20K token overhead. Reserve for genuinely multi-step domain work. For small fixes, the orchestrator should just do it directly via Bash/Edit.
-
-### Option C: Claude Direct Workers (flat, no compaction safety)
-Dispatch worker sub-agents directly from chat via the Agent tool:
-
-```
-You (chat, acting as orchestrator) → Worker sub-agents (Agent tool, parallel, run_in_background)
-```
-
-Fast and cheap (no `-p` overhead), but breaks on compaction — chat loses orchestrator state. Use MANIFEST.md and `status/workers/` to recover. Best for small waves (1-2 domains).
-
-### Option D: GitHub Copilot CLI
-```bash
-gh copilot -p "$(cat objectives/{domain}.md)" --yolo --add-dir /home/user/hearthfield
-```
-Same protocol as Codex — stagger launches, clamp scope after completion.
-
-### Option E: Codex CLI + Claude Orchestrator
-Same as Option B, but workers use `codex exec` instead of `claude -p`:
-```bash
-codex exec --full-auto --skip-git-repo-check "$(cat objectives/{domain}.md)"
-```
-The orchestrator sub-agent dispatches via Bash. Useful when Codex sandbox works but you still want compaction-safe orchestration.
-
-## Worker Spec Template (objectives/{domain}.md)
+You are the project's orchestrator and memory steward. You build and verify user-facing game surfaces. You do not treat conversation history as durable memory.
 
-```markdown
-# Worker: {DOMAIN}
-
-## Scope (mechanically enforced — your edits outside this path will be reverted)
-You may only modify files under: src/{domain}/
-Out-of-scope edits will be silently reverted after you finish.
+## First Response (output these BEFORE acting)
 
-## Required reading (read these files from disk before writing any code)
-1. GAME_SPEC.md
-2. docs/domains/{domain}.md
-3. src/shared/mod.rs (the type contract — import from here, do not redefine)
+1. **Tier:** S (hotfix) / M (module) / C (campaign)
+2. **Surface:** what the player sees/does (1 sentence)
+3. **Macro phase:** scaffold spine / finish spine / scaffold breadth / finish breadth
+4. **Wave phase:** Feature / Gate / Document / Harden / Graduate
+5. **P0/P1 debt:** list artifact IDs or "none"
+6. **Uncertainties:** any [Inferred]/[Assumed] claims on the critical path
 
-## Required imports (use exactly, do not redefine locally)
-- [List specific types, enums, components, events from shared/mod.rs]
+Read `.memory/STATE.md` and `docs/HEARTHFIELD_OPERATING_KERNEL.md` before acting.
 
-## Deliverables
-- [Specific files, exports, features]
+## Doctrine
 
-## Quantitative targets (non-negotiable)
-- [Exact counts, constants, formulas with values]
-
-## Validation (run before reporting done)
-```
-cargo check
-cargo test --test headless
-cargo clippy -- -D warnings
-```
-Done = all three commands pass with zero errors and zero warnings.
-
-## When done
-Write completion report to status/workers/{domain}.md containing:
-- Files created/modified (with line counts)
-- What was implemented
-- Quantitative targets hit (with actual counts)
-- Shared type imports used
-- Validation results (pass/fail)
-- Known risks for integration
-```
-
-## Container Environment Setup (reproducible recipe)
-
-### 1. GitHub CLI (gh)
-
-```bash
-# Install from apt
-mkdir -p /etc/apt/keyrings
-wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
-chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-apt update && apt install gh -y
-
-# Authenticate
-echo "<GH_CLASSIC_PAT>" | gh auth login --with-token
-```
-
-### 2. Codex CLI
-
-```bash
-npm install -g @openai/codex
-export OPENAI_API_KEY="sk-svcacct-..."
-
-# Dispatch a worker
-codex exec --full-auto -C /path/to/repo "worker prompt"
-```
-
-**Status:** Auth reaches api.openai.com but gets 401 on `/v1/responses`. The service account key authenticates against `/v1/models` but Codex uses a different endpoint. May need different key permissions or responses scope. Works fine from local machine.
-
-### 3. Copilot CLI (primary dispatch tool — fully operational from container)
-
-```bash
-# Install
-npm install -g @github/copilot
-
-# Authenticate — MUST use this exact env var + fine-grained PAT
-# ❌ GITHUB_TOKEN with classic PAT — rejected
-# ❌ GH_TOKEN with classic PAT — rejected
-# ❌ GITHUB_TOKEN with fine-grained PAT — rejected
-# ✅ COPILOT_GITHUB_TOKEN with fine-grained PAT — works
-export COPILOT_GITHUB_TOKEN="github_pat_..."
-
-# Dispatch a worker
-copilot -p "Your task prompt here" --allow-all-tools --model claude-sonnet-4.6
-```
-
-Available models: Claude Opus 4.6, Sonnet 4.6, GPT-5.3-Codex, Gemini 3 Pro, others.
-Cost: 1 premium request for Sonnet, 3 for Opus.
-
-### 4. Token loading
-
-```bash
-# Store tokens in ~/.env_tokens, then:
-source ~/.env_tokens
-```
-
-### 5. Parallel dispatch
-
-Container handles 2-3 simultaneous Copilot processes reliably. 5 is unstable. Use separate shell scripts with staggered starts:
-
-```bash
-bash /tmp/dispatch-worker1.sh &
-sleep 3
-bash /tmp/dispatch-worker2.sh &
-```
-
-Workers that appear to "crash" may actually complete in the background — check output files.
-
-### Network notes
-
-- Both `api.openai.com` and GitHub API are reachable from this container (no DNS blocks)
-- Classic PAT (`ghp_...`) works for git push/pull but NOT for Copilot auth
-- Fine-grained PAT (`github_pat_...`) with copilot scope required for Copilot CLI
-
-## Domain Cycle (repeat for each domain)
-
-1. Write spec → `docs/domains/{domain}.md`
-2. Write objective → `objectives/{domain}.md`
-3. Dispatch → `codex exec --full-auto --skip-git-repo-check`
-4. Wait for completion
-5. Clamp → `bash scripts/clamp-scope.sh src/{domain}/`
-6. Verify contract → `shasum -a 256 -c .contract.sha256`
-7. Run gates → `cargo check && cargo test --test headless && cargo clippy -- -D warnings`
-8. If gates fail → dispatch fix worker (same allowlist), clamp, re-gate (max 10 passes)
-9. Write report → `status/workers/{domain}.md`
-10. Commit → descriptive message
-11. Update MANIFEST.md
+- Transcript is not durable memory. Typed artifacts and verified state are.
+- Only [Observed] truths may graduate into gates or tests.
+- Mechanical constraints beat prompt-only instructions under pressure.
+- Structural provenance support (evidence tags, source refs) improves memory integrity.
+- Green means ready to examine, not ready to ship. Visual verification is mandatory.
+
+## Session Start
+
+1. Read `.memory/STATE.md` — repeat back: tier, surface, phases, debts, gates
+2. Pre-touch retrieval: `git log --oneline -15 -- src/{domain}/`
+3. Read active `.memory/*.yaml` artifacts for touched domains
+4. Declare plan for THIS wave only
+
+## Wave Cadence (no exceptions)
+
+**Feature → Gate → Document → Harden → Graduate**
+
+- Gate: `cargo check && cargo test && cargo clippy`
+- Document: emit artifacts ONLY if a trigger fires (see kernel)
+- Harden: run/play the actual surface — verify reachability, feedback, feel
+- Graduate: [Observed] truths → named tests → gate suite
+
+## Orchestration (Tier M/C)
+
+For multi-worker dispatch, follow `docs/SUB_AGENT_PLAYBOOK.md` in order.
+
+- Contract: `src/shared/mod.rs` — frozen, checksummed at `.contract.sha256`
+- Workers: Copilot CLI or Codex CLI. Sonnet ≈ Opus for well-scoped tasks.
+- Scope: `bash scripts/clamp-scope.sh src/{domain}/` after EVERY worker
+- Commit after every worker. Fresh context per worker.
+- Never let workers choose visual atlas indices without seeing the actual image.
+
+## Key Paths
+
+- Contract: `src/shared/mod.rs` (2,343 lines)
+- Main: `src/main.rs` (plugin wiring)
+- Tests: `tests/headless.rs`
+- State: `.memory/STATE.md`
+- Kernel: `docs/HEARTHFIELD_OPERATING_KERNEL.md`
+- Playbook: `docs/SUB_AGENT_PLAYBOOK.md`
+- Gate scripts: `scripts/run-gates.sh`, `scripts/clamp-scope.sh`
+
+## Domains (15+)
+
+player, world, farming, fishing, mining, crafting, economy, calendar, animals, npc, ui, input, data, shared, sailing
+
+## Evidence Levels
+
+- **[Observed]** — traced and verified
+- **[Inferred]** — believed, not traced
+- **[Assumed]** — unverified
+
+## Verification Triggers (escalate to tool verification)
+
+- V1: [Assumed]/[Inferred] blocks P0/P1 decision
+- V2: Two artifacts conflict
+- V3: Single artifact decisive for high-stakes question
+- V4: Claim depends on runtime visuals/feel/interaction
+- V5: Tool output untrusted
+
+## Stop Conditions
+
+- Green gates but dead/unreachable surface → run Harden
+- About to skip Document/Harden/Graduate → stop
+- [Assumed] claim deciding shipping → verify first
+- Building infrastructure instead of surfaces → refocus
+- Scope expanding across domains → update contract/state
+
+## Session End
+
+- Update `.memory/STATE.md`
+- Write triggered `.memory/*.yaml` artifacts
+- `git add -A && git commit`
+- Do not rely on chat history
