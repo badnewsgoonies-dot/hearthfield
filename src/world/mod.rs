@@ -810,6 +810,7 @@ fn load_map(
     season: Season,
     day: u8,
     atlases: &TerrainAtlases,
+    item_registry: &ItemRegistry,
     object_atlases: &objects::ObjectAtlases,
     registry: &MapRegistry,
 ) {
@@ -903,6 +904,7 @@ fn load_map(
         season,
         day,
         world_map,
+        item_registry,
         object_atlases,
     );
 
@@ -1171,6 +1173,7 @@ fn spawn_initial_map(
     mut current_map_id: ResMut<CurrentMapId>,
     calendar: Res<Calendar>,
     player_state: Res<PlayerState>,
+    item_registry: Res<ItemRegistry>,
     asset_server: Res<AssetServer>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut terrain_atlases: ResMut<TerrainAtlases>,
@@ -1203,6 +1206,7 @@ fn spawn_initial_map(
         calendar.season,
         calendar.day,
         &terrain_atlases,
+        &item_registry,
         &object_atlases,
         &registry,
     );
@@ -1218,6 +1222,7 @@ fn handle_map_transition(
     mut world_map: ResMut<WorldMap>,
     mut current_map_id: ResMut<CurrentMapId>,
     calendar: Res<Calendar>,
+    item_registry: Res<ItemRegistry>,
     asset_server: Res<AssetServer>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut terrain_atlases: ResMut<TerrainAtlases>,
@@ -1256,6 +1261,7 @@ fn handle_map_transition(
             calendar.season,
             calendar.day,
             &terrain_atlases,
+            &item_registry,
             &object_atlases,
             &registry,
         );
@@ -1268,6 +1274,7 @@ fn handle_day_end_forageables(
     mut day_events: EventReader<DayEndEvent>,
     forageable_query: Query<Entity, With<objects::Forageable>>,
     world_map: Res<WorldMap>,
+    item_registry: Res<ItemRegistry>,
     object_atlases: Res<objects::ObjectAtlases>,
 ) {
     for event in day_events.read() {
@@ -1285,6 +1292,7 @@ fn handle_day_end_forageables(
                 event.season,
                 event.day,
                 &world_map,
+                &item_registry,
                 &object_atlases,
             );
         }

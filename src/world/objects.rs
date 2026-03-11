@@ -92,6 +92,8 @@ pub struct ObjectAtlases {
     pub loaded: bool,
     pub grass_biome_image: Handle<Image>,
     pub grass_biome_layout: Handle<TextureAtlasLayout>,
+    pub item_icon_image: Handle<Image>,
+    pub item_icon_layout: Handle<TextureAtlasLayout>,
     pub fences_image: Handle<Image>,
     pub fences_layout: Handle<TextureAtlasLayout>,
     // Tree sprites atlas (32×48 cells, seasonal variants)
@@ -135,6 +137,16 @@ pub fn ensure_object_atlases_loaded(
         UVec2::new(16, 16),
         9,
         5,
+        None,
+        None,
+    ));
+
+    // items_atlas.png: 208x304px -> 16x16 tiles, 13 columns x 19 rows
+    atlases.item_icon_image = asset_server.load("sprites/items_atlas.png");
+    atlases.item_icon_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        13,
+        19,
         None,
         None,
     ));
@@ -973,35 +985,8 @@ pub fn seasonal_forageables(season: Season) -> Vec<(&'static str, Color)> {
     }
 }
 
-/// Maps a forageable item_id to an atlas index in grass_biome.png.
-fn forageable_atlas_index(item_id: &str) -> Option<usize> {
-    // grass_biome.png has 45 frames (indices 0-44). Each forageable gets a
-    // unique index so visually distinct items never share the same sprite.
-    Some(match item_id {
-        // Spring forageables
-        "wild_horseradish" => 3,
-        "daffodil" => 4,
-        "leek" => 5,
-        "dandelion" => 7,
-        "spring_onion" => 8,
-        // Summer forageables
-        "grape" => 11,
-        "spice_berry" => 12,
-        "sweet_pea" => 13,
-        "red_mushroom" => 14,
-        "common_mushroom" => 9,
-        // Fall forageables
-        "wild_plum" => 15,
-        "hazelnut" => 16,
-        "blackberry" => 17,
-        "chanterelle" => 10,
-        // Winter forageables — unique indices (previously duplicated spring/summer)
-        "snow_yam" => 18,
-        "winter_root" => 19,
-        "crocus" => 20,
-        "crystal_fruit" => 21,
-        _ => return None,
-    })
+fn forageable_icon_index(item_id: &str, item_registry: &ItemRegistry) -> Option<usize> {
+    item_registry.get(item_id).map(|def| def.sprite_index as usize)
 }
 
 /// Spawn forageables for the current day on the active map.
@@ -1011,6 +996,7 @@ pub fn spawn_forageables(
     season: Season,
     day: u8,
     world_map: &WorldMap,
+    item_registry: &ItemRegistry,
     object_atlases: &ObjectAtlases,
 ) {
     let forageables = seasonal_forageables(season);
@@ -1043,12 +1029,12 @@ pub fn spawn_forageables(
         let (item_id, color) = &forageables[idx];
 
         let fwc = grid_to_world_center(gx, gy);
-        let sprite = if let Some(atlas_idx) = forageable_atlas_index(item_id) {
+        let sprite = if let Some(atlas_idx) = forageable_icon_index(item_id, item_registry) {
             if object_atlases.loaded {
                 let mut s = Sprite::from_atlas_image(
-                    object_atlases.grass_biome_image.clone(),
+                    object_atlases.item_icon_image.clone(),
                     TextureAtlas {
-                        layout: object_atlases.grass_biome_layout.clone(),
+                        layout: object_atlases.item_icon_layout.clone(),
                         index: atlas_idx,
                     },
                 );
@@ -3161,5 +3147,33 @@ mod farm_decoration_tests {
             .world_mut()
             .query_filtered::<Entity, With<FarmDecoration>>();
         assert!(query.iter(app.world()).count() > 0);
+    }
+}
+
+#[cfg(test)]
+mod forageable_icon_tests {
+    use super::*;
+    use crate::data::DataPlugin;
+
+    #[test]
+    fn forageables_resolve_to_item_registry_icons() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.add_plugins(bevy::state::app::StatesPlugin);
+        app.init_resource::<ItemRegistry>();
+        app.init_resource::<CropRegistry>();
+        app.init_resource::<FishRegistry>();
+        app.init_resource::<RecipeRegistry>();
+        app.init_resource::<NpcRegistry>();
+        app.init_resource::<ShopData>();
+        app.add_plugins(DataPlugin);
+        app.init_state::<GameState>();
+        app.update();
+        app.update();
+
+        let registry = app.world().resource::<ItemRegistry>();
+        assert_eq!(forageable_icon_index("wild_horseradish", &registry), Some(223));
+        assert_eq!(forageable_icon_index("grape", &registry), Some(228));
+        assert_eq!(forageable_icon_index("crocus", &registry), Some(240));
     }
 }
