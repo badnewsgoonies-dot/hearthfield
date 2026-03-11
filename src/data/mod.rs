@@ -188,6 +188,39 @@ mod tests {
     }
 
     #[test]
+    fn item_registry_contains_world_forageables() {
+        let mut item_registry = ItemRegistry::default();
+        items::populate_items(&mut item_registry);
+
+        for forageable_id in [
+            "wild_horseradish",
+            "daffodil",
+            "leek",
+            "dandelion",
+            "spring_onion",
+            "grape",
+            "spice_berry",
+            "sweet_pea",
+            "red_mushroom",
+            "common_mushroom",
+            "wild_plum",
+            "hazelnut",
+            "blackberry",
+            "chanterelle",
+            "winter_root",
+            "crystal_fruit",
+            "snow_yam",
+            "crocus",
+        ] {
+            assert!(
+                item_registry.items.contains_key(forageable_id),
+                "missing forageable item in item registry: {}",
+                forageable_id
+            );
+        }
+    }
+
+    #[test]
     fn crop_and_fish_ids_have_no_duplicates() {
         let mut crop_registry = CropRegistry::default();
         let mut fish_registry = FishRegistry::default();

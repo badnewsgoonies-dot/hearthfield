@@ -22,12 +22,24 @@ pub mod settings_screen;
 mod shop_screen;
 pub mod stats_screen;
 mod toast;
-pub mod transitions;
 pub mod tool_tutorial;
+pub mod transitions;
 pub mod tutorial;
 
 use crate::shared::*;
 use bevy::prelude::*;
+
+/// `items_atlas.png` currently contains art for slots 0..56 only.
+const ITEM_ATLAS_FILLED_SLOTS: usize = 57;
+
+pub(crate) fn item_icon_index(sprite_index: u32) -> usize {
+    let idx = sprite_index as usize;
+    if idx < ITEM_ATLAS_FILLED_SLOTS {
+        idx
+    } else {
+        0
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // SHARED FONT HANDLE — used by all UI text across every screen

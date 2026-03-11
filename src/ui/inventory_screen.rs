@@ -1,4 +1,5 @@
 use super::hud::ItemAtlasData;
+use super::item_icon_index;
 use super::UiFontHandle;
 use crate::shared::*;
 use bevy::prelude::*;
@@ -149,7 +150,7 @@ pub fn spawn_inventory_screen(
                                                 inventory.slots[index]
                                                     .as_ref()
                                                     .and_then(|s| item_registry.get(&s.item_id))
-                                                    .map(|def| def.sprite_index as usize)
+                                                    .map(|def| item_icon_index(def.sprite_index))
                                                     .unwrap_or(0)
                                             } else {
                                                 0
@@ -262,7 +263,7 @@ pub fn update_inventory_slots(
             if let Some(ref slot_data) = inventory.slots[idx] {
                 if let Some(def) = item_registry.get(&slot_data.item_id) {
                     if let Some(ref mut atlas) = img.texture_atlas {
-                        atlas.index = def.sprite_index as usize;
+                        atlas.index = item_icon_index(def.sprite_index);
                     }
                     *vis = Visibility::Inherited;
                     continue;

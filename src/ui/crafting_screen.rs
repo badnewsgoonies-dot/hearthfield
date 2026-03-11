@@ -1,4 +1,5 @@
 use super::hud::ItemAtlasData;
+use super::item_icon_index;
 use super::UiFontHandle;
 use crate::shared::*;
 use bevy::prelude::*;
@@ -166,7 +167,9 @@ pub fn spawn_crafting_screen(
                                                     image: atlas_data.image.clone(),
                                                     texture_atlas: Some(TextureAtlas {
                                                         layout: atlas_data.layout.clone(),
-                                                        index: item_def.sprite_index as usize,
+                                                        index: item_icon_index(
+                                                            item_def.sprite_index,
+                                                        ),
                                                     }),
                                                     ..default()
                                                 });
