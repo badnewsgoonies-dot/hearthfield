@@ -228,7 +228,12 @@ pub fn load_animal_sprites(
 /// `bob_non_atlas_animals` in PostUpdate after position sync.
 pub fn animate_animal_sprites(
     time: Res<Time>,
-    mut query: Query<(&WanderAi, Option<&Facing>, &mut Sprite, &mut AnimalAnimTimer)>,
+    mut query: Query<(
+        &WanderAi,
+        Option<&Facing>,
+        &mut Sprite,
+        &mut AnimalAnimTimer,
+    )>,
 ) {
     for (wander, facing_opt, mut sprite, mut anim) in query.iter_mut() {
         let is_moving = wander.target.is_some();
@@ -309,6 +314,7 @@ impl Plugin for AnimalPlugin {
             .add_systems(
                 Update,
                 (
+                    spawn_animals_from_state,
                     handle_animal_purchase,
                     handle_animal_wander,
                     handle_animal_interact,

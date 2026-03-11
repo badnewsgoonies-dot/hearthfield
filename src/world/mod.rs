@@ -35,9 +35,10 @@ use objects::{
     animate_bush_rustle, animate_doors, animate_wind_sway, handle_forageable_pickup,
     handle_tool_use_on_objects, handle_weed_scythe, regrow_trees_on_season_change,
     spawn_building_signs, spawn_building_sprites, spawn_carpenter_board, spawn_chimney_smoke,
-    spawn_crafting_bench, spawn_daily_weeds, spawn_forageables, spawn_interior_decorations,
-    spawn_shipping_bin, spawn_world_objects, update_candle_flicker, update_chimney_smoke,
-    update_forage_sparkles, update_tree_sprites_on_season_change, ChimneySmokeTimer, WorldObject,
+    spawn_crafting_bench, spawn_daily_weeds, spawn_farm_decorations, spawn_forageables,
+    spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects, update_candle_flicker,
+    update_chimney_smoke, update_forage_sparkles, update_tree_sprites_on_season_change,
+    ChimneySmokeTimer, WorldObject,
 };
 use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
@@ -169,6 +170,7 @@ impl Plugin for WorldPlugin {
                     spawn_carpenter_board,
                     spawn_building_signs,
                     spawn_building_sprites,
+                    spawn_farm_decorations,
                     spawn_interior_decorations,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads
                     sync_collision_map,
