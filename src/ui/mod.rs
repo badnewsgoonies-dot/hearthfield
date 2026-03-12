@@ -29,12 +29,13 @@ pub mod tutorial;
 use crate::shared::*;
 use bevy::prelude::*;
 
-pub(crate) const ITEM_ATLAS_COLUMNS: usize = 13;
-pub(crate) const ITEM_ATLAS_ROWS: usize = 19;
+pub const ITEM_ATLAS_COLUMNS: usize = 13;
+pub const ITEM_ATLAS_ROWS: usize = 19;
 
-pub(crate) fn item_icon_index(sprite_index: u32) -> usize {
+pub fn item_icon_index(sprite_index: u32) -> usize {
     let idx = sprite_index as usize;
-    if matches!(idx, 0..=63 | 84..=89 | 112..=116 | 223..=240) {
+    let max = ITEM_ATLAS_COLUMNS * ITEM_ATLAS_ROWS; // 13 × 19 = 247
+    if idx < max {
         idx
     } else {
         0

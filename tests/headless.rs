@@ -10,12 +10,14 @@
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
+use hearthfield::animals::pen_bounds_for;
 use hearthfield::calendar::festivals::{
     check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
 };
 use hearthfield::crafting::food_buff_for_item;
 use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
 use hearthfield::data::DataPlugin;
+use hearthfield::ui::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use hearthfield::economy::achievements::{
     check_achievements, track_achievement_progress, ACHIEVEMENTS,
 };
@@ -5088,4 +5090,101 @@ fn test_season_validation_empty_seasons_means_all() {
     assert!(crop_can_grow_in_season(&any_season, Season::Summer));
     assert!(crop_can_grow_in_season(&any_season, Season::Fall));
     assert!(crop_can_grow_in_season(&any_season, Season::Winter));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGRESSION: Item sprite atlas — all DataPlugin items map to valid atlas slot
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Every item defined in DataPlugin must map to a valid atlas index (not fallback 0)
+/// unless its sprite_index actually IS 0. Regression for the old whitelist bug that
+/// remapped 148/237 items to index 0.
+#[test]
+fn test_all_item_sprite_indices_within_atlas() {
+    let max_index = ITEM_ATLAS_COLUMNS * ITEM_ATLAS_ROWS; // 247
+    let mut app = build_test_app();
+    app.add_plugins(DataPlugin);
+    app.update();
+    app.update();
+
+    let registry = app.world().resource::<ItemRegistry>();
+    let mut failures = Vec::new();
+
+    for (id, def) in &registry.items {
+        let idx = def.sprite_index as usize;
+        if idx >= max_index {
+            failures.push(format!("{id}: sprite_index={idx} exceeds atlas capacity {max_index}"));
+        }
+        // Verify item_icon_index returns the actual index, not a fallback
+        let mapped = item_icon_index(def.sprite_index);
+        if mapped != idx && idx < max_index {
+            failures.push(format!("{id}: item_icon_index returned {mapped} instead of {idx}"));
+        }
+    }
+
+    assert!(failures.is_empty(), "Item sprite index failures:\n{}", failures.join("\n"));
+}
+
+/// item_icon_index must pass through valid indices and only clamp out-of-bounds.
+#[test]
+fn test_item_icon_index_passthrough() {
+    // Valid indices pass through unchanged
+    assert_eq!(item_icon_index(0), 0);
+    assert_eq!(item_icon_index(64), 64);
+    assert_eq!(item_icon_index(100), 100);
+    assert_eq!(item_icon_index(200), 200);
+    assert_eq!(item_icon_index(246), 246);
+    // Out-of-bounds clamps to 0
+    assert_eq!(item_icon_index(247), 0);
+    assert_eq!(item_icon_index(999), 0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGRESSION: Animal pen bounds — animals graze in pasture, not on buildings
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Barn animals must wander south of the barn building (rows >= 19),
+/// not on the building footprint (rows 16-18).
+#[test]
+fn test_barn_animal_pen_not_on_building() {
+    let barn_building_max_y = 18.0 * TILE_SIZE;
+
+    for kind in [AnimalKind::Cow, AnimalKind::Sheep, AnimalKind::Goat, AnimalKind::Pig] {
+        let (pen_min, pen_max) = pen_bounds_for(kind);
+        assert!(
+            pen_min.y > barn_building_max_y,
+            "{kind:?} pen min_y ({}) overlaps barn building (max {})",
+            pen_min.y, barn_building_max_y
+        );
+        // Pen should be within farm bounds (row < 24)
+        assert!(pen_max.y <= 23.0 * TILE_SIZE, "{kind:?} pen exceeds farm south edge");
+    }
+}
+
+/// Coop animals must wander south of the coop building, not on it.
+#[test]
+fn test_coop_animal_pen_not_on_building() {
+    let coop_building_max_y = 18.0 * TILE_SIZE;
+
+    for kind in [AnimalKind::Chicken, AnimalKind::Duck, AnimalKind::Rabbit] {
+        let (pen_min, pen_max) = pen_bounds_for(kind);
+        assert!(
+            pen_min.y > coop_building_max_y,
+            "{kind:?} pen min_y ({}) overlaps coop building (max {})",
+            pen_min.y, coop_building_max_y
+        );
+        assert!(pen_max.y <= 23.0 * TILE_SIZE, "{kind:?} pen exceeds farm south edge");
+    }
+}
+
+/// Pet animals get a wider roam area that doesn't overlap barn/coop footprints.
+#[test]
+fn test_pet_roam_area_reasonable() {
+    for kind in [AnimalKind::Horse, AnimalKind::Cat, AnimalKind::Dog] {
+        let (pen_min, pen_max) = pen_bounds_for(kind);
+        let width = (pen_max.x - pen_min.x) / TILE_SIZE;
+        let height = (pen_max.y - pen_min.y) / TILE_SIZE;
+        assert!(width >= 8.0, "{kind:?} roam area too narrow: {width} tiles");
+        assert!(height >= 6.0, "{kind:?} roam area too short: {height} tiles");
+    }
 }

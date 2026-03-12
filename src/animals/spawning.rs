@@ -68,19 +68,22 @@ pub fn animal_visual(kind: AnimalKind) -> AnimalVisual {
     }
 }
 
-/// Returns the pen/barn boundaries where this kind of animal wanders.
-/// Barn animals (cow, sheep) get the barn pen; coop animals (chicken) get the coop yard;
-/// pets (cat, dog) roam a wider farm area.
-fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
+/// Returns the pen/pasture boundaries where this kind of animal wanders.
+/// Barn animals get the pasture south of the barn; coop animals get the yard
+/// east of the coop; pets roam a wider farm area.
+pub fn pen_bounds_for(kind: AnimalKind) -> (Vec2, Vec2) {
     match kind {
+        // Coop animals: yard east of coop, grid (9,19)→(13,22)
         AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => (
-            Vec2::new(8.0 * TILE_SIZE, 16.0 * TILE_SIZE),
-            Vec2::new(12.0 * TILE_SIZE, 18.0 * TILE_SIZE),
+            Vec2::new(9.0 * TILE_SIZE, 19.0 * TILE_SIZE),
+            Vec2::new(13.0 * TILE_SIZE, 22.0 * TILE_SIZE),
         ),
+        // Barn animals: pasture south of barn, grid (3,19)→(8,22)
         AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => (
-            Vec2::new(3.0 * TILE_SIZE, 16.0 * TILE_SIZE),
-            Vec2::new(7.0 * TILE_SIZE, 18.0 * TILE_SIZE),
+            Vec2::new(3.0 * TILE_SIZE, 19.0 * TILE_SIZE),
+            Vec2::new(8.0 * TILE_SIZE, 22.0 * TILE_SIZE),
         ),
+        // Pets: wide farm roam
         AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => (
             Vec2::new(10.0 * TILE_SIZE, 8.0 * TILE_SIZE),
             Vec2::new(20.0 * TILE_SIZE, 16.0 * TILE_SIZE),
@@ -150,11 +153,13 @@ fn animation_profile(kind: AnimalKind) -> (f32, usize) {
 fn pen_spawn_position(kind: AnimalKind, slot: usize) -> Vec2 {
     let (gx, gy) = match kind {
         AnimalKind::Chicken | AnimalKind::Duck | AnimalKind::Rabbit => {
-            const COOP_SLOTS: &[(i32, i32)] = &[(9, 17), (10, 17), (11, 17), (10, 18)];
+            // Spawn in coop yard (south of coop building)
+            const COOP_SLOTS: &[(i32, i32)] = &[(9, 20), (10, 20), (11, 20), (10, 21)];
             COOP_SLOTS[slot % COOP_SLOTS.len()]
         }
         AnimalKind::Cow | AnimalKind::Sheep | AnimalKind::Goat | AnimalKind::Pig => {
-            const BARN_SLOTS: &[(i32, i32)] = &[(4, 17), (5, 17), (6, 17), (5, 18)];
+            // Spawn in pasture (south of barn building)
+            const BARN_SLOTS: &[(i32, i32)] = &[(4, 20), (5, 20), (6, 20), (5, 21)];
             BARN_SLOTS[slot % BARN_SLOTS.len()]
         }
         AnimalKind::Horse | AnimalKind::Cat | AnimalKind::Dog => {
