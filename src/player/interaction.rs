@@ -517,7 +517,7 @@ pub fn handle_day_end(
         // (with gold penalty and partial health restore). Skip here.
         let in_mine = player_state.current_map == MapId::Mine;
         if in_mine {
-            return;
+            continue;
         }
 
         // Restore health fully.

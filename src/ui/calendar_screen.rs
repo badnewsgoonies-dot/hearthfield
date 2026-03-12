@@ -251,7 +251,7 @@ fn spawn_calendar_screen(
                                             ));
                                         } else if let Some(npc_name) = birthday_npc {
                                             let short = if npc_name.len() > 6 {
-                                                &npc_name[..6]
+                                                &npc_name.chars().take(6).collect::<String>()
                                             } else {
                                                 npc_name
                                             };

@@ -278,7 +278,7 @@ pub fn update_chest_inv_display(
                     .map(|def| def.name.clone())
                     .unwrap_or_else(|| slot_data.item_id.clone());
                 let truncated = if name.len() > 20 {
-                    format!("{}...", &name[..17])
+                    format!("{}...", name.chars().take(17).collect::<String>())
                 } else {
                     name
                 };
@@ -315,7 +315,7 @@ pub fn update_chest_storage_display(
                     .map(|def| def.name.clone())
                     .unwrap_or_else(|| stack.item_id.clone());
                 let truncated = if name.len() > 20 {
-                    format!("{}...", &name[..17])
+                    format!("{}...", name.chars().take(17).collect::<String>())
                 } else {
                     name
                 };

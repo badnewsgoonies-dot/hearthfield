@@ -126,7 +126,10 @@ pub fn handle_cook_item(
         // Consume fish wildcard if needed
         if let Some(ref fish_id) = fish_item {
             if has_any_fish_ingredient {
-                inventory.try_remove(fish_id, 1);
+                let removed = inventory.try_remove(fish_id, 1);
+                if removed == 0 {
+                    warn!("Cooking '{}': fish '{}' vanished before consumption", recipe.name, fish_id);
+                }
                 info!("Consumed fish '{}' for cooking '{}'", fish_id, recipe.name);
             }
         }

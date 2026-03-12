@@ -280,7 +280,7 @@ pub fn update_inventory_slots(
                     .get(&slot_data.item_id)
                     .map(|def| {
                         if def.name.len() > 6 {
-                            format!("{}.", &def.name[..5])
+                            format!("{}.", def.name.chars().take(5).collect::<String>())
                         } else {
                             def.name.clone()
                         }

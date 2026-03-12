@@ -303,6 +303,12 @@ pub fn refund_ingredients(inventory: &mut Inventory, recipe: &Recipe, registry: 
             continue;
         }
         let max_stack = registry.get(item_id).map(|d| d.stack_size).unwrap_or(99);
-        inventory.try_add(item_id, *qty, max_stack);
+        let leftover = inventory.try_add(item_id, *qty, max_stack);
+        if leftover > 0 {
+            warn!(
+                "Refund overflow: {} of '{}' could not be returned to inventory",
+                leftover, item_id
+            );
+        }
     }
 }
