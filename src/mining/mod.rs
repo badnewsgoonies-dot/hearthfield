@@ -14,12 +14,12 @@
 
 mod anim;
 mod combat;
-mod components;
+pub mod components;
 mod floor_gen;
 mod hud;
 mod ladder;
 mod movement;
-mod rock_breaking;
+pub mod rock_breaking;
 mod rock_impact;
 mod spawning;
 mod transitions;
@@ -28,7 +28,12 @@ use crate::shared::*;
 use bevy::prelude::*;
 use components::*;
 use movement::MineMoveCooldown;
-use rock_impact::{RockDestroyedEvent, RockHitEvent};
+#[allow(unused_imports)]
+pub use rock_impact::{RockDestroyedEvent, RockHitEvent};
+#[allow(unused_imports)]
+pub use rock_breaking::handle_rock_breaking;
+#[allow(unused_imports)]
+pub use spawning::MiningAtlases;
 
 pub struct MiningPlugin;
 

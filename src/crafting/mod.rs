@@ -10,7 +10,10 @@ pub mod machines;
 mod recipes;
 mod unlock;
 
-pub use bench::{CraftItemEvent, CraftingUiState, OpenCraftingEvent};
+pub use bench::{
+    consume_ingredients, handle_craft_item, handle_open_crafting, has_all_ingredients,
+    refund_ingredients, CraftItemEvent, CraftingUiState, OpenCraftingEvent,
+};
 pub use buffs::food_buff_for_item;
 pub use machines::{
     item_to_machine_type, machine_atlas_index, CollectMachineOutputEvent, InsertMachineInputEvent,

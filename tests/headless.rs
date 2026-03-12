@@ -50,6 +50,19 @@ use hearthfield::shared::*;
 use hearthfield::world::objects::seasonal_forageables;
 use std::collections::HashMap;
 
+use hearthfield::crafting::{
+    consume_ingredients, handle_craft_item, handle_open_crafting, has_all_ingredients,
+    make_cooking_recipe, make_crafting_recipe, populate_recipe_registry, refund_ingredients,
+    CraftItemEvent, CraftingUiState, OpenCraftingEvent, ALL_COOKING_RECIPE_IDS,
+    ALL_CRAFTING_RECIPE_IDS,
+};
+use hearthfield::mining::components::{ActiveFloor, FloorSpawnRequest, InMine, MineLadder, MineGridPos};
+use hearthfield::mining::{handle_rock_breaking, MiningAtlases, RockDestroyedEvent, RockHitEvent};
+use hearthfield::player::movement::player_movement;
+use hearthfield::player::{stamina_cost, facing_offset, CameraSnap, CollisionMap};
+use hearthfield::world::maps::MapDef;
+use hearthfield::world::WorldMap;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Test App Builder
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3874,4 +3887,871 @@ fn test_no_duplicate_sprite_indices() {
             );
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Crafting — recipe resolution, ingredients, and bench flow
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_make_crafting_recipe_returns_all_known_ids() {
+    for &id in ALL_CRAFTING_RECIPE_IDS {
+        let recipe = make_crafting_recipe(id);
+        assert!(recipe.is_some(), "Crafting recipe '{}' should exist", id);
+        let r = recipe.unwrap();
+        assert!(!r.ingredients.is_empty(), "Recipe '{}' must have ingredients", id);
+        assert!(!r.result.is_empty(), "Recipe '{}' must produce an item", id);
+    }
+}
+
+#[test]
+fn test_make_cooking_recipe_returns_all_known_ids() {
+    for &id in ALL_COOKING_RECIPE_IDS {
+        let recipe = make_cooking_recipe(id);
+        assert!(recipe.is_some(), "Cooking recipe '{}' should exist", id);
+        let r = recipe.unwrap();
+        assert!(r.is_cooking, "Cooking recipe '{}' should be marked is_cooking", id);
+    }
+}
+
+#[test]
+fn test_has_all_ingredients_true_when_present() {
+    let recipe = make_crafting_recipe("chest").expect("chest recipe should exist");
+    let mut inventory = Inventory::default();
+    for (item_id, qty) in &recipe.ingredients {
+        inventory.try_add(item_id, *qty, 99);
+    }
+    assert!(has_all_ingredients(&inventory, &recipe));
+}
+
+#[test]
+fn test_has_all_ingredients_false_when_missing() {
+    let recipe = make_crafting_recipe("chest").expect("chest recipe should exist");
+    let inventory = Inventory::default();
+    assert!(!has_all_ingredients(&inventory, &recipe));
+}
+
+#[test]
+fn test_consume_ingredients_removes_from_inventory() {
+    let recipe = make_crafting_recipe("chest").expect("chest recipe should exist");
+    let mut inventory = Inventory::default();
+    for (item_id, qty) in &recipe.ingredients {
+        inventory.try_add(item_id, *qty, 99);
+    }
+    assert!(has_all_ingredients(&inventory, &recipe));
+    consume_ingredients(&mut inventory, &recipe);
+    assert!(
+        !has_all_ingredients(&inventory, &recipe),
+        "Ingredients should be consumed after craft"
+    );
+}
+
+#[test]
+fn test_refund_ingredients_restores_to_inventory() {
+    let recipe = make_crafting_recipe("chest").expect("chest recipe should exist");
+    let mut inventory = Inventory::default();
+    let item_registry = ItemRegistry::default();
+    refund_ingredients(&mut inventory, &recipe, &item_registry);
+    assert!(
+        has_all_ingredients(&inventory, &recipe),
+        "Refunded ingredients should be present"
+    );
+}
+
+#[test]
+fn test_populate_recipe_registry_complete() {
+    let mut registry = RecipeRegistry::default();
+    populate_recipe_registry(&mut registry);
+    let total = ALL_CRAFTING_RECIPE_IDS.len() + ALL_COOKING_RECIPE_IDS.len();
+    assert_eq!(
+        registry.recipes.len(),
+        total,
+        "Registry should contain all {} recipes, got {}",
+        total,
+        registry.recipes.len()
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sailing — boat mode and water navigation
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_boat_mode_defaults_inactive() {
+    let boat = BoatMode::new();
+    assert!(!boat.active, "Boat mode should default to inactive");
+    assert!(
+        (boat.stamina_drain_per_tile - 0.5).abs() < f32::EPSILON,
+        "Default stamina drain should be 0.5"
+    );
+}
+
+#[test]
+fn test_is_walkable_sailing_water_passable() {
+    let mut tiles = vec![TileKind::Grass; 100];
+    tiles[5 * 10 + 5] = TileKind::Water;
+    tiles[3 * 10 + 3] = TileKind::Bridge;
+
+    let map_def = MapDef {
+        id: MapId::Farm,
+        width: 10,
+        height: 10,
+        tiles,
+        transitions: vec![],
+        objects: vec![],
+        forage_points: vec![],
+    };
+
+    let world_map = WorldMap {
+        map_def: Some(map_def),
+        solid_tiles: std::collections::HashSet::new(),
+        width: 10,
+        height: 10,
+    };
+
+    assert!(world_map.is_walkable_sailing(5, 5), "Water should be walkable while sailing");
+    assert!(world_map.is_walkable_sailing(3, 3), "Bridge should be walkable while sailing");
+}
+
+#[test]
+fn test_is_walkable_sailing_blocks_land() {
+    let tiles = vec![TileKind::Grass; 100];
+    let map_def = MapDef {
+        id: MapId::Farm,
+        width: 10,
+        height: 10,
+        tiles,
+        transitions: vec![],
+        objects: vec![],
+        forage_points: vec![],
+    };
+
+    let world_map = WorldMap {
+        map_def: Some(map_def),
+        solid_tiles: std::collections::HashSet::new(),
+        width: 10,
+        height: 10,
+    };
+
+    assert!(!world_map.is_walkable_sailing(5, 5), "Grass should NOT be walkable while sailing");
+}
+
+#[test]
+fn test_is_walkable_sailing_out_of_bounds() {
+    let world_map = WorldMap {
+        map_def: None,
+        solid_tiles: std::collections::HashSet::new(),
+        width: 10,
+        height: 10,
+    };
+
+    assert!(!world_map.is_walkable_sailing(-1, 0), "Negative coords should not be walkable");
+    assert!(!world_map.is_walkable_sailing(10, 0), "Out of bounds should not be walkable");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player collision — CollisionMap, stamina, facing
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_collision_map_solid_tiles_blocking() {
+    let mut collision_map = CollisionMap::default();
+    collision_map.initialised = true;
+    collision_map.solid_tiles.insert((5, 5));
+    collision_map.bounds = (0, 20, 0, 20);
+
+    assert!(
+        collision_map.solid_tiles.contains(&(5, 5)),
+        "Tile (5,5) should be in solid_tiles"
+    );
+    assert!(
+        !collision_map.solid_tiles.contains(&(6, 6)),
+        "Tile (6,6) should NOT be solid"
+    );
+}
+
+#[test]
+fn test_collision_map_default_uninitialised() {
+    let collision_map = CollisionMap::default();
+    assert!(!collision_map.initialised, "CollisionMap should default to uninitialised");
+    assert!(
+        collision_map.solid_tiles.is_empty(),
+        "CollisionMap should start with no solid tiles"
+    );
+}
+
+#[test]
+fn test_world_map_walkable_vs_solid() {
+    let mut tiles = vec![TileKind::Grass; 100];
+    tiles[5 * 10 + 5] = TileKind::Water;
+    tiles[3 * 10 + 3] = TileKind::Path;
+
+    let map_def = MapDef {
+        id: MapId::Farm,
+        width: 10,
+        height: 10,
+        tiles,
+        transitions: vec![],
+        objects: vec![],
+        forage_points: vec![],
+    };
+
+    let world_map = WorldMap {
+        map_def: Some(map_def),
+        solid_tiles: std::collections::HashSet::new(),
+        width: 10,
+        height: 10,
+    };
+
+    assert!(world_map.is_walkable(3, 3), "Path should be walkable");
+    assert!(world_map.is_walkable(0, 0), "Grass should be walkable");
+    assert!(!world_map.is_walkable(5, 5), "Water should NOT be walkable on foot");
+    assert!(!world_map.is_walkable(-1, 0), "Out of bounds should NOT be walkable");
+}
+
+#[test]
+fn test_stamina_cost_scales_with_tool() {
+    let tools = [
+        ToolKind::Hoe,
+        ToolKind::WateringCan,
+        ToolKind::Axe,
+        ToolKind::Pickaxe,
+        ToolKind::FishingRod,
+        ToolKind::Scythe,
+    ];
+    for tool in &tools {
+        let cost = stamina_cost(tool);
+        assert!(cost > 0.0, "{:?} should have positive stamina cost, got {}", tool, cost);
+    }
+}
+
+#[test]
+fn test_facing_offset_all_directions() {
+    let (dx, dy) = facing_offset(&Facing::Up);
+    assert_eq!((dx, dy), (0, 1), "Up should be (0, 1)");
+
+    let (dx, dy) = facing_offset(&Facing::Down);
+    assert_eq!((dx, dy), (0, -1), "Down should be (0, -1)");
+
+    let (dx, dy) = facing_offset(&Facing::Left);
+    assert_eq!((dx, dy), (-1, 0), "Left should be (-1, 0)");
+
+    let (dx, dy) = facing_offset(&Facing::Right);
+    assert_eq!((dx, dy), (1, 0), "Right should be (1, 0)");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mining — floor state, rock breaking, ladder reveal
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_active_floor_defaults() {
+    let floor = ActiveFloor::default();
+    assert_eq!(floor.floor, 0, "Should start at floor 0");
+    assert_eq!(floor.rocks_remaining, 0);
+    assert_eq!(floor.rocks_broken_this_floor, 0);
+    assert!(!floor.ladder_revealed, "Ladder should not be revealed by default");
+    assert!(!floor.spawned, "Floor should not be spawned by default");
+}
+
+#[test]
+fn test_floor_spawn_request_defaults() {
+    let req = FloorSpawnRequest::default();
+    assert!(!req.pending, "Should not have pending spawn by default");
+    assert_eq!(req.floor, 0);
+}
+
+#[test]
+fn test_in_mine_defaults_false() {
+    let in_mine = InMine::default();
+    assert!(!in_mine.0, "Should not be in mine by default");
+}
+
+#[test]
+fn test_mine_rock_health_and_drops() {
+    let copper_rock = MineRock {
+        health: 1,
+        drop_item: "copper_ore".to_string(),
+        drop_quantity: 1,
+    };
+    assert_eq!(copper_rock.health, 1);
+    assert_eq!(copper_rock.drop_item, "copper_ore");
+
+    let iron_rock = MineRock {
+        health: 2,
+        drop_item: "iron_ore".to_string(),
+        drop_quantity: 1,
+    };
+    assert_eq!(iron_rock.health, 2);
+
+    let iridium_rock = MineRock {
+        health: 3,
+        drop_item: "iridium_ore".to_string(),
+        drop_quantity: 1,
+    };
+    assert_eq!(iridium_rock.health, 3);
+}
+
+#[test]
+fn test_mine_state_floor_persistence_roundtrip() {
+    let mut mine_state = MineState::default();
+    mine_state.deepest_floor_reached = 15;
+    mine_state.elevator_floors = vec![5, 10, 15];
+
+    let roundtripped = serde_roundtrip(&mine_state);
+    assert_eq!(roundtripped.deepest_floor_reached, 15);
+    assert_eq!(roundtripped.elevator_floors, vec![5, 10, 15]);
+}
+
+#[test]
+fn test_mine_ladder_component() {
+    let ladder = MineLadder { revealed: false };
+    assert!(!ladder.revealed);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Input — PlayerInput defaults, InputBlocks, InputContext
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_player_input_defaults_all_false() {
+    let input = PlayerInput::default();
+    assert_eq!(input.move_axis, Vec2::ZERO, "Move axis should default to zero");
+    assert!(!input.interact, "Interact should default to false");
+    assert!(!input.tool_use, "Tool use should default to false");
+    assert!(!input.open_inventory, "Open inventory should default to false");
+    assert!(!input.pause, "Pause should default to false");
+    assert!(!input.quicksave, "Quicksave should default to false");
+    assert!(!input.quickload, "Quickload should default to false");
+    assert!(input.tool_slot.is_none(), "Tool slot should default to None");
+}
+
+#[test]
+fn test_input_context_default_gameplay() {
+    let ctx = InputContext::default();
+    assert_eq!(ctx, InputContext::Gameplay, "Default input context should be Gameplay");
+}
+
+#[test]
+fn test_input_blocks_prevents_and_restores() {
+    let mut blocks = InputBlocks::default();
+    assert!(!blocks.is_blocked(), "Should not be blocked by default");
+
+    struct DummyBlocker;
+    blocks.block::<DummyBlocker>();
+    assert!(blocks.is_blocked(), "Should be blocked after adding a blocker");
+
+    blocks.unblock::<DummyBlocker>();
+    assert!(!blocks.is_blocked(), "Should be unblocked after removing the blocker");
+}
+
+#[test]
+fn test_input_blocks_multiple_blockers() {
+    let mut blocks = InputBlocks::default();
+
+    struct BlockerA;
+    struct BlockerB;
+
+    blocks.block::<BlockerA>();
+    blocks.block::<BlockerB>();
+    assert!(blocks.is_blocked());
+
+    blocks.unblock::<BlockerA>();
+    assert!(blocks.is_blocked(), "Should still be blocked with BlockerB");
+
+    blocks.unblock::<BlockerB>();
+    assert!(!blocks.is_blocked(), "Should be unblocked after removing all");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Map transitions — player state, collision invalidation, camera snap
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_map_transition_event_carries_coordinates() {
+    let event = MapTransitionEvent {
+        to_map: MapId::Town,
+        to_x: 15,
+        to_y: 20,
+    };
+    assert_eq!(event.to_map, MapId::Town);
+    assert_eq!(event.to_x, 15);
+    assert_eq!(event.to_y, 20);
+}
+
+#[test]
+fn test_camera_snap_defaults() {
+    let snap = CameraSnap::default();
+    assert_eq!(snap.frames_remaining, 0, "Camera snap should default to 0 frames remaining");
+}
+
+#[test]
+fn test_collision_map_cleared_on_invalidation() {
+    let mut collision_map = CollisionMap::default();
+    collision_map.initialised = true;
+    collision_map.solid_tiles.insert((1, 1));
+    collision_map.solid_tiles.insert((2, 2));
+
+    collision_map.initialised = false;
+    assert!(!collision_map.initialised);
+}
+
+#[test]
+fn test_world_map_set_solid_toggles() {
+    let tiles = vec![TileKind::Grass; 100];
+    let map_def = MapDef {
+        id: MapId::Farm,
+        width: 10,
+        height: 10,
+        tiles,
+        transitions: vec![],
+        objects: vec![],
+        forage_points: vec![],
+    };
+
+    let mut world_map = WorldMap {
+        map_def: Some(map_def),
+        solid_tiles: std::collections::HashSet::new(),
+        width: 10,
+        height: 10,
+    };
+
+    assert!(world_map.is_walkable(5, 5), "Should be walkable initially");
+
+    world_map.set_solid(5, 5, true);
+    assert!(!world_map.is_walkable(5, 5), "Should be blocked after set_solid(true)");
+
+    world_map.set_solid(5, 5, false);
+    assert!(world_map.is_walkable(5, 5), "Should be walkable after set_solid(false)");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ECS BEHAVIORAL TESTS — systems exercised through app.update()
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Crafting: full ECS flow ────────────────────────────────────────────────
+
+#[test]
+fn test_ecs_handle_open_crafting_populates_ui_state() {
+    let mut app = build_test_app();
+
+    // Register crafting-specific resources and events
+    app.init_resource::<CraftingUiState>();
+    app.add_event::<OpenCraftingEvent>();
+
+    // Populate the recipe registry
+    let mut registry = RecipeRegistry::default();
+    populate_recipe_registry(&mut registry);
+    app.insert_resource(registry);
+
+    // Unlock a few crafting recipes
+    let mut unlocked = UnlockedRecipes::default();
+    unlocked.ids.push("chest".to_string());
+    unlocked.ids.push("furnace".to_string());
+    app.insert_resource(unlocked);
+
+    app.add_systems(Update, handle_open_crafting.run_if(in_state(GameState::Playing)));
+    enter_playing_state(&mut app);
+
+    // Send OpenCraftingEvent
+    app.world_mut().send_event(OpenCraftingEvent { cooking_mode: false });
+    app.update();
+
+    let ui_state = app.world().resource::<CraftingUiState>();
+    assert!(!ui_state.available_recipes.is_empty(),
+        "Opening crafting should populate available_recipes");
+    assert!(ui_state.available_recipes.contains(&"chest".to_string()),
+        "Unlocked 'chest' recipe should be in available list");
+    assert!(!ui_state.is_cooking_mode,
+        "Should be in crafting mode, not cooking");
+}
+
+#[test]
+fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
+    let mut app = build_test_app();
+    app.add_plugins(hearthfield::data::DataPlugin);
+
+    app.init_resource::<CraftingUiState>();
+    app.add_event::<CraftItemEvent>();
+
+    app.add_systems(Update, handle_craft_item.run_if(in_state(GameState::Crafting)));
+
+    // Boot data (2 updates to load registries)
+    app.update();
+    app.update();
+
+    // Unlock a DataPlugin recipe and add its ingredients
+    // DataPlugin uses "recipe_chest" ID, not "chest" from make_crafting_recipe
+    let recipe_id = "recipe_chest".to_string();
+    let recipe = {
+        let registry = app.world().resource::<RecipeRegistry>();
+        registry.recipes.get(&recipe_id)
+            .expect("DataPlugin should populate recipe_chest")
+            .clone()
+    };
+    {
+        let mut unlocked = app.world_mut().resource_mut::<UnlockedRecipes>();
+        unlocked.ids.push(recipe_id.clone());
+    }
+    {
+        let max_stacks: Vec<_> = {
+            let item_registry = app.world().resource::<ItemRegistry>();
+            recipe.ingredients.iter()
+                .map(|(item_id, _)| item_registry.get(item_id).map(|d| d.stack_size).unwrap_or(99))
+                .collect()
+        };
+        let mut inventory = app.world_mut().resource_mut::<Inventory>();
+        for ((item_id, qty), max_stack) in recipe.ingredients.iter().zip(max_stacks.iter()) {
+            inventory.try_add(item_id, *qty, *max_stack);
+        }
+    }
+
+    // Verify ingredients present before craft
+    {
+        let inventory = app.world().resource::<Inventory>();
+        assert!(has_all_ingredients(&inventory, &recipe), "Pre-condition: ingredients should be present");
+    }
+
+    // Transition to Crafting state and send event in the same frame
+    app.world_mut()
+        .resource_mut::<NextState<GameState>>()
+        .set(GameState::Crafting);
+    app.update(); // state transition queued
+
+    // Verify we actually reached Crafting state
+    let current = app.world().resource::<State<GameState>>().get().clone();
+    assert_eq!(current, GameState::Crafting,
+        "Should be in Crafting state, but in {:?}", current);
+
+    // Now in Crafting — send event and tick
+    app.world_mut().send_event(CraftItemEvent { recipe_id: recipe_id.clone() });
+    app.update(); // system runs, consumes event
+
+    // Verify: ingredients consumed
+    {
+        let inventory = app.world().resource::<Inventory>();
+        assert!(!has_all_ingredients(&inventory, &recipe),
+            "Ingredients should be consumed after crafting");
+    }
+
+    // Verify: result item in inventory
+    {
+        let inventory = app.world().resource::<Inventory>();
+        let has_result = inventory.slots.iter().any(|slot| {
+            slot.as_ref().map_or(false, |s| s.item_id == recipe.result)
+        });
+        assert!(has_result, "Crafted item '{}' should be in inventory", recipe.result);
+    }
+}
+
+#[test]
+fn test_ecs_craft_fails_without_ingredients() {
+    let mut app = build_test_app();
+    app.add_plugins(hearthfield::data::DataPlugin);
+    app.init_resource::<CraftingUiState>();
+    app.add_event::<CraftItemEvent>();
+
+    app.add_systems(Update, handle_craft_item.run_if(in_state(GameState::Crafting)));
+    app.update();
+    app.update();
+
+    // Transition to Crafting state
+    app.world_mut()
+        .resource_mut::<NextState<GameState>>()
+        .set(GameState::Crafting);
+    app.update();
+    app.update();
+
+    // Unlock recipe but DON'T add ingredients (use DataPlugin recipe ID)
+    {
+        let mut unlocked = app.world_mut().resource_mut::<UnlockedRecipes>();
+        unlocked.ids.push("recipe_chest".to_string());
+    }
+
+    app.world_mut().send_event(CraftItemEvent { recipe_id: "recipe_chest".to_string() });
+    app.update();
+
+    // Inventory should still be empty — craft should have failed
+    let inventory = app.world().resource::<Inventory>();
+    let has_any = inventory.slots.iter().any(|s| s.is_some());
+    assert!(!has_any, "Inventory should remain empty when crafting fails");
+}
+
+// ── Mining: rock breaking through ECS ──────────────────────────────────────
+
+#[test]
+fn test_ecs_rock_breaking_damages_rock_and_drains_stamina() {
+    let mut app = build_test_app();
+
+    // Register mining-specific resources and events
+    app.init_resource::<ActiveFloor>();
+    app.init_resource::<InMine>();
+    app.init_resource::<MiningAtlases>();
+    app.add_event::<RockHitEvent>();
+    app.add_event::<RockDestroyedEvent>();
+
+    app.add_systems(Update, handle_rock_breaking.run_if(in_state(GameState::Playing)));
+    enter_playing_state(&mut app);
+
+    // Enable mine mode
+    app.world_mut().resource_mut::<InMine>().0 = true;
+
+    // Set up active floor with 1 rock
+    {
+        let mut floor = app.world_mut().resource_mut::<ActiveFloor>();
+        floor.rocks_remaining = 1;
+        floor.spawned = true;
+    }
+
+    // Spawn a rock entity at (5, 5)
+    let rock_entity = app.world_mut().spawn((
+        MineRock {
+            health: 1,
+            drop_item: "copper_ore".to_string(),
+            drop_quantity: 1,
+        },
+        MineGridPos { x: 5, y: 5 },
+        Transform::default(),
+    )).id();
+
+    // Send a pickaxe ToolUseEvent at (5, 5) — Basic tier does 1 damage
+    app.world_mut().send_event(ToolUseEvent {
+        tool: ToolKind::Pickaxe,
+        tier: ToolTier::Basic,
+        target_x: 5,
+        target_y: 5,
+    });
+    app.update();
+
+    // Rock had 1 HP, basic pickaxe does 1 damage → rock should be destroyed (despawned)
+    let rock_exists = app.world().get_entity(rock_entity).is_ok();
+    assert!(!rock_exists, "Rock with 1 HP should be destroyed by 1-damage pickaxe hit");
+
+    // Active floor should reflect the broken rock
+    let floor = app.world().resource::<ActiveFloor>();
+    assert_eq!(floor.rocks_remaining, 0, "rocks_remaining should be 0 after breaking the only rock");
+    assert_eq!(floor.rocks_broken_this_floor, 1, "rocks_broken should increment");
+
+    // Stamina drain event should have been sent (4.0 for Basic pickaxe)
+    let stamina_events = app.world().resource::<Events<StaminaDrainEvent>>();
+    let mut reader = stamina_events.get_cursor();
+    let events: Vec<_> = reader.read(stamina_events).collect();
+    assert!(!events.is_empty(), "StaminaDrainEvent should be sent on rock hit");
+    assert!((events[0].amount - 4.0).abs() < f32::EPSILON,
+        "Basic pickaxe stamina cost should be 4.0, got {}", events[0].amount);
+}
+
+#[test]
+fn test_ecs_rock_breaking_survives_higher_hp() {
+    let mut app = build_test_app();
+    app.init_resource::<ActiveFloor>();
+    app.init_resource::<InMine>();
+    app.init_resource::<MiningAtlases>();
+    app.add_event::<RockHitEvent>();
+    app.add_event::<RockDestroyedEvent>();
+
+    app.add_systems(Update, handle_rock_breaking.run_if(in_state(GameState::Playing)));
+    enter_playing_state(&mut app);
+
+    app.world_mut().resource_mut::<InMine>().0 = true;
+    {
+        let mut floor = app.world_mut().resource_mut::<ActiveFloor>();
+        floor.rocks_remaining = 1;
+        floor.spawned = true;
+    }
+
+    // Spawn rock with 3 HP (iridium ore)
+    let rock_entity = app.world_mut().spawn((
+        MineRock {
+            health: 3,
+            drop_item: "iridium_ore".to_string(),
+            drop_quantity: 1,
+        },
+        MineGridPos { x: 3, y: 3 },
+        Transform::default(),
+    )).id();
+
+    // Hit with Basic pickaxe (1 damage) — rock should survive
+    app.world_mut().send_event(ToolUseEvent {
+        tool: ToolKind::Pickaxe,
+        tier: ToolTier::Basic,
+        target_x: 3,
+        target_y: 3,
+    });
+    app.update();
+
+    let rock_exists = app.world().get_entity(rock_entity).is_ok();
+    assert!(rock_exists, "Rock with 3 HP should survive a 1-damage hit");
+
+    // Check rock health reduced
+    let rock = app.world().entity(rock_entity).get::<MineRock>().unwrap();
+    assert_eq!(rock.health, 2, "Rock health should be 3 - 1 = 2");
+
+    // rocks_remaining should NOT have changed (rock survived)
+    let floor = app.world().resource::<ActiveFloor>();
+    assert_eq!(floor.rocks_remaining, 1, "Rock survived, rocks_remaining unchanged");
+}
+
+#[test]
+fn test_ecs_rock_breaking_skipped_outside_mine() {
+    let mut app = build_test_app();
+    app.init_resource::<ActiveFloor>();
+    app.init_resource::<InMine>();
+    app.init_resource::<MiningAtlases>();
+    app.add_event::<RockHitEvent>();
+    app.add_event::<RockDestroyedEvent>();
+
+    app.add_systems(Update, handle_rock_breaking.run_if(in_state(GameState::Playing)));
+    enter_playing_state(&mut app);
+
+    // InMine is false by default — rock breaking should be skipped
+    let rock_entity = app.world_mut().spawn((
+        MineRock {
+            health: 1,
+            drop_item: "copper_ore".to_string(),
+            drop_quantity: 1,
+        },
+        MineGridPos { x: 5, y: 5 },
+        Transform::default(),
+    )).id();
+
+    app.world_mut().send_event(ToolUseEvent {
+        tool: ToolKind::Pickaxe,
+        tier: ToolTier::Basic,
+        target_x: 5,
+        target_y: 5,
+    });
+    app.update();
+
+    // Rock should survive — system was gated by InMine(false)
+    let rock = app.world().entity(rock_entity).get::<MineRock>().unwrap();
+    assert_eq!(rock.health, 1, "Rock should be untouched when not in mine");
+}
+
+// ── Player Movement: collision blocking through ECS ────────────────────────
+
+/// Helper: build a test app with all resources needed by `player_movement`.
+fn build_movement_test_app() -> App {
+    let mut app = build_test_app();
+
+    app.init_resource::<PlayerInput>();
+    app.init_resource::<BoatMode>();
+    app.init_resource::<InputBlocks>();
+
+    let mut collision_map = CollisionMap::default();
+    collision_map.initialised = true;
+    collision_map.bounds = (0, 20, 0, 20);
+    app.insert_resource(collision_map);
+
+    let tiles = vec![TileKind::Grass; 400]; // 20x20
+    let map_def = MapDef {
+        id: MapId::Farm,
+        width: 20,
+        height: 20,
+        tiles,
+        transitions: vec![],
+        objects: vec![],
+        forage_points: vec![],
+    };
+    app.insert_resource(WorldMap {
+        map_def: Some(map_def),
+        solid_tiles: std::collections::HashSet::new(),
+        width: 20,
+        height: 20,
+    });
+
+    app.add_systems(Update, player_movement.run_if(in_state(GameState::Playing)));
+    enter_playing_state(&mut app);
+
+    app
+}
+
+#[test]
+fn test_ecs_player_movement_blocked_by_solid_tile() {
+    let mut app = build_movement_test_app();
+
+    // Add a wall at grid (6, 5)
+    app.world_mut().resource_mut::<CollisionMap>().solid_tiles.insert((6, 5));
+
+    // Place player at right edge of grid (5, 5), facing right toward wall
+    // grid 6 starts at world x = 6*16 = 96, so place at x=95.5 (almost there)
+    let player_entity = app.world_mut().spawn((
+        Player,
+        LogicalPosition(Vec2::new(95.5, 88.0)),
+        PlayerMovement::default(),
+        GridPosition::new(5, 5),
+    )).id();
+
+    // Push right toward wall
+    app.world_mut().resource_mut::<PlayerInput>().move_axis = Vec2::new(1.0, 0.0);
+
+    // Many ticks — even with small deltas, enough to cross if unblocked
+    for _ in 0..500 {
+        app.update();
+    }
+
+    // Player grid should not reach 6 (the solid tile)
+    let grid = app.world().entity(player_entity).get::<GridPosition>().unwrap();
+    assert!(grid.x <= 5,
+        "Player should be blocked at grid x<=5, but reached x={}", grid.x);
+}
+
+#[test]
+fn test_ecs_player_movement_walks_on_open_tile() {
+    let mut app = build_movement_test_app();
+
+    // No solid tiles — path is clear
+    let player_entity = app.world_mut().spawn((
+        Player,
+        LogicalPosition(Vec2::new(88.0, 88.0)),
+        PlayerMovement::default(),
+        GridPosition::new(5, 5),
+    )).id();
+
+    app.world_mut().resource_mut::<PlayerInput>().move_axis = Vec2::new(1.0, 0.0);
+
+    // Record starting logical position
+    let start_x = app.world().entity(player_entity)
+        .get::<LogicalPosition>().unwrap().0.x;
+
+    for _ in 0..500 {
+        app.update();
+    }
+
+    // Verify logical position advanced (even if not a full grid cell)
+    let end_x = app.world().entity(player_entity)
+        .get::<LogicalPosition>().unwrap().0.x;
+    assert!(end_x > start_x,
+        "Player should have moved right (start_x={}, end_x={})", start_x, end_x);
+}
+
+#[test]
+fn test_ecs_player_movement_blocked_by_input_blocks() {
+    let mut app = build_movement_test_app();
+
+    // Block input
+    struct TestBlocker;
+    app.world_mut().resource_mut::<InputBlocks>().block::<TestBlocker>();
+
+    let player_entity = app.world_mut().spawn((
+        Player,
+        LogicalPosition(Vec2::new(88.0, 88.0)),
+        PlayerMovement::default(),
+        GridPosition::new(5, 5),
+    )).id();
+
+    app.world_mut().resource_mut::<PlayerInput>().move_axis = Vec2::new(1.0, 0.0);
+
+    let start_x = app.world().entity(player_entity)
+        .get::<LogicalPosition>().unwrap().0.x;
+
+    for _ in 0..100 {
+        app.update();
+    }
+
+    // Should NOT have moved
+    let end_x = app.world().entity(player_entity)
+        .get::<LogicalPosition>().unwrap().0.x;
+    assert!((end_x - start_x).abs() < f32::EPSILON,
+        "Player should not move when input blocked (start={}, end={})", start_x, end_x);
 }

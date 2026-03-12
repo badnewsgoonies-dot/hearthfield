@@ -1,8 +1,8 @@
 mod camera;
 pub mod interact_dispatch;
-mod interaction;
+pub mod interaction;
 pub mod item_use;
-mod movement;
+pub mod movement;
 mod spawn;
 pub mod tool_anim;
 mod tools;
