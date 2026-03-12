@@ -5352,3 +5352,106 @@ fn test_farm_to_snow_mountain_transition() {
         "SnowMountain south edge should lead to Farm"
     );
 }
+
+#[test]
+fn test_snow_mountain_has_rich_objects() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    assert!(
+        data.objects.len() >= 50,
+        "SnowMountain should have at least 50 objects, got {}",
+        data.objects.len()
+    );
+    // Verify object variety — should have at least 3 distinct kinds
+    let kinds: std::collections::HashSet<_> =
+        data.objects.iter().map(|o| format!("{:?}", o.kind)).collect();
+    assert!(
+        kinds.len() >= 3,
+        "SnowMountain should have at least 3 distinct object kinds, got {:?}",
+        kinds
+    );
+}
+
+#[test]
+fn test_snow_mountain_has_forage_points() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    assert!(
+        data.forage_points.len() >= 10,
+        "SnowMountain should have at least 10 forage points, got {}",
+        data.forage_points.len()
+    );
+}
+
+#[test]
+fn test_snow_mountain_reachable_from_mine_entrance() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    // MineEntrance north edge leads to SnowMountain
+    let mine_ent = registry
+        .maps
+        .get(&MapId::MineEntrance)
+        .expect("MineEntrance must be in MapRegistry");
+    assert!(
+        mine_ent.edges.north.is_some(),
+        "MineEntrance must have a north edge"
+    );
+    let (target, _) = mine_ent.edges.north.as_ref().unwrap();
+    assert_eq!(
+        *target,
+        MapId::SnowMountain,
+        "MineEntrance north edge should lead to SnowMountain"
+    );
+
+    // SnowMountain south edge leads back to Farm (the main route)
+    let snow = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    assert!(
+        snow.edges.south.is_some(),
+        "SnowMountain must have a south edge"
+    );
+}
+
+#[test]
+fn test_mine_entrance_north_to_snow_mountain() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::MineEntrance)
+        .expect("MineEntrance must be in MapRegistry");
+    let (target_map, _) = data
+        .edges
+        .north
+        .as_ref()
+        .expect("MineEntrance north edge must lead somewhere");
+    assert_eq!(
+        *target_map,
+        MapId::SnowMountain,
+        "MineEntrance north edge should lead to SnowMountain"
+    );
+}
+
+#[test]
+fn test_bjorn_npc_scheduled_for_snow_mountain() {
+    let mut registry = NpcRegistry::default();
+    hearthfield::data::npcs::populate_npcs(&mut registry);
+    let schedule = registry
+        .schedules
+        .get("bjorn")
+        .expect("Bjorn must have a schedule");
+    let on_mountain = schedule
+        .weekday
+        .iter()
+        .any(|e| e.map == MapId::SnowMountain);
+    assert!(
+        on_mountain,
+        "Bjorn should have at least one weekday schedule entry on SnowMountain"
+    );
+}

@@ -11,7 +11,7 @@
 mod crops;
 mod fish;
 mod items;
-mod npcs;
+pub mod npcs;
 mod recipes;
 mod shops;
 
