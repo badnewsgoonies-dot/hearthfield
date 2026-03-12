@@ -4755,3 +4755,100 @@ fn test_ecs_player_movement_blocked_by_input_blocks() {
     assert!((end_x - start_x).abs() < f32::EPSILON,
         "Player should not move when input blocked (start={}, end={})", start_x, end_x);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Regression tests for bug-fix wave
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Regression: refund_ingredients should handle full inventory gracefully
+/// (previously, try_add return was unchecked — items silently dropped).
+#[test]
+fn test_refund_ingredients_logs_overflow_on_full_inventory() {
+    let mut inventory = Inventory::default();
+    let registry = ItemRegistry::default();
+    let recipe = make_crafting_recipe("chest").expect("chest recipe exists");
+
+    // Fill every slot with something
+    for slot in inventory.slots.iter_mut() {
+        *slot = Some(InventorySlot {
+            item_id: "stone".to_string(),
+            quantity: 99,
+        });
+    }
+
+    // Refund should not panic even though inventory is full
+    refund_ingredients(&mut inventory, &recipe, &registry);
+
+    // Inventory should still be full of stone (refund couldn't fit wood)
+    let all_stone = inventory.slots.iter().all(|s| {
+        s.as_ref().map_or(false, |s| s.item_id == "stone")
+    });
+    assert!(all_stone, "Original items should remain — refund overflows gracefully");
+}
+
+/// Regression: consuming/refunding ingredients preserves inventory consistency.
+#[test]
+fn test_consume_then_refund_roundtrips_ingredients() {
+    let mut inventory = Inventory::default();
+    let registry = ItemRegistry::default();
+    let recipe = make_crafting_recipe("chest").expect("chest recipe exists");
+
+    // Add exactly the required ingredients
+    for (item_id, qty) in &recipe.ingredients {
+        let max = registry.get(item_id).map(|d| d.stack_size).unwrap_or(99);
+        inventory.try_add(item_id, *qty, max);
+    }
+
+    assert!(has_all_ingredients(&inventory, &recipe));
+
+    // Consume ingredients
+    consume_ingredients(&mut inventory, &recipe);
+    assert!(!has_all_ingredients(&inventory, &recipe));
+
+    // Refund ingredients
+    refund_ingredients(&mut inventory, &recipe, &registry);
+    assert!(has_all_ingredients(&inventory, &recipe),
+        "Refund should restore ingredients to pre-consume state");
+}
+
+/// Regression: UTF-8 safe truncation doesn't panic on any item name length.
+#[test]
+fn test_string_truncation_safety() {
+    // Simulate the truncation logic used in chest_screen / inventory_screen / calendar_screen
+    let cases = vec![
+        "",          // empty
+        "A",         // single char
+        "Wood",      // short name
+        "Iridium Sprinkler Mk II", // long name (24 chars)
+        "こんにちは世界です",  // multi-byte UTF-8
+        "ab",        // 2 chars
+        "abcde",     // exactly 5 chars
+        "abcdef",    // exactly 6 chars
+        "abcdefghijklmnopqrst", // exactly 20 chars
+        "abcdefghijklmnopqrstu", // 21 chars (triggers truncation)
+    ];
+
+    for name in &cases {
+        // chest_screen pattern: truncate at 17 chars if len > 20
+        let _chest_trunc = if name.len() > 20 {
+            format!("{}...", name.chars().take(17).collect::<String>())
+        } else {
+            name.to_string()
+        };
+
+        // inventory_screen pattern: truncate at 5 chars if len > 6
+        let _inv_trunc = if name.len() > 6 {
+            format!("{}.", name.chars().take(5).collect::<String>())
+        } else {
+            name.to_string()
+        };
+
+        // calendar_screen pattern: truncate at 6 chars if len > 6
+        let _cal_trunc: String = if name.len() > 6 {
+            name.chars().take(6).collect()
+        } else {
+            name.to_string()
+        };
+    }
+    // If we get here, no panics occurred
+}

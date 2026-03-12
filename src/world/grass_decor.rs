@@ -147,15 +147,16 @@ pub fn spawn_grass_decorations(
         return;
     }
 
-    // Despawn existing decorations first.
-    for entity in existing.iter() {
-        commands.entity(entity).despawn();
-    }
-
+    // Legacy grass decor disabled — just update tracking state.
     if !LEGACY_GRASS_DECOR_ENABLED {
         state.spawned_for_map = Some(map_id);
         state.spawned_for_season = Some(season);
         return;
+    }
+
+    // Despawn existing decorations first.
+    for entity in existing.iter() {
+        commands.entity(entity).despawn();
     }
 
     // Need the map def to know which tiles are grass.
