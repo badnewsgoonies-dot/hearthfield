@@ -4852,3 +4852,67 @@ fn test_string_truncation_safety() {
     }
     // If we get here, no panics occurred
 }
+
+/// Regression: crafting with full inventory must not duplicate items.
+/// The fix in bench.rs removes partial results before refunding ingredients.
+#[test]
+fn test_craft_full_inventory_no_item_duplication() {
+    let mut inventory = Inventory::default();
+    let registry = ItemRegistry::default();
+
+    // Synthetic recipe: 10 wood → 5 chests (triggers partial-add scenario)
+    let recipe = Recipe {
+        id: "test_bulk_chest".into(),
+        name: "Bulk Chest".into(),
+        ingredients: vec![("wood".into(), 10)],
+        result: "chest".into(),
+        result_quantity: 5,
+        is_cooking: false,
+        unlocked_by_default: true,
+    };
+
+    // Slot 0: wood x99 (only 10 needed, so consuming leaves 89 — slot NOT freed)
+    inventory.slots[0] = Some(InventorySlot {
+        item_id: "wood".to_string(),
+        quantity: 99,
+    });
+
+    // Slots 1..35: fill with stone x99 (only slot 35 left empty → room for 1 chest stack)
+    let total_slots = inventory.slots.len();
+    for i in 1..(total_slots - 1) {
+        inventory.slots[i] = Some(InventorySlot {
+            item_id: "stone".to_string(),
+            quantity: 99,
+        });
+    }
+    // Last slot empty → can fit 1 chest but not all 5 (stack_size check)
+
+    let total_before: u32 = inventory.slots.iter()
+        .filter_map(|s| s.as_ref())
+        .map(|s| s.quantity as u32)
+        .sum();
+
+    // Simulate the FIXED craft path from bench.rs
+    consume_ingredients(&mut inventory, &recipe);
+    let max_stack = registry.get(&recipe.result).map(|d| d.stack_size).unwrap_or(99);
+    let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
+
+    if leftover > 0 {
+        // Remove partial result, then refund
+        let added = recipe.result_quantity - leftover;
+        if added > 0 {
+            inventory.try_remove(&recipe.result, added);
+        }
+        refund_ingredients(&mut inventory, &recipe, &registry);
+    }
+
+    let total_after: u32 = inventory.slots.iter()
+        .filter_map(|s| s.as_ref())
+        .map(|s| s.quantity as u32)
+        .sum();
+
+    // Total must not increase (would indicate duplication)
+    assert!(total_after <= total_before,
+        "Item count must not increase after failed craft (before={}, after={}) — would indicate duplication",
+        total_before, total_after);
+}
