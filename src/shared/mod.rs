@@ -603,6 +603,7 @@ pub enum MapId {
     Blacksmith,
     Library,
     Tavern,
+    SnowMountain,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

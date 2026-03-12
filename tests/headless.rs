@@ -5305,3 +5305,50 @@ fn test_all_seasons_requires_year2() {
         "all_seasons should unlock with year=2"
     );
 }
+
+#[test]
+fn test_snow_mountain_map_registered() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    assert_eq!(data.id, MapId::SnowMountain);
+    assert_eq!(data.width, 32);
+    assert_eq!(data.height, 24);
+    assert_eq!(data.tiles.len(), 32 * 24);
+}
+
+#[test]
+fn test_farm_to_snow_mountain_transition() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let farm = registry
+        .maps
+        .get(&MapId::Farm)
+        .expect("Farm must be in MapRegistry");
+    let (target_map, _) = farm
+        .edges
+        .north
+        .as_ref()
+        .expect("Farm north edge must lead somewhere");
+    assert_eq!(
+        *target_map,
+        MapId::SnowMountain,
+        "Farm north edge should lead to SnowMountain"
+    );
+
+    let snow = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    let (target_map, _) = snow
+        .edges
+        .south
+        .as_ref()
+        .expect("SnowMountain south edge must lead somewhere");
+    assert_eq!(
+        *target_map,
+        MapId::Farm,
+        "SnowMountain south edge should lead to Farm"
+    );
+}

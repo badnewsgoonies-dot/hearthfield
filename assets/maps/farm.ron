@@ -914,7 +914,7 @@
         ),
     ],
     edges: (
-        north: None,
+        north: Some((SnowMountain, ClampX(1))),
         south: Some((Town, ClampX(20))),
         east: Some((Forest, ClampY(1))),
         west: Some((MineEntrance, Fixed(12, 6))),

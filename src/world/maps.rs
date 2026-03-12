@@ -83,6 +83,7 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
         MapId::Library => (7, 10),
         MapId::Tavern => (8, 12),
         MapId::CoralIsland => (15, 1),
+        MapId::SnowMountain => (16, 22),
     }
 }
 
@@ -112,6 +113,9 @@ pub fn generate_map(map_id: MapId) -> MapDef {
             .map(|data| super::map_data::map_data_to_map_def(&data))
             .unwrap_or_else(generate_general_store),
         MapId::CoralIsland => generate_coral_island(),
+        MapId::SnowMountain => super::map_data::load_map_data(MapId::SnowMountain)
+            .map(|data| super::map_data::map_data_to_map_def(&data))
+            .unwrap_or_else(generate_snow_mountain),
     }
 }
 
@@ -1668,6 +1672,102 @@ fn generate_coral_island() -> MapDef {
 
     MapDef {
         id: MapId::CoralIsland,
+        width: w,
+        height: h,
+        tiles,
+        transitions,
+        objects,
+        forage_points,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Snow Mountain map: 32x24 — snowy alpine area north of Farm
+// Layout: stone/grass terrain with pine trees, rocks, and mountain paths
+// ---------------------------------------------------------------------------
+fn generate_snow_mountain() -> MapDef {
+    let w = 32usize;
+    let h = 24usize;
+    let mut tiles = vec![TileKind::Stone; w * h];
+
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let x = x0 + dx;
+                    let y = y0 + dy;
+                    if x < w && y < h {
+                        tiles[y * w + x] = kind;
+                    }
+                }
+            }
+        };
+
+    // Mountain path running north-south through the centre
+    fill_rect(&mut tiles, 14, 0, 4, 24, TileKind::Path);
+
+    // Grassy clearings near the southern exit (warmer lowlands)
+    fill_rect(&mut tiles, 8, 19, 16, 5, TileKind::Grass);
+
+    // Small alpine meadow in the north-west
+    fill_rect(&mut tiles, 2, 3, 6, 4, TileKind::Grass);
+
+    // Frozen pond in the east
+    fill_rect(&mut tiles, 23, 8, 4, 3, TileKind::Water);
+
+    // Rocky plateau centre-west
+    fill_rect(&mut tiles, 4, 10, 5, 3, TileKind::Stone);
+
+    // Path branch east
+    fill_rect(&mut tiles, 18, 10, 6, 2, TileKind::Path);
+
+    let objects = vec![
+        // Pine tree clusters on the western slope
+        ObjectPlacement { x: 1, y: 1, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 3, y: 1, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 0, y: 5, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 2, y: 7, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 1, y: 9, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 0, y: 12, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 2, y: 14, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 1, y: 17, kind: WorldObjectKind::Pine },
+        // Pine trees on the eastern slope
+        ObjectPlacement { x: 28, y: 2, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 30, y: 4, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 29, y: 6, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 28, y: 12, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 30, y: 14, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 29, y: 17, kind: WorldObjectKind::Pine },
+        // Rock formations along the mountain
+        ObjectPlacement { x: 6, y: 2, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 10, y: 4, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 12, y: 1, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 20, y: 3, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 22, y: 5, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 5, y: 11, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 7, y: 13, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 25, y: 15, kind: WorldObjectKind::Rock },
+        // Scattered pines along the path
+        ObjectPlacement { x: 11, y: 8, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 19, y: 7, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 11, y: 15, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 20, y: 16, kind: WorldObjectKind::Pine },
+    ];
+
+    let forage_points = vec![
+        (3, 4),
+        (5, 6),
+        (9, 3),
+        (21, 4),
+        (26, 10),
+        (8, 16),
+        (24, 18),
+    ];
+
+    let transitions = vec![];
+
+    MapDef {
+        id: MapId::SnowMountain,
         width: w,
         height: h,
         tiles,

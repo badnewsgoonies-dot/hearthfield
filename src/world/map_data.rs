@@ -188,6 +188,7 @@ pub fn build_map_registry() -> MapRegistry {
         MapId::Library,
         MapId::Tavern,
         MapId::CoralIsland,
+        MapId::SnowMountain,
     ];
 
     let mut registry = MapRegistry {
@@ -284,6 +285,7 @@ pub fn export_all_maps() -> Vec<(MapId, MapData)> {
         MapId::Library,
         MapId::Tavern,
         MapId::CoralIsland,
+        MapId::SnowMountain,
     ];
 
     let mut results = Vec::new();
@@ -414,7 +416,7 @@ fn doors_for(map_id: MapId) -> Vec<DoorDef> {
 fn edges_for(map_id: MapId) -> EdgeDefs {
     match map_id {
         MapId::Farm => EdgeDefs {
-            north: None, // mountain boundary
+            north: Some((MapId::SnowMountain, EdgeTarget::ClampX(1))),
             south: Some((MapId::Town, EdgeTarget::ClampX(20))),
             east: Some((MapId::Forest, EdgeTarget::ClampY(1))),
             west: Some((MapId::MineEntrance, EdgeTarget::Fixed(12, 6))),
@@ -509,6 +511,12 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             east: None,
             west: None,
         },
+        MapId::SnowMountain => EdgeDefs {
+            north: None,
+            south: Some((MapId::Farm, EdgeTarget::ClampX(22))),
+            east: None,
+            west: None,
+        },
     }
 }
 
@@ -599,6 +607,7 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
         MapId::Library => "library",
         MapId::Tavern => "tavern",
         MapId::CoralIsland => "coral_island",
+        MapId::SnowMountain => "snow_mountain",
     }
 }
 
@@ -627,6 +636,7 @@ mod tests {
             MapId::Library,
             MapId::Tavern,
             MapId::CoralIsland,
+            MapId::SnowMountain,
         ];
         for &map_id in &all_maps {
             let name = map_id_filename(map_id);
@@ -666,6 +676,7 @@ mod tests {
             MapId::Library,
             MapId::Tavern,
             MapId::CoralIsland,
+            MapId::SnowMountain,
         ];
 
         for &map_id in &all_maps {

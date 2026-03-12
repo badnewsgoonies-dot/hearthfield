@@ -36,6 +36,7 @@ fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
         MapId::Library => (0, 13, 0, 11),
         MapId::Tavern => (0, 15, 0, 13),
         MapId::CoralIsland => (0, 29, 0, 21),
+        MapId::SnowMountain => (0, 31, 0, 23),
     }
 }
 

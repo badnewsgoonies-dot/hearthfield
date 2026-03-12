@@ -213,6 +213,7 @@ pub fn switch_music_on_map_change(
             | MapId::Library
             | MapId::Tavern => "indoor",
             MapId::CoralIsland => "beach",
+            MapId::SnowMountain => "forest",
         };
         music_events.send(PlayMusicEvent {
             track_id: track.to_string(),

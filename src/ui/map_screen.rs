@@ -307,6 +307,7 @@ fn map_id_display_name(map_id: MapId) -> &'static str {
         MapId::Library => "Library",
         MapId::Tavern => "Tavern",
         MapId::CoralIsland => "Coral Island",
+        MapId::SnowMountain => "Snowy Mountain",
     }
 }
 
