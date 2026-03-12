@@ -174,6 +174,7 @@ pub fn build_map_registry() -> MapRegistry {
     let all_maps = [
         MapId::Farm,
         MapId::Town,
+        MapId::TownWest,
         MapId::Beach,
         MapId::Forest,
         MapId::DeepForest,
@@ -271,6 +272,7 @@ pub fn export_all_maps() -> Vec<(MapId, MapData)> {
     let all_maps = [
         MapId::Farm,
         MapId::Town,
+        MapId::TownWest,
         MapId::Beach,
         MapId::Forest,
         MapId::DeepForest,
@@ -364,22 +366,6 @@ fn doors_for(map_id: MapId) -> Vec<DoorDef> {
                 to_y: 10,
             },
             DoorDef {
-                x_min: 3,
-                x_max: 4,
-                y: 13,
-                to_map: MapId::TownHouseWest,
-                to_x: 6,
-                to_y: 10,
-            },
-            DoorDef {
-                x_min: 9,
-                x_max: 10,
-                y: 13,
-                to_map: MapId::TownHouseEast,
-                to_x: 6,
-                to_y: 10,
-            },
-            DoorDef {
                 x_min: 8,
                 x_max: 9,
                 y: 17,
@@ -394,6 +380,24 @@ fn doors_for(map_id: MapId) -> Vec<DoorDef> {
                 to_map: MapId::Tavern,
                 to_x: 8,
                 to_y: 12,
+            },
+        ],
+        MapId::TownWest => vec![
+            DoorDef {
+                x_min: 3,
+                x_max: 4,
+                y: 13,
+                to_map: MapId::TownHouseWest,
+                to_x: 6,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 9,
+                x_max: 10,
+                y: 13,
+                to_map: MapId::TownHouseEast,
+                to_x: 6,
+                to_y: 10,
             },
         ],
         MapId::MineEntrance => vec![
@@ -425,6 +429,12 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             north: Some((MapId::Farm, EdgeTarget::ClampX(1))),
             south: Some((MapId::Beach, EdgeTarget::ClampX(7))),
             east: Some((MapId::Forest, EdgeTarget::ClampY(1))),
+            west: Some((MapId::TownWest, EdgeTarget::ClampY(14))),
+        },
+        MapId::TownWest => EdgeDefs {
+            north: None,
+            south: None,
+            east: Some((MapId::Town, EdgeTarget::ClampY(1))),
             west: None,
         },
         MapId::Beach => EdgeDefs {
@@ -458,13 +468,13 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             west: None,
         },
         MapId::TownHouseWest => EdgeDefs {
-            north: Some((MapId::Town, EdgeTarget::Fixed(3, 14))),
+            north: Some((MapId::TownWest, EdgeTarget::Fixed(3, 14))),
             south: None,
             east: None,
             west: None,
         },
         MapId::TownHouseEast => EdgeDefs {
-            north: Some((MapId::Town, EdgeTarget::Fixed(9, 14))),
+            north: Some((MapId::TownWest, EdgeTarget::Fixed(9, 14))),
             south: None,
             east: None,
             west: None,
@@ -569,6 +579,8 @@ fn buildings_for(map_id: MapId) -> Vec<BuildingDataDef> {
                 h: 4,
                 roof_tint: (0.6, 0.55, 0.55),
             },
+        ],
+        MapId::TownWest => vec![
             BuildingDataDef {
                 x: 2,
                 y: 13,
@@ -593,6 +605,7 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
     match map_id {
         MapId::Farm => "farm",
         MapId::Town => "town",
+        MapId::TownWest => "town_west",
         MapId::Beach => "beach",
         MapId::Forest => "forest",
         MapId::DeepForest => "deep_forest",
@@ -622,6 +635,7 @@ mod tests {
         let all_maps = [
             MapId::Farm,
             MapId::Town,
+            MapId::TownWest,
             MapId::Beach,
             MapId::Forest,
             MapId::DeepForest,
@@ -662,6 +676,7 @@ mod tests {
         let all_maps = [
             MapId::Farm,
             MapId::Town,
+            MapId::TownWest,
             MapId::Beach,
             MapId::Forest,
             MapId::DeepForest,

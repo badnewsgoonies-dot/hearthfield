@@ -589,6 +589,7 @@ pub struct AnimalState {
 pub enum MapId {
     Farm,
     Town,
+    TownWest,
     Beach,
     Forest,
     DeepForest,

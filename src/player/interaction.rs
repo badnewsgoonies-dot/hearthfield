@@ -22,6 +22,7 @@ fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
     match map {
         MapId::Farm => (0, 31, 0, 23),
         MapId::Town => (0, 27, 0, 21),
+        MapId::TownWest => (0, 15, 0, 21),
         MapId::Beach => (0, 19, 0, 13),
         MapId::Forest => (0, 21, 0, 17),
         MapId::DeepForest => (0, 29, 0, 27),
@@ -145,10 +146,10 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
     if *map == MapId::Town && (22..=23).contains(&gx) && gy == 13 {
         return Some((MapId::Blacksmith, 6, 10));
     }
-    if *map == MapId::Town && (3..=4).contains(&gx) && gy == 13 {
+    if *map == MapId::TownWest && (3..=4).contains(&gx) && gy == 13 {
         return Some((MapId::TownHouseWest, 6, 10));
     }
-    if *map == MapId::Town && (9..=10).contains(&gx) && gy == 13 {
+    if *map == MapId::TownWest && (9..=10).contains(&gx) && gy == 13 {
         return Some((MapId::TownHouseEast, 6, 10));
     }
 
@@ -173,6 +174,14 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
         }
         if gx >= max_x {
             return Some((MapId::Forest, 1, clamp_to_interior(gy, 0, 17)));
+        }
+        if gx <= min_x {
+            return Some((MapId::TownWest, 14, clamp_to_interior(gy, 0, 21)));
+        }
+    }
+    if *map == MapId::TownWest {
+        if gx >= max_x {
+            return Some((MapId::Town, 1, clamp_to_interior(gy, 0, 21)));
         }
     }
     if *map == MapId::Beach {
@@ -206,10 +215,10 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
         return Some((MapId::Farm, 16, 3));
     }
     if *map == MapId::TownHouseWest && gy >= max_y {
-        return Some((MapId::Town, 3, 14));
+        return Some((MapId::TownWest, 3, 14));
     }
     if *map == MapId::TownHouseEast && gy >= max_y {
-        return Some((MapId::Town, 9, 14));
+        return Some((MapId::TownWest, 9, 14));
     }
     if *map == MapId::GeneralStore && gy >= max_y {
         return Some((MapId::Town, 6, 8));
@@ -291,23 +300,31 @@ mod tests {
     }
 
     #[test]
-    fn town_houses_have_enter_and_exit_transitions() {
+    fn town_west_owns_house_enter_and_exit_transitions() {
         let reg = test_registry();
         assert_eq!(
-            edge_transition_from_registry(&MapId::Town, 3, 13, &reg),
+            edge_transition_from_registry(&MapId::Town, 0, 14, &reg),
+            Some((MapId::TownWest, 14, 14))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::TownWest, 15, 14, &reg),
+            Some((MapId::Town, 1, 14))
+        );
+        assert_eq!(
+            edge_transition_from_registry(&MapId::TownWest, 3, 13, &reg),
             Some((MapId::TownHouseWest, 6, 10))
         );
         assert_eq!(
             edge_transition_from_registry(&MapId::TownHouseWest, 6, 11, &reg),
-            Some((MapId::Town, 3, 14))
+            Some((MapId::TownWest, 3, 14))
         );
         assert_eq!(
-            edge_transition_from_registry(&MapId::Town, 9, 13, &reg),
+            edge_transition_from_registry(&MapId::TownWest, 9, 13, &reg),
             Some((MapId::TownHouseEast, 6, 10))
         );
         assert_eq!(
             edge_transition_from_registry(&MapId::TownHouseEast, 6, 11, &reg),
-            Some((MapId::Town, 9, 14))
+            Some((MapId::TownWest, 9, 14))
         );
     }
 

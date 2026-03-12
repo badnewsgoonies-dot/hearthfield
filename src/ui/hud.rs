@@ -1,5 +1,6 @@
-use super::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use super::UiFontHandle;
+use super::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
+use crate::economy::shipping::ShippingBinPreview;
 use crate::input::{TouchZone, TouchZoneState};
 use crate::shared::*;
 use bevy::prelude::*;
@@ -637,6 +638,7 @@ fn map_display_name(map: MapId) -> &'static str {
     match map {
         MapId::Farm => "Hearthfield Farm",
         MapId::Town => "Willowbrook",
+        MapId::TownWest => "West Willowbrook",
         MapId::Beach => "Tide Pool Beach",
         MapId::Forest => "Briarwood Forest",
         MapId::DeepForest => "Deep Briarwood",
@@ -1102,21 +1104,126 @@ pub fn update_map_name(
 // OBJECTIVE DISPLAY
 // ═══════════════════════════════════════════════════════════════════════
 
+const OBJECTIVES_DONE_FLAG: &str = "objectives_done";
+
+fn tutorial_objectives_done(tutorial: &TutorialState) -> bool {
+    tutorial.current_objective.is_none()
+        && tutorial
+            .hints_shown
+            .iter()
+            .any(|hint| hint == OBJECTIVES_DONE_FLAG)
+}
+
+fn festival_name_for_date(season: Season, day: u8) -> Option<&'static str> {
+    match (season, day) {
+        (Season::Spring, 13) => Some("Egg Festival"),
+        (Season::Summer, 11) => Some("Luau"),
+        (Season::Fall, 16) => Some("Harvest Festival"),
+        (Season::Winter, 25) => Some("Winter Star Festival"),
+        _ => None,
+    }
+}
+
+fn tomorrow_date(calendar: &Calendar) -> (Season, u8) {
+    if calendar.day < DAYS_PER_SEASON {
+        (calendar.season, calendar.day + 1)
+    } else {
+        (calendar.season.next(), 1)
+    }
+}
+
+fn post_tutorial_agenda_text(
+    calendar: &Calendar,
+    quest_log: &QuestLog,
+    npc_registry: &NpcRegistry,
+    shipping_preview: &ShippingBinPreview,
+) -> Option<String> {
+    if let Some(name) = festival_name_for_date(calendar.season, calendar.day) {
+        return Some(format!("Festival today: {}", name));
+    }
+
+    let (tomorrow_season, tomorrow_day) = tomorrow_date(calendar);
+    if let Some(name) = festival_name_for_date(tomorrow_season, tomorrow_day) {
+        return Some(format!("Festival tomorrow: {}", name));
+    }
+
+    if let Some(quest) = quest_log
+        .active
+        .iter()
+        .filter(|quest| quest.days_remaining.is_some_and(|days| days <= 1))
+        .min_by(|a, b| {
+            a.days_remaining
+                .unwrap_or(u8::MAX)
+                .cmp(&b.days_remaining.unwrap_or(u8::MAX))
+                .then_with(|| a.title.as_str().cmp(b.title.as_str()))
+        })
+    {
+        let prefix = if quest.days_remaining == Some(0) {
+            "Quest due today"
+        } else {
+            "Quest expires tomorrow"
+        };
+        return Some(format!("{}: {}", prefix, quest.title));
+    }
+
+    if let Some(npc) = npc_registry
+        .npcs
+        .values()
+        .filter(|npc| npc.birthday_season == calendar.season && npc.birthday_day == calendar.day)
+        .min_by(|a, b| a.name.as_str().cmp(b.name.as_str()))
+    {
+        return Some(format!("Birthday today: {}", npc.name));
+    }
+
+    if shipping_preview.pending_value > 0 {
+        return Some(format!(
+            "Shipping bin: {}g pending overnight",
+            shipping_preview.pending_value
+        ));
+    }
+
+    None
+}
+
+fn hud_objective_text(
+    tutorial: &TutorialState,
+    calendar: &Calendar,
+    quest_log: &QuestLog,
+    npc_registry: &NpcRegistry,
+    shipping_preview: &ShippingBinPreview,
+) -> Option<String> {
+    if let Some(objective_id) = tutorial.current_objective.as_deref() {
+        let display = super::tutorial::objective_display_text(objective_id).unwrap_or("...");
+        return Some(display.to_string());
+    }
+
+    if !tutorial_objectives_done(tutorial) {
+        return None;
+    }
+
+    post_tutorial_agenda_text(calendar, quest_log, npc_registry, shipping_preview)
+}
+
 /// Shows or hides the tutorial objective text based on TutorialState.
 pub fn update_objective_display(
     tutorial: Res<TutorialState>,
+    calendar: Res<Calendar>,
+    quest_log: Res<QuestLog>,
+    npc_registry: Res<NpcRegistry>,
+    shipping_preview: Res<ShippingBinPreview>,
     mut objective_query: Query<(&Children, &mut BackgroundColor), With<HudObjective>>,
     mut text_query: Query<(&mut Text, &mut TextColor)>,
 ) {
-    for (children, mut bg_color) in &mut objective_query {
-        if let Some(ref obj_id) = tutorial.current_objective {
-            // Find the display text for this objective.
-            let display = super::tutorial::OBJECTIVES
-                .iter()
-                .find(|(id, _)| *id == obj_id.as_str())
-                .map(|(_, text)| *text)
-                .unwrap_or("...");
+    let display = hud_objective_text(
+        &tutorial,
+        &calendar,
+        &quest_log,
+        &npc_registry,
+        &shipping_preview,
+    );
 
+    for (children, mut bg_color) in &mut objective_query {
+        if let Some(ref display) = display {
             bg_color.0 = Color::srgba(0.0, 0.0, 0.0, 0.65);
             for &child in children.iter() {
                 if let Ok((mut text, mut tc)) = text_query.get_mut(child) {
@@ -1134,6 +1241,211 @@ pub fn update_objective_display(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn completed_tutorial_state() -> TutorialState {
+        TutorialState {
+            hints_shown: vec![OBJECTIVES_DONE_FLAG.to_string()],
+            tutorial_complete: false,
+            current_objective: None,
+        }
+    }
+
+    fn make_test_quest(title: &str, days_remaining: Option<u8>) -> Quest {
+        Quest {
+            id: format!("quest_{title}"),
+            title: title.to_string(),
+            description: "Test quest".to_string(),
+            giver: "rex".to_string(),
+            objective: QuestObjective::Talk {
+                npc_name: "Rex".to_string(),
+                talked: false,
+            },
+            reward_gold: 100,
+            reward_items: Vec::new(),
+            reward_friendship: 0,
+            days_remaining,
+            accepted_day: (1, 0, 1),
+        }
+    }
+
+    fn make_npc(id: &str, name: &str, birthday_season: Season, birthday_day: u8) -> NpcDef {
+        NpcDef {
+            id: id.to_string(),
+            name: name.to_string(),
+            birthday_season,
+            birthday_day,
+            gift_preferences: HashMap::default(),
+            default_dialogue: Vec::new(),
+            heart_dialogue: HashMap::default(),
+            is_marriageable: false,
+            sprite_index: 0,
+            portrait_index: 0,
+        }
+    }
+
+    #[test]
+    fn test_hud_objective_text_prefers_active_tutorial_objective() {
+        let tutorial = TutorialState {
+            hints_shown: vec![OBJECTIVES_DONE_FLAG.to_string()],
+            tutorial_complete: false,
+            current_objective: Some("use_shipping_bin".to_string()),
+        };
+
+        let display = hud_objective_text(
+            &tutorial,
+            &Calendar::default(),
+            &QuestLog::default(),
+            &NpcRegistry::default(),
+            &ShippingBinPreview::default(),
+        );
+
+        assert_eq!(
+            display.as_deref(),
+            Some(
+                "Ship your items for gold \u{2014} walk to the shipping bin near your house and press F with an item selected"
+            )
+        );
+    }
+
+    #[test]
+    fn test_post_tutorial_agenda_prioritizes_festival_tomorrow() {
+        let tutorial = completed_tutorial_state();
+        let calendar = Calendar {
+            day: 12,
+            ..Calendar::default()
+        };
+        let quest_log = QuestLog {
+            active: vec![make_test_quest("Board Cleanup", Some(1))],
+            completed: Vec::new(),
+        };
+        let mut npc_registry = NpcRegistry::default();
+        npc_registry.npcs.insert(
+            "rex".to_string(),
+            make_npc("rex", "Mayor Rex", Season::Spring, 12),
+        );
+        let shipping_preview = ShippingBinPreview {
+            pending_value: 240,
+            item_count: 3,
+        };
+
+        let display = hud_objective_text(
+            &tutorial,
+            &calendar,
+            &quest_log,
+            &npc_registry,
+            &shipping_preview,
+        );
+
+        assert_eq!(display.as_deref(), Some("Festival tomorrow: Egg Festival"));
+    }
+
+    #[test]
+    fn test_post_tutorial_agenda_uses_quest_before_birthday_or_shipping() {
+        let tutorial = completed_tutorial_state();
+        let calendar = Calendar {
+            day: 10,
+            ..Calendar::default()
+        };
+        let quest_log = QuestLog {
+            active: vec![
+                make_test_quest("Zebra Shell Run", Some(1)),
+                make_test_quest("Apple Delivery", Some(0)),
+            ],
+            completed: Vec::new(),
+        };
+        let mut npc_registry = NpcRegistry::default();
+        npc_registry.npcs.insert(
+            "ava".to_string(),
+            make_npc("ava", "Ava", Season::Spring, 10),
+        );
+        let shipping_preview = ShippingBinPreview {
+            pending_value: 420,
+            item_count: 5,
+        };
+
+        let display = hud_objective_text(
+            &tutorial,
+            &calendar,
+            &quest_log,
+            &npc_registry,
+            &shipping_preview,
+        );
+
+        assert_eq!(display.as_deref(), Some("Quest due today: Apple Delivery"));
+    }
+
+    #[test]
+    fn test_post_tutorial_agenda_falls_back_to_birthday_then_shipping() {
+        let tutorial = completed_tutorial_state();
+        let calendar = Calendar {
+            day: 14,
+            ..Calendar::default()
+        };
+        let mut npc_registry = NpcRegistry::default();
+        npc_registry.npcs.insert(
+            "rex".to_string(),
+            make_npc("rex", "Mayor Rex", Season::Spring, 14),
+        );
+
+        let birthday_display = hud_objective_text(
+            &tutorial,
+            &calendar,
+            &QuestLog::default(),
+            &npc_registry,
+            &ShippingBinPreview {
+                pending_value: 90,
+                item_count: 1,
+            },
+        );
+        assert_eq!(
+            birthday_display.as_deref(),
+            Some("Birthday today: Mayor Rex")
+        );
+
+        let shipping_display = hud_objective_text(
+            &tutorial,
+            &Calendar {
+                day: 15,
+                ..Calendar::default()
+            },
+            &QuestLog::default(),
+            &NpcRegistry::default(),
+            &ShippingBinPreview {
+                pending_value: 90,
+                item_count: 1,
+            },
+        );
+        assert_eq!(
+            shipping_display.as_deref(),
+            Some("Shipping bin: 90g pending overnight")
+        );
+    }
+
+    #[test]
+    fn test_post_tutorial_agenda_stays_empty_before_objectives_done() {
+        let tutorial = TutorialState::default();
+        let display = hud_objective_text(
+            &tutorial,
+            &Calendar {
+                day: 12,
+                ..Calendar::default()
+            },
+            &QuestLog::default(),
+            &NpcRegistry::default(),
+            &ShippingBinPreview {
+                pending_value: 120,
+                item_count: 2,
+            },
+        );
+
+        assert_eq!(display, None);
     }
 }
 

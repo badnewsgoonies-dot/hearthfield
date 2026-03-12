@@ -7,17 +7,17 @@
 //!
 //! Run with: `cargo test --test headless`
 
+use bevy::image::Image;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
 use hearthfield::animals::pen_bounds_for;
+use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
 use hearthfield::calendar::festivals::{
     check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
 };
 use hearthfield::crafting::food_buff_for_item;
 use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
 use hearthfield::data::DataPlugin;
-use hearthfield::ui::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use hearthfield::economy::achievements::{
     check_achievements, track_achievement_progress, ACHIEVEMENTS,
 };
@@ -50,6 +50,7 @@ use hearthfield::npcs::romance::{
     handle_bouquet, handle_proposal, handle_wedding, tick_wedding_timer, WeddingTimer,
 };
 use hearthfield::shared::*;
+use hearthfield::ui::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use hearthfield::world::objects::seasonal_forageables;
 use std::collections::HashMap;
 
@@ -59,11 +60,18 @@ use hearthfield::crafting::{
     CraftItemEvent, CraftingUiState, OpenCraftingEvent, ALL_COOKING_RECIPE_IDS,
     ALL_CRAFTING_RECIPE_IDS,
 };
-use hearthfield::mining::components::{ActiveFloor, FloorSpawnRequest, InMine, MineLadder, MineGridPos};
+use hearthfield::mining::components::{
+    ActiveFloor, FloorSpawnRequest, InMine, MineGridPos, MineLadder,
+};
 use hearthfield::mining::{handle_rock_breaking, MiningAtlases, RockDestroyedEvent, RockHitEvent};
 use hearthfield::player::movement::player_movement;
-use hearthfield::player::{stamina_cost, facing_offset, CameraSnap, CollisionMap};
+use hearthfield::player::{facing_offset, stamina_cost, CameraSnap, CollisionMap};
+use hearthfield::world::lighting::{update_day_night_tint, DayNightOverlay};
 use hearthfield::world::maps::MapDef;
+use hearthfield::world::weather_fx::{
+    cleanup_weather_on_change, spawn_weather_particles, PreviousWeather, RainDrop,
+    WeatherParticleCounts, WeatherSprites,
+};
 use hearthfield::world::WorldMap;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3902,7 +3910,11 @@ fn test_make_crafting_recipe_returns_all_known_ids() {
         let recipe = make_crafting_recipe(id);
         assert!(recipe.is_some(), "Crafting recipe '{}' should exist", id);
         let r = recipe.unwrap();
-        assert!(!r.ingredients.is_empty(), "Recipe '{}' must have ingredients", id);
+        assert!(
+            !r.ingredients.is_empty(),
+            "Recipe '{}' must have ingredients",
+            id
+        );
         assert!(!r.result.is_empty(), "Recipe '{}' must produce an item", id);
     }
 }
@@ -3913,7 +3925,11 @@ fn test_make_cooking_recipe_returns_all_known_ids() {
         let recipe = make_cooking_recipe(id);
         assert!(recipe.is_some(), "Cooking recipe '{}' should exist", id);
         let r = recipe.unwrap();
-        assert!(r.is_cooking, "Cooking recipe '{}' should be marked is_cooking", id);
+        assert!(
+            r.is_cooking,
+            "Cooking recipe '{}' should be marked is_cooking",
+            id
+        );
     }
 }
 
@@ -4012,8 +4028,14 @@ fn test_is_walkable_sailing_water_passable() {
         height: 10,
     };
 
-    assert!(world_map.is_walkable_sailing(5, 5), "Water should be walkable while sailing");
-    assert!(world_map.is_walkable_sailing(3, 3), "Bridge should be walkable while sailing");
+    assert!(
+        world_map.is_walkable_sailing(5, 5),
+        "Water should be walkable while sailing"
+    );
+    assert!(
+        world_map.is_walkable_sailing(3, 3),
+        "Bridge should be walkable while sailing"
+    );
 }
 
 #[test]
@@ -4036,7 +4058,10 @@ fn test_is_walkable_sailing_blocks_land() {
         height: 10,
     };
 
-    assert!(!world_map.is_walkable_sailing(5, 5), "Grass should NOT be walkable while sailing");
+    assert!(
+        !world_map.is_walkable_sailing(5, 5),
+        "Grass should NOT be walkable while sailing"
+    );
 }
 
 #[test]
@@ -4048,8 +4073,14 @@ fn test_is_walkable_sailing_out_of_bounds() {
         height: 10,
     };
 
-    assert!(!world_map.is_walkable_sailing(-1, 0), "Negative coords should not be walkable");
-    assert!(!world_map.is_walkable_sailing(10, 0), "Out of bounds should not be walkable");
+    assert!(
+        !world_map.is_walkable_sailing(-1, 0),
+        "Negative coords should not be walkable"
+    );
+    assert!(
+        !world_map.is_walkable_sailing(10, 0),
+        "Out of bounds should not be walkable"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4076,7 +4107,10 @@ fn test_collision_map_solid_tiles_blocking() {
 #[test]
 fn test_collision_map_default_uninitialised() {
     let collision_map = CollisionMap::default();
-    assert!(!collision_map.initialised, "CollisionMap should default to uninitialised");
+    assert!(
+        !collision_map.initialised,
+        "CollisionMap should default to uninitialised"
+    );
     assert!(
         collision_map.solid_tiles.is_empty(),
         "CollisionMap should start with no solid tiles"
@@ -4108,8 +4142,14 @@ fn test_world_map_walkable_vs_solid() {
 
     assert!(world_map.is_walkable(3, 3), "Path should be walkable");
     assert!(world_map.is_walkable(0, 0), "Grass should be walkable");
-    assert!(!world_map.is_walkable(5, 5), "Water should NOT be walkable on foot");
-    assert!(!world_map.is_walkable(-1, 0), "Out of bounds should NOT be walkable");
+    assert!(
+        !world_map.is_walkable(5, 5),
+        "Water should NOT be walkable on foot"
+    );
+    assert!(
+        !world_map.is_walkable(-1, 0),
+        "Out of bounds should NOT be walkable"
+    );
 }
 
 #[test]
@@ -4124,7 +4164,12 @@ fn test_stamina_cost_scales_with_tool() {
     ];
     for tool in &tools {
         let cost = stamina_cost(tool);
-        assert!(cost > 0.0, "{:?} should have positive stamina cost, got {}", tool, cost);
+        assert!(
+            cost > 0.0,
+            "{:?} should have positive stamina cost, got {}",
+            tool,
+            cost
+        );
     }
 }
 
@@ -4153,7 +4198,10 @@ fn test_active_floor_defaults() {
     assert_eq!(floor.floor, 0, "Should start at floor 0");
     assert_eq!(floor.rocks_remaining, 0);
     assert_eq!(floor.rocks_broken_this_floor, 0);
-    assert!(!floor.ladder_revealed, "Ladder should not be revealed by default");
+    assert!(
+        !floor.ladder_revealed,
+        "Ladder should not be revealed by default"
+    );
     assert!(!floor.spawned, "Floor should not be spawned by default");
 }
 
@@ -4219,20 +4267,34 @@ fn test_mine_ladder_component() {
 #[test]
 fn test_player_input_defaults_all_false() {
     let input = PlayerInput::default();
-    assert_eq!(input.move_axis, Vec2::ZERO, "Move axis should default to zero");
+    assert_eq!(
+        input.move_axis,
+        Vec2::ZERO,
+        "Move axis should default to zero"
+    );
     assert!(!input.interact, "Interact should default to false");
     assert!(!input.tool_use, "Tool use should default to false");
-    assert!(!input.open_inventory, "Open inventory should default to false");
+    assert!(
+        !input.open_inventory,
+        "Open inventory should default to false"
+    );
     assert!(!input.pause, "Pause should default to false");
     assert!(!input.quicksave, "Quicksave should default to false");
     assert!(!input.quickload, "Quickload should default to false");
-    assert!(input.tool_slot.is_none(), "Tool slot should default to None");
+    assert!(
+        input.tool_slot.is_none(),
+        "Tool slot should default to None"
+    );
 }
 
 #[test]
 fn test_input_context_default_gameplay() {
     let ctx = InputContext::default();
-    assert_eq!(ctx, InputContext::Gameplay, "Default input context should be Gameplay");
+    assert_eq!(
+        ctx,
+        InputContext::Gameplay,
+        "Default input context should be Gameplay"
+    );
 }
 
 #[test]
@@ -4242,10 +4304,16 @@ fn test_input_blocks_prevents_and_restores() {
 
     struct DummyBlocker;
     blocks.block::<DummyBlocker>();
-    assert!(blocks.is_blocked(), "Should be blocked after adding a blocker");
+    assert!(
+        blocks.is_blocked(),
+        "Should be blocked after adding a blocker"
+    );
 
     blocks.unblock::<DummyBlocker>();
-    assert!(!blocks.is_blocked(), "Should be unblocked after removing the blocker");
+    assert!(
+        !blocks.is_blocked(),
+        "Should be unblocked after removing the blocker"
+    );
 }
 
 #[test]
@@ -4263,7 +4331,10 @@ fn test_input_blocks_multiple_blockers() {
     assert!(blocks.is_blocked(), "Should still be blocked with BlockerB");
 
     blocks.unblock::<BlockerB>();
-    assert!(!blocks.is_blocked(), "Should be unblocked after removing all");
+    assert!(
+        !blocks.is_blocked(),
+        "Should be unblocked after removing all"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4285,7 +4356,10 @@ fn test_map_transition_event_carries_coordinates() {
 #[test]
 fn test_camera_snap_defaults() {
     let snap = CameraSnap::default();
-    assert_eq!(snap.frames_remaining, 0, "Camera snap should default to 0 frames remaining");
+    assert_eq!(
+        snap.frames_remaining, 0,
+        "Camera snap should default to 0 frames remaining"
+    );
 }
 
 #[test]
@@ -4322,10 +4396,16 @@ fn test_world_map_set_solid_toggles() {
     assert!(world_map.is_walkable(5, 5), "Should be walkable initially");
 
     world_map.set_solid(5, 5, true);
-    assert!(!world_map.is_walkable(5, 5), "Should be blocked after set_solid(true)");
+    assert!(
+        !world_map.is_walkable(5, 5),
+        "Should be blocked after set_solid(true)"
+    );
 
     world_map.set_solid(5, 5, false);
-    assert!(world_map.is_walkable(5, 5), "Should be walkable after set_solid(false)");
+    assert!(
+        world_map.is_walkable(5, 5),
+        "Should be walkable after set_solid(false)"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4353,20 +4433,31 @@ fn test_ecs_handle_open_crafting_populates_ui_state() {
     unlocked.ids.push("furnace".to_string());
     app.insert_resource(unlocked);
 
-    app.add_systems(Update, handle_open_crafting.run_if(in_state(GameState::Playing)));
+    app.add_systems(
+        Update,
+        handle_open_crafting.run_if(in_state(GameState::Playing)),
+    );
     enter_playing_state(&mut app);
 
     // Send OpenCraftingEvent
-    app.world_mut().send_event(OpenCraftingEvent { cooking_mode: false });
+    app.world_mut().send_event(OpenCraftingEvent {
+        cooking_mode: false,
+    });
     app.update();
 
     let ui_state = app.world().resource::<CraftingUiState>();
-    assert!(!ui_state.available_recipes.is_empty(),
-        "Opening crafting should populate available_recipes");
-    assert!(ui_state.available_recipes.contains(&"chest".to_string()),
-        "Unlocked 'chest' recipe should be in available list");
-    assert!(!ui_state.is_cooking_mode,
-        "Should be in crafting mode, not cooking");
+    assert!(
+        !ui_state.available_recipes.is_empty(),
+        "Opening crafting should populate available_recipes"
+    );
+    assert!(
+        ui_state.available_recipes.contains(&"chest".to_string()),
+        "Unlocked 'chest' recipe should be in available list"
+    );
+    assert!(
+        !ui_state.is_cooking_mode,
+        "Should be in crafting mode, not cooking"
+    );
 }
 
 #[test]
@@ -4377,7 +4468,10 @@ fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
     app.init_resource::<CraftingUiState>();
     app.add_event::<CraftItemEvent>();
 
-    app.add_systems(Update, handle_craft_item.run_if(in_state(GameState::Crafting)));
+    app.add_systems(
+        Update,
+        handle_craft_item.run_if(in_state(GameState::Crafting)),
+    );
 
     // Boot data (2 updates to load registries)
     app.update();
@@ -4388,7 +4482,9 @@ fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
     let recipe_id = "recipe_chest".to_string();
     let recipe = {
         let registry = app.world().resource::<RecipeRegistry>();
-        registry.recipes.get(&recipe_id)
+        registry
+            .recipes
+            .get(&recipe_id)
             .expect("DataPlugin should populate recipe_chest")
             .clone()
     };
@@ -4399,8 +4495,15 @@ fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
     {
         let max_stacks: Vec<_> = {
             let item_registry = app.world().resource::<ItemRegistry>();
-            recipe.ingredients.iter()
-                .map(|(item_id, _)| item_registry.get(item_id).map(|d| d.stack_size).unwrap_or(99))
+            recipe
+                .ingredients
+                .iter()
+                .map(|(item_id, _)| {
+                    item_registry
+                        .get(item_id)
+                        .map(|d| d.stack_size)
+                        .unwrap_or(99)
+                })
                 .collect()
         };
         let mut inventory = app.world_mut().resource_mut::<Inventory>();
@@ -4412,7 +4515,10 @@ fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
     // Verify ingredients present before craft
     {
         let inventory = app.world().resource::<Inventory>();
-        assert!(has_all_ingredients(&inventory, &recipe), "Pre-condition: ingredients should be present");
+        assert!(
+            has_all_ingredients(&inventory, &recipe),
+            "Pre-condition: ingredients should be present"
+        );
     }
 
     // Transition to Crafting state and send event in the same frame
@@ -4423,27 +4529,40 @@ fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
 
     // Verify we actually reached Crafting state
     let current = app.world().resource::<State<GameState>>().get().clone();
-    assert_eq!(current, GameState::Crafting,
-        "Should be in Crafting state, but in {:?}", current);
+    assert_eq!(
+        current,
+        GameState::Crafting,
+        "Should be in Crafting state, but in {:?}",
+        current
+    );
 
     // Now in Crafting — send event and tick
-    app.world_mut().send_event(CraftItemEvent { recipe_id: recipe_id.clone() });
+    app.world_mut().send_event(CraftItemEvent {
+        recipe_id: recipe_id.clone(),
+    });
     app.update(); // system runs, consumes event
 
     // Verify: ingredients consumed
     {
         let inventory = app.world().resource::<Inventory>();
-        assert!(!has_all_ingredients(&inventory, &recipe),
-            "Ingredients should be consumed after crafting");
+        assert!(
+            !has_all_ingredients(&inventory, &recipe),
+            "Ingredients should be consumed after crafting"
+        );
     }
 
     // Verify: result item in inventory
     {
         let inventory = app.world().resource::<Inventory>();
-        let has_result = inventory.slots.iter().any(|slot| {
-            slot.as_ref().map_or(false, |s| s.item_id == recipe.result)
-        });
-        assert!(has_result, "Crafted item '{}' should be in inventory", recipe.result);
+        let has_result = inventory
+            .slots
+            .iter()
+            .any(|slot| slot.as_ref().map_or(false, |s| s.item_id == recipe.result));
+        assert!(
+            has_result,
+            "Crafted item '{}' should be in inventory",
+            recipe.result
+        );
     }
 }
 
@@ -4454,7 +4573,10 @@ fn test_ecs_craft_fails_without_ingredients() {
     app.init_resource::<CraftingUiState>();
     app.add_event::<CraftItemEvent>();
 
-    app.add_systems(Update, handle_craft_item.run_if(in_state(GameState::Crafting)));
+    app.add_systems(
+        Update,
+        handle_craft_item.run_if(in_state(GameState::Crafting)),
+    );
     app.update();
     app.update();
 
@@ -4471,13 +4593,18 @@ fn test_ecs_craft_fails_without_ingredients() {
         unlocked.ids.push("recipe_chest".to_string());
     }
 
-    app.world_mut().send_event(CraftItemEvent { recipe_id: "recipe_chest".to_string() });
+    app.world_mut().send_event(CraftItemEvent {
+        recipe_id: "recipe_chest".to_string(),
+    });
     app.update();
 
     // Inventory should still be empty — craft should have failed
     let inventory = app.world().resource::<Inventory>();
     let has_any = inventory.slots.iter().any(|s| s.is_some());
-    assert!(!has_any, "Inventory should remain empty when crafting fails");
+    assert!(
+        !has_any,
+        "Inventory should remain empty when crafting fails"
+    );
 }
 
 // ── Mining: rock breaking through ECS ──────────────────────────────────────
@@ -4493,7 +4620,10 @@ fn test_ecs_rock_breaking_damages_rock_and_drains_stamina() {
     app.add_event::<RockHitEvent>();
     app.add_event::<RockDestroyedEvent>();
 
-    app.add_systems(Update, handle_rock_breaking.run_if(in_state(GameState::Playing)));
+    app.add_systems(
+        Update,
+        handle_rock_breaking.run_if(in_state(GameState::Playing)),
+    );
     enter_playing_state(&mut app);
 
     // Enable mine mode
@@ -4507,15 +4637,18 @@ fn test_ecs_rock_breaking_damages_rock_and_drains_stamina() {
     }
 
     // Spawn a rock entity at (5, 5)
-    let rock_entity = app.world_mut().spawn((
-        MineRock {
-            health: 1,
-            drop_item: "copper_ore".to_string(),
-            drop_quantity: 1,
-        },
-        MineGridPos { x: 5, y: 5 },
-        Transform::default(),
-    )).id();
+    let rock_entity = app
+        .world_mut()
+        .spawn((
+            MineRock {
+                health: 1,
+                drop_item: "copper_ore".to_string(),
+                drop_quantity: 1,
+            },
+            MineGridPos { x: 5, y: 5 },
+            Transform::default(),
+        ))
+        .id();
 
     // Send a pickaxe ToolUseEvent at (5, 5) — Basic tier does 1 damage
     app.world_mut().send_event(ToolUseEvent {
@@ -4528,20 +4661,35 @@ fn test_ecs_rock_breaking_damages_rock_and_drains_stamina() {
 
     // Rock had 1 HP, basic pickaxe does 1 damage → rock should be destroyed (despawned)
     let rock_exists = app.world().get_entity(rock_entity).is_ok();
-    assert!(!rock_exists, "Rock with 1 HP should be destroyed by 1-damage pickaxe hit");
+    assert!(
+        !rock_exists,
+        "Rock with 1 HP should be destroyed by 1-damage pickaxe hit"
+    );
 
     // Active floor should reflect the broken rock
     let floor = app.world().resource::<ActiveFloor>();
-    assert_eq!(floor.rocks_remaining, 0, "rocks_remaining should be 0 after breaking the only rock");
-    assert_eq!(floor.rocks_broken_this_floor, 1, "rocks_broken should increment");
+    assert_eq!(
+        floor.rocks_remaining, 0,
+        "rocks_remaining should be 0 after breaking the only rock"
+    );
+    assert_eq!(
+        floor.rocks_broken_this_floor, 1,
+        "rocks_broken should increment"
+    );
 
     // Stamina drain event should have been sent (4.0 for Basic pickaxe)
     let stamina_events = app.world().resource::<Events<StaminaDrainEvent>>();
     let mut reader = stamina_events.get_cursor();
     let events: Vec<_> = reader.read(stamina_events).collect();
-    assert!(!events.is_empty(), "StaminaDrainEvent should be sent on rock hit");
-    assert!((events[0].amount - 4.0).abs() < f32::EPSILON,
-        "Basic pickaxe stamina cost should be 4.0, got {}", events[0].amount);
+    assert!(
+        !events.is_empty(),
+        "StaminaDrainEvent should be sent on rock hit"
+    );
+    assert!(
+        (events[0].amount - 4.0).abs() < f32::EPSILON,
+        "Basic pickaxe stamina cost should be 4.0, got {}",
+        events[0].amount
+    );
 }
 
 #[test]
@@ -4553,7 +4701,10 @@ fn test_ecs_rock_breaking_survives_higher_hp() {
     app.add_event::<RockHitEvent>();
     app.add_event::<RockDestroyedEvent>();
 
-    app.add_systems(Update, handle_rock_breaking.run_if(in_state(GameState::Playing)));
+    app.add_systems(
+        Update,
+        handle_rock_breaking.run_if(in_state(GameState::Playing)),
+    );
     enter_playing_state(&mut app);
 
     app.world_mut().resource_mut::<InMine>().0 = true;
@@ -4564,15 +4715,18 @@ fn test_ecs_rock_breaking_survives_higher_hp() {
     }
 
     // Spawn rock with 3 HP (iridium ore)
-    let rock_entity = app.world_mut().spawn((
-        MineRock {
-            health: 3,
-            drop_item: "iridium_ore".to_string(),
-            drop_quantity: 1,
-        },
-        MineGridPos { x: 3, y: 3 },
-        Transform::default(),
-    )).id();
+    let rock_entity = app
+        .world_mut()
+        .spawn((
+            MineRock {
+                health: 3,
+                drop_item: "iridium_ore".to_string(),
+                drop_quantity: 1,
+            },
+            MineGridPos { x: 3, y: 3 },
+            Transform::default(),
+        ))
+        .id();
 
     // Hit with Basic pickaxe (1 damage) — rock should survive
     app.world_mut().send_event(ToolUseEvent {
@@ -4592,7 +4746,10 @@ fn test_ecs_rock_breaking_survives_higher_hp() {
 
     // rocks_remaining should NOT have changed (rock survived)
     let floor = app.world().resource::<ActiveFloor>();
-    assert_eq!(floor.rocks_remaining, 1, "Rock survived, rocks_remaining unchanged");
+    assert_eq!(
+        floor.rocks_remaining, 1,
+        "Rock survived, rocks_remaining unchanged"
+    );
 }
 
 #[test]
@@ -4604,19 +4761,25 @@ fn test_ecs_rock_breaking_skipped_outside_mine() {
     app.add_event::<RockHitEvent>();
     app.add_event::<RockDestroyedEvent>();
 
-    app.add_systems(Update, handle_rock_breaking.run_if(in_state(GameState::Playing)));
+    app.add_systems(
+        Update,
+        handle_rock_breaking.run_if(in_state(GameState::Playing)),
+    );
     enter_playing_state(&mut app);
 
     // InMine is false by default — rock breaking should be skipped
-    let rock_entity = app.world_mut().spawn((
-        MineRock {
-            health: 1,
-            drop_item: "copper_ore".to_string(),
-            drop_quantity: 1,
-        },
-        MineGridPos { x: 5, y: 5 },
-        Transform::default(),
-    )).id();
+    let rock_entity = app
+        .world_mut()
+        .spawn((
+            MineRock {
+                health: 1,
+                drop_item: "copper_ore".to_string(),
+                drop_quantity: 1,
+            },
+            MineGridPos { x: 5, y: 5 },
+            Transform::default(),
+        ))
+        .id();
 
     app.world_mut().send_event(ToolUseEvent {
         tool: ToolKind::Pickaxe,
@@ -4674,16 +4837,22 @@ fn test_ecs_player_movement_blocked_by_solid_tile() {
     let mut app = build_movement_test_app();
 
     // Add a wall at grid (6, 5)
-    app.world_mut().resource_mut::<CollisionMap>().solid_tiles.insert((6, 5));
+    app.world_mut()
+        .resource_mut::<CollisionMap>()
+        .solid_tiles
+        .insert((6, 5));
 
     // Place player at right edge of grid (5, 5), facing right toward wall
     // grid 6 starts at world x = 6*16 = 96, so place at x=95.5 (almost there)
-    let player_entity = app.world_mut().spawn((
-        Player,
-        LogicalPosition(Vec2::new(95.5, 88.0)),
-        PlayerMovement::default(),
-        GridPosition::new(5, 5),
-    )).id();
+    let player_entity = app
+        .world_mut()
+        .spawn((
+            Player,
+            LogicalPosition(Vec2::new(95.5, 88.0)),
+            PlayerMovement::default(),
+            GridPosition::new(5, 5),
+        ))
+        .id();
 
     // Push right toward wall
     app.world_mut().resource_mut::<PlayerInput>().move_axis = Vec2::new(1.0, 0.0);
@@ -4694,9 +4863,16 @@ fn test_ecs_player_movement_blocked_by_solid_tile() {
     }
 
     // Player grid should not reach 6 (the solid tile)
-    let grid = app.world().entity(player_entity).get::<GridPosition>().unwrap();
-    assert!(grid.x <= 5,
-        "Player should be blocked at grid x<=5, but reached x={}", grid.x);
+    let grid = app
+        .world()
+        .entity(player_entity)
+        .get::<GridPosition>()
+        .unwrap();
+    assert!(
+        grid.x <= 5,
+        "Player should be blocked at grid x<=5, but reached x={}",
+        grid.x
+    );
 }
 
 #[test]
@@ -4704,28 +4880,45 @@ fn test_ecs_player_movement_walks_on_open_tile() {
     let mut app = build_movement_test_app();
 
     // No solid tiles — path is clear
-    let player_entity = app.world_mut().spawn((
-        Player,
-        LogicalPosition(Vec2::new(88.0, 88.0)),
-        PlayerMovement::default(),
-        GridPosition::new(5, 5),
-    )).id();
+    let player_entity = app
+        .world_mut()
+        .spawn((
+            Player,
+            LogicalPosition(Vec2::new(88.0, 88.0)),
+            PlayerMovement::default(),
+            GridPosition::new(5, 5),
+        ))
+        .id();
 
     app.world_mut().resource_mut::<PlayerInput>().move_axis = Vec2::new(1.0, 0.0);
 
     // Record starting logical position
-    let start_x = app.world().entity(player_entity)
-        .get::<LogicalPosition>().unwrap().0.x;
+    let start_x = app
+        .world()
+        .entity(player_entity)
+        .get::<LogicalPosition>()
+        .unwrap()
+        .0
+        .x;
 
     for _ in 0..500 {
         app.update();
     }
 
     // Verify logical position advanced (even if not a full grid cell)
-    let end_x = app.world().entity(player_entity)
-        .get::<LogicalPosition>().unwrap().0.x;
-    assert!(end_x > start_x,
-        "Player should have moved right (start_x={}, end_x={})", start_x, end_x);
+    let end_x = app
+        .world()
+        .entity(player_entity)
+        .get::<LogicalPosition>()
+        .unwrap()
+        .0
+        .x;
+    assert!(
+        end_x > start_x,
+        "Player should have moved right (start_x={}, end_x={})",
+        start_x,
+        end_x
+    );
 }
 
 #[test]
@@ -4734,29 +4927,48 @@ fn test_ecs_player_movement_blocked_by_input_blocks() {
 
     // Block input
     struct TestBlocker;
-    app.world_mut().resource_mut::<InputBlocks>().block::<TestBlocker>();
+    app.world_mut()
+        .resource_mut::<InputBlocks>()
+        .block::<TestBlocker>();
 
-    let player_entity = app.world_mut().spawn((
-        Player,
-        LogicalPosition(Vec2::new(88.0, 88.0)),
-        PlayerMovement::default(),
-        GridPosition::new(5, 5),
-    )).id();
+    let player_entity = app
+        .world_mut()
+        .spawn((
+            Player,
+            LogicalPosition(Vec2::new(88.0, 88.0)),
+            PlayerMovement::default(),
+            GridPosition::new(5, 5),
+        ))
+        .id();
 
     app.world_mut().resource_mut::<PlayerInput>().move_axis = Vec2::new(1.0, 0.0);
 
-    let start_x = app.world().entity(player_entity)
-        .get::<LogicalPosition>().unwrap().0.x;
+    let start_x = app
+        .world()
+        .entity(player_entity)
+        .get::<LogicalPosition>()
+        .unwrap()
+        .0
+        .x;
 
     for _ in 0..100 {
         app.update();
     }
 
     // Should NOT have moved
-    let end_x = app.world().entity(player_entity)
-        .get::<LogicalPosition>().unwrap().0.x;
-    assert!((end_x - start_x).abs() < f32::EPSILON,
-        "Player should not move when input blocked (start={}, end={})", start_x, end_x);
+    let end_x = app
+        .world()
+        .entity(player_entity)
+        .get::<LogicalPosition>()
+        .unwrap()
+        .0
+        .x;
+    assert!(
+        (end_x - start_x).abs() < f32::EPSILON,
+        "Player should not move when input blocked (start={}, end={})",
+        start_x,
+        end_x
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4783,10 +4995,14 @@ fn test_refund_ingredients_logs_overflow_on_full_inventory() {
     refund_ingredients(&mut inventory, &recipe, &registry);
 
     // Inventory should still be full of stone (refund couldn't fit wood)
-    let all_stone = inventory.slots.iter().all(|s| {
-        s.as_ref().map_or(false, |s| s.item_id == "stone")
-    });
-    assert!(all_stone, "Original items should remain — refund overflows gracefully");
+    let all_stone = inventory
+        .slots
+        .iter()
+        .all(|s| s.as_ref().map_or(false, |s| s.item_id == "stone"));
+    assert!(
+        all_stone,
+        "Original items should remain — refund overflows gracefully"
+    );
 }
 
 /// Regression: consuming/refunding ingredients preserves inventory consistency.
@@ -4810,8 +5026,10 @@ fn test_consume_then_refund_roundtrips_ingredients() {
 
     // Refund ingredients
     refund_ingredients(&mut inventory, &recipe, &registry);
-    assert!(has_all_ingredients(&inventory, &recipe),
-        "Refund should restore ingredients to pre-consume state");
+    assert!(
+        has_all_ingredients(&inventory, &recipe),
+        "Refund should restore ingredients to pre-consume state"
+    );
 }
 
 /// Regression: UTF-8 safe truncation doesn't panic on any item name length.
@@ -4819,16 +5037,16 @@ fn test_consume_then_refund_roundtrips_ingredients() {
 fn test_string_truncation_safety() {
     // Simulate the truncation logic used in chest_screen / inventory_screen / calendar_screen
     let cases = vec![
-        "",          // empty
-        "A",         // single char
-        "Wood",      // short name
+        "",                        // empty
+        "A",                       // single char
+        "Wood",                    // short name
         "Iridium Sprinkler Mk II", // long name (24 chars)
-        "こんにちは世界です",  // multi-byte UTF-8
-        "ab",        // 2 chars
-        "abcde",     // exactly 5 chars
-        "abcdef",    // exactly 6 chars
-        "abcdefghijklmnopqrst", // exactly 20 chars
-        "abcdefghijklmnopqrstu", // 21 chars (triggers truncation)
+        "こんにちは世界です",      // multi-byte UTF-8
+        "ab",                      // 2 chars
+        "abcde",                   // exactly 5 chars
+        "abcdef",                  // exactly 6 chars
+        "abcdefghijklmnopqrst",    // exactly 20 chars
+        "abcdefghijklmnopqrstu",   // 21 chars (triggers truncation)
     ];
 
     for name in &cases {
@@ -4890,14 +5108,19 @@ fn test_craft_full_inventory_no_item_duplication() {
     }
     // Last slot empty → can fit 1 chest but not all 5 (stack_size check)
 
-    let total_before: u32 = inventory.slots.iter()
+    let total_before: u32 = inventory
+        .slots
+        .iter()
         .filter_map(|s| s.as_ref())
         .map(|s| s.quantity as u32)
         .sum();
 
     // Simulate the FIXED craft path from bench.rs
     consume_ingredients(&mut inventory, &recipe);
-    let max_stack = registry.get(&recipe.result).map(|d| d.stack_size).unwrap_or(99);
+    let max_stack = registry
+        .get(&recipe.result)
+        .map(|d| d.stack_size)
+        .unwrap_or(99);
     let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
 
     if leftover > 0 {
@@ -4909,7 +5132,9 @@ fn test_craft_full_inventory_no_item_duplication() {
         refund_ingredients(&mut inventory, &recipe, &registry);
     }
 
-    let total_after: u32 = inventory.slots.iter()
+    let total_after: u32 = inventory
+        .slots
+        .iter()
         .filter_map(|s| s.as_ref())
         .map(|s| s.quantity as u32)
         .sum();
@@ -4929,14 +5154,21 @@ fn test_craft_full_inventory_no_item_duplication() {
 fn test_starter_items_include_hoe() {
     let mut app = build_test_app();
     app.add_plugins(DataPlugin);
-    app.add_systems(Startup, hearthfield::player::interaction::grant_starter_items);
+    app.add_systems(
+        Startup,
+        hearthfield::player::interaction::grant_starter_items,
+    );
     app.update();
 
     let inventory = app.world().resource::<Inventory>();
-    let has_hoe = inventory.slots.iter().any(|s| {
-        s.as_ref().map_or(false, |slot| slot.item_id == "hoe")
-    });
-    assert!(has_hoe, "Starter items must include a hoe for the farming critical path");
+    let has_hoe = inventory
+        .slots
+        .iter()
+        .any(|s| s.as_ref().map_or(false, |slot| slot.item_id == "hoe"));
+    assert!(
+        has_hoe,
+        "Starter items must include a hoe for the farming critical path"
+    );
 }
 
 /// Graduate: starter items include seeds for immediate planting.
@@ -4944,14 +5176,21 @@ fn test_starter_items_include_hoe() {
 fn test_starter_items_include_seeds() {
     let mut app = build_test_app();
     app.add_plugins(DataPlugin);
-    app.add_systems(Startup, hearthfield::player::interaction::grant_starter_items);
+    app.add_systems(
+        Startup,
+        hearthfield::player::interaction::grant_starter_items,
+    );
     app.update();
 
     let inventory = app.world().resource::<Inventory>();
     let has_seeds = inventory.slots.iter().any(|s| {
-        s.as_ref().map_or(false, |slot| slot.item_id.ends_with("_seeds"))
+        s.as_ref()
+            .map_or(false, |slot| slot.item_id.ends_with("_seeds"))
     });
-    assert!(has_seeds, "Starter items must include seeds for the farming loop");
+    assert!(
+        has_seeds,
+        "Starter items must include seeds for the farming loop"
+    );
 }
 
 /// Graduate: season validation blocks planting out-of-season crops.
@@ -4970,14 +5209,22 @@ fn test_season_validation_blocks_wrong_season_crop() {
         sprite_stages: vec![0, 1, 2],
     };
 
-    assert!(crop_can_grow_in_season(&spring_crop, Season::Spring),
-        "Spring crop must grow in Spring");
-    assert!(!crop_can_grow_in_season(&spring_crop, Season::Summer),
-        "Spring crop must NOT grow in Summer");
-    assert!(!crop_can_grow_in_season(&spring_crop, Season::Fall),
-        "Spring crop must NOT grow in Fall");
-    assert!(!crop_can_grow_in_season(&spring_crop, Season::Winter),
-        "Spring crop must NOT grow in Winter");
+    assert!(
+        crop_can_grow_in_season(&spring_crop, Season::Spring),
+        "Spring crop must grow in Spring"
+    );
+    assert!(
+        !crop_can_grow_in_season(&spring_crop, Season::Summer),
+        "Spring crop must NOT grow in Summer"
+    );
+    assert!(
+        !crop_can_grow_in_season(&spring_crop, Season::Fall),
+        "Spring crop must NOT grow in Fall"
+    );
+    assert!(
+        !crop_can_grow_in_season(&spring_crop, Season::Winter),
+        "Spring crop must NOT grow in Winter"
+    );
 }
 
 /// Graduate: multi-season crops grow in all listed seasons.
@@ -5023,19 +5270,28 @@ fn test_season_change_kills_out_of_season_crops() {
     crop_registry.crops.insert("turnip".into(), spring_only);
 
     // Plant in spring
-    farm_state.crops.insert((5, 5), CropTile {
-        crop_id: "turnip".into(),
-        current_stage: 1,
-        days_in_stage: 0,
-        watered_today: false,
-        dead: false,
-        days_without_water: 0,
-    });
+    farm_state.crops.insert(
+        (5, 5),
+        CropTile {
+            crop_id: "turnip".into(),
+            current_stage: 1,
+            days_in_stage: 0,
+            watered_today: false,
+            dead: false,
+            days_without_water: 0,
+        },
+    );
 
     // Advance in summer — should kill the spring crop
     let _updated = advance_crop_growth(&mut farm_state, &crop_registry, Season::Summer, false);
-    let crop = farm_state.crops.get(&(5, 5)).expect("crop tile should still exist");
-    assert!(crop.dead, "Spring crop must die when season changes to Summer");
+    let crop = farm_state
+        .crops
+        .get(&(5, 5))
+        .expect("crop tile should still exist");
+    assert!(
+        crop.dead,
+        "Spring crop must die when season changes to Summer"
+    );
 }
 
 /// Graduate: save/load preserves current map identity.
@@ -5049,7 +5305,11 @@ fn test_save_roundtrip_preserves_current_map() {
     let json = serde_json::to_string(&state).expect("serialize PlayerState");
     let loaded: PlayerState = serde_json::from_str(&json).expect("deserialize PlayerState");
 
-    assert_eq!(loaded.current_map, MapId::Town, "current_map must survive save/load");
+    assert_eq!(
+        loaded.current_map,
+        MapId::Town,
+        "current_map must survive save/load"
+    );
     assert_eq!(loaded.save_grid_x, 42, "save_grid_x must survive save/load");
     assert_eq!(loaded.save_grid_y, 17, "save_grid_y must survive save/load");
 }
@@ -5061,13 +5321,25 @@ fn test_collision_map_solid_and_walkable() {
     cm.solid_tiles.insert((5, 5));
     cm.solid_tiles.insert((6, 5));
 
-    assert!(cm.solid_tiles.contains(&(5, 5)), "tile (5,5) should be solid");
-    assert!(cm.solid_tiles.contains(&(6, 5)), "tile (6,5) should be solid");
-    assert!(!cm.solid_tiles.contains(&(7, 5)), "tile (7,5) should be walkable");
+    assert!(
+        cm.solid_tiles.contains(&(5, 5)),
+        "tile (5,5) should be solid"
+    );
+    assert!(
+        cm.solid_tiles.contains(&(6, 5)),
+        "tile (6,5) should be solid"
+    );
+    assert!(
+        !cm.solid_tiles.contains(&(7, 5)),
+        "tile (7,5) should be walkable"
+    );
 
     // Simulate door carve-out
     cm.solid_tiles.remove(&(5, 5));
-    assert!(!cm.solid_tiles.contains(&(5, 5)), "door tile should be walkable after removal");
+    assert!(
+        !cm.solid_tiles.contains(&(5, 5)),
+        "door tile should be walkable after removal"
+    );
 }
 
 /// Graduate: empty-season crops grow in any season (wildcard).
@@ -5113,16 +5385,24 @@ fn test_all_item_sprite_indices_within_atlas() {
     for (id, def) in &registry.items {
         let idx = def.sprite_index as usize;
         if idx >= max_index {
-            failures.push(format!("{id}: sprite_index={idx} exceeds atlas capacity {max_index}"));
+            failures.push(format!(
+                "{id}: sprite_index={idx} exceeds atlas capacity {max_index}"
+            ));
         }
         // Verify item_icon_index returns the actual index, not a fallback
         let mapped = item_icon_index(def.sprite_index);
         if mapped != idx && idx < max_index {
-            failures.push(format!("{id}: item_icon_index returned {mapped} instead of {idx}"));
+            failures.push(format!(
+                "{id}: item_icon_index returned {mapped} instead of {idx}"
+            ));
         }
     }
 
-    assert!(failures.is_empty(), "Item sprite index failures:\n{}", failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "Item sprite index failures:\n{}",
+        failures.join("\n")
+    );
 }
 
 /// item_icon_index must pass through valid indices and only clamp out-of-bounds.
@@ -5149,15 +5429,24 @@ fn test_item_icon_index_passthrough() {
 fn test_barn_animal_pen_not_on_building() {
     let barn_building_max_y = 18.0 * TILE_SIZE;
 
-    for kind in [AnimalKind::Cow, AnimalKind::Sheep, AnimalKind::Goat, AnimalKind::Pig] {
+    for kind in [
+        AnimalKind::Cow,
+        AnimalKind::Sheep,
+        AnimalKind::Goat,
+        AnimalKind::Pig,
+    ] {
         let (pen_min, pen_max) = pen_bounds_for(kind);
         assert!(
             pen_min.y > barn_building_max_y,
             "{kind:?} pen min_y ({}) overlaps barn building (max {})",
-            pen_min.y, barn_building_max_y
+            pen_min.y,
+            barn_building_max_y
         );
         // Pen should be within farm bounds (row < 24)
-        assert!(pen_max.y <= 23.0 * TILE_SIZE, "{kind:?} pen exceeds farm south edge");
+        assert!(
+            pen_max.y <= 23.0 * TILE_SIZE,
+            "{kind:?} pen exceeds farm south edge"
+        );
     }
 }
 
@@ -5171,9 +5460,13 @@ fn test_coop_animal_pen_not_on_building() {
         assert!(
             pen_min.y > coop_building_max_y,
             "{kind:?} pen min_y ({}) overlaps coop building (max {})",
-            pen_min.y, coop_building_max_y
+            pen_min.y,
+            coop_building_max_y
         );
-        assert!(pen_max.y <= 23.0 * TILE_SIZE, "{kind:?} pen exceeds farm south edge");
+        assert!(
+            pen_max.y <= 23.0 * TILE_SIZE,
+            "{kind:?} pen exceeds farm south edge"
+        );
     }
 }
 
@@ -5185,7 +5478,10 @@ fn test_pet_roam_area_reasonable() {
         let width = (pen_max.x - pen_min.x) / TILE_SIZE;
         let height = (pen_max.y - pen_min.y) / TILE_SIZE;
         assert!(width >= 8.0, "{kind:?} roam area too narrow: {width} tiles");
-        assert!(height >= 6.0, "{kind:?} roam area too short: {height} tiles");
+        assert!(
+            height >= 6.0,
+            "{kind:?} roam area too short: {height} tiles"
+        );
     }
 }
 
@@ -5197,7 +5493,9 @@ fn test_pet_roam_area_reasonable() {
 #[test]
 fn test_beehouse_rejects_invalid_input() {
     // These should NOT produce honey
-    for bad_input in ["wood", "stone", "iron_ore", "gold_ore", "fiber", "coal", "egg", "milk"] {
+    for bad_input in [
+        "wood", "stone", "iron_ore", "gold_ore", "fiber", "coal", "egg", "milk",
+    ] {
         let result = resolve_machine_output(MachineType::BeeHouse, bad_input);
         assert!(
             result.is_none(),
@@ -5221,10 +5519,7 @@ fn test_beehouse_accepts_valid_input() {
 #[test]
 fn test_quest_expiration_correct_day_count() {
     let mut app = build_test_app();
-    app.add_systems(
-        Update,
-        expire_quests.run_if(in_state(GameState::Playing)),
-    );
+    app.add_systems(Update, expire_quests.run_if(in_state(GameState::Playing)));
     enter_playing_state(&mut app);
 
     // Add a quest with 3 days remaining
@@ -5235,19 +5530,31 @@ fn test_quest_expiration_correct_day_count() {
         .push(quest);
 
     // Day 1: quest should survive (2 days left)
-    app.world_mut().send_event(DayEndEvent { day: 1, season: Season::Spring, year: 1 });
+    app.world_mut().send_event(DayEndEvent {
+        day: 1,
+        season: Season::Spring,
+        year: 1,
+    });
     app.update();
     let log = app.world().resource::<QuestLog>();
     assert_eq!(log.active.len(), 1, "Quest should survive day 1");
 
     // Day 2: quest should survive (1 day left)
-    app.world_mut().send_event(DayEndEvent { day: 2, season: Season::Spring, year: 1 });
+    app.world_mut().send_event(DayEndEvent {
+        day: 2,
+        season: Season::Spring,
+        year: 1,
+    });
     app.update();
     let log = app.world().resource::<QuestLog>();
     assert_eq!(log.active.len(), 1, "Quest should survive day 2");
 
     // Day 3: quest expires (0 days left)
-    app.world_mut().send_event(DayEndEvent { day: 3, season: Season::Spring, year: 1 });
+    app.world_mut().send_event(DayEndEvent {
+        day: 3,
+        season: Season::Spring,
+        year: 1,
+    });
     app.update();
     let log = app.world().resource::<QuestLog>();
     assert_eq!(log.active.len(), 0, "Quest should expire on day 3");
@@ -5366,8 +5673,11 @@ fn test_snow_mountain_has_rich_objects() {
         data.objects.len()
     );
     // Verify object variety — should have at least 3 distinct kinds
-    let kinds: std::collections::HashSet<_> =
-        data.objects.iter().map(|o| format!("{:?}", o.kind)).collect();
+    let kinds: std::collections::HashSet<_> = data
+        .objects
+        .iter()
+        .map(|o| format!("{:?}", o.kind))
+        .collect();
     assert!(
         kinds.len() >= 3,
         "SnowMountain should have at least 3 distinct object kinds, got {:?}",
@@ -5416,6 +5726,197 @@ fn test_snow_mountain_reachable_from_mine_entrance() {
     assert!(
         snow.edges.south.is_some(),
         "SnowMountain must have a south edge"
+    );
+}
+
+#[test]
+fn test_town_west_map_registered_and_reachable_from_town() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let town = registry
+        .maps
+        .get(&MapId::Town)
+        .expect("Town must be in MapRegistry");
+    let (target_map, _) = town
+        .edges
+        .west
+        .as_ref()
+        .expect("Town west edge must lead somewhere");
+    assert_eq!(
+        *target_map,
+        MapId::TownWest,
+        "Town west edge should lead to TownWest"
+    );
+
+    let town_west = registry
+        .maps
+        .get(&MapId::TownWest)
+        .expect("TownWest must be in MapRegistry");
+    assert_eq!(town_west.id, MapId::TownWest);
+    assert_eq!(town_west.width, 16);
+    assert_eq!(town_west.height, 22);
+
+    let (return_map, _) = town_west
+        .edges
+        .east
+        .as_ref()
+        .expect("TownWest east edge must lead somewhere");
+    assert_eq!(
+        *return_map,
+        MapId::Town,
+        "TownWest east edge should lead back to Town"
+    );
+}
+
+#[test]
+fn test_town_houses_are_accessed_from_town_west_not_town() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let town = registry
+        .maps
+        .get(&MapId::Town)
+        .expect("Town must be in MapRegistry");
+    assert!(
+        !town
+            .doors
+            .iter()
+            .any(|door| matches!(door.to_map, MapId::TownHouseWest | MapId::TownHouseEast)),
+        "Town should no longer own the town house doors"
+    );
+
+    let town_west = registry
+        .maps
+        .get(&MapId::TownWest)
+        .expect("TownWest must be in MapRegistry");
+    assert!(
+        town_west
+            .doors
+            .iter()
+            .any(|door| door.to_map == MapId::TownHouseWest),
+        "TownWest should own the TownHouseWest door"
+    );
+    assert!(
+        town_west
+            .doors
+            .iter()
+            .any(|door| door.to_map == MapId::TownHouseEast),
+        "TownWest should own the TownHouseEast door"
+    );
+
+    let house_west = registry
+        .maps
+        .get(&MapId::TownHouseWest)
+        .expect("TownHouseWest must be in MapRegistry");
+    let (house_west_return, _) = house_west
+        .edges
+        .north
+        .as_ref()
+        .expect("TownHouseWest must lead back outside");
+    assert_eq!(
+        *house_west_return,
+        MapId::TownWest,
+        "TownHouseWest should return to TownWest"
+    );
+
+    let house_east = registry
+        .maps
+        .get(&MapId::TownHouseEast)
+        .expect("TownHouseEast must be in MapRegistry");
+    let (house_east_return, _) = house_east
+        .edges
+        .north
+        .as_ref()
+        .expect("TownHouseEast must lead back outside");
+    assert_eq!(
+        *house_east_return,
+        MapId::TownWest,
+        "TownHouseEast should return to TownWest"
+    );
+}
+
+#[test]
+fn test_residential_starter_residents_have_housed_home_entries() {
+    let mut registry = NpcRegistry::default();
+    hearthfield::data::npcs::populate_npcs(&mut registry);
+
+    let housed = [
+        ("doc", MapId::TownHouseWest),
+        ("mira", MapId::TownHouseWest),
+        ("old_tom", MapId::TownHouseEast),
+        ("sam", MapId::TownHouseEast),
+    ];
+
+    for &(npc_id, home_map) in &housed {
+        let base_schedule = registry
+            .schedules
+            .get(npc_id)
+            .unwrap_or_else(|| panic!("{npc_id} must have a base schedule"));
+        let base_has_home = base_schedule
+            .weekday
+            .iter()
+            .chain(base_schedule.weekend.iter())
+            .chain(
+                base_schedule
+                    .rain_override
+                    .iter()
+                    .flat_map(|entries| entries.iter()),
+            )
+            .any(|entry| entry.map == home_map);
+        assert!(
+            base_has_home,
+            "{npc_id} should have at least one base schedule entry on {:?}",
+            home_map
+        );
+
+        let enhanced = hearthfield::npcs::schedules::enhanced_schedule(npc_id, Season::Spring)
+            .unwrap_or_else(|| panic!("{npc_id} must have an enhanced schedule"));
+        assert!(
+            enhanced.weekday.iter().any(|entry| entry.map == home_map),
+            "{npc_id} should have a weekday home entry on {:?}",
+            home_map
+        );
+        assert!(
+            enhanced.weekend.iter().any(|entry| entry.map == home_map),
+            "{npc_id} should have a weekend home entry on {:?}",
+            home_map
+        );
+        assert!(
+            enhanced
+                .rain_override
+                .as_ref()
+                .expect("enhanced schedules should keep rain overrides")
+                .iter()
+                .any(|entry| entry.map == home_map),
+            "{npc_id} should have a rainy-day home entry on {:?}",
+            home_map
+        );
+        assert!(
+            enhanced
+                .festival_override
+                .as_ref()
+                .expect("enhanced schedules should keep festival overrides")
+                .iter()
+                .any(|entry| entry.map == home_map),
+            "{npc_id} should still return home to {:?} on festival days",
+            home_map
+        );
+    }
+}
+
+#[test]
+fn test_farm_west_still_routes_to_mine_entrance() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let farm = registry
+        .maps
+        .get(&MapId::Farm)
+        .expect("Farm must be in MapRegistry");
+    let (target_map, _) = farm
+        .edges
+        .west
+        .as_ref()
+        .expect("Farm west edge must lead somewhere");
+    assert_eq!(
+        *target_map,
+        MapId::MineEntrance,
+        "Farm west edge should still lead to MineEntrance"
     );
 }
 
@@ -5509,12 +6010,7 @@ fn test_snow_mountain_has_large_rocks() {
     let large_rock_count = data
         .objects
         .iter()
-        .filter(|o| {
-            matches!(
-                o.kind,
-                hearthfield::world::maps::WorldObjectKind::LargeRock
-            )
-        })
+        .filter(|o| matches!(o.kind, hearthfield::world::maps::WorldObjectKind::LargeRock))
         .count();
     assert!(
         large_rock_count >= 8,
@@ -5558,13 +6054,300 @@ fn test_snow_mountain_spawn_is_walkable() {
     let idx = sy as usize * data.width + sx as usize;
     let tile = &data.tiles[idx];
     assert!(
-        !matches!(
-            tile,
-            TileKind::Water | TileKind::Stone
-        ),
+        !matches!(tile, TileKind::Water | TileKind::Stone),
         "SnowMountain spawn tile at ({},{}) must be walkable, got {:?}",
         sx,
         sy,
         tile
+    );
+}
+
+fn assert_approx_f32(actual: f32, expected: f32, context: &str) {
+    assert!(
+        (actual - expected).abs() < 0.001,
+        "{}: expected {}, got {}",
+        context,
+        expected,
+        actual
+    );
+}
+
+fn build_weather_test_app(current_map: MapId) -> App {
+    let mut app = build_test_app();
+    app.init_resource::<PreviousWeather>()
+        .init_resource::<WeatherParticleCounts>()
+        .init_resource::<WeatherSprites>()
+        .insert_resource(Assets::<Image>::default());
+
+    {
+        let mut calendar = app.world_mut().resource_mut::<Calendar>();
+        calendar.weather = Weather::Rainy;
+    }
+    {
+        let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+        player_state.current_map = current_map;
+    }
+
+    app.world_mut()
+        .spawn((Camera2d, Transform::from_scale(Vec3::ONE)));
+    app
+}
+
+#[test]
+fn test_library_and_tavern_use_indoor_lighting_tint() {
+    for map in [MapId::Library, MapId::Tavern] {
+        let mut app = build_test_app();
+        app.init_resource::<DayNightTint>();
+        app.add_systems(Update, update_day_night_tint);
+
+        {
+            let mut calendar = app.world_mut().resource_mut::<Calendar>();
+            calendar.hour = 22;
+            calendar.minute = 0;
+        }
+        {
+            let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+            player_state.current_map = map;
+        }
+
+        let overlay = app
+            .world_mut()
+            .spawn((
+                DayNightOverlay,
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+            ))
+            .id();
+
+        app.update();
+
+        let tint = app.world().resource::<DayNightTint>();
+        assert_approx_f32(
+            tint.intensity,
+            0.04,
+            "indoor lighting intensity should match other interiors",
+        );
+        assert_approx_f32(tint.tint.0, 1.0, "indoor lighting red channel");
+        assert_approx_f32(tint.tint.1, 0.97, "indoor lighting green channel");
+        assert_approx_f32(tint.tint.2, 0.92, "indoor lighting blue channel");
+
+        let overlay = app
+            .world()
+            .get::<BackgroundColor>(overlay)
+            .expect("day/night overlay should still exist");
+        let [r, g, b, a] = overlay.0.to_srgba().to_f32_array();
+        assert_approx_f32(r, 0.95, "indoor overlay red channel");
+        assert_approx_f32(g, 0.85, "indoor overlay green channel");
+        assert_approx_f32(b, 0.55, "indoor overlay blue channel");
+        assert_approx_f32(a, 0.04, "indoor overlay alpha");
+    }
+}
+
+#[test]
+fn test_library_and_tavern_suppress_and_cleanup_weather_particles() {
+    for map in [MapId::Library, MapId::Tavern] {
+        let mut cleanup_app = build_weather_test_app(map);
+        cleanup_app.add_systems(Update, cleanup_weather_on_change);
+        cleanup_app.world_mut().spawn(RainDrop { speed: 240.0 });
+        cleanup_app
+            .world_mut()
+            .resource_mut::<PreviousWeather>()
+            .weather = Weather::Rainy;
+        cleanup_app
+            .world_mut()
+            .resource_mut::<WeatherParticleCounts>()
+            .rain = 1;
+
+        cleanup_app.update();
+
+        let cleanup_counts = cleanup_app.world().resource::<WeatherParticleCounts>();
+        assert_eq!(
+            cleanup_counts.rain, 0,
+            "{:?} should clear existing rain when treated as an interior",
+            map
+        );
+        assert_eq!(cleanup_counts.snow, 0);
+
+        let mut spawn_app = build_weather_test_app(map);
+        spawn_app.add_systems(Update, spawn_weather_particles);
+
+        spawn_app.update();
+
+        let spawn_counts = spawn_app.world().resource::<WeatherParticleCounts>();
+        assert_eq!(
+            spawn_counts.rain, 0,
+            "{:?} should not spawn rain particles indoors",
+            map
+        );
+        assert_eq!(
+            spawn_counts.snow, 0,
+            "{:?} should not spawn snow particles indoors",
+            map
+        );
+    }
+}
+
+#[test]
+fn test_tutorial_later_day_objectives_initialize_after_day1_completion() {
+    let mut app = build_test_app();
+    app.init_resource::<TutorialState>();
+    app.add_systems(Update, hearthfield::ui::tutorial::check_objectives);
+    enter_playing_state(&mut app);
+
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("exit_house"),
+        "Day 1 should start with the exit_house objective"
+    );
+
+    {
+        let mut player = app.world_mut().resource_mut::<PlayerState>();
+        player.current_map = MapId::Farm;
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("till_soil"),
+        "Leaving the house should advance to till_soil"
+    );
+
+    {
+        let mut farm = app.world_mut().resource_mut::<FarmState>();
+        farm.soil.insert((2, 2), SoilState::Tilled);
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("plant_seeds"),
+        "Tilling soil should advance to plant_seeds"
+    );
+
+    {
+        let mut farm = app.world_mut().resource_mut::<FarmState>();
+        farm.crops.insert(
+            (2, 2),
+            CropTile {
+                crop_id: "turnip".to_string(),
+                current_stage: 0,
+                days_in_stage: 0,
+                watered_today: false,
+                days_without_water: 0,
+                dead: false,
+            },
+        );
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("water_crops"),
+        "Planting seeds should advance to water_crops"
+    );
+
+    {
+        let mut farm = app.world_mut().resource_mut::<FarmState>();
+        farm.soil.insert((2, 2), SoilState::Watered);
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("visit_town"),
+        "Watering crops should advance to visit_town"
+    );
+
+    {
+        let mut player = app.world_mut().resource_mut::<PlayerState>();
+        player.current_map = MapId::Town;
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("go_to_bed"),
+        "Visiting town should advance to go_to_bed"
+    );
+
+    {
+        let mut calendar = app.world_mut().resource_mut::<Calendar>();
+        calendar.day = 2;
+    }
+    app.update();
+    {
+        let tutorial = app.world().resource::<TutorialState>();
+        assert_eq!(
+            tutorial.current_objective.as_deref(),
+            None,
+            "Completing go_to_bed should finish the Day 1 sequence"
+        );
+        assert!(
+            tutorial
+                .hints_shown
+                .contains(&"day1_objectives_done".to_string()),
+            "Day 1 completion should be tracked explicitly"
+        );
+        assert!(
+            !tutorial
+                .hints_shown
+                .contains(&"objectives_done".to_string()),
+            "Finishing Day 1 must not mark the full tutorial complete"
+        );
+    }
+
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("check_crops"),
+        "Day 2 guidance should initialize after the Day 1 chain completes"
+    );
+
+    {
+        let mut player = app.world_mut().resource_mut::<PlayerState>();
+        player.current_map = MapId::Farm;
+    }
+    {
+        let mut calendar = app.world_mut().resource_mut::<Calendar>();
+        calendar.hour = 7;
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        None,
+        "Completing the Day 2 objective should clear the active objective"
+    );
+
+    {
+        let mut calendar = app.world_mut().resource_mut::<Calendar>();
+        calendar.day = 3;
+    }
+    app.update();
+    assert_eq!(
+        app.world()
+            .resource::<TutorialState>()
+            .current_objective
+            .as_deref(),
+        Some("use_shipping_bin"),
+        "Day 3 guidance should still initialize after Day 2 completion"
     );
 }

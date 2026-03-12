@@ -69,6 +69,7 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
     match map_id {
         MapId::Farm => (16, 12),
         MapId::Town => (12, 8),
+        MapId::TownWest => (12, 14),
         MapId::Beach => (10, 6),
         MapId::Forest => (8, 8),
         MapId::DeepForest => (3, 15),
@@ -95,6 +96,7 @@ pub fn generate_map(map_id: MapId) -> MapDef {
     match map_id {
         MapId::Farm => generate_farm(),
         MapId::Town => generate_town(),
+        MapId::TownWest => generate_town_west(),
         MapId::Beach => generate_beach(),
         MapId::Forest => generate_forest(),
         MapId::DeepForest => generate_deep_forest(),
@@ -324,9 +326,8 @@ fn generate_town() -> MapDef {
     fill_rect(&mut tiles, 20, 13, 6, 4, TileKind::Stone);
     fill_rect(&mut tiles, 17, 14, 3, 2, TileKind::Path); // Path to main road
 
-    // NPC houses (west, below plaza)
-    fill_rect(&mut tiles, 2, 13, 5, 3, TileKind::Stone); // House 1 (doc/librarian)
-    fill_rect(&mut tiles, 8, 13, 5, 3, TileKind::Stone); // House 2 (fisher/kid)
+    // Westbound residential lane
+    fill_rect(&mut tiles, 0, 14, 13, 2, TileKind::Path);
 
     // Restaurant area (south center-east)
     fill_rect(&mut tiles, 14, 16, 5, 3, TileKind::Stone);
@@ -371,19 +372,12 @@ fn generate_town() -> MapDef {
             to_map: MapId::Blacksmith,
             to_pos: (6, 10),
         },
-        // West town house entrance
+        // West edge -> West Willowbrook
         MapTransition {
             from_map: MapId::Town,
-            from_rect: (3, 13, 2, 1),
-            to_map: MapId::TownHouseWest,
-            to_pos: (6, 10),
-        },
-        // East town house entrance
-        MapTransition {
-            from_map: MapId::Town,
-            from_rect: (9, 13, 2, 1),
-            to_map: MapId::TownHouseEast,
-            to_pos: (6, 10),
+            from_rect: (0, 13, 1, 4),
+            to_map: MapId::TownWest,
+            to_pos: (14, 14),
         },
         // East exit -> Beach
         MapTransition {
@@ -425,6 +419,110 @@ fn generate_town() -> MapDef {
 
     MapDef {
         id: MapId::Town,
+        width: w,
+        height: h,
+        tiles,
+        transitions,
+        objects,
+        forage_points,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// West Willowbrook: 16x22  outdoor residential district west of Town
+// Layout: east-west lane, two homes, trees and small gardens
+// ---------------------------------------------------------------------------
+fn generate_town_west() -> MapDef {
+    let w = 16usize;
+    let h = 22usize;
+    let mut tiles = vec![TileKind::Grass; w * h];
+
+    let fill_rect =
+        |tiles: &mut Vec<TileKind>, x0: usize, y0: usize, rw: usize, rh: usize, kind: TileKind| {
+            for dy in 0..rh {
+                for dx in 0..rw {
+                    let xx = x0 + dx;
+                    let yy = y0 + dy;
+                    if xx < w && yy < h {
+                        tiles[yy * w + xx] = kind;
+                    }
+                }
+            }
+        };
+
+    // Main lane from Town into the residential district.
+    fill_rect(&mut tiles, 0, 14, w, 2, TileKind::Path);
+
+    // Yards and footpaths leading to each house.
+    fill_rect(&mut tiles, 2, 13, 5, 3, TileKind::Stone);
+    fill_rect(&mut tiles, 8, 13, 5, 3, TileKind::Stone);
+    fill_rect(&mut tiles, 3, 13, 2, 3, TileKind::Path);
+    fill_rect(&mut tiles, 9, 13, 2, 3, TileKind::Path);
+    fill_rect(&mut tiles, 5, 9, 2, 5, TileKind::Path);
+    fill_rect(&mut tiles, 10, 10, 2, 4, TileKind::Path);
+
+    // Small clinic / study courtyards.
+    fill_rect(&mut tiles, 3, 8, 2, 3, TileKind::Dirt);
+    fill_rect(&mut tiles, 9, 8, 2, 2, TileKind::Dirt);
+
+    let transitions = vec![
+        MapTransition {
+            from_map: MapId::TownWest,
+            from_rect: (15, 13, 1, 4),
+            to_map: MapId::Town,
+            to_pos: (1, 14),
+        },
+        MapTransition {
+            from_map: MapId::TownWest,
+            from_rect: (3, 13, 2, 1),
+            to_map: MapId::TownHouseWest,
+            to_pos: (6, 10),
+        },
+        MapTransition {
+            from_map: MapId::TownWest,
+            from_rect: (9, 13, 2, 1),
+            to_map: MapId::TownHouseEast,
+            to_pos: (6, 10),
+        },
+    ];
+
+    let objects = vec![
+        ObjectPlacement {
+            x: 1,
+            y: 3,
+            kind: WorldObjectKind::Tree,
+        },
+        ObjectPlacement {
+            x: 4,
+            y: 2,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 9,
+            y: 3,
+            kind: WorldObjectKind::Tree,
+        },
+        ObjectPlacement {
+            x: 12,
+            y: 4,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 2,
+            y: 19,
+            kind: WorldObjectKind::Tree,
+        },
+        ObjectPlacement {
+            x: 11,
+            y: 19,
+            kind: WorldObjectKind::Tree,
+        },
+    ];
+
+    let forage_points = vec![(2, 11), (12, 11), (6, 19)];
+
+    MapDef {
+        id: MapId::TownWest,
         width: w,
         height: h,
         tiles,
@@ -1207,7 +1305,7 @@ fn generate_town_house_west() -> MapDef {
     let transitions = vec![MapTransition {
         from_map: MapId::TownHouseWest,
         from_rect: (5, 11, 2, 1),
-        to_map: MapId::Town,
+        to_map: MapId::TownWest,
         to_pos: (3, 14),
     }];
 
@@ -1264,7 +1362,7 @@ fn generate_town_house_east() -> MapDef {
     let transitions = vec![MapTransition {
         from_map: MapId::TownHouseEast,
         from_rect: (5, 11, 2, 1),
-        to_map: MapId::Town,
+        to_map: MapId::TownWest,
         to_pos: (9, 14),
     }];
 
@@ -1781,93 +1879,409 @@ fn generate_snow_mountain() -> MapDef {
 
     let objects = vec![
         // Dense pines on western slope
-        ObjectPlacement { x: 0, y: 2, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 2, y: 3, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 1, y: 5, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 3, y: 6, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 0, y: 8, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 2, y: 10, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 1, y: 12, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 3, y: 15, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 0, y: 16, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 2, y: 18, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 4, y: 4, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 5, y: 7, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 4, y: 10, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 5, y: 12, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 6, y: 14, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 4, y: 17, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 5, y: 20, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 3, y: 21, kind: WorldObjectKind::Pine },
+        ObjectPlacement {
+            x: 0,
+            y: 2,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 2,
+            y: 3,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 1,
+            y: 5,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 3,
+            y: 6,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 0,
+            y: 8,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 2,
+            y: 10,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 1,
+            y: 12,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 3,
+            y: 15,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 0,
+            y: 16,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 2,
+            y: 18,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 4,
+            y: 4,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 5,
+            y: 7,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 4,
+            y: 10,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 5,
+            y: 12,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 6,
+            y: 14,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 4,
+            y: 17,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 5,
+            y: 20,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 3,
+            y: 21,
+            kind: WorldObjectKind::Pine,
+        },
         // Dense pines on eastern slope
-        ObjectPlacement { x: 28, y: 1, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 30, y: 3, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 31, y: 7, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 28, y: 10, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 30, y: 12, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 29, y: 14, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 31, y: 16, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 27, y: 3, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 27, y: 11, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 29, y: 16, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 30, y: 18, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 28, y: 20, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 31, y: 21, kind: WorldObjectKind::Pine },
+        ObjectPlacement {
+            x: 28,
+            y: 1,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 30,
+            y: 3,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 31,
+            y: 7,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 28,
+            y: 10,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 30,
+            y: 12,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 29,
+            y: 14,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 31,
+            y: 16,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 27,
+            y: 3,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 27,
+            y: 11,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 29,
+            y: 16,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 30,
+            y: 18,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 28,
+            y: 20,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 31,
+            y: 21,
+            kind: WorldObjectKind::Pine,
+        },
         // Scattered pines mid-map
-        ObjectPlacement { x: 11, y: 6, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 19, y: 5, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 13, y: 11, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 20, y: 11, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 11, y: 16, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 19, y: 16, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 10, y: 20, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 20, y: 21, kind: WorldObjectKind::Pine },
+        ObjectPlacement {
+            x: 11,
+            y: 6,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 19,
+            y: 5,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 13,
+            y: 11,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 20,
+            y: 11,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 11,
+            y: 16,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 19,
+            y: 16,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 10,
+            y: 20,
+            kind: WorldObjectKind::Pine,
+        },
+        ObjectPlacement {
+            x: 20,
+            y: 21,
+            kind: WorldObjectKind::Pine,
+        },
         // Large rocks (mineable ore deposits)
-        ObjectPlacement { x: 7, y: 2, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 10, y: 1, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 21, y: 1, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 11, y: 2, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 6, y: 10, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 12, y: 5, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 20, y: 7, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 25, y: 13, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 7, y: 17, kind: WorldObjectKind::LargeRock },
-        ObjectPlacement { x: 21, y: 17, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement {
+            x: 7,
+            y: 2,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 10,
+            y: 1,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 21,
+            y: 1,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 11,
+            y: 2,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 6,
+            y: 10,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 12,
+            y: 5,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 20,
+            y: 7,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 25,
+            y: 13,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 7,
+            y: 17,
+            kind: WorldObjectKind::LargeRock,
+        },
+        ObjectPlacement {
+            x: 21,
+            y: 17,
+            kind: WorldObjectKind::LargeRock,
+        },
         // Regular rocks
-        ObjectPlacement { x: 9, y: 4, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 11, y: 3, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 17, y: 4, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 22, y: 6, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 5, y: 9, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 13, y: 7, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 19, y: 10, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 24, y: 11, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 20, y: 15, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 6, y: 19, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 25, y: 19, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 13, y: 17, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 18, y: 15, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 9, y: 6, kind: WorldObjectKind::Rock },
+        ObjectPlacement {
+            x: 9,
+            y: 4,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 11,
+            y: 3,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 17,
+            y: 4,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 22,
+            y: 6,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 5,
+            y: 9,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 13,
+            y: 7,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 19,
+            y: 10,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 24,
+            y: 11,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 20,
+            y: 15,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 6,
+            y: 19,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 25,
+            y: 19,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 13,
+            y: 17,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 18,
+            y: 15,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 9,
+            y: 6,
+            kind: WorldObjectKind::Rock,
+        },
         // Stumps
-        ObjectPlacement { x: 3, y: 8, kind: WorldObjectKind::Stump },
-        ObjectPlacement { x: 10, y: 12, kind: WorldObjectKind::Stump },
-        ObjectPlacement { x: 21, y: 10, kind: WorldObjectKind::Stump },
-        ObjectPlacement { x: 16, y: 16, kind: WorldObjectKind::Stump },
-        ObjectPlacement { x: 8, y: 21, kind: WorldObjectKind::Stump },
-        ObjectPlacement { x: 24, y: 20, kind: WorldObjectKind::Stump },
+        ObjectPlacement {
+            x: 3,
+            y: 8,
+            kind: WorldObjectKind::Stump,
+        },
+        ObjectPlacement {
+            x: 10,
+            y: 12,
+            kind: WorldObjectKind::Stump,
+        },
+        ObjectPlacement {
+            x: 21,
+            y: 10,
+            kind: WorldObjectKind::Stump,
+        },
+        ObjectPlacement {
+            x: 16,
+            y: 16,
+            kind: WorldObjectKind::Stump,
+        },
+        ObjectPlacement {
+            x: 8,
+            y: 21,
+            kind: WorldObjectKind::Stump,
+        },
+        ObjectPlacement {
+            x: 24,
+            y: 20,
+            kind: WorldObjectKind::Stump,
+        },
         // Bushes (alpine shrubs)
-        ObjectPlacement { x: 5, y: 14, kind: WorldObjectKind::Bush },
-        ObjectPlacement { x: 7, y: 6, kind: WorldObjectKind::Bush },
-        ObjectPlacement { x: 19, y: 12, kind: WorldObjectKind::Bush },
-        ObjectPlacement { x: 25, y: 17, kind: WorldObjectKind::Bush },
-        ObjectPlacement { x: 3, y: 20, kind: WorldObjectKind::Bush },
-        ObjectPlacement { x: 15, y: 20, kind: WorldObjectKind::Bush },
-        ObjectPlacement { x: 27, y: 20, kind: WorldObjectKind::Bush },
+        ObjectPlacement {
+            x: 5,
+            y: 14,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 7,
+            y: 6,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 19,
+            y: 12,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 25,
+            y: 17,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 3,
+            y: 20,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 15,
+            y: 20,
+            kind: WorldObjectKind::Bush,
+        },
+        ObjectPlacement {
+            x: 27,
+            y: 20,
+            kind: WorldObjectKind::Bush,
+        },
     ];
 
     let forage_points = vec![
-        (4, 7), (6, 8), (3, 14), (5, 16), (7, 20), (12, 21), (16, 22),
-        (20, 20), (26, 16), (27, 18), (13, 10), (18, 12), (11, 17), (22, 15),
+        (4, 7),
+        (6, 8),
+        (3, 14),
+        (5, 16),
+        (7, 20),
+        (12, 21),
+        (16, 22),
+        (20, 20),
+        (26, 16),
+        (27, 18),
+        (13, 10),
+        (18, 12),
+        (11, 17),
+        (22, 15),
     ];
 
     let transitions = vec![];

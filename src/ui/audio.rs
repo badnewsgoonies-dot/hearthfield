@@ -199,6 +199,7 @@ pub fn switch_music_on_map_change(
                 Season::Winter => "winter",
             },
             MapId::Town => "town",
+            MapId::TownWest => "town",
             MapId::Mine => "mine",
             MapId::Forest => "forest",
             MapId::DeepForest => "forest",

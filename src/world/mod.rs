@@ -836,6 +836,7 @@ fn load_map(
         map_id,
         MapId::Farm
             | MapId::Town
+            | MapId::TownWest
             | MapId::Beach
             | MapId::Forest
             | MapId::DeepForest
@@ -877,18 +878,19 @@ fn load_map(
         // Blacksmith door at (22-23, 13)
         world_map.solid_tiles.remove(&(22, 13));
         world_map.solid_tiles.remove(&(23, 13));
-        // West town house door at (3-4, 13)
-        world_map.solid_tiles.remove(&(3, 13));
-        world_map.solid_tiles.remove(&(4, 13));
-        // East town house door at (9-10, 13)
-        world_map.solid_tiles.remove(&(9, 13));
-        world_map.solid_tiles.remove(&(10, 13));
         // Library door at (8-9, 17)
         world_map.solid_tiles.remove(&(8, 17));
         world_map.solid_tiles.remove(&(9, 17));
         // Tavern door at (15-16, 17)
         world_map.solid_tiles.remove(&(15, 17));
         world_map.solid_tiles.remove(&(16, 17));
+    }
+    if map_id == MapId::TownWest {
+        // Town house doors sit on the outdoor residential lane.
+        world_map.solid_tiles.remove(&(3, 13));
+        world_map.solid_tiles.remove(&(4, 13));
+        world_map.solid_tiles.remove(&(9, 13));
+        world_map.solid_tiles.remove(&(10, 13));
     }
 
     // Spawn tile sprites using texture atlases

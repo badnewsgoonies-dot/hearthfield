@@ -613,9 +613,9 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 20.0,
-                    map: MapId::Town,
-                    x: 15,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 2,
+                    y: 7,
                 },
             ],
             weekend: vec![
@@ -633,23 +633,23 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 20.0,
-                    map: MapId::Town,
-                    x: 15,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 2,
+                    y: 7,
                 },
             ],
             rain_override: Some(vec![
                 ScheduleEntry {
                     time: 6.0,
-                    map: MapId::Town,
-                    x: 15,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 2,
+                    y: 7,
                 },
                 ScheduleEntry {
                     time: 22.0,
-                    map: MapId::Town,
-                    x: 15,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 2,
+                    y: 7,
                 },
             ]),
             festival_override: None,
@@ -919,17 +919,17 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 19.0,
-                    map: MapId::Town,
-                    x: 20,
-                    y: 18,
+                    map: MapId::TownHouseWest,
+                    x: 3,
+                    y: 9,
                 },
             ],
             weekend: vec![
                 ScheduleEntry {
                     time: 9.0,
-                    map: MapId::Town,
-                    x: 15,
-                    y: 18,
+                    map: MapId::TownHouseWest,
+                    x: 3,
+                    y: 9,
                 },
                 ScheduleEntry {
                     time: 13.0,
@@ -939,9 +939,9 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 18.0,
-                    map: MapId::Town,
-                    x: 20,
-                    y: 18,
+                    map: MapId::TownHouseWest,
+                    x: 3,
+                    y: 9,
                 },
             ],
             rain_override: Some(vec![
@@ -953,9 +953,9 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 20.0,
-                    map: MapId::Town,
-                    x: 20,
-                    y: 18,
+                    map: MapId::TownHouseWest,
+                    x: 3,
+                    y: 9,
                 },
             ]),
             festival_override: None,
@@ -1052,9 +1052,9 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             weekday: vec![
                 ScheduleEntry {
                     time: 7.0,
-                    map: MapId::Town,
-                    x: 25,
-                    y: 10,
+                    map: MapId::TownHouseWest,
+                    x: 8,
+                    y: 2,
                 },
                 ScheduleEntry {
                     time: 9.0,
@@ -1070,15 +1070,15 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 17.0,
-                    map: MapId::Town,
-                    x: 25,
-                    y: 10,
+                    map: MapId::TownHouseWest,
+                    x: 8,
+                    y: 2,
                 },
                 ScheduleEntry {
                     time: 21.0,
-                    map: MapId::Town,
-                    x: 25,
-                    y: 10,
+                    map: MapId::TownHouseWest,
+                    x: 8,
+                    y: 2,
                 },
             ],
             weekend: vec![
@@ -1096,23 +1096,23 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 18.0,
-                    map: MapId::Town,
-                    x: 25,
-                    y: 10,
+                    map: MapId::TownHouseWest,
+                    x: 8,
+                    y: 2,
                 },
             ],
             rain_override: Some(vec![
                 ScheduleEntry {
                     time: 7.0,
-                    map: MapId::Town,
-                    x: 25,
-                    y: 10,
+                    map: MapId::TownHouseWest,
+                    x: 8,
+                    y: 2,
                 },
                 ScheduleEntry {
                     time: 21.0,
-                    map: MapId::Town,
-                    x: 25,
-                    y: 10,
+                    map: MapId::TownHouseWest,
+                    x: 8,
+                    y: 2,
                 },
             ]),
             festival_override: None,
@@ -1387,9 +1387,9 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             weekday: vec![
                 ScheduleEntry {
                     time: 8.0,
-                    map: MapId::Town,
-                    x: 10,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 9,
+                    y: 8,
                 },
                 ScheduleEntry {
                     time: 10.0,
@@ -1405,15 +1405,15 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 18.0,
-                    map: MapId::Town,
-                    x: 10,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 9,
+                    y: 8,
                 },
                 ScheduleEntry {
                     time: 21.0,
-                    map: MapId::Town,
-                    x: 10,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 9,
+                    y: 8,
                 },
             ],
             weekend: vec![
@@ -1437,23 +1437,23 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
                 },
                 ScheduleEntry {
                     time: 20.0,
-                    map: MapId::Town,
-                    x: 10,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 9,
+                    y: 8,
                 },
             ],
             rain_override: Some(vec![
                 ScheduleEntry {
                     time: 8.0,
-                    map: MapId::Town,
-                    x: 10,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 9,
+                    y: 8,
                 },
                 ScheduleEntry {
                     time: 21.0,
-                    map: MapId::Town,
-                    x: 10,
-                    y: 18,
+                    map: MapId::TownHouseEast,
+                    x: 9,
+                    y: 8,
                 },
             ]),
             festival_override: None,
@@ -1658,26 +1658,34 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
         prefs.insert("slime".into(), GiftPreference::Hated);
 
         let mut heart_dialogue: HashMap<u8, Vec<String>> = HashMap::new();
-        heart_dialogue.insert(0, vec![
-            "Another visitor. The mountain doesn't get many.".into(),
-            "You're standing on the oldest stone in the valley. Respect it.".into(),
-            "The wind up here tells you things the valley folk have forgotten.".into(),
-            "I came up here to be alone. But I suppose a short chat won't hurt.".into(),
-            "Watch your step near the frozen pond. Ice looks solid until it isn't.".into(),
-            "See those large rocks? Good ore in them, if you've got the arms for it.".into(),
-            "The pines up here are older than the town. Older than the farm, even.".into(),
-            "Don't litter. The mountain remembers.".into(),
-        ]);
-        heart_dialogue.insert(3, vec![
-            "You keep coming back. Most don't bother with the climb.".into(),
-            "There's a trick to reading the mountain weather. I'll show you sometime.".into(),
-            "The frozen pond has fish in it, you know. Hardy ones. Like me.".into(),
-            "I left the mines twenty years ago. The mountain was kinder than the tunnels.".into(),
-            "If you bring a pickaxe, the large rocks here drop ore you won't find below.".into(),
-            "Some nights the northern lights paint the summit. Worth losing sleep for.".into(),
-            "I've mapped every trail on this peak. Maybe I'll share my notes one day.".into(),
-            "You've got calluses. Good. Means you work for real.".into(),
-        ]);
+        heart_dialogue.insert(
+            0,
+            vec![
+                "Another visitor. The mountain doesn't get many.".into(),
+                "You're standing on the oldest stone in the valley. Respect it.".into(),
+                "The wind up here tells you things the valley folk have forgotten.".into(),
+                "I came up here to be alone. But I suppose a short chat won't hurt.".into(),
+                "Watch your step near the frozen pond. Ice looks solid until it isn't.".into(),
+                "See those large rocks? Good ore in them, if you've got the arms for it.".into(),
+                "The pines up here are older than the town. Older than the farm, even.".into(),
+                "Don't litter. The mountain remembers.".into(),
+            ],
+        );
+        heart_dialogue.insert(
+            3,
+            vec![
+                "You keep coming back. Most don't bother with the climb.".into(),
+                "There's a trick to reading the mountain weather. I'll show you sometime.".into(),
+                "The frozen pond has fish in it, you know. Hardy ones. Like me.".into(),
+                "I left the mines twenty years ago. The mountain was kinder than the tunnels."
+                    .into(),
+                "If you bring a pickaxe, the large rocks here drop ore you won't find below."
+                    .into(),
+                "Some nights the northern lights paint the summit. Worth losing sleep for.".into(),
+                "I've mapped every trail on this peak. Maybe I'll share my notes one day.".into(),
+                "You've got calluses. Good. Means you work for real.".into(),
+            ],
+        );
         heart_dialogue.insert(6, vec![
             "I had a family once, down in the valley. The mountain called louder.".into(),
             "There's a vein of rare ore near the summit. I've been saving it. Maybe for someone like you.".into(),

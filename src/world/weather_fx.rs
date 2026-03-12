@@ -190,6 +190,8 @@ fn is_indoor_map(map_id: MapId) -> bool {
             | MapId::GeneralStore
             | MapId::AnimalShop
             | MapId::Blacksmith
+            | MapId::Library
+            | MapId::Tavern
     )
 }
 

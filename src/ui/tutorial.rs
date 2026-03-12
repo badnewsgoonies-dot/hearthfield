@@ -123,9 +123,9 @@ pub fn check_tutorial_hints(
     }
 
     // Mark tutorial complete once all hints have been shown AND objectives are done.
-    let all_hints_shown = tutorial.hints_shown.len() >= HINTS.len();
+    let all_hints_shown = all_contextual_hints_shown(&tutorial);
     let objectives_done = tutorial.current_objective.is_none()
-        && tutorial.hints_shown.iter().any(|h| h == "objectives_done");
+        && tutorial_flag_is_set(&tutorial, OBJECTIVES_DONE_FLAG);
     if all_hints_shown && objectives_done {
         tutorial.tutorial_complete = true;
     }
@@ -174,6 +174,37 @@ const DAY3_OBJECTIVES: &[(&str, &str)] = &[
     ("use_shipping_bin", "Ship your items for gold \u{2014} walk to the shipping bin near your house and press F with an item selected"),
 ];
 
+const DAY1_OBJECTIVES_DONE_FLAG: &str = "day1_objectives_done";
+const DAY2_OBJECTIVES_DONE_FLAG: &str = "day2_objectives_done";
+const DAY3_OBJECTIVES_DONE_FLAG: &str = "day3_objectives_done";
+const OBJECTIVES_DONE_FLAG: &str = "objectives_done";
+const SHIPPED_ONCE_FLAG: &str = "shipped_once";
+
+fn tutorial_flag_is_set(tutorial: &TutorialState, flag: &str) -> bool {
+    tutorial.hints_shown.iter().any(|shown| shown == flag)
+}
+
+fn set_tutorial_flag(tutorial: &mut TutorialState, flag: &str) {
+    if !tutorial_flag_is_set(tutorial, flag) {
+        tutorial.hints_shown.push(flag.to_string());
+    }
+}
+
+fn all_contextual_hints_shown(tutorial: &TutorialState) -> bool {
+    HINTS
+        .iter()
+        .all(|hint| tutorial_flag_is_set(tutorial, hint.id))
+}
+
+pub fn objective_display_text(id: &str) -> Option<&'static str> {
+    OBJECTIVES
+        .iter()
+        .chain(DAY2_OBJECTIVES.iter())
+        .chain(DAY3_OBJECTIVES.iter())
+        .find(|(objective_id, _)| *objective_id == id)
+        .map(|(_, text)| *text)
+}
+
 fn is_objective_complete(
     id: &str,
     farm: &FarmState,
@@ -215,17 +246,19 @@ pub fn check_objectives(
     }
 
     // Initialize objectives based on current day.
-    if tutorial.current_objective.is_none()
-        && !tutorial.hints_shown.iter().any(|h| h == "objectives_done")
-    {
+    if tutorial.current_objective.is_none() {
         if calendar.year == 1 {
-            if calendar.day == 1 {
+            if calendar.day == 1 && !tutorial_flag_is_set(&tutorial, DAY1_OBJECTIVES_DONE_FLAG) {
                 // Day 1: start the main tutorial sequence.
                 tutorial.current_objective = Some(OBJECTIVES[0].0.to_string());
-            } else if calendar.day == 2 {
+            } else if calendar.day == 2
+                && !tutorial_flag_is_set(&tutorial, DAY2_OBJECTIVES_DONE_FLAG)
+            {
                 // Fix 3: Day 2 objectives.
                 tutorial.current_objective = Some(DAY2_OBJECTIVES[0].0.to_string());
-            } else if calendar.day >= 3 && !tutorial.hints_shown.iter().any(|h| h == "shipped_once")
+            } else if calendar.day >= 3
+                && !tutorial_flag_is_set(&tutorial, DAY3_OBJECTIVES_DONE_FLAG)
+                && !tutorial_flag_is_set(&tutorial, SHIPPED_ONCE_FLAG)
             {
                 // Fix 3: Day 3+ shipping objective (only if player has never shipped).
                 tutorial.current_objective = Some(DAY3_OBJECTIVES[0].0.to_string());
@@ -250,21 +283,21 @@ pub fn check_objectives(
     }
 
     // Determine which objective list the current objective belongs to and find its index.
-    let (obj_list, current_idx) = if let Some(idx) = OBJECTIVES
+    let (obj_list, completion_flag, current_idx) = if let Some(idx) = OBJECTIVES
         .iter()
         .position(|(id, _)| *id == current_id.as_str())
     {
-        (OBJECTIVES, Some(idx))
+        (OBJECTIVES, DAY1_OBJECTIVES_DONE_FLAG, Some(idx))
     } else if let Some(idx) = DAY2_OBJECTIVES
         .iter()
         .position(|(id, _)| *id == current_id.as_str())
     {
-        (DAY2_OBJECTIVES, Some(idx))
+        (DAY2_OBJECTIVES, DAY2_OBJECTIVES_DONE_FLAG, Some(idx))
     } else if let Some(idx) = DAY3_OBJECTIVES
         .iter()
         .position(|(id, _)| *id == current_id.as_str())
     {
-        (DAY3_OBJECTIVES, Some(idx))
+        (DAY3_OBJECTIVES, DAY3_OBJECTIVES_DONE_FLAG, Some(idx))
     } else {
         // Unknown objective — clear it.
         tutorial.current_objective = None;
@@ -285,7 +318,7 @@ pub fn check_objectives(
 
     // Mark shipping as done so we don't re-trigger the objective.
     if current_id == "use_shipping_bin" {
-        tutorial.hints_shown.push("shipped_once".to_string());
+        set_tutorial_flag(&mut tutorial, SHIPPED_ONCE_FLAG);
     }
 
     // Advance to next objective in the same list, or finish.
@@ -293,8 +326,10 @@ pub fn check_objectives(
         tutorial.current_objective = Some(obj_list[idx + 1].0.to_string());
     } else {
         tutorial.current_objective = None;
-        // Mark objectives as complete so hints system knows.
-        tutorial.hints_shown.push("objectives_done".to_string());
+        set_tutorial_flag(&mut tutorial, completion_flag);
+        if completion_flag == DAY3_OBJECTIVES_DONE_FLAG {
+            set_tutorial_flag(&mut tutorial, OBJECTIVES_DONE_FLAG);
+        }
     }
 }
 
@@ -348,6 +383,18 @@ mod tests {
     #[test]
     fn test_day3_objectives_table_has_1_entry() {
         assert_eq!(DAY3_OBJECTIVES.len(), 1);
+    }
+
+    #[test]
+    fn test_objective_display_text_includes_later_day_objectives() {
+        assert_eq!(
+            objective_display_text("check_crops"),
+            Some("Check your crops \u{2014} walk to your farm and see how they're growing")
+        );
+        assert_eq!(
+            objective_display_text("use_shipping_bin"),
+            Some("Ship your items for gold \u{2014} walk to the shipping bin near your house and press F with an item selected")
+        );
     }
 
     #[test]
