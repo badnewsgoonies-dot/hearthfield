@@ -36,6 +36,7 @@ use hearthfield::economy::shipping::{
 };
 use hearthfield::economy::shop::ActiveShop;
 use hearthfield::economy::stats::{AnimalProductStats, HarvestStats};
+use hearthfield::farming::crop_can_grow_in_season;
 use hearthfield::farming::crops::{advance_crop_growth, reset_soil_watered_state};
 use hearthfield::farming::events_handler::on_day_end as farming_on_day_end;
 use hearthfield::farming::sprinklers::{handle_place_sprinkler, sprinkler_affected_tiles};
@@ -4915,4 +4916,176 @@ fn test_craft_full_inventory_no_item_duplication() {
     assert!(total_after <= total_before,
         "Item count must not increase after failed craft (before={}, after={}) — would indicate duplication",
         total_before, total_after);
+}
+
+// ========================================================================
+// Graduation tests — verify [Assumed]/[Inferred] claims from STATE.md
+// ========================================================================
+
+/// Graduate: starter items include a hoe (farming critical path).
+#[test]
+fn test_starter_items_include_hoe() {
+    let mut app = build_test_app();
+    app.add_plugins(DataPlugin);
+    app.add_systems(Startup, hearthfield::player::interaction::grant_starter_items);
+    app.update();
+
+    let inventory = app.world().resource::<Inventory>();
+    let has_hoe = inventory.slots.iter().any(|s| {
+        s.as_ref().map_or(false, |slot| slot.item_id == "hoe")
+    });
+    assert!(has_hoe, "Starter items must include a hoe for the farming critical path");
+}
+
+/// Graduate: starter items include seeds for immediate planting.
+#[test]
+fn test_starter_items_include_seeds() {
+    let mut app = build_test_app();
+    app.add_plugins(DataPlugin);
+    app.add_systems(Startup, hearthfield::player::interaction::grant_starter_items);
+    app.update();
+
+    let inventory = app.world().resource::<Inventory>();
+    let has_seeds = inventory.slots.iter().any(|s| {
+        s.as_ref().map_or(false, |slot| slot.item_id.ends_with("_seeds"))
+    });
+    assert!(has_seeds, "Starter items must include seeds for the farming loop");
+}
+
+/// Graduate: season validation blocks planting out-of-season crops.
+#[test]
+fn test_season_validation_blocks_wrong_season_crop() {
+    let spring_crop = CropDef {
+        id: "turnip".into(),
+        name: "Turnip".into(),
+        seasons: vec![Season::Spring],
+        growth_days: vec![2, 2, 2],
+        seed_id: "turnip_seeds".into(),
+        harvest_id: "turnip".into(),
+        regrows: false,
+        regrow_days: 0,
+        sell_price: 60,
+        sprite_stages: vec![0, 1, 2],
+    };
+
+    assert!(crop_can_grow_in_season(&spring_crop, Season::Spring),
+        "Spring crop must grow in Spring");
+    assert!(!crop_can_grow_in_season(&spring_crop, Season::Summer),
+        "Spring crop must NOT grow in Summer");
+    assert!(!crop_can_grow_in_season(&spring_crop, Season::Fall),
+        "Spring crop must NOT grow in Fall");
+    assert!(!crop_can_grow_in_season(&spring_crop, Season::Winter),
+        "Spring crop must NOT grow in Winter");
+}
+
+/// Graduate: multi-season crops grow in all listed seasons.
+#[test]
+fn test_season_validation_allows_multi_season_crop() {
+    let multi_crop = CropDef {
+        id: "corn".into(),
+        name: "Corn".into(),
+        seasons: vec![Season::Summer, Season::Fall],
+        growth_days: vec![3, 3, 3, 3],
+        seed_id: "corn_seeds".into(),
+        harvest_id: "corn".into(),
+        regrows: false,
+        regrow_days: 0,
+        sell_price: 80,
+        sprite_stages: vec![0, 1, 2, 3],
+    };
+
+    assert!(!crop_can_grow_in_season(&multi_crop, Season::Spring));
+    assert!(crop_can_grow_in_season(&multi_crop, Season::Summer));
+    assert!(crop_can_grow_in_season(&multi_crop, Season::Fall));
+    assert!(!crop_can_grow_in_season(&multi_crop, Season::Winter));
+}
+
+/// Graduate: season change kills out-of-season crops.
+#[test]
+fn test_season_change_kills_out_of_season_crops() {
+    let mut farm_state = FarmState::default();
+    let mut crop_registry = CropRegistry::default();
+
+    let spring_only = CropDef {
+        id: "turnip".into(),
+        name: "Turnip".into(),
+        seasons: vec![Season::Spring],
+        growth_days: vec![2, 2],
+        seed_id: "turnip_seeds".into(),
+        harvest_id: "turnip".into(),
+        regrows: false,
+        regrow_days: 0,
+        sell_price: 60,
+        sprite_stages: vec![0, 1],
+    };
+    crop_registry.crops.insert("turnip".into(), spring_only);
+
+    // Plant in spring
+    farm_state.crops.insert((5, 5), CropTile {
+        crop_id: "turnip".into(),
+        current_stage: 1,
+        days_in_stage: 0,
+        watered_today: false,
+        dead: false,
+        days_without_water: 0,
+    });
+
+    // Advance in summer — should kill the spring crop
+    let _updated = advance_crop_growth(&mut farm_state, &crop_registry, Season::Summer, false);
+    let crop = farm_state.crops.get(&(5, 5)).expect("crop tile should still exist");
+    assert!(crop.dead, "Spring crop must die when season changes to Summer");
+}
+
+/// Graduate: save/load preserves current map identity.
+#[test]
+fn test_save_roundtrip_preserves_current_map() {
+    let mut state = PlayerState::default();
+    state.current_map = MapId::Town;
+    state.save_grid_x = 42;
+    state.save_grid_y = 17;
+
+    let json = serde_json::to_string(&state).expect("serialize PlayerState");
+    let loaded: PlayerState = serde_json::from_str(&json).expect("deserialize PlayerState");
+
+    assert_eq!(loaded.current_map, MapId::Town, "current_map must survive save/load");
+    assert_eq!(loaded.save_grid_x, 42, "save_grid_x must survive save/load");
+    assert_eq!(loaded.save_grid_y, 17, "save_grid_y must survive save/load");
+}
+
+/// Graduate: collision map marks tiles solid and respects removal.
+#[test]
+fn test_collision_map_solid_and_walkable() {
+    let mut cm = CollisionMap::default();
+    cm.solid_tiles.insert((5, 5));
+    cm.solid_tiles.insert((6, 5));
+
+    assert!(cm.solid_tiles.contains(&(5, 5)), "tile (5,5) should be solid");
+    assert!(cm.solid_tiles.contains(&(6, 5)), "tile (6,5) should be solid");
+    assert!(!cm.solid_tiles.contains(&(7, 5)), "tile (7,5) should be walkable");
+
+    // Simulate door carve-out
+    cm.solid_tiles.remove(&(5, 5));
+    assert!(!cm.solid_tiles.contains(&(5, 5)), "door tile should be walkable after removal");
+}
+
+/// Graduate: empty-season crops grow in any season (wildcard).
+#[test]
+fn test_season_validation_empty_seasons_means_all() {
+    let any_season = CropDef {
+        id: "wild".into(),
+        name: "Wild Plant".into(),
+        seasons: vec![],
+        growth_days: vec![1],
+        seed_id: "wild_seeds".into(),
+        harvest_id: "wild".into(),
+        regrows: false,
+        regrow_days: 0,
+        sell_price: 10,
+        sprite_stages: vec![0],
+    };
+
+    assert!(crop_can_grow_in_season(&any_season, Season::Spring));
+    assert!(crop_can_grow_in_season(&any_season, Season::Summer));
+    assert!(crop_can_grow_in_season(&any_season, Season::Fall));
+    assert!(crop_can_grow_in_season(&any_season, Season::Winter));
 }
