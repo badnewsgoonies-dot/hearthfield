@@ -35,7 +35,6 @@ pub enum EmoteKind {
     Question,    // confused
 }
 
-
 /// Helper: write an RGBA pixel into the data buffer at (x, y) for a 16-wide image.
 fn put_pixel(data: &mut [u8], x: usize, y: usize, r: u8, g: u8, b: u8, a: u8) {
     let i = (y * 16 + x) * 4;

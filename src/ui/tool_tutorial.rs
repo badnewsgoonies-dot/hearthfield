@@ -132,9 +132,30 @@ pub fn update_tool_tutorial_overlay(
     font_handle: Res<UiFontHandle>,
     overlay_query: Query<Entity, With<ToolTutorialOverlay>>,
     mut sprite_query: Query<&mut ImageNode, With<ToolTutorialSprite>>,
-    mut name_query: Query<&mut Text, (With<ToolTutorialName>, Without<ToolTutorialDescription>, Without<ToolTutorialPageIndicator>)>,
-    mut desc_query: Query<&mut Text, (With<ToolTutorialDescription>, Without<ToolTutorialName>, Without<ToolTutorialPageIndicator>)>,
-    mut page_query: Query<&mut Text, (With<ToolTutorialPageIndicator>, Without<ToolTutorialName>, Without<ToolTutorialDescription>)>,
+    mut name_query: Query<
+        &mut Text,
+        (
+            With<ToolTutorialName>,
+            Without<ToolTutorialDescription>,
+            Without<ToolTutorialPageIndicator>,
+        ),
+    >,
+    mut desc_query: Query<
+        &mut Text,
+        (
+            With<ToolTutorialDescription>,
+            Without<ToolTutorialName>,
+            Without<ToolTutorialPageIndicator>,
+        ),
+    >,
+    mut page_query: Query<
+        &mut Text,
+        (
+            With<ToolTutorialPageIndicator>,
+            Without<ToolTutorialName>,
+            Without<ToolTutorialDescription>,
+        ),
+    >,
 ) {
     // Only show the overlay when the tutorial flag is active.
     let tutorial_active = cutscene_flags
@@ -386,7 +407,11 @@ mod tests {
     #[test]
     fn all_tool_entries_have_non_empty_descriptions() {
         for e in TOOL_ENTRIES {
-            assert!(!e.description.is_empty(), "{} has empty description", e.name);
+            assert!(
+                !e.description.is_empty(),
+                "{} has empty description",
+                e.name
+            );
         }
     }
 

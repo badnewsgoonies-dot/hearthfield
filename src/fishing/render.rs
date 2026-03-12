@@ -304,8 +304,12 @@ pub fn animate_fish_rarity_glow(
         let t = (glow.phase.sin() + 1.0) * 0.5; // map [-1,1] → [0,1]
         let alpha = glow.alpha_min + t * (glow.alpha_max - glow.alpha_min);
 
-        sprite.color =
-            Color::srgba(glow.base_color.0, glow.base_color.1, glow.base_color.2, alpha);
+        sprite.color = Color::srgba(
+            glow.base_color.0,
+            glow.base_color.1,
+            glow.base_color.2,
+            alpha,
+        );
     }
 }
 
@@ -377,11 +381,7 @@ pub fn spawn_fish_display(
                     custom_size: Some(Vec2::new(24.0, 24.0)),
                     ..default()
                 },
-                Transform::from_translation(Vec3::new(
-                    position.x,
-                    position.y,
-                    position.z - 0.1,
-                )),
+                Transform::from_translation(Vec3::new(position.x, position.y, position.z - 0.1)),
                 FishRarityGlow {
                     phase: 0.0,
                     frequency: 0.7,

@@ -21,10 +21,7 @@ pub struct WaterSplash {
 }
 
 /// Listen for WateringCan impact events and spawn a water splash poof.
-pub fn spawn_water_splash(
-    mut commands: Commands,
-    mut impact_events: EventReader<ToolImpactEvent>,
-) {
+pub fn spawn_water_splash(mut commands: Commands, mut impact_events: EventReader<ToolImpactEvent>) {
     for event in impact_events.read() {
         if event.tool != ToolKind::WateringCan {
             continue;
@@ -63,7 +60,7 @@ pub fn update_water_splash(
         }
 
         let t = splash.timer.fraction(); // 0.0 → 1.0
-        // Scale from 0.3 to 1.2
+                                         // Scale from 0.3 to 1.2
         let scale = 0.3 + t * 0.9;
         tf.scale = Vec3::splat(scale);
 
@@ -85,10 +82,7 @@ pub struct WaterDrip {
 }
 
 /// Spawn 2-3 tiny water droplets randomly within the watered tile.
-pub fn spawn_water_drips(
-    mut commands: Commands,
-    mut impact_events: EventReader<ToolImpactEvent>,
-) {
+pub fn spawn_water_drips(mut commands: Commands, mut impact_events: EventReader<ToolImpactEvent>) {
     let mut rng = rand::thread_rng();
 
     for event in impact_events.read() {
@@ -186,7 +180,7 @@ pub fn spawn_scythe_arc(
         // Rotation: horizontal slash for left/right, vertical for up/down
         let rotation_rad = match facing {
             Facing::Up | Facing::Down => std::f32::consts::FRAC_PI_2, // 90 degrees for vertical
-            Facing::Left | Facing::Right => 0.0, // horizontal slash
+            Facing::Left | Facing::Right => 0.0,                      // horizontal slash
         };
 
         commands.spawn((
@@ -222,7 +216,7 @@ pub fn update_scythe_arc(
         }
 
         let t = arc.timer.fraction(); // 0.0 → 1.0
-        // Scale from 0.8 to 1.3
+                                      // Scale from 0.8 to 1.3
         let scale = 0.8 + t * 0.5;
         // Preserve Z rotation while scaling uniformly
         let current_rot = tf.rotation;

@@ -345,9 +345,9 @@ pub fn update_chest_storage_display(
 fn quality_text_color(quality: ItemQuality) -> Color {
     match quality {
         ItemQuality::Normal => Color::WHITE,
-        ItemQuality::Silver => Color::srgb(0.78, 0.82, 0.88),  // subtle silver
-        ItemQuality::Gold => Color::srgb(1.0, 0.84, 0.0),       // gold
-        ItemQuality::Iridium => Color::srgb(0.7, 0.4, 1.0),     // purple/prismatic
+        ItemQuality::Silver => Color::srgb(0.78, 0.82, 0.88), // subtle silver
+        ItemQuality::Gold => Color::srgb(1.0, 0.84, 0.0),     // gold
+        ItemQuality::Iridium => Color::srgb(0.7, 0.4, 1.0),   // purple/prismatic
     }
 }
 

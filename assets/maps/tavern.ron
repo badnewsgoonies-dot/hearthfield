@@ -1,0 +1,54 @@
+(
+    id: Tavern,
+    width: 16,
+    height: 14,
+    tiles: [
+        // row 0
+        Void, Void, Void, Void, Void, Void, Void, Void, Void, Void, Void, Void, Void, Void, Void, Void,
+        // row 1
+        Void, Stone, Stone, Stone, Stone, Stone, Stone, Stone, Stone, Stone, WoodFloor, WoodFloor, Stone, Stone, Stone, Void,
+        // row 2
+        Void, Stone, Stone, Stone, Stone, Stone, Stone, Stone, Stone, Stone, WoodFloor, WoodFloor, Stone, Stone, Stone, Void,
+        // row 3
+        Void, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Stone, Stone, Stone, Void,
+        // row 4
+        Void, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Stone, WoodFloor, Stone, Stone, Stone, Void,
+        // row 5
+        Void, WoodFloor, WoodFloor, Path, Path, Path, Path, Path, Path, WoodFloor, Stone, Path, Path, Path, Path, Void,
+        // row 6
+        Void, WoodFloor, WoodFloor, Path, Path, Path, Path, Path, Path, WoodFloor, Stone, Path, Path, Path, Path, Void,
+        // row 7
+        Void, WoodFloor, WoodFloor, Path, Path, Path, Path, Path, Path, WoodFloor, WoodFloor, Path, Path, Path, Path, Void,
+        // row 8
+        Void, WoodFloor, WoodFloor, Path, Path, Path, Path, Path, Path, WoodFloor, WoodFloor, Path, Path, Path, Path, Void,
+        // row 9
+        Void, WoodFloor, WoodFloor, Path, Path, Path, Path, Path, Path, Path, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Void,
+        // row 10
+        Void, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Path, Path, Path, Path, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Void,
+        // row 11
+        Void, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Path, Path, Path, Path, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Void,
+        // row 12
+        Void, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Path, Path, Path, Path, WoodFloor, WoodFloor, WoodFloor, WoodFloor, WoodFloor, Void,
+        // row 13
+        Void, Void, Void, Void, Void, Void, Void, WoodFloor, WoodFloor, Void, Void, Void, Void, Void, Void, Void,
+    ],
+    objects: [],
+    forage_points: [],
+    spawn_pos: (8, 12),
+    transitions: [
+        (
+            from_rect: (7, 13, 2, 1),
+            to_map: Town,
+            to_x: 16,
+            to_y: 16,
+        ),
+    ],
+    doors: [],
+    edges: (
+        north: Some((Town, Fixed(16, 16))),
+        south: None,
+        east: None,
+        west: None,
+    ),
+    buildings: [],
+)

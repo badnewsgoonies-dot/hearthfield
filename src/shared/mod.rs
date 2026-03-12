@@ -601,6 +601,8 @@ pub enum MapId {
     GeneralStore,
     AnimalShop,
     Blacksmith,
+    Library,
+    Tavern,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

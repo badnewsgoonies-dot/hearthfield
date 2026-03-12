@@ -48,11 +48,15 @@ pub fn animate_npc_sprites(
             // Meaningful movement delta — update facing
             // Row 0=Down, Row 1=Left, Row 2=Right, Row 3=Up
             let new_base = if dx.abs() > dy.abs() {
-                if dx > 0.0 { 8 } else { 4 }  // Right (row 2) : Left (row 1)
+                if dx > 0.0 {
+                    8
+                } else {
+                    4
+                } // Right (row 2) : Left (row 1)
             } else if dy > 0.0 {
-                12  // Up (row 3)
+                12 // Up (row 3)
             } else {
-                0   // Down (row 0)
+                0 // Down (row 0)
             };
             anim.last_base = new_base;
             new_base

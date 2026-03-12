@@ -648,6 +648,8 @@ fn map_display_name(map: MapId) -> &'static str {
         MapId::GeneralStore => "General Store",
         MapId::AnimalShop => "Animal Shop",
         MapId::Blacksmith => "Elena's Forge",
+        MapId::Library => "Willowbrook Library",
+        MapId::Tavern => "The Copper Cup",
         MapId::CoralIsland => "Coral Island",
     }
 }

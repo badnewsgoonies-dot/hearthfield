@@ -89,7 +89,7 @@ fn make_shadow_image() -> Image {
         for (px, &pixel) in row.iter().enumerate() {
             let i = (py * w + px) * 4;
             if pixel == 1 {
-                data[i] = 20;     // R - very dark
+                data[i] = 20; // R - very dark
                 data[i + 1] = 15; // G
                 data[i + 2] = 15; // B
                 data[i + 3] = 64; // A - ~0.25 alpha
@@ -173,10 +173,9 @@ pub fn npc_idle_behavior_system(
 
                 // Pick a different direction using a simple deterministic variation.
                 // Use the breath_phase (which varies over time) for pseudo-randomness.
-                let direction_seed =
-                    (idle.breath_phase * 100.0) as u32 + simple_hash(&npc.id);
+                let direction_seed = (idle.breath_phase * 100.0) as u32 + simple_hash(&npc.id);
                 let directions = [0usize, 4, 8, 12]; // down, left, right, up
-                // Pick one that differs from current
+                                                     // Pick one that differs from current
                 let mut pick = directions[(direction_seed as usize) % 4];
                 if pick == anim.last_base {
                     pick = directions[((direction_seed as usize) + 1) % 4];
@@ -206,9 +205,10 @@ pub fn attach_npc_shadows(
     npcs_without_children: Query<Entity, (With<Npc>, Without<Children>)>,
 ) {
     // Generate the shadow image once.
-    let shadow_handle = shadow_cache.handle.get_or_insert_with(|| {
-        images.add(make_shadow_image())
-    }).clone();
+    let shadow_handle = shadow_cache
+        .handle
+        .get_or_insert_with(|| images.add(make_shadow_image()))
+        .clone();
 
     // Attach shadows to NPCs that already have children but no shadow child.
     for (entity, children) in npc_query.iter() {

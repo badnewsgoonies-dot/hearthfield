@@ -4,8 +4,8 @@
 //! At startup these are loaded into a `MapRegistry` resource.  The runtime
 //! `MapDef` type used by the renderer is produced via `map_data_to_map_def()`.
 
-use bevy::prelude::*;
 use crate::shared::*;
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -166,7 +166,7 @@ pub fn load_map_data(map_id: MapId) -> Option<MapData> {
     }
 }
 
-/// Build a `MapRegistry` by loading all 10 maps from RON files (with
+/// Build a `MapRegistry` by loading all maps from RON files (with
 /// hardcoded fallback).
 pub fn build_map_registry() -> MapRegistry {
     use super::maps::{default_spawn_position, generate_map};
@@ -185,6 +185,8 @@ pub fn build_map_registry() -> MapRegistry {
         MapId::GeneralStore,
         MapId::AnimalShop,
         MapId::Blacksmith,
+        MapId::Library,
+        MapId::Tavern,
         MapId::CoralIsland,
     ];
 
@@ -259,7 +261,7 @@ pub fn map_def_to_map_data(map_def: &MapDef, spawn_pos: (i32, i32)) -> MapData {
     }
 }
 
-/// Export all 10 hardcoded maps to `assets/maps/*.ron`.
+/// Export all hardcoded maps to `assets/maps/*.ron`.
 /// Populates doors, edges, and buildings from the hardcoded logic.
 #[cfg(test)]
 pub fn export_all_maps() -> Vec<(MapId, MapData)> {
@@ -279,6 +281,8 @@ pub fn export_all_maps() -> Vec<(MapId, MapData)> {
         MapId::GeneralStore,
         MapId::AnimalShop,
         MapId::Blacksmith,
+        MapId::Library,
+        MapId::Tavern,
         MapId::CoralIsland,
     ];
 
@@ -312,8 +316,8 @@ pub fn write_all_ron_files() -> std::io::Result<()> {
             .depth_limit(4)
             .separate_tuple_members(false)
             .enumerate_arrays(false);
-        let ron_str = ron::ser::to_string_pretty(&data, config)
-            .expect("Failed to serialize map data");
+        let ron_str =
+            ron::ser::to_string_pretty(&data, config).expect("Failed to serialize map data");
         std::fs::write(&path, ron_str)?;
     }
 
@@ -324,15 +328,71 @@ pub fn write_all_ron_files() -> std::io::Result<()> {
 
 fn doors_for(map_id: MapId) -> Vec<DoorDef> {
     match map_id {
-        MapId::Farm => vec![
-            DoorDef { x_min: 15, x_max: 16, y: 2, to_map: MapId::PlayerHouse, to_x: 8, to_y: 14 },
-        ],
+        MapId::Farm => vec![DoorDef {
+            x_min: 15,
+            x_max: 16,
+            y: 2,
+            to_map: MapId::PlayerHouse,
+            to_x: 8,
+            to_y: 14,
+        }],
         MapId::Town => vec![
-            DoorDef { x_min: 5, x_max: 6, y: 2, to_map: MapId::GeneralStore, to_x: 6, to_y: 10 },
-            DoorDef { x_min: 22, x_max: 23, y: 2, to_map: MapId::AnimalShop, to_x: 6, to_y: 10 },
-            DoorDef { x_min: 22, x_max: 23, y: 13, to_map: MapId::Blacksmith, to_x: 6, to_y: 10 },
-            DoorDef { x_min: 3, x_max: 4, y: 13, to_map: MapId::TownHouseWest, to_x: 6, to_y: 10 },
-            DoorDef { x_min: 9, x_max: 10, y: 13, to_map: MapId::TownHouseEast, to_x: 6, to_y: 10 },
+            DoorDef {
+                x_min: 5,
+                x_max: 6,
+                y: 2,
+                to_map: MapId::GeneralStore,
+                to_x: 6,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 22,
+                x_max: 23,
+                y: 2,
+                to_map: MapId::AnimalShop,
+                to_x: 6,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 22,
+                x_max: 23,
+                y: 13,
+                to_map: MapId::Blacksmith,
+                to_x: 6,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 3,
+                x_max: 4,
+                y: 13,
+                to_map: MapId::TownHouseWest,
+                to_x: 6,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 9,
+                x_max: 10,
+                y: 13,
+                to_map: MapId::TownHouseEast,
+                to_x: 6,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 8,
+                x_max: 9,
+                y: 17,
+                to_map: MapId::Library,
+                to_x: 7,
+                to_y: 10,
+            },
+            DoorDef {
+                x_min: 15,
+                x_max: 16,
+                y: 17,
+                to_map: MapId::Tavern,
+                to_x: 8,
+                to_y: 12,
+            },
         ],
         MapId::MineEntrance => vec![
             // Cave mouth at the end of the entrance path → Mine floor 1.
@@ -425,6 +485,18 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             east: None,
             west: None,
         },
+        MapId::Library => EdgeDefs {
+            north: Some((MapId::Town, EdgeTarget::Fixed(8, 18))),
+            south: None,
+            east: None,
+            west: None,
+        },
+        MapId::Tavern => EdgeDefs {
+            north: Some((MapId::Town, EdgeTarget::Fixed(16, 18))),
+            south: None,
+            east: None,
+            west: None,
+        },
         MapId::Mine => EdgeDefs {
             north: None,
             south: None,
@@ -445,16 +517,64 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
 fn buildings_for(map_id: MapId) -> Vec<BuildingDataDef> {
     match map_id {
         MapId::Farm => vec![
-            BuildingDataDef { x: 13, y: 0, w: 6, h: 3, roof_tint: (0.75, 0.5, 0.4) },
-            BuildingDataDef { x: 9, y: 17, w: 3, h: 2, roof_tint: (0.9, 0.8, 0.5) },
-            BuildingDataDef { x: 3, y: 16, w: 5, h: 3, roof_tint: (0.7, 0.3, 0.3) },
+            BuildingDataDef {
+                x: 13,
+                y: 0,
+                w: 6,
+                h: 3,
+                roof_tint: (0.75, 0.5, 0.4),
+            },
+            BuildingDataDef {
+                x: 9,
+                y: 17,
+                w: 3,
+                h: 2,
+                roof_tint: (0.9, 0.8, 0.5),
+            },
+            BuildingDataDef {
+                x: 3,
+                y: 16,
+                w: 5,
+                h: 3,
+                roof_tint: (0.7, 0.3, 0.3),
+            },
         ],
         MapId::Town => vec![
-            BuildingDataDef { x: 2, y: 2, w: 8, h: 5, roof_tint: (0.85, 0.55, 0.4) },
-            BuildingDataDef { x: 18, y: 2, w: 8, h: 5, roof_tint: (0.5, 0.7, 0.85) },
-            BuildingDataDef { x: 20, y: 13, w: 6, h: 4, roof_tint: (0.6, 0.55, 0.55) },
-            BuildingDataDef { x: 2, y: 13, w: 5, h: 3, roof_tint: (0.75, 0.85, 0.6) },
-            BuildingDataDef { x: 8, y: 13, w: 5, h: 3, roof_tint: (0.85, 0.75, 0.55) },
+            BuildingDataDef {
+                x: 2,
+                y: 2,
+                w: 8,
+                h: 5,
+                roof_tint: (0.85, 0.55, 0.4),
+            },
+            BuildingDataDef {
+                x: 18,
+                y: 2,
+                w: 8,
+                h: 5,
+                roof_tint: (0.5, 0.7, 0.85),
+            },
+            BuildingDataDef {
+                x: 20,
+                y: 13,
+                w: 6,
+                h: 4,
+                roof_tint: (0.6, 0.55, 0.55),
+            },
+            BuildingDataDef {
+                x: 2,
+                y: 13,
+                w: 5,
+                h: 3,
+                roof_tint: (0.75, 0.85, 0.6),
+            },
+            BuildingDataDef {
+                x: 8,
+                y: 13,
+                w: 5,
+                h: 3,
+                roof_tint: (0.85, 0.75, 0.55),
+            },
         ],
         _ => Vec::new(),
     }
@@ -476,6 +596,8 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
         MapId::GeneralStore => "general_store",
         MapId::AnimalShop => "animal_shop",
         MapId::Blacksmith => "blacksmith",
+        MapId::Library => "library",
+        MapId::Tavern => "tavern",
         MapId::CoralIsland => "coral_island",
     }
 }
@@ -487,7 +609,7 @@ mod tests {
     #[test]
     fn generate_ron_files() {
         write_all_ron_files().expect("Failed to write RON files");
-        // Verify all 12 files exist and round-trip correctly
+        // Verify all map files exist and round-trip correctly
         let all_maps = [
             MapId::Farm,
             MapId::Town,
@@ -502,6 +624,8 @@ mod tests {
             MapId::GeneralStore,
             MapId::AnimalShop,
             MapId::Blacksmith,
+            MapId::Library,
+            MapId::Tavern,
             MapId::CoralIsland,
         ];
         for &map_id in &all_maps {
@@ -509,8 +633,8 @@ mod tests {
             let path = format!("assets/maps/{}.ron", name);
             let contents = std::fs::read_to_string(&path)
                 .unwrap_or_else(|e| panic!("Cannot read {}: {}", path, e));
-            let data: MapData = ron::from_str(&contents)
-                .unwrap_or_else(|e| panic!("Cannot parse {}: {}", path, e));
+            let data: MapData =
+                ron::from_str(&contents).unwrap_or_else(|e| panic!("Cannot parse {}: {}", path, e));
             assert_eq!(data.id, map_id);
             assert!(data.width > 0);
             assert!(data.height > 0);
@@ -539,6 +663,8 @@ mod tests {
             MapId::GeneralStore,
             MapId::AnimalShop,
             MapId::Blacksmith,
+            MapId::Library,
+            MapId::Tavern,
             MapId::CoralIsland,
         ];
 
@@ -548,13 +674,43 @@ mod tests {
                 .unwrap_or_else(|| panic!("Failed to load RON for {:?}", map_id));
             let loaded_def = map_data_to_map_def(&loaded_data);
 
-            assert_eq!(hardcoded_def.id, loaded_def.id, "id mismatch for {:?}", map_id);
-            assert_eq!(hardcoded_def.width, loaded_def.width, "width mismatch for {:?}", map_id);
-            assert_eq!(hardcoded_def.height, loaded_def.height, "height mismatch for {:?}", map_id);
-            assert_eq!(hardcoded_def.tiles, loaded_def.tiles, "tiles mismatch for {:?}", map_id);
-            assert_eq!(hardcoded_def.objects.len(), loaded_def.objects.len(), "objects count mismatch for {:?}", map_id);
-            assert_eq!(hardcoded_def.forage_points, loaded_def.forage_points, "forage_points mismatch for {:?}", map_id);
-            assert_eq!(loaded_data.spawn_pos, default_spawn_position(map_id), "spawn_pos mismatch for {:?}", map_id);
+            assert_eq!(
+                hardcoded_def.id, loaded_def.id,
+                "id mismatch for {:?}",
+                map_id
+            );
+            assert_eq!(
+                hardcoded_def.width, loaded_def.width,
+                "width mismatch for {:?}",
+                map_id
+            );
+            assert_eq!(
+                hardcoded_def.height, loaded_def.height,
+                "height mismatch for {:?}",
+                map_id
+            );
+            assert_eq!(
+                hardcoded_def.tiles, loaded_def.tiles,
+                "tiles mismatch for {:?}",
+                map_id
+            );
+            assert_eq!(
+                hardcoded_def.objects.len(),
+                loaded_def.objects.len(),
+                "objects count mismatch for {:?}",
+                map_id
+            );
+            assert_eq!(
+                hardcoded_def.forage_points, loaded_def.forage_points,
+                "forage_points mismatch for {:?}",
+                map_id
+            );
+            assert_eq!(
+                loaded_data.spawn_pos,
+                default_spawn_position(map_id),
+                "spawn_pos mismatch for {:?}",
+                map_id
+            );
         }
     }
 }

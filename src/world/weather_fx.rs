@@ -8,8 +8,8 @@
 //! Resource) rather than plain colored rectangles, giving rain a tapered
 //! raindrop shape and snow a cross/star pattern.
 
-use bevy::prelude::*;
 use bevy::image::Image;
+use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use rand::Rng;
 
@@ -160,10 +160,7 @@ fn make_snowflake_image() -> Image {
 }
 
 /// Ensure weather sprite images are generated and cached.
-pub fn ensure_weather_sprites_loaded(
-    images: &mut Assets<Image>,
-    sprites: &mut WeatherSprites,
-) {
+pub fn ensure_weather_sprites_loaded(images: &mut Assets<Image>, sprites: &mut WeatherSprites) {
     if sprites.loaded {
         return;
     }

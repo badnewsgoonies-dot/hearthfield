@@ -373,7 +373,14 @@ fn mayor_rex_schedule(season: Season) -> NpcSchedule {
                 y: 10,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 22, 10, 24, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            22,
+            10,
+            24,
+            18,
+        )),
     }
 }
 
@@ -511,7 +518,14 @@ fn margaret_schedule(season: Season) -> NpcSchedule {
                 y: 8,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 6, 8, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            6,
+            8,
+            22,
+            18,
+        )),
     }
 }
 
@@ -662,7 +676,14 @@ fn elena_schedule(season: Season) -> NpcSchedule {
                 y: 18,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 23, 18, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            23,
+            18,
+            22,
+            18,
+        )),
     }
 }
 
@@ -794,7 +815,14 @@ fn doc_schedule(season: Season) -> NpcSchedule {
                 y: 8,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 10, 8, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            10,
+            8,
+            22,
+            18,
+        )),
     }
 }
 
@@ -825,9 +853,9 @@ fn old_tom_schedule(season: Season) -> NpcSchedule {
 
     // Old Tom forages in DeepForest in fall and spring
     let (evening_map, eve_x, eve_y) = match season {
-        Season::Fall => (MapId::DeepForest, 10, 12),   // mushroom foraging in deep woods
-        Season::Spring => (MapId::DeepForest, 8, 8),   // wild herb gathering
-        _ => (MapId::Beach, 16, 11),                   // evening campfire on beach
+        Season::Fall => (MapId::DeepForest, 10, 12), // mushroom foraging in deep woods
+        Season::Spring => (MapId::DeepForest, 8, 8), // wild herb gathering
+        _ => (MapId::Beach, 16, 11),                 // evening campfire on beach
     };
 
     NpcSchedule {
@@ -952,7 +980,14 @@ fn old_tom_schedule(season: Season) -> NpcSchedule {
                 y: 17,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 8, 17, 18, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            8,
+            17,
+            18,
+            18,
+        )),
     }
 }
 
@@ -1090,7 +1125,14 @@ fn marco_schedule(season: Season) -> NpcSchedule {
                 y: 17,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 18, 17, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            18,
+            17,
+            22,
+            18,
+        )),
     }
 }
 
@@ -1108,9 +1150,9 @@ fn sam_schedule(season: Season) -> NpcSchedule {
 
     // Sam visits Coral Island in summer & spring afternoons (pirate spirit)
     let (afternoon_map, aft_x, aft_y) = match season {
-        Season::Summer => (MapId::CoralIsland, 10, 8),  // exploring the island
+        Season::Summer => (MapId::CoralIsland, 10, 8), // exploring the island
         Season::Spring => (MapId::CoralIsland, 12, 10), // treasure hunting
-        _ => (MapId::MineEntrance, 6, 10),              // stays near mine
+        _ => (MapId::MineEntrance, 6, 10),             // stays near mine
     };
 
     NpcSchedule {
@@ -1228,7 +1270,14 @@ fn sam_schedule(season: Season) -> NpcSchedule {
                 y: 17,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 11, 17, 20, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            11,
+            17,
+            20,
+            18,
+        )),
     }
 }
 
@@ -1239,17 +1288,17 @@ fn sam_schedule(season: Season) -> NpcSchedule {
 fn mira_schedule(season: Season) -> NpcSchedule {
     // Her outdoor research location depends on season
     let (research_map, res_x, res_y) = match season {
-        Season::Summer => (MapId::CoralIsland, 8, 12),  // island ruins research
-        Season::Fall => (MapId::Forest, 10, 15),        // ancient forest markers
-        Season::Winter => (MapId::Town, 8, 20),         // stays in library (too cold)
-        Season::Spring => (MapId::Forest, 16, 10),      // spring: forest ruins
+        Season::Summer => (MapId::CoralIsland, 8, 12), // island ruins research
+        Season::Fall => (MapId::Forest, 10, 15),       // ancient forest markers
+        Season::Winter => (MapId::Town, 8, 20),        // stays in library (too cold)
+        Season::Spring => (MapId::Forest, 16, 10),     // spring: forest ruins
     };
 
     // Weekend extended research: Coral Island in summer, DeepForest in fall
     let (weekend_research_map, wknd_x, wknd_y) = match season {
-        Season::Summer => (MapId::CoralIsland, 6, 10),  // deeper island exploration
-        Season::Fall => (MapId::DeepForest, 8, 10),     // ancient deep forest ruins
-        _ => (research_map, res_x, res_y),              // same as weekday
+        Season::Summer => (MapId::CoralIsland, 6, 10), // deeper island exploration
+        Season::Fall => (MapId::DeepForest, 8, 10),    // ancient deep forest ruins
+        _ => (research_map, res_x, res_y),             // same as weekday
     };
 
     NpcSchedule {
@@ -1362,7 +1411,14 @@ fn mira_schedule(season: Season) -> NpcSchedule {
                 y: 16,
             }, // sleep extra late
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 8, 16, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            8,
+            16,
+            22,
+            18,
+        )),
     }
 }
 
@@ -1379,10 +1435,10 @@ fn nora_schedule(season: Season) -> NpcSchedule {
 
     // In fall she visits the forest; in spring she gathers herbs in DeepForest
     let (afternoon_outing_map, aft_x, aft_y) = match season {
-        Season::Fall => (MapId::Forest, 10, 15),         // wild produce check
-        Season::Summer => (MapId::Beach, 12, 9),         // cooling off
-        Season::Spring => (MapId::DeepForest, 6, 12),    // deep forest herb gathering
-        Season::Winter => (MapId::Farm, 16, 14),         // still farming
+        Season::Fall => (MapId::Forest, 10, 15), // wild produce check
+        Season::Summer => (MapId::Beach, 12, 9), // cooling off
+        Season::Spring => (MapId::DeepForest, 6, 12), // deep forest herb gathering
+        Season::Winter => (MapId::Farm, 16, 14), // still farming
     };
 
     NpcSchedule {
@@ -1512,7 +1568,14 @@ fn nora_schedule(season: Season) -> NpcSchedule {
                 y: 14,
             }, // sleep
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Farm, 14, 14, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Farm,
+            14,
+            14,
+            22,
+            18,
+        )),
     }
 }
 
@@ -1523,17 +1586,17 @@ fn nora_schedule(season: Season) -> NpcSchedule {
 fn lily_schedule(season: Season) -> NpcSchedule {
     // Lily's adventures change dramatically by season
     let (mid_morning_map, mid_x, mid_y) = match season {
-        Season::Summer => (MapId::Beach, 12, 8),       // beach! beach! beach!
-        Season::Fall => (MapId::DeepForest, 6, 8),     // deep forest adventure! (nature lover)
-        Season::Winter => (MapId::Town, 8, 20),        // library (mom's orders)
-        Season::Spring => (MapId::Town, 8, 20),        // near library oak tree
+        Season::Summer => (MapId::Beach, 12, 8), // beach! beach! beach!
+        Season::Fall => (MapId::DeepForest, 6, 8), // deep forest adventure! (nature lover)
+        Season::Winter => (MapId::Town, 8, 20),  // library (mom's orders)
+        Season::Spring => (MapId::Town, 8, 20),  // near library oak tree
     };
 
     let (afternoon_map, aft_x, aft_y) = match season {
-        Season::Summer => (MapId::Beach, 10, 7),       // sand castles
-        Season::Fall => (MapId::DeepForest, 10, 12),   // deeper into the deep forest
-        Season::Winter => (MapId::Town, 18, 17),       // south park (brief outdoor time)
-        Season::Spring => (MapId::DeepForest, 8, 6),   // spring wildflower meadow in deep forest
+        Season::Summer => (MapId::Beach, 10, 7),     // sand castles
+        Season::Fall => (MapId::DeepForest, 10, 12), // deeper into the deep forest
+        Season::Winter => (MapId::Town, 18, 17),     // south park (brief outdoor time)
+        Season::Spring => (MapId::DeepForest, 8, 6), // spring wildflower meadow in deep forest
     };
 
     NpcSchedule {
@@ -1681,7 +1744,14 @@ fn lily_schedule(season: Season) -> NpcSchedule {
                 y: 17,
             }, // bedtime
         ]),
-        festival_override: Some(festival_override_for_season(season, MapId::Town, 10, 17, 22, 18)),
+        festival_override: Some(festival_override_for_season(
+            season,
+            MapId::Town,
+            10,
+            17,
+            22,
+            18,
+        )),
     }
 }
 

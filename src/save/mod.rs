@@ -665,8 +665,7 @@ fn write_save(
         placed_machines: placed_machines.to_vec(),
     };
 
-    let json =
-        serde_json::to_string(&file).map_err(|e| format!("Serialization failed: {}", e))?;
+    let json = serde_json::to_string(&file).map_err(|e| format!("Serialization failed: {}", e))?;
 
     let key = format!("hearthfield_save_{}", slot);
     let storage = web_sys::window()
@@ -1031,7 +1030,9 @@ fn handle_load_request(
                     use crate::crafting::machines::item_to_machine_type;
                     let world_x = saved.grid_x as f32 * TILE_SIZE;
                     let world_y = saved.grid_y as f32 * TILE_SIZE;
-                    let machine_sprite = if machines.furniture.machine_anim_layout != Handle::default() {
+                    let machine_sprite = if machines.furniture.machine_anim_layout
+                        != Handle::default()
+                    {
                         let mut s = Sprite::from_atlas_image(
                             machines.furniture.machine_anim_image.clone(),
                             TextureAtlas {

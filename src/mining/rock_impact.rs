@@ -300,7 +300,7 @@ pub fn update_rock_destroy_poof(
         }
 
         let t = poof.timer.fraction(); // 0..1
-        let scale = 0.5 + t * 1.2;   // 0.5 → 1.7
+        let scale = 0.5 + t * 1.2; // 0.5 → 1.7
         tf.scale = Vec3::splat(scale);
 
         let alpha = 0.35 * (1.0 - t);

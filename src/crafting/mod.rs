@@ -14,8 +14,8 @@ pub use bench::{CraftItemEvent, CraftingUiState, OpenCraftingEvent};
 pub use buffs::food_buff_for_item;
 pub use machines::{
     item_to_machine_type, machine_atlas_index, CollectMachineOutputEvent, InsertMachineInputEvent,
-    MachineAnimTimer, MachineParticle, MachineType, PlaceMachineEvent, ProcessingMachine,
-    ProcessingMachineRegistry, ProceduralMachineSprites, SavedMachine,
+    MachineAnimTimer, MachineParticle, MachineType, PlaceMachineEvent, ProceduralMachineSprites,
+    ProcessingMachine, ProcessingMachineRegistry, SavedMachine,
 };
 pub use recipes::{
     make_cooking_recipe, make_crafting_recipe, populate_recipe_registry, ALL_COOKING_RECIPE_IDS,

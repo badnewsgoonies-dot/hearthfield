@@ -613,6 +613,8 @@ fn tile_atlas_info(
                     | MapId::GeneralStore
                     | MapId::AnimalShop
                     | MapId::Blacksmith
+                    | MapId::Library
+                    | MapId::Tavern
             );
             if is_indoor {
                 // Return None → solid dark color fallback via tile_color()
@@ -881,6 +883,12 @@ fn load_map(
         // East town house door at (9-10, 13)
         world_map.solid_tiles.remove(&(9, 13));
         world_map.solid_tiles.remove(&(10, 13));
+        // Library door at (8-9, 17)
+        world_map.solid_tiles.remove(&(8, 17));
+        world_map.solid_tiles.remove(&(9, 17));
+        // Tavern door at (15-16, 17)
+        world_map.solid_tiles.remove(&(15, 17));
+        world_map.solid_tiles.remove(&(16, 17));
     }
 
     // Spawn tile sprites using texture atlases

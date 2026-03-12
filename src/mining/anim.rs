@@ -102,12 +102,7 @@ fn make_shimmer_particle_image() -> Image {
     let mut data = vec![0u8; w * h * 4];
 
     // Diamond shape: bright white center, softer edges
-    let pattern: [[u8; 4]; 4] = [
-        [0, 1, 1, 0],
-        [1, 2, 2, 1],
-        [1, 2, 2, 1],
-        [0, 1, 1, 0],
-    ];
+    let pattern: [[u8; 4]; 4] = [[0, 1, 1, 0], [1, 2, 2, 1], [1, 2, 2, 1], [0, 1, 1, 0]];
 
     for (py, row) in pattern.iter().enumerate() {
         for (px, &val) in row.iter().enumerate() {
@@ -177,10 +172,10 @@ fn draw_slime(data: &mut [u8], w: usize) {
     for (py, row) in pattern.iter().enumerate() {
         for (px, &val) in row.iter().enumerate() {
             match val {
-                1 => set_pixel(data, w, px, py, [20, 100, 20, 160]),   // dark green edge
-                2 => set_pixel(data, w, px, py, [50, 180, 50, 230]),   // green body
+                1 => set_pixel(data, w, px, py, [20, 100, 20, 160]), // dark green edge
+                2 => set_pixel(data, w, px, py, [50, 180, 50, 230]), // green body
                 3 => set_pixel(data, w, px, py, [100, 220, 100, 240]), // highlight
-                4 => set_pixel(data, w, px, py, [15, 15, 15, 255]),    // dark eyes
+                4 => set_pixel(data, w, px, py, [15, 15, 15, 255]),  // dark eyes
                 _ => {}
             }
         }
@@ -213,10 +208,10 @@ fn draw_bat(data: &mut [u8], w: usize) {
     for (py, row) in pattern.iter().enumerate() {
         for (px, &val) in row.iter().enumerate() {
             match val {
-                1 => set_pixel(data, w, px, py, [80, 50, 90, 200]),    // wing membrane
-                2 => set_pixel(data, w, px, py, [60, 35, 70, 240]),    // body (dark purple)
-                3 => set_pixel(data, w, px, py, [220, 30, 30, 255]),   // red eyes
-                4 => set_pixel(data, w, px, py, [100, 65, 110, 180]),  // wing tips
+                1 => set_pixel(data, w, px, py, [80, 50, 90, 200]), // wing membrane
+                2 => set_pixel(data, w, px, py, [60, 35, 70, 240]), // body (dark purple)
+                3 => set_pixel(data, w, px, py, [220, 30, 30, 255]), // red eyes
+                4 => set_pixel(data, w, px, py, [100, 65, 110, 180]), // wing tips
                 _ => {}
             }
         }
@@ -249,11 +244,11 @@ fn draw_rock_crab(data: &mut [u8], w: usize) {
     for (py, row) in pattern.iter().enumerate() {
         for (px, &val) in row.iter().enumerate() {
             match val {
-                1 => set_pixel(data, w, px, py, [90, 80, 70, 240]),    // shell edge
+                1 => set_pixel(data, w, px, py, [90, 80, 70, 240]), // shell edge
                 2 => set_pixel(data, w, px, py, [140, 125, 105, 250]), // shell body
                 3 => set_pixel(data, w, px, py, [170, 155, 135, 250]), // highlight
-                4 => set_pixel(data, w, px, py, [20, 20, 20, 255]),    // eyes
-                5 => set_pixel(data, w, px, py, [160, 90, 60, 230]),   // claws (orange-brown)
+                4 => set_pixel(data, w, px, py, [20, 20, 20, 255]), // eyes
+                5 => set_pixel(data, w, px, py, [160, 90, 60, 230]), // claws (orange-brown)
                 _ => {}
             }
         }
@@ -270,7 +265,12 @@ fn draw_rock_crab(data: &mut [u8], w: usize) {
 /// - Rock crabs: subtle horizontal wobble (+-1px at 0.5 Hz)
 pub fn animate_enemy_idle(
     time: Res<Time>,
-    mut query: Query<(&MineMonster, &mut EnemyIdleAnim, &mut Transform, &mut Sprite)>,
+    mut query: Query<(
+        &MineMonster,
+        &mut EnemyIdleAnim,
+        &mut Transform,
+        &mut Sprite,
+    )>,
     in_mine: Res<InMine>,
 ) {
     if !in_mine.0 {
@@ -291,13 +291,9 @@ pub fn animate_enemy_idle(
                 let wave = ((t + phase) * freq).sin();
                 let scale_y = 1.0 + wave * 0.15; // 0.85 to 1.15
                 let scale_x = 1.0 - wave * 0.10; // inverse (wider when squished)
-                // Preserve Z scale from original spawn (1.2)
+                                                 // Preserve Z scale from original spawn (1.2)
                 let base_scale = 1.2;
-                transform.scale = Vec3::new(
-                    base_scale * scale_x,
-                    base_scale * scale_y,
-                    1.0,
-                );
+                transform.scale = Vec3::new(base_scale * scale_x, base_scale * scale_y, 1.0);
             }
             MineEnemy::Bat => {
                 // Wing flap: scale X oscillation + vertical bob
@@ -307,11 +303,7 @@ pub fn animate_enemy_idle(
                 let bob = ((t + phase) * bob_freq).cos();
 
                 let base_scale = 1.2;
-                transform.scale = Vec3::new(
-                    base_scale * (1.0 + flap * 0.12),
-                    base_scale,
-                    1.0,
-                );
+                transform.scale = Vec3::new(base_scale * (1.0 + flap * 0.12), base_scale, 1.0);
                 // Vertical bob +-2 pixels (applied as offset from grid position)
                 // We modify only the fractional part to avoid fighting with grid snap
                 let grid_y = (transform.translation.y / TILE_SIZE).round() * TILE_SIZE;

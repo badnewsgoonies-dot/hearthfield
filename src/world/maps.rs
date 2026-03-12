@@ -80,6 +80,8 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
         MapId::GeneralStore => (6, 8),
         MapId::AnimalShop => (6, 8),
         MapId::Blacksmith => (6, 8),
+        MapId::Library => (7, 10),
+        MapId::Tavern => (8, 12),
         MapId::CoralIsland => (15, 1),
     }
 }
@@ -103,6 +105,12 @@ pub fn generate_map(map_id: MapId) -> MapDef {
         MapId::GeneralStore => generate_general_store(),
         MapId::AnimalShop => generate_animal_shop(),
         MapId::Blacksmith => generate_blacksmith(),
+        MapId::Library => super::map_data::load_map_data(MapId::Library)
+            .map(|data| super::map_data::map_data_to_map_def(&data))
+            .unwrap_or_else(generate_town_house_west),
+        MapId::Tavern => super::map_data::load_map_data(MapId::Tavern)
+            .map(|data| super::map_data::map_data_to_map_def(&data))
+            .unwrap_or_else(generate_general_store),
         MapId::CoralIsland => generate_coral_island(),
     }
 }
@@ -697,13 +705,13 @@ fn generate_deep_forest() -> MapDef {
         };
 
     // ── Winding path from west entrance ──
-    fill_rect(&mut tiles, 0, 14, 8, 2, TileKind::Path);   // straight entry
-    fill_rect(&mut tiles, 7, 13, 2, 3, TileKind::Path);    // jog north
-    fill_rect(&mut tiles, 8, 12, 6, 2, TileKind::Path);    // east through center
-    fill_rect(&mut tiles, 13, 12, 2, 4, TileKind::Path);   // south bend
-    fill_rect(&mut tiles, 14, 15, 6, 2, TileKind::Path);   // east again
-    fill_rect(&mut tiles, 19, 13, 2, 3, TileKind::Path);   // jog north
-    fill_rect(&mut tiles, 20, 12, 4, 2, TileKind::Path);   // final stretch east
+    fill_rect(&mut tiles, 0, 14, 8, 2, TileKind::Path); // straight entry
+    fill_rect(&mut tiles, 7, 13, 2, 3, TileKind::Path); // jog north
+    fill_rect(&mut tiles, 8, 12, 6, 2, TileKind::Path); // east through center
+    fill_rect(&mut tiles, 13, 12, 2, 4, TileKind::Path); // south bend
+    fill_rect(&mut tiles, 14, 15, 6, 2, TileKind::Path); // east again
+    fill_rect(&mut tiles, 19, 13, 2, 3, TileKind::Path); // jog north
+    fill_rect(&mut tiles, 20, 12, 4, 2, TileKind::Path); // final stretch east
 
     // ── Central pond ──
     fill_rect(&mut tiles, 12, 8, 6, 4, TileKind::Water);
@@ -712,101 +720,213 @@ fn generate_deep_forest() -> MapDef {
     fill_rect(&mut tiles, 22, 21, 6, 5, TileKind::Dirt);
 
     // ── Mushroom clearing (northeast) ──
-    fill_rect(&mut tiles, 20, 2, 7, 5, TileKind::Grass);   // Already grass, just noting the clearing
+    fill_rect(&mut tiles, 20, 2, 7, 5, TileKind::Grass); // Already grass, just noting the clearing
 
     // ── Flower meadow (southwest) ──
-    fill_rect(&mut tiles, 2, 20, 8, 5, TileKind::Grass);   // Open area
+    fill_rect(&mut tiles, 2, 20, 8, 5, TileKind::Grass); // Open area
 
-    let transitions = vec![
-        MapTransition {
-            from_map: MapId::DeepForest,
-            from_rect: (0, 13, 1, 4),
-            to_map: MapId::Forest,
-            to_pos: (20, 8),
-        },
-    ];
+    let transitions = vec![MapTransition {
+        from_map: MapId::DeepForest,
+        from_rect: (0, 13, 1, 4),
+        to_map: MapId::Forest,
+        to_pos: (20, 8),
+    }];
 
     let mut objects = Vec::new();
 
     // ── Dense tree border (north edge) ──
     for x in (0..30).step_by(2) {
-        objects.push(ObjectPlacement { x, y: 0, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x,
+            y: 0,
+            kind: WorldObjectKind::Tree,
+        });
     }
     for x in (1..28).step_by(3) {
-        objects.push(ObjectPlacement { x, y: 1, kind: WorldObjectKind::Pine });
+        objects.push(ObjectPlacement {
+            x,
+            y: 1,
+            kind: WorldObjectKind::Pine,
+        });
     }
 
     // ── Dense tree border (east edge) ──
     for y in (0..28).step_by(3) {
-        objects.push(ObjectPlacement { x: 28, y, kind: WorldObjectKind::Pine });
-        objects.push(ObjectPlacement { x: 29, y: y.saturating_add(1).min(27), kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x: 28,
+            y,
+            kind: WorldObjectKind::Pine,
+        });
+        objects.push(ObjectPlacement {
+            x: 29,
+            y: y.saturating_add(1).min(27),
+            kind: WorldObjectKind::Tree,
+        });
     }
 
     // ── Dense tree border (south edge) ──
     for x in (0..20).step_by(2) {
-        objects.push(ObjectPlacement { x, y: 27, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x,
+            y: 27,
+            kind: WorldObjectKind::Tree,
+        });
     }
 
     // ── Interior tree clusters ──
     let tree_positions: &[(i32, i32)] = &[
         // Northwest grove
-        (2, 3), (4, 2), (6, 4), (3, 6), (5, 7), (1, 8),
+        (2, 3),
+        (4, 2),
+        (6, 4),
+        (3, 6),
+        (5, 7),
+        (1, 8),
         // West of pond
-        (8, 6), (9, 9), (7, 10), (10, 5),
+        (8, 6),
+        (9, 9),
+        (7, 10),
+        (10, 5),
         // East of pond
-        (19, 7), (20, 9), (18, 10),
+        (19, 7),
+        (20, 9),
+        (18, 10),
         // South scattered
-        (6, 17), (8, 19), (11, 18), (16, 20), (18, 22),
+        (6, 17),
+        (8, 19),
+        (11, 18),
+        (16, 20),
+        (18, 22),
         // Central area
-        (10, 16), (15, 8), (17, 6),
+        (10, 16),
+        (15, 8),
+        (17, 6),
     ];
     for &(tx, ty) in tree_positions {
-        objects.push(ObjectPlacement { x: tx, y: ty, kind: WorldObjectKind::Tree });
+        objects.push(ObjectPlacement {
+            x: tx,
+            y: ty,
+            kind: WorldObjectKind::Tree,
+        });
     }
 
     // ── Pine trees (evergreen accents) ──
     let pine_positions: &[(i32, i32)] = &[
-        (1, 5), (4, 9), (7, 3), (11, 4), (16, 4),
-        (3, 12), (6, 15), (9, 22), (14, 24), (22, 16),
-        (25, 10), (24, 4), (12, 20), (17, 18), (26, 20),
+        (1, 5),
+        (4, 9),
+        (7, 3),
+        (11, 4),
+        (16, 4),
+        (3, 12),
+        (6, 15),
+        (9, 22),
+        (14, 24),
+        (22, 16),
+        (25, 10),
+        (24, 4),
+        (12, 20),
+        (17, 18),
+        (26, 20),
     ];
     for &(px, py) in pine_positions {
-        objects.push(ObjectPlacement { x: px, y: py, kind: WorldObjectKind::Pine });
+        objects.push(ObjectPlacement {
+            x: px,
+            y: py,
+            kind: WorldObjectKind::Pine,
+        });
     }
 
     // ── Bushes (scattered undergrowth) ──
     let bush_positions: &[(i32, i32)] = &[
-        (3, 21), (5, 22), (4, 24), (7, 23),  // Flower meadow area
-        (2, 10), (8, 14), (15, 10), (21, 6),
+        (3, 21),
+        (5, 22),
+        (4, 24),
+        (7, 23), // Flower meadow area
+        (2, 10),
+        (8, 14),
+        (15, 10),
+        (21, 6),
     ];
     for &(bx, by) in bush_positions {
-        objects.push(ObjectPlacement { x: bx, y: by, kind: WorldObjectKind::Bush });
+        objects.push(ObjectPlacement {
+            x: bx,
+            y: by,
+            kind: WorldObjectKind::Bush,
+        });
     }
 
     // ── Stumps and logs ──
-    objects.push(ObjectPlacement { x: 6, y: 11, kind: WorldObjectKind::Stump });
-    objects.push(ObjectPlacement { x: 16, y: 17, kind: WorldObjectKind::Stump });
-    objects.push(ObjectPlacement { x: 11, y: 23, kind: WorldObjectKind::Log });
-    objects.push(ObjectPlacement { x: 19, y: 20, kind: WorldObjectKind::Log });
+    objects.push(ObjectPlacement {
+        x: 6,
+        y: 11,
+        kind: WorldObjectKind::Stump,
+    });
+    objects.push(ObjectPlacement {
+        x: 16,
+        y: 17,
+        kind: WorldObjectKind::Stump,
+    });
+    objects.push(ObjectPlacement {
+        x: 11,
+        y: 23,
+        kind: WorldObjectKind::Log,
+    });
+    objects.push(ObjectPlacement {
+        x: 19,
+        y: 20,
+        kind: WorldObjectKind::Log,
+    });
 
     // ── Rocky outcropping (southeast) ──
-    objects.push(ObjectPlacement { x: 23, y: 22, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 25, y: 23, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 24, y: 24, kind: WorldObjectKind::LargeRock });
-    objects.push(ObjectPlacement { x: 26, y: 22, kind: WorldObjectKind::LargeRock });
-    objects.push(ObjectPlacement { x: 22, y: 24, kind: WorldObjectKind::Rock });
-    objects.push(ObjectPlacement { x: 27, y: 24, kind: WorldObjectKind::Rock });
+    objects.push(ObjectPlacement {
+        x: 23,
+        y: 22,
+        kind: WorldObjectKind::Rock,
+    });
+    objects.push(ObjectPlacement {
+        x: 25,
+        y: 23,
+        kind: WorldObjectKind::Rock,
+    });
+    objects.push(ObjectPlacement {
+        x: 24,
+        y: 24,
+        kind: WorldObjectKind::LargeRock,
+    });
+    objects.push(ObjectPlacement {
+        x: 26,
+        y: 22,
+        kind: WorldObjectKind::LargeRock,
+    });
+    objects.push(ObjectPlacement {
+        x: 22,
+        y: 24,
+        kind: WorldObjectKind::Rock,
+    });
+    objects.push(ObjectPlacement {
+        x: 27,
+        y: 24,
+        kind: WorldObjectKind::Rock,
+    });
 
     // ── Forage points ──
     let forage_points = vec![
         // Mushroom clearing (northeast)
-        (21, 3), (23, 4), (25, 3), (22, 5),
+        (21, 3),
+        (23, 4),
+        (25, 3),
+        (22, 5),
         // Flower meadow (southwest)
-        (3, 22), (5, 23), (6, 21),
+        (3, 22),
+        (5, 23),
+        (6, 21),
         // Scattered forest floor
-        (8, 7), (18, 9), (10, 18),
+        (8, 7),
+        (18, 9),
+        (10, 18),
         // Near pond
-        (11, 7), (18, 8),
+        (11, 7),
+        (18, 8),
     ];
 
     MapDef {
@@ -1438,58 +1558,112 @@ fn generate_coral_island() -> MapDef {
     let mut objects = Vec::new();
 
     // Dock pier objects at north arrival point
-    objects.push(ObjectPlacement { x: 14, y: 1, kind: WorldObjectKind::Dock });
-    objects.push(ObjectPlacement { x: 16, y: 1, kind: WorldObjectKind::Dock });
+    objects.push(ObjectPlacement {
+        x: 14,
+        y: 1,
+        kind: WorldObjectKind::Dock,
+    });
+    objects.push(ObjectPlacement {
+        x: 16,
+        y: 1,
+        kind: WorldObjectKind::Dock,
+    });
 
     // Northeast PalmTree grove (8+ trees)
     let palm_grove = [
-        (20, 3), (22, 3), (24, 3), (26, 3),
-        (21, 5), (23, 5), (25, 5),
-        (20, 7), (22, 7), (24, 7),
-        (26, 6), (27, 4),
+        (20, 3),
+        (22, 3),
+        (24, 3),
+        (26, 3),
+        (21, 5),
+        (23, 5),
+        (25, 5),
+        (20, 7),
+        (22, 7),
+        (24, 7),
+        (26, 6),
+        (27, 4),
     ];
     for (px, py) in &palm_grove {
-        objects.push(ObjectPlacement { x: *px, y: *py, kind: WorldObjectKind::PalmTree });
+        objects.push(ObjectPlacement {
+            x: *px,
+            y: *py,
+            kind: WorldObjectKind::PalmTree,
+        });
     }
 
     // Additional scattered PalmTrees (meet 15+ total)
     let more_palms = [
-        (5, 3), (5, 7), (5, 12), (5, 17),
-        (27, 12), (27, 16),
-        (15, 18), (19, 18),
+        (5, 3),
+        (5, 7),
+        (5, 12),
+        (5, 17),
+        (27, 12),
+        (27, 16),
+        (15, 18),
+        (19, 18),
     ];
     for (px, py) in &more_palms {
-        objects.push(ObjectPlacement { x: *px, y: *py, kind: WorldObjectKind::PalmTree });
+        objects.push(ObjectPlacement {
+            x: *px,
+            y: *py,
+            kind: WorldObjectKind::PalmTree,
+        });
     }
 
     // Southeast tide pools: Coral objects (8+)
     let coral_spots = [
-        (21, 14), (23, 14), (25, 14), (27, 14),
-        (20, 16), (22, 16), (24, 16), (26, 16),
-        (21, 18), (24, 18),
+        (21, 14),
+        (23, 14),
+        (25, 14),
+        (27, 14),
+        (20, 16),
+        (22, 16),
+        (24, 16),
+        (26, 16),
+        (21, 18),
+        (24, 18),
     ];
     for (cx, cy) in &coral_spots {
-        objects.push(ObjectPlacement { x: *cx, y: *cy, kind: WorldObjectKind::Coral });
+        objects.push(ObjectPlacement {
+            x: *cx,
+            y: *cy,
+            kind: WorldObjectKind::Coral,
+        });
     }
 
     // Southeast rocks (4+)
     let rock_spots = [(22, 13), (25, 13), (20, 15), (26, 15)];
     for (rx, ry) in &rock_spots {
-        objects.push(ObjectPlacement { x: *rx, y: *ry, kind: WorldObjectKind::Rock });
+        objects.push(ObjectPlacement {
+            x: *rx,
+            y: *ry,
+            kind: WorldObjectKind::Rock,
+        });
     }
 
     // West beach driftwood (5+)
     let driftwood_spots = [(4, 5), (4, 9), (4, 13), (4, 17), (6, 19)];
     for (dx, dy) in &driftwood_spots {
-        objects.push(ObjectPlacement { x: *dx, y: *dy, kind: WorldObjectKind::Driftwood });
+        objects.push(ObjectPlacement {
+            x: *dx,
+            y: *dy,
+            kind: WorldObjectKind::Driftwood,
+        });
     }
 
     // Forage points spread across the island (8+): shells, sea glass, tropical herbs
     let forage_points = vec![
-        (6, 4), (6, 8), (6, 14), (6, 18),
-        (13, 7), (17, 7),
-        (10, 15), (15, 14),
-        (23, 10), (12, 19),
+        (6, 4),
+        (6, 8),
+        (6, 14),
+        (6, 18),
+        (13, 7),
+        (17, 7),
+        (10, 15),
+        (15, 14),
+        (23, 10),
+        (12, 19),
     ];
 
     MapDef {

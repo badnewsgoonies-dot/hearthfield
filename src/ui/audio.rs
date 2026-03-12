@@ -209,7 +209,9 @@ pub fn switch_music_on_map_change(
             | MapId::TownHouseEast
             | MapId::GeneralStore
             | MapId::AnimalShop
-            | MapId::Blacksmith => "indoor",
+            | MapId::Blacksmith
+            | MapId::Library
+            | MapId::Tavern => "indoor",
             MapId::CoralIsland => "beach",
         };
         music_events.send(PlayMusicEvent {

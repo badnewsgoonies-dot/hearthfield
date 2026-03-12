@@ -34,34 +34,34 @@ fn tool_swing_params(tool: ToolKind, frame: usize) -> (f32, Vec2) {
     match tool {
         // Hoe / Pickaxe / Axe: overhead swing arc
         ToolKind::Hoe | ToolKind::Pickaxe | ToolKind::Axe => match frame {
-            0 => (-45.0, Vec2::new(0.0, 1.0)),  // wind-up: tilt back
-            1 => (-15.0, Vec2::new(0.0, 0.5)),  // mid-swing
-            2 => (30.0, Vec2::new(0.0, -1.0)),  // impact: snap forward
-            3 => (10.0, Vec2::ZERO),             // recovery
+            0 => (-45.0, Vec2::new(0.0, 1.0)), // wind-up: tilt back
+            1 => (-15.0, Vec2::new(0.0, 0.5)), // mid-swing
+            2 => (30.0, Vec2::new(0.0, -1.0)), // impact: snap forward
+            3 => (10.0, Vec2::ZERO),           // recovery
             _ => (0.0, Vec2::ZERO),
         },
         // Watering can: gentle forward tilt (pour)
         ToolKind::WateringCan => match frame {
-            0 => (5.0, Vec2::ZERO),              // slight lift
-            1 => (15.0, Vec2::new(0.0, -0.5)),  // tilting
-            2 => (20.0, Vec2::new(0.0, -1.0)),  // full pour
-            3 => (8.0, Vec2::ZERO),              // recovery
+            0 => (5.0, Vec2::ZERO),            // slight lift
+            1 => (15.0, Vec2::new(0.0, -0.5)), // tilting
+            2 => (20.0, Vec2::new(0.0, -1.0)), // full pour
+            3 => (8.0, Vec2::ZERO),            // recovery
             _ => (0.0, Vec2::ZERO),
         },
         // Fishing rod: cast arc (wind back then fling forward)
         ToolKind::FishingRod => match frame {
-            0 => (-60.0, Vec2::new(0.0, 1.5)),  // wind-up far back
-            1 => (-20.0, Vec2::new(0.0, 0.5)),  // mid-cast
-            2 => (45.0, Vec2::new(0.0, -1.5)),  // cast forward
-            3 => (15.0, Vec2::ZERO),             // follow-through
+            0 => (-60.0, Vec2::new(0.0, 1.5)), // wind-up far back
+            1 => (-20.0, Vec2::new(0.0, 0.5)), // mid-cast
+            2 => (45.0, Vec2::new(0.0, -1.5)), // cast forward
+            3 => (15.0, Vec2::ZERO),           // follow-through
             _ => (0.0, Vec2::ZERO),
         },
         // Scythe: horizontal sweep with translation
         ToolKind::Scythe => match frame {
-            0 => (-25.0, Vec2::new(-2.0, 0.0)),  // wind-up to the side
-            1 => (-10.0, Vec2::new(-1.0, 0.0)),  // mid-sweep
-            2 => (20.0, Vec2::new(2.0, 0.0)),    // impact sweep across
-            3 => (8.0, Vec2::new(1.0, 0.0)),     // recovery
+            0 => (-25.0, Vec2::new(-2.0, 0.0)), // wind-up to the side
+            1 => (-10.0, Vec2::new(-1.0, 0.0)), // mid-sweep
+            2 => (20.0, Vec2::new(2.0, 0.0)),   // impact sweep across
+            3 => (8.0, Vec2::new(1.0, 0.0)),    // recovery
             _ => (0.0, Vec2::ZERO),
         },
     }
@@ -420,7 +420,10 @@ pub fn load_procedural_tool_sprites(
 }
 
 /// Returns the cached handle for the given tool kind (if any).
-pub fn tool_sprite_handle(sprites: &ProceduralToolSprites, tool: ToolKind) -> Option<Handle<Image>> {
+pub fn tool_sprite_handle(
+    sprites: &ProceduralToolSprites,
+    tool: ToolKind,
+) -> Option<Handle<Image>> {
     match tool {
         ToolKind::Hoe => sprites.hoe.clone(),
         ToolKind::Axe => sprites.axe.clone(),
@@ -492,7 +495,14 @@ fn make_tool_image_axe() -> Image {
     let mut data = vec![0u8; w * h * 4];
     draw_handle(&mut data, w, 6, 0, 9);
     // Triangular head: wider at bottom, narrower at top
-    let head_rows = [(10usize, 5usize, 9usize), (11, 4, 10), (12, 3, 11), (13, 3, 11), (14, 4, 10), (15, 5, 9)];
+    let head_rows = [
+        (10usize, 5usize, 9usize),
+        (11, 4, 10),
+        (12, 3, 11),
+        (13, 3, 11),
+        (14, 4, 10),
+        (15, 5, 9),
+    ];
     for (row, col_start, col_end) in head_rows {
         for col in col_start..=col_end {
             set_px(&mut data, w, col, row, 120, 120, 120, 255);
@@ -666,14 +676,12 @@ pub fn update_held_tool_sprite(
                 let hand_offset = tool_hand_offset(&movement.facing);
                 let offset = Vec2::new(swing_offset.x * rot_sign, swing_offset.y);
 
-                commands.entity(tool_entity).insert((
-                    Transform::from_xyz(
-                        hand_offset.x + offset.x,
-                        hand_offset.y + offset.y,
-                        0.2, // local Z relative to parent
-                    )
-                    .with_rotation(Quat::from_rotation_z(angle_rad)),
-                ));
+                commands.entity(tool_entity).insert((Transform::from_xyz(
+                    hand_offset.x + offset.x,
+                    hand_offset.y + offset.y,
+                    0.2, // local Z relative to parent
+                )
+                .with_rotation(Quat::from_rotation_z(angle_rad)),));
             }
         }
         _ => {
@@ -816,10 +824,7 @@ pub struct TillPoof {
 }
 
 /// Listen for hoe impact events and spawn a dust poof at the tilled tile.
-pub fn spawn_till_poof(
-    mut commands: Commands,
-    mut impact_events: EventReader<ToolImpactEvent>,
-) {
+pub fn spawn_till_poof(mut commands: Commands, mut impact_events: EventReader<ToolImpactEvent>) {
     for event in impact_events.read() {
         if event.tool != ToolKind::Hoe {
             continue;

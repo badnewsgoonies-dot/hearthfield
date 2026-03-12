@@ -33,6 +33,8 @@ fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
         MapId::GeneralStore => (0, 11, 0, 11),
         MapId::AnimalShop => (0, 11, 0, 11),
         MapId::Blacksmith => (0, 11, 0, 11),
+        MapId::Library => (0, 13, 0, 11),
+        MapId::Tavern => (0, 15, 0, 13),
         MapId::CoralIsland => (0, 29, 0, 21),
     }
 }
@@ -584,12 +586,12 @@ pub fn grant_starter_items(mut inventory: ResMut<Inventory>, item_registry: Res<
     }
 
     let starters = [
-        ("hoe", 1u8),           // Required to till soil — first step in farming
-        ("turnip_seeds", 15),   // Spring crop — enough for a starter plot
-        ("potato_seeds", 5),    // Second spring crop
-        ("wood", 20),           // For crafting a chest or fence
-        ("stone", 15),          // Basic materials
-        ("bread", 3),           // Food to restore stamina on Day 1
+        ("hoe", 1u8),         // Required to till soil — first step in farming
+        ("turnip_seeds", 15), // Spring crop — enough for a starter plot
+        ("potato_seeds", 5),  // Second spring crop
+        ("wood", 20),         // For crafting a chest or fence
+        ("stone", 15),        // Basic materials
+        ("bread", 3),         // Food to restore stamina on Day 1
     ];
 
     for (item_id, qty) in &starters {

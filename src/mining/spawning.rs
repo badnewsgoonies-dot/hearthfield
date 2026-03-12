@@ -1,8 +1,8 @@
 //! Spawns mine floor entities into the ECS from a FloorBlueprint.
 
+use super::anim::{EnemyIdleAnim, OreShimmer};
 use bevy::prelude::*;
 use rand::Rng;
-use super::anim::{EnemyIdleAnim, OreShimmer};
 
 use super::components::*;
 use super::floor_gen::{self, FloorBlueprint, MINE_HEIGHT, MINE_WIDTH};

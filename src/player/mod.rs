@@ -83,12 +83,9 @@ impl Plugin for PlayerPlugin {
                 tool_anim::animate_player_breathing
                     .after(movement::player_movement)
                     .after(tool_anim::animate_tool_use),
-                tool_anim::update_held_tool_sprite
-                    .after(tool_anim::animate_tool_use),
-                tool_anim::spawn_impact_particles
-                    .after(tool_anim::animate_tool_use),
-                tool_anim::spawn_till_poof
-                    .after(tool_anim::animate_tool_use),
+                tool_anim::update_held_tool_sprite.after(tool_anim::animate_tool_use),
+                tool_anim::spawn_impact_particles.after(tool_anim::animate_tool_use),
+                tool_anim::spawn_till_poof.after(tool_anim::animate_tool_use),
                 tool_anim::update_impact_particles,
                 tool_anim::update_till_poof,
             )

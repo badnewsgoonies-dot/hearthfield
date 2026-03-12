@@ -179,7 +179,7 @@ fn generate_machine_image(machine_type: MachineType) -> Image {
             fill_rect(&mut data, 3, 4, 12, 14, 60, 60, 65, 255); // body
             fill_rect(&mut data, 4, 5, 11, 13, 50, 50, 55, 255); // inner
             fill_rect(&mut data, 5, 6, 10, 10, 30, 28, 25, 255); // opening
-            // Fire glow
+                                                                 // Fire glow
             set(&mut data, 6, 2, 255, 160, 30, 255);
             set(&mut data, 7, 1, 255, 100, 20, 200);
             set(&mut data, 8, 2, 255, 140, 25, 255);
@@ -197,7 +197,7 @@ fn generate_machine_image(machine_type: MachineType) -> Image {
             fill_rect(&mut data, 5, 3, 10, 4, 120, 90, 50, 255); // lid
             fill_rect(&mut data, 4, 5, 11, 13, 70, 120, 60, 255); // jar body
             fill_rect(&mut data, 5, 6, 10, 12, 80, 140, 70, 255); // lighter center
-            // Highlight stripe
+                                                                  // Highlight stripe
             fill_rect(&mut data, 6, 7, 6, 11, 100, 170, 90, 200);
         }
         MachineType::CheesePress => {
@@ -205,7 +205,7 @@ fn generate_machine_image(machine_type: MachineType) -> Image {
             fill_rect(&mut data, 2, 6, 13, 14, 140, 100, 50, 255); // wooden base
             fill_rect(&mut data, 3, 7, 12, 13, 160, 115, 60, 255); // lighter wood
             fill_rect(&mut data, 4, 3, 11, 5, 130, 90, 45, 255); // press top
-            // Handle
+                                                                 // Handle
             fill_rect(&mut data, 7, 1, 8, 3, 80, 80, 85, 255);
             set(&mut data, 6, 1, 90, 90, 95, 255);
             set(&mut data, 9, 1, 90, 90, 95, 255);
@@ -213,7 +213,7 @@ fn generate_machine_image(machine_type: MachineType) -> Image {
         MachineType::Loom => {
             // Wooden frame shape
             fill_rect(&mut data, 2, 12, 13, 14, 140, 100, 50, 255); // base
-            // Vertical posts
+                                                                    // Vertical posts
             fill_rect(&mut data, 3, 2, 4, 12, 130, 90, 45, 255);
             fill_rect(&mut data, 11, 2, 12, 12, 130, 90, 45, 255);
             // Top bar
@@ -229,7 +229,7 @@ fn generate_machine_image(machine_type: MachineType) -> Image {
             // Barrel shape (brown rectangle with hoops)
             fill_rect(&mut data, 4, 3, 11, 13, 130, 85, 40, 255); // barrel body
             fill_rect(&mut data, 5, 4, 10, 12, 150, 100, 50, 255); // lighter center
-            // Hoops (darker bands)
+                                                                   // Hoops (darker bands)
             fill_rect(&mut data, 3, 5, 12, 5, 100, 100, 110, 255);
             fill_rect(&mut data, 3, 11, 12, 11, 100, 100, 110, 255);
             // Spigot
@@ -240,7 +240,7 @@ fn generate_machine_image(machine_type: MachineType) -> Image {
             // Metal cylinder with spout
             fill_rect(&mut data, 4, 4, 11, 14, 140, 145, 150, 255); // cylinder
             fill_rect(&mut data, 5, 5, 10, 13, 160, 165, 170, 255); // lighter
-            // Top cap
+                                                                    // Top cap
             fill_rect(&mut data, 5, 3, 10, 4, 120, 125, 130, 255);
             // Spout
             fill_rect(&mut data, 11, 9, 13, 10, 120, 125, 130, 255);
@@ -913,11 +913,7 @@ pub fn animate_processing_machines(
 /// transform snaps back to the canonical LogicalPosition.
 pub fn shake_active_machines(
     time: Res<Time>,
-    mut query: Query<(
-        &ProcessingMachine,
-        &LogicalPosition,
-        &mut Transform,
-    )>,
+    mut query: Query<(&ProcessingMachine, &LogicalPosition, &mut Transform)>,
 ) {
     let t = time.elapsed_secs();
     for (machine, logical_pos, mut transform) in query.iter_mut() {
@@ -971,10 +967,7 @@ pub fn spawn_machine_particles(
                 elapsed: 0.0,
                 velocity_y: 12.0,
             },
-            Sprite::from_color(
-                Color::srgba(1.0, 1.0, 1.0, 0.6),
-                Vec2::new(1.0, 1.0),
-            ),
+            Sprite::from_color(Color::srgba(1.0, 1.0, 1.0, 0.6), Vec2::new(1.0, 1.0)),
             Transform::from_translation(spawn_pos),
         ));
     }

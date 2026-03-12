@@ -141,7 +141,6 @@ pub fn ensure_object_atlases_loaded(
         None,
     ));
 
-    // items_atlas.png: 208x304px -> 16x16 tiles, 13 columns x 19 rows
     atlases.item_icon_image = asset_server.load("sprites/items_atlas.png");
     atlases.item_icon_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
@@ -1621,7 +1620,6 @@ struct BuildingDef {
 
 /// Town building definitions.
 /// All use composite sprites (farmhouse/barn) with distinct tints.
-/// The legacy tile-by-tile path had invisible roofs (empty tileset rows).
 fn town_buildings() -> Vec<BuildingDef> {
     vec![
         // General Store (north-west) — warm tint
@@ -1678,6 +1676,28 @@ fn town_buildings() -> Vec<BuildingDef> {
             door_y: 13,
             roof_tint: Color::srgb(0.95, 0.88, 0.7),
             composite: Some(BuildingImage::Farmhouse),
+        },
+        // Library (upper-left lane) — cool study tint
+        BuildingDef {
+            x: 7,
+            y: 17,
+            w: 6,
+            h: 4,
+            door_x: 8,
+            door_y: 17,
+            roof_tint: Color::srgb(0.72, 0.84, 0.9),
+            composite: Some(BuildingImage::Farmhouse),
+        },
+        // Tavern (upper-right lane) — warm social tint
+        BuildingDef {
+            x: 14,
+            y: 17,
+            w: 6,
+            h: 4,
+            door_x: 15,
+            door_y: 17,
+            roof_tint: Color::srgb(0.95, 0.68, 0.46),
+            composite: Some(BuildingImage::Barn),
         },
     ]
 }
@@ -1941,12 +1961,14 @@ pub struct CandleFlicker {
 /// Candle positions for each indoor map. Returns (grid_x, grid_y) pairs.
 fn candle_positions(map_id: MapId) -> Vec<(i32, i32)> {
     match map_id {
-        MapId::PlayerHouse => vec![(1, 1), (14, 1), (1, 13), (14, 13)],
+        MapId::PlayerHouse => vec![(2, 2), (8, 2), (3, 12), (12, 13)],
         MapId::GeneralStore => vec![(1, 1), (10, 1), (1, 9)],
         MapId::Blacksmith => vec![(1, 3), (10, 1), (5, 7)],
         MapId::AnimalShop => vec![(1, 3), (10, 1), (10, 9)],
-        MapId::TownHouseWest => vec![(1, 3), (10, 1), (10, 8)],
-        MapId::TownHouseEast => vec![(1, 3), (10, 1), (1, 8)],
+        MapId::TownHouseWest => vec![(2, 1), (8, 2), (3, 8)],
+        MapId::TownHouseEast => vec![(2, 1), (9, 2), (9, 8)],
+        MapId::Tavern => vec![(2, 2), (8, 2), (12, 5), (4, 10)],
+        MapId::Library => vec![(2, 2), (11, 2), (2, 7), (11, 8)],
         _ => vec![],
     }
 }
@@ -2005,177 +2027,160 @@ struct FurniturePlacement {
     wide: bool,
 }
 
+// Atlas audit notes (derived from assets/sprites/furniture.png for this slice):
+// 2/3 read as a bed pair, 5/6 as seating, 9/18 as shelf halves, 10/11 and
+// 14/15 as cabinet/desk surfaces, 27/28 as casks, 31 as a box/chest, 43/44 as
+// small tabletop decor, 49 as a chair, 50/51/53 as rugs, and 52 as a plant.
+// Avoided the older counter/display-case guesses because the sheet does not
+// support those mappings cleanly.
+
 fn player_house_furniture() -> Vec<FurniturePlacement> {
     vec![
-        // ── Bedroom (upper-right area) ──
-        // Bed frame (2-tile wide, using counter surface tiles as bed frame)
+        // ── Bedroom / storage wall ──
+        FurniturePlacement {
+            x: 11,
+            y: 2,
+            index: 2,
+            wide: false,
+        },
         FurniturePlacement {
             x: 12,
             y: 2,
-            index: 32,
+            index: 3,
             wide: false,
         },
         FurniturePlacement {
-            x: 13,
-            y: 2,
-            index: 33,
-            wide: false,
-        },
-        // Nightstand beside bed
-        FurniturePlacement {
-            x: 11,
+            x: 10,
             y: 2,
             index: 31,
             wide: false,
         },
-        // Dresser
-        FurniturePlacement {
-            x: 14,
-            y: 4,
-            index: 21,
-            wide: false,
-        },
-        // Bedroom rug under bed
-        FurniturePlacement {
-            x: 12,
-            y: 3,
-            index: 48,
-            wide: false,
-        },
         FurniturePlacement {
             x: 13,
             y: 3,
-            index: 49,
+            index: 21,
             wide: false,
         },
-        // ── Kitchen (upper-left area) ──
-        // Counter along back wall
+        FurniturePlacement {
+            x: 12,
+            y: 4,
+            index: 53,
+            wide: false,
+        },
+
+        // ── Kitchen / pantry ──
         FurniturePlacement {
             x: 2,
             y: 1,
-            index: 32,
+            index: 14,
             wide: false,
         },
         FurniturePlacement {
             x: 3,
             y: 1,
-            index: 33,
+            index: 15,
             wide: false,
         },
         FurniturePlacement {
             x: 4,
             y: 1,
-            index: 32,
+            index: 10,
             wide: false,
         },
-        // Pantry barrel
         FurniturePlacement {
             x: 1,
             y: 3,
             index: 27,
             wide: false,
         },
-        // Kitchen table (2-tile wide)
+
+        // ── Dining nook ──
         FurniturePlacement {
             x: 3,
-            y: 4,
+            y: 10,
             index: 14,
             wide: false,
         },
         FurniturePlacement {
             x: 4,
-            y: 4,
+            y: 10,
             index: 15,
             wide: false,
         },
-        // Stools at table
         FurniturePlacement {
             x: 3,
-            y: 5,
-            index: 4,
+            y: 11,
+            index: 5,
             wide: false,
         },
         FurniturePlacement {
             x: 4,
-            y: 5,
-            index: 5,
+            y: 11,
+            index: 6,
             wide: false,
         },
-        // ── Living Room (center) ──
-        // Bookshelf on left wall (2-tile tall)
+
+        // ── Living room ──
         FurniturePlacement {
             x: 1,
-            y: 6,
+            y: 5,
             index: 9,
             wide: false,
         },
         FurniturePlacement {
             x: 1,
-            y: 7,
+            y: 6,
             index: 18,
             wide: false,
         },
-        // Chairs flanking rug
         FurniturePlacement {
-            x: 5,
+            x: 6,
             y: 7,
-            index: 4,
+            index: 49,
             wide: false,
         },
         FurniturePlacement {
-            x: 10,
+            x: 9,
             y: 7,
-            index: 4,
+            index: 49,
             wide: false,
         },
-        // Lamp next to bookshelf
-        FurniturePlacement {
-            x: 1,
-            y: 8,
-            index: 24,
-            wide: false,
-        },
-        // Plant in corner
-        FurniturePlacement {
-            x: 14,
-            y: 8,
-            index: 22,
-            wide: false,
-        },
-        // ── Fireplace area ──
-        // (Stone tiles handle the fireplace, but add decorative items)
-        FurniturePlacement {
-            x: 5,
-            y: 1,
-            index: 24,
-            wide: false,
-        }, // lamp on mantel
-        // ── Entry Area ──
-        // Coat/supply barrel near door
-        FurniturePlacement {
-            x: 2,
-            y: 13,
-            index: 27,
-            wide: false,
-        },
-        // Crate near door
-        FurniturePlacement {
-            x: 13,
-            y: 13,
-            index: 36,
-            wide: false,
-        },
-        // Welcome mat (furniture over path tiles)
         FurniturePlacement {
             x: 7,
-            y: 14,
-            index: 48,
+            y: 7,
+            index: 50,
             wide: false,
         },
         FurniturePlacement {
             x: 8,
-            y: 14,
-            index: 49,
+            y: 7,
+            index: 51,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 12,
+            y: 7,
+            index: 52,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 1,
+            index: 44,
+            wide: false,
+        },
+
+        // ── Entry ──
+        FurniturePlacement {
+            x: 2,
+            y: 13,
+            index: 28,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 13,
+            index: 53,
             wide: false,
         },
     ]
@@ -2433,196 +2438,460 @@ fn blacksmith_furniture() -> Vec<FurniturePlacement> {
 }
 
 fn town_house_west_furniture() -> Vec<FurniturePlacement> {
-    // Scholar theme — desk, tall bookshelves, globe/map, chair, lamp, rug
     vec![
-        // ── Back wall: tall bookshelves ──
         FurniturePlacement {
             x: 1,
             y: 1,
             index: 9,
             wide: false,
-        }, // bookshelf top-L
+        },
         FurniturePlacement {
             x: 1,
             y: 2,
             index: 18,
             wide: false,
-        }, // bookshelf bot-L
+        },
         FurniturePlacement {
             x: 2,
             y: 1,
             index: 10,
             wide: false,
-        }, // bookshelf top-M
-        FurniturePlacement {
-            x: 2,
-            y: 2,
-            index: 18,
-            wide: false,
-        }, // bookshelf bot-M
+        },
         FurniturePlacement {
             x: 3,
             y: 1,
             index: 11,
             wide: false,
-        }, // bookshelf top-R
-        // ── Study desk (upper-right) ──
+        },
         FurniturePlacement {
             x: 8,
             y: 2,
-            index: 14,
+            index: 2,
             wide: false,
-        }, // desk left
+        },
         FurniturePlacement {
             x: 9,
             y: 2,
+            index: 3,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 2,
+            index: 31,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 4,
+            index: 21,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 5,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 5,
             index: 15,
             wide: false,
-        }, // desk right
+        },
         FurniturePlacement {
-            x: 8,
-            y: 3,
+            x: 4,
+            y: 6,
             index: 5,
             wide: false,
-        }, // chair at desk
-        // ── Globe / map display on wall ──
-        FurniturePlacement {
-            x: 6,
-            y: 1,
-            index: 25,
-            wide: false,
-        }, // globe/map decor
-        // ── Reading nook (center) ──
-        FurniturePlacement {
-            x: 3,
-            y: 6,
-            index: 13,
-            wide: false,
-        }, // armchair left
+        },
         FurniturePlacement {
             x: 5,
             y: 6,
-            index: 13,
+            index: 6,
             wide: false,
-        }, // armchair right
-        // ── Rug between chairs ──
+        },
         FurniturePlacement {
-            x: 4,
-            y: 6,
-            index: 48,
-            wide: false,
-        }, // rug left
-        FurniturePlacement {
-            x: 4,
-            y: 7,
+            x: 8,
+            y: 5,
             index: 49,
             wide: false,
-        }, // rug right
-        // ── Floor lamp ──
+        },
         FurniturePlacement {
-            x: 10,
-            y: 5,
-            index: 24,
-            wide: false,
-        }, // lamp
-        // ── Plant ──
-        FurniturePlacement {
-            x: 10,
+            x: 5,
             y: 8,
-            index: 22,
+            index: 53,
             wide: false,
-        }, // plant near door
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 8,
+            index: 52,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 1,
+            index: 44,
+            wide: false,
+        },
     ]
 }
 
 fn town_house_east_furniture() -> Vec<FurniturePlacement> {
-    // Merchant theme — display cases, fancy table, chest, painting, vase
     vec![
-        // ── Display cases along back wall ──
         FurniturePlacement {
             x: 1,
             y: 1,
-            index: 45,
+            index: 10,
             wide: false,
-        }, // display case L
+        },
         FurniturePlacement {
             x: 2,
             y: 1,
-            index: 46,
+            index: 11,
             wide: false,
-        }, // display case M
+        },
         FurniturePlacement {
-            x: 3,
-            y: 1,
-            index: 47,
+            x: 1,
+            y: 2,
+            index: 9,
             wide: false,
-        }, // display case R
-        // ── Painting / wall art (right wall) ──
+        },
         FurniturePlacement {
-            x: 9,
-            y: 1,
-            index: 16,
+            x: 1,
+            y: 3,
+            index: 18,
             wide: false,
-        }, // painting
-        // ── Storage chest (upper-right) ──
+        },
         FurniturePlacement {
             x: 8,
             y: 2,
+            index: 2,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 2,
+            index: 3,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 2,
+            index: 31,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 4,
             index: 21,
             wide: false,
-        }, // chest / dresser
-        // ── Fancy table with vase (center) ──
+        },
         FurniturePlacement {
             x: 4,
             y: 5,
             index: 14,
             wide: false,
-        }, // table left
+        },
         FurniturePlacement {
             x: 5,
             y: 5,
             index: 15,
             wide: false,
-        }, // table right
+        },
         FurniturePlacement {
             x: 4,
             y: 6,
-            index: 4,
-            wide: false,
-        }, // chair at table
-        // ── Vase display ──
-        FurniturePlacement {
-            x: 1,
-            y: 5,
-            index: 23,
-            wide: false,
-        }, // vase / urn
-        // ── Rug near entrance ──
-        FurniturePlacement {
-            x: 5,
-            y: 8,
-            index: 48,
-            wide: false,
-        }, // rug left
-        FurniturePlacement {
-            x: 6,
-            y: 8,
             index: 49,
             wide: false,
-        }, // rug right
-        // ── Barrel + crate near door ──
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 7,
+            index: 50,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 6,
+            y: 7,
+            index: 51,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 2,
+            y: 8,
+            index: 52,
+            wide: false,
+        },
         FurniturePlacement {
             x: 9,
             y: 8,
             index: 28,
             wide: false,
-        }, // barrel
+        },
+    ]
+}
+
+fn tavern_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        FurniturePlacement {
+            x: 2,
+            y: 2,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 2,
+            index: 15,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 2,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 2,
+            index: 15,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 6,
+            y: 2,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 2,
+            index: 11,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 4,
+            index: 5,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 4,
+            index: 5,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 4,
+            index: 6,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 7,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 7,
+            index: 15,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 4,
+            y: 8,
+            index: 49,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 9,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 9,
+            index: 15,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 10,
+            index: 49,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 12,
+            y: 2,
+            index: 27,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 13,
+            y: 2,
+            index: 28,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 13,
+            y: 3,
+            index: 31,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 12,
+            y: 6,
+            index: 53,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 13,
+            y: 6,
+            index: 49,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 10,
+            y: 3,
+            index: 44,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 11,
+            y: 6,
+            index: 43,
+            wide: false,
+        },
+    ]
+}
+
+fn library_furniture() -> Vec<FurniturePlacement> {
+    vec![
+        FurniturePlacement {
+            x: 1,
+            y: 1,
+            index: 9,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 1,
+            y: 2,
+            index: 18,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 2,
+            y: 1,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 1,
+            index: 11,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 10,
+            y: 1,
+            index: 10,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 11,
+            y: 1,
+            index: 11,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 12,
+            y: 4,
+            index: 9,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 12,
+            y: 5,
+            index: 18,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 5,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 6,
+            y: 5,
+            index: 15,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 5,
+            y: 6,
+            index: 49,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 6,
+            index: 14,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 8,
+            y: 6,
+            index: 15,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 7,
+            y: 7,
+            index: 49,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 2,
+            y: 8,
+            index: 21,
+            wide: false,
+        },
         FurniturePlacement {
             x: 10,
             y: 8,
-            index: 37,
+            index: 22,
             wide: false,
-        }, // crate
+        },
+        FurniturePlacement {
+            x: 9,
+            y: 8,
+            index: 49,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 11,
+            y: 8,
+            index: 53,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 11,
+            y: 7,
+            index: 44,
+            wide: false,
+        },
+        FurniturePlacement {
+            x: 3,
+            y: 9,
+            index: 52,
+            wide: false,
+        },
     ]
 }
 
@@ -2868,6 +3137,8 @@ pub fn spawn_interior_decorations(
         MapId::PlayerHouse => player_house_furniture(),
         MapId::TownHouseWest => town_house_west_furniture(),
         MapId::TownHouseEast => town_house_east_furniture(),
+        MapId::Tavern => tavern_furniture(),
+        MapId::Library => library_furniture(),
         MapId::GeneralStore => general_store_furniture(),
         MapId::Blacksmith => blacksmith_furniture(),
         MapId::AnimalShop => animal_shop_furniture(),
@@ -2920,66 +3191,96 @@ pub fn spawn_interior_decorations(
     // Spawn flickering candle lights for indoor ambiance
     spawn_candles(&mut commands, player_state.current_map);
 
-    // Spawn bed interactable for PlayerHouse
-    if player_state.current_map == MapId::PlayerHouse {
-        let bed_wc = grid_to_world_center(12, 2);
-        commands.spawn((
-            InteriorDecoration,
-            WorldObject,
-            Interactable {
-                kind: InteractionKind::Bed,
-                label: "Sleep".into(),
-            },
-            YSorted,
-            LogicalPosition(Vec2::new(bed_wc.x, bed_wc.y)),
-            Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
-            Visibility::default(),
-        ));
-
-        // Spawn kitchen stove interactable at (3, 1) — center of kitchen counter
-        let stove_wc = grid_to_world_center(3, 1);
-        commands.spawn((
-            InteriorDecoration,
-            WorldObject,
-            Interactable {
-                kind: InteractionKind::KitchenStove,
-                label: "Cook".into(),
-            },
-            YSorted,
-            LogicalPosition(Vec2::new(stove_wc.x, stove_wc.y)),
-            Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
-            Visibility::default(),
-        ));
-
-        // Spawn a built-in storage chest at (14, 4) — the dresser area
-        let chest_wc = grid_to_world_center(14, 4);
-        let chest_sprite = if furniture.loaded {
-            let mut s = Sprite::from_atlas_image(
-                furniture.image.clone(),
-                TextureAtlas {
-                    layout: furniture.layout.clone(),
-                    index: 21,
+    match player_state.current_map {
+        MapId::PlayerHouse => {
+            let bed_wc = grid_to_world_center(12, 2);
+            commands.spawn((
+                InteriorDecoration,
+                WorldObject,
+                Interactable {
+                    kind: InteractionKind::Bed,
+                    label: "Sleep".into(),
                 },
-            );
-            s.custom_size = Some(Vec2::splat(TILE_SIZE));
-            s
-        } else {
-            Sprite {
-                color: Color::srgb(0.6, 0.4, 0.2),
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
-                ..default()
-            }
-        };
-        commands.spawn((
-            InteriorDecoration,
-            WorldObject,
-            crate::world::chests::ChestMarker,
-            StorageChest::new(36, 14, 4),
-            chest_sprite,
-            Transform::from_xyz(chest_wc.x, chest_wc.y, Z_ENTITY_BASE),
-            YSorted,
-            Visibility::default(),
-        ));
+                YSorted,
+                LogicalPosition(Vec2::new(bed_wc.x, bed_wc.y)),
+                Transform::from_xyz(bed_wc.x, bed_wc.y, Z_ENTITY_BASE + 0.1),
+                Visibility::default(),
+            ));
+
+            let stove_wc = grid_to_world_center(3, 1);
+            commands.spawn((
+                InteriorDecoration,
+                WorldObject,
+                Interactable {
+                    kind: InteractionKind::KitchenStove,
+                    label: "Cook".into(),
+                },
+                YSorted,
+                LogicalPosition(Vec2::new(stove_wc.x, stove_wc.y)),
+                Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
+                Visibility::default(),
+            ));
+
+            let chest_wc = grid_to_world_center(13, 3);
+            let chest_sprite = if furniture.loaded {
+                let mut s = Sprite::from_atlas_image(
+                    furniture.image.clone(),
+                    TextureAtlas {
+                        layout: furniture.layout.clone(),
+                        index: 31,
+                    },
+                );
+                s.custom_size = Some(Vec2::splat(TILE_SIZE));
+                s
+            } else {
+                Sprite {
+                    color: Color::srgb(0.6, 0.4, 0.2),
+                    custom_size: Some(Vec2::splat(TILE_SIZE)),
+                    ..default()
+                }
+            };
+            commands.spawn((
+                InteriorDecoration,
+                WorldObject,
+                crate::world::chests::ChestMarker,
+                StorageChest::new(36, 13, 3),
+                chest_sprite,
+                Transform::from_xyz(chest_wc.x, chest_wc.y, Z_ENTITY_BASE),
+                YSorted,
+                Visibility::default(),
+            ));
+        }
+        MapId::Tavern => {
+            let stove_wc = grid_to_world_center(9, 2);
+            commands.spawn((
+                InteriorDecoration,
+                WorldObject,
+                Interactable {
+                    kind: InteractionKind::KitchenStove,
+                    label: "Warm Pot".into(),
+                },
+                YSorted,
+                LogicalPosition(Vec2::new(stove_wc.x, stove_wc.y)),
+                Transform::from_xyz(stove_wc.x, stove_wc.y, Z_ENTITY_BASE + 0.1),
+                Visibility::default(),
+            ));
+        }
+        MapId::Library => {
+            let desk_wc = grid_to_world_center(6, 5);
+            commands.spawn((
+                InteriorDecoration,
+                WorldObject,
+                Interactable {
+                    kind: InteractionKind::CraftingBench,
+                    label: "Research".into(),
+                },
+                YSorted,
+                LogicalPosition(Vec2::new(desk_wc.x, desk_wc.y)),
+                Transform::from_xyz(desk_wc.x, desk_wc.y, Z_ENTITY_BASE + 0.1),
+                Visibility::default(),
+            ));
+        }
+        _ => {}
     }
 }
 

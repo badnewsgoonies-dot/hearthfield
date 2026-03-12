@@ -68,10 +68,10 @@ pub struct TreeDestructionPoof {
 
 fn leaf_color(season: Season) -> Color {
     match season {
-        Season::Spring => Color::srgba(0.35, 0.75, 0.25, 0.9),  // bright green
-        Season::Summer => Color::srgba(0.20, 0.60, 0.20, 0.9),  // deep green
-        Season::Fall => Color::srgba(0.80, 0.45, 0.10, 0.9),    // orange-brown
-        Season::Winter => Color::srgba(0.70, 0.70, 0.70, 0.7),  // pale grey (sparse)
+        Season::Spring => Color::srgba(0.35, 0.75, 0.25, 0.9), // bright green
+        Season::Summer => Color::srgba(0.20, 0.60, 0.20, 0.9), // deep green
+        Season::Fall => Color::srgba(0.80, 0.45, 0.10, 0.9),   // orange-brown
+        Season::Winter => Color::srgba(0.70, 0.70, 0.70, 0.7), // pale grey (sparse)
     }
 }
 
@@ -106,7 +106,10 @@ pub fn on_axe_tree_impact(
             .find(|(_, data, _, _)| {
                 data.grid_x == event.grid_x
                     && data.grid_y == event.grid_y
-                    && matches!(data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine | WorldObjectKind::PalmTree)
+                    && matches!(
+                        data.kind,
+                        WorldObjectKind::Tree | WorldObjectKind::Pine | WorldObjectKind::PalmTree
+                    )
             })
             .map(|(entity, _, _, _)| entity);
 
@@ -147,7 +150,7 @@ pub fn on_axe_tree_impact(
         for i in 0..count {
             // Burst upward and outward.
             let angle = std::f32::consts::FRAC_PI_2                  // base: straight up
-                + rng.gen_range(-0.9_f32..0.9);                       // ±52° spread
+                + rng.gen_range(-0.9_f32..0.9); // ±52° spread
             let speed = rng.gen_range(35.0_f32..70.0);
             let vx = angle.cos() * speed;
             let vy = angle.sin() * speed;
@@ -201,7 +204,7 @@ pub fn update_tree_shake(
             // 3 oscillations in 0.15s → frequency = 3/0.15 = 20 Hz = 2π·20 rad/s ≈ 125.7
             let freq = 20.0_f32 * std::f32::consts::TAU;
             let amplitude = 2.0_f32; // pixels
-            // Use elapsed_total so the oscillation phase is continuous and frame-rate independent.
+                                     // Use elapsed_total so the oscillation phase is continuous and frame-rate independent.
             let offset = (elapsed_total * freq).sin() * amplitude;
             transform.translation.x = shake.original_x + offset;
         }
@@ -303,7 +306,10 @@ pub fn on_tree_destruction(
         let should_poof = tree_query.iter().any(|data| {
             data.grid_x == event.target_x
                 && data.grid_y == event.target_y
-                && matches!(data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine | WorldObjectKind::PalmTree)
+                && matches!(
+                    data.kind,
+                    WorldObjectKind::Tree | WorldObjectKind::Pine | WorldObjectKind::PalmTree
+                )
                 && {
                     let damage = data.kind.tool_damage(event.tier);
                     data.health <= damage
@@ -341,7 +347,12 @@ pub fn on_tree_destruction(
 pub fn update_tree_destruction_poof(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Transform, &mut Sprite, &mut TreeDestructionPoof)>,
+    mut query: Query<(
+        Entity,
+        &mut Transform,
+        &mut Sprite,
+        &mut TreeDestructionPoof,
+    )>,
 ) {
     for (entity, mut tf, mut sprite, mut poof) in query.iter_mut() {
         poof.timer.tick(time.delta());

@@ -11,7 +11,13 @@ use rand::Rng;
 
 pub fn handle_animal_wander(
     time: Res<Time>,
-    mut query: Query<(&mut LogicalPosition, &mut Transform, &mut WanderAi, &Animal, Option<&mut Facing>)>,
+    mut query: Query<(
+        &mut LogicalPosition,
+        &mut Transform,
+        &mut WanderAi,
+        &Animal,
+        Option<&mut Facing>,
+    )>,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -44,9 +50,17 @@ pub fn handle_animal_wander(
                 // Update facing direction based on movement.
                 if let Some(mut facing) = facing_opt {
                     if movement.x.abs() > movement.y.abs() {
-                        *facing = if movement.x > 0.0 { Facing::Right } else { Facing::Left };
+                        *facing = if movement.x > 0.0 {
+                            Facing::Right
+                        } else {
+                            Facing::Left
+                        };
                     } else if movement.y.abs() > 0.1 {
-                        *facing = if movement.y > 0.0 { Facing::Up } else { Facing::Down };
+                        *facing = if movement.y > 0.0 {
+                            Facing::Up
+                        } else {
+                            Facing::Down
+                        };
                     }
                 } else {
                     // Fallback for animals without Facing (should not happen now, but just in case)
