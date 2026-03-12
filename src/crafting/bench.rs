@@ -178,7 +178,11 @@ pub fn handle_craft_item(
 
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
         if leftover > 0 {
-            // Inventory full — refund ingredients
+            // Inventory full — remove any partial result that was added, then refund ingredients
+            let added = recipe.result_quantity - leftover;
+            if added > 0 {
+                inventory.try_remove(&recipe.result, added);
+            }
             warn!(
                 "Inventory full after crafting '{}' — refunding materials",
                 recipe.name

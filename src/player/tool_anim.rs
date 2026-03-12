@@ -628,6 +628,10 @@ pub fn update_held_tool_sprite(
     mut spawned_for: Local<Option<ToolKind>>,
 ) {
     let Ok((player_entity, movement, logical_pos, player_tf)) = player_query.get_single() else {
+        // Player entity gone (map transition / despawn) — reset tracking state
+        if spawned_for.is_some() {
+            *spawned_for = None;
+        }
         return;
     };
 
