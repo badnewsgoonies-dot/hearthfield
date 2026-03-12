@@ -446,7 +446,7 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             west: Some((MapId::Forest, EdgeTarget::ClampY(20))),
         },
         MapId::MineEntrance => EdgeDefs {
-            north: None,
+            north: Some((MapId::SnowMountain, EdgeTarget::Fixed(5, 12))),
             south: Some((MapId::Forest, EdgeTarget::Fixed(11, 16))),
             east: Some((MapId::Farm, EdgeTarget::Fixed(1, 9))),
             west: None,

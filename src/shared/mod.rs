@@ -785,6 +785,7 @@ pub enum FishLocation {
     Ocean,
     Pond,
     MinePool,
+    MountainLake,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

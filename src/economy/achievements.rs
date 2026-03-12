@@ -63,7 +63,7 @@ pub const ACHIEVEMENTS: &[AchievementDef] = &[
     AchievementDef {
         id: "community_pillar",
         name: "Community Pillar",
-        description: "Reach 5+ hearts with all 10 NPCs",
+        description: "Reach 5+ hearts with all 11 NPCs",
     },
     AchievementDef {
         id: "newlywed",

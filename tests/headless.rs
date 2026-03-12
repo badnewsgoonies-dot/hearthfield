@@ -5455,3 +5455,116 @@ fn test_bjorn_npc_scheduled_for_snow_mountain() {
         "Bjorn should have at least one weekday schedule entry on SnowMountain"
     );
 }
+
+#[test]
+fn test_bjorn_npc_has_dialogue() {
+    let mut registry = NpcRegistry::default();
+    hearthfield::data::npcs::populate_npcs(&mut registry);
+    let npc = registry
+        .npcs
+        .get("bjorn")
+        .expect("Bjorn must be in NpcRegistry");
+    assert_eq!(npc.name, "Bjorn");
+    assert!(
+        !npc.default_dialogue.is_empty(),
+        "Bjorn must have default dialogue"
+    );
+    assert!(
+        npc.heart_dialogue.contains_key(&0),
+        "Bjorn must have tier-0 heart dialogue"
+    );
+    assert!(
+        npc.heart_dialogue.contains_key(&9),
+        "Bjorn must have tier-9 heart dialogue"
+    );
+    assert_eq!(npc.birthday_season, Season::Winter);
+}
+
+#[test]
+fn test_snow_mountain_has_water_tiles() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    let water_count = data
+        .tiles
+        .iter()
+        .filter(|t| matches!(t, TileKind::Water))
+        .count();
+    assert!(
+        water_count >= 10,
+        "SnowMountain should have a frozen lake with at least 10 water tiles, got {}",
+        water_count
+    );
+}
+
+#[test]
+fn test_snow_mountain_has_large_rocks() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    let large_rock_count = data
+        .objects
+        .iter()
+        .filter(|o| {
+            matches!(
+                o.kind,
+                hearthfield::world::maps::WorldObjectKind::LargeRock
+            )
+        })
+        .count();
+    assert!(
+        large_rock_count >= 8,
+        "SnowMountain should have at least 8 mineable large rocks, got {}",
+        large_rock_count
+    );
+}
+
+#[test]
+fn test_snow_mountain_fishing_location_is_mountain_lake() {
+    let mut fish_registry = FishRegistry::default();
+    hearthfield::data::fish::populate_fish(&mut fish_registry);
+    let mountain_fish: Vec<_> = fish_registry
+        .fish
+        .values()
+        .filter(|f| f.location == FishLocation::MountainLake)
+        .collect();
+    assert!(
+        mountain_fish.len() >= 3,
+        "MountainLake should have at least 3 fish species, got {}",
+        mountain_fish.len()
+    );
+}
+
+#[test]
+fn test_frostfang_legendary_exists() {
+    assert!(
+        hearthfield::fishing::legendaries::is_legendary("frostfang"),
+        "Frostfang must be registered as a legendary fish"
+    );
+}
+
+#[test]
+fn test_snow_mountain_spawn_is_walkable() {
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let data = registry
+        .maps
+        .get(&MapId::SnowMountain)
+        .expect("SnowMountain must be in MapRegistry");
+    let (sx, sy) = data.spawn_pos;
+    let idx = sy as usize * data.width + sx as usize;
+    let tile = &data.tiles[idx];
+    assert!(
+        !matches!(
+            tile,
+            TileKind::Water | TileKind::Stone
+        ),
+        "SnowMountain spawn tile at ({},{}) must be walkable, got {:?}",
+        sx,
+        sy,
+        tile
+    );
+}

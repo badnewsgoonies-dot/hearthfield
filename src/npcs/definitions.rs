@@ -7,7 +7,7 @@
 
 use bevy::prelude::*;
 
-/// The 10 canonical NPC IDs, matching `src/data/npcs.rs` exactly.
+/// The 11 canonical NPC IDs, matching `src/data/npcs.rs` exactly.
 pub const ALL_NPC_IDS: &[&str] = &[
     "margaret",
     "marco",
@@ -19,6 +19,7 @@ pub const ALL_NPC_IDS: &[&str] = &[
     "mayor_rex",
     "sam",
     "nora",
+    "bjorn",
 ];
 
 /// Placeholder sprite tint per NPC (used for name tags).
@@ -34,6 +35,7 @@ pub fn npc_color(npc_id: &str) -> Color {
         "mayor_rex" => Color::srgb(0.4, 0.3, 0.7), // regal purple (mayor)
         "sam" => Color::srgb(0.4, 0.4, 0.4),      // stone grey (musician)
         "nora" => Color::srgb(0.4, 0.6, 0.3),     // earthy green (farmer)
+        "bjorn" => Color::srgb(0.6, 0.65, 0.7),   // frosty blue-grey (hermit)
         _ => Color::srgb(0.8, 0.8, 0.8),          // fallback grey
     }
 }
@@ -51,6 +53,7 @@ pub fn npc_sprite_file(npc_id: &str) -> &'static str {
         "mayor_rex" => "sprites/npcs/npc_noble.png", // mayor — regal
         "sam" => "sprites/npcs/npc_scholar.png",    // musician — scholarly
         "nora" => "sprites/npcs/npc_farmer.png",    // farmer
+        "bjorn" => "sprites/npcs/npc_miner.png",   // mountain hermit
         _ => "sprites/npcs/npc_guard.png",          // fallback
     }
 }

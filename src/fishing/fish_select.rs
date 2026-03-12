@@ -29,6 +29,7 @@ fn map_to_fish_location(map_id: MapId) -> FishLocation {
         MapId::Beach => FishLocation::Ocean,
         MapId::Town => FishLocation::Pond,
         MapId::Mine | MapId::MineEntrance => FishLocation::MinePool,
+        MapId::SnowMountain => FishLocation::MountainLake,
         // Indoor maps default to pond
         _ => FishLocation::Pond,
     }

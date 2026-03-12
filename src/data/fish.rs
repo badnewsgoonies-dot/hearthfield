@@ -1,6 +1,6 @@
 use crate::shared::*;
 
-/// Populate the FishRegistry with all 28 fish species.
+/// Populate the FishRegistry with all 31 fish species.
 ///
 /// Each fish has:
 ///   - location: where in the world it can be caught
@@ -354,6 +354,43 @@ pub fn populate_fish(registry: &mut FishRegistry) {
             difficulty: 0.80,
             sell_price: 700,
             sprite_index: 36,
+        },
+        // ── Mountain Lake Fish ───────────────────────────────────────────────
+        FishDef {
+            id: "ice_perch".into(),
+            name: "Ice Perch".into(),
+            location: FishLocation::MountainLake,
+            seasons: vec![Season::Fall, Season::Winter],
+            time_range: (6.0, 20.0),
+            weather_required: None,
+            rarity: Rarity::Common,
+            difficulty: 0.25,
+            sell_price: 75,
+            sprite_index: 48,
+        },
+        FishDef {
+            id: "frost_trout".into(),
+            name: "Frost Trout".into(),
+            location: FishLocation::MountainLake,
+            seasons: vec![Season::Winter, Season::Spring],
+            time_range: (6.0, 18.0),
+            weather_required: None,
+            rarity: Rarity::Uncommon,
+            difficulty: 0.50,
+            sell_price: 180,
+            sprite_index: 49,
+        },
+        FishDef {
+            id: "glacial_pike".into(),
+            name: "Glacial Pike".into(),
+            location: FishLocation::MountainLake,
+            seasons: vec![Season::Winter],
+            time_range: (6.0, 14.0),
+            weather_required: Some(Weather::Snowy),
+            rarity: Rarity::Rare,
+            difficulty: 0.72,
+            sell_price: 400,
+            sprite_index: 50,
         },
     ];
 

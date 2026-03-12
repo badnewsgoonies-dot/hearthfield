@@ -1,7 +1,7 @@
 use crate::shared::*;
 use std::collections::HashMap;
 
-/// Populate the NpcRegistry with 10 named NPCs, their gift preferences,
+/// Populate the NpcRegistry with 11 named NPCs, their gift preferences,
 /// dialogue, and daily schedules.
 ///
 /// NPCs:
@@ -15,6 +15,7 @@ use std::collections::HashMap;
 ///   8. Mayor Rex— town mayor, pompous but well-meaning
 ///   9. Sam      — teenage boy who wants to be a rock star
 ///  10. Nora     — farmer next door, veteran agriculturalist
+///  11. Bjorn    — mountain hermit, retired miner on Snow Mountain
 pub fn populate_npcs(registry: &mut NpcRegistry) {
     // ── 1. Margaret ─────────────────────────────────────────────────────────────
     {
@@ -1631,5 +1632,167 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
 
         registry.npcs.insert("nora".into(), npc);
         registry.schedules.insert("nora".into(), schedule);
+    }
+
+    // ── 11. Bjorn ────────────────────────────────────────────────────────────
+    {
+        let mut prefs = HashMap::new();
+        // Loved
+        prefs.insert("gold_ore".into(), GiftPreference::Loved);
+        prefs.insert("iridium_ore".into(), GiftPreference::Loved);
+        prefs.insert("crystal_fruit".into(), GiftPreference::Loved);
+        prefs.insert("frozen_tear".into(), GiftPreference::Loved);
+        prefs.insert("coffee".into(), GiftPreference::Loved);
+        // Liked
+        prefs.insert("iron_ore".into(), GiftPreference::Liked);
+        prefs.insert("copper_ore".into(), GiftPreference::Liked);
+        prefs.insert("coal".into(), GiftPreference::Liked);
+        prefs.insert("stone".into(), GiftPreference::Liked);
+        prefs.insert("snow_yam".into(), GiftPreference::Liked);
+        // Disliked
+        prefs.insert("cake".into(), GiftPreference::Disliked);
+        prefs.insert("cookie".into(), GiftPreference::Disliked);
+        prefs.insert("flower".into(), GiftPreference::Disliked);
+        prefs.insert("daffodil".into(), GiftPreference::Disliked);
+        // Hated
+        prefs.insert("slime".into(), GiftPreference::Hated);
+
+        let mut heart_dialogue: HashMap<u8, Vec<String>> = HashMap::new();
+        heart_dialogue.insert(0, vec![
+            "Another visitor. The mountain doesn't get many.".into(),
+            "You're standing on the oldest stone in the valley. Respect it.".into(),
+            "The wind up here tells you things the valley folk have forgotten.".into(),
+            "I came up here to be alone. But I suppose a short chat won't hurt.".into(),
+            "Watch your step near the frozen pond. Ice looks solid until it isn't.".into(),
+            "See those large rocks? Good ore in them, if you've got the arms for it.".into(),
+            "The pines up here are older than the town. Older than the farm, even.".into(),
+            "Don't litter. The mountain remembers.".into(),
+        ]);
+        heart_dialogue.insert(3, vec![
+            "You keep coming back. Most don't bother with the climb.".into(),
+            "There's a trick to reading the mountain weather. I'll show you sometime.".into(),
+            "The frozen pond has fish in it, you know. Hardy ones. Like me.".into(),
+            "I left the mines twenty years ago. The mountain was kinder than the tunnels.".into(),
+            "If you bring a pickaxe, the large rocks here drop ore you won't find below.".into(),
+            "Some nights the northern lights paint the summit. Worth losing sleep for.".into(),
+            "I've mapped every trail on this peak. Maybe I'll share my notes one day.".into(),
+            "You've got calluses. Good. Means you work for real.".into(),
+        ]);
+        heart_dialogue.insert(6, vec![
+            "I had a family once, down in the valley. The mountain called louder.".into(),
+            "There's a vein of rare ore near the summit. I've been saving it. Maybe for someone like you.".into(),
+            "The frost trout in that pond — they only bite in winter, when the ice thins just right.".into(),
+            "I carved my name into the summit stone thirty years ago. It's still there. Stone remembers.".into(),
+            "Sometimes I think I stayed too long up here. Then the sunrise hits the peaks and I remember why.".into(),
+            "You want to know why I'm here? I got tired of people talking without saying anything. The mountain doesn't do that.".into(),
+            "My old mining partner sends letters. I read them by the fire. Never reply. He knows I'm fine.".into(),
+            "The crystal fruit only grows where the cold is deep and the soil is old. This mountain has both.".into(),
+        ]);
+        heart_dialogue.insert(9, vec![
+            "You're the only person I look forward to seeing. Don't let that go to your head.".into(),
+            "I've decided to leave you my mountain maps when I'm gone. Nobody else would use them right.".into(),
+            "The mountain tested you, and you passed. That means something to me.".into(),
+            "I found a frozen tear crystal last week. Perfectly clear. I kept it for you.".into(),
+            "Thirty years of solitude, and then you showed up and made the silence feel different. Better.".into(),
+            "If you ever need a place that's just quiet and honest, the mountain is here. And so am I.".into(),
+            "You've become part of this peak's story now. The stone will remember you too.".into(),
+            "I don't say this to anyone: thank you. For climbing up here. For staying.".into(),
+        ]);
+
+        let npc = NpcDef {
+            id: "bjorn".into(),
+            name: "Bjorn".into(),
+            birthday_season: Season::Winter,
+            birthday_day: 15,
+            gift_preferences: prefs,
+            default_dialogue: vec![
+                "The mountain air is good today. Sharp and clean.".into(),
+                "There's ore in these rocks. Old ore. The good kind.".into(),
+                "I've lived up here longer than most people remember.".into(),
+            ],
+            heart_dialogue,
+            is_marriageable: false,
+            sprite_index: 10,
+            portrait_index: 10,
+        };
+
+        let schedule = NpcSchedule {
+            weekday: vec![
+                ScheduleEntry {
+                    time: 6.0,
+                    map: MapId::SnowMountain,
+                    x: 14,
+                    y: 3,
+                },
+                ScheduleEntry {
+                    time: 10.0,
+                    map: MapId::SnowMountain,
+                    x: 23,
+                    y: 6,
+                },
+                ScheduleEntry {
+                    time: 14.0,
+                    map: MapId::SnowMountain,
+                    x: 8,
+                    y: 12,
+                },
+                ScheduleEntry {
+                    time: 18.0,
+                    map: MapId::SnowMountain,
+                    x: 14,
+                    y: 3,
+                },
+            ],
+            weekend: vec![
+                ScheduleEntry {
+                    time: 6.0,
+                    map: MapId::SnowMountain,
+                    x: 14,
+                    y: 3,
+                },
+                ScheduleEntry {
+                    time: 10.0,
+                    map: MapId::Town,
+                    x: 14,
+                    y: 10,
+                },
+                ScheduleEntry {
+                    time: 14.0,
+                    map: MapId::Town,
+                    x: 8,
+                    y: 8,
+                },
+                ScheduleEntry {
+                    time: 17.0,
+                    map: MapId::SnowMountain,
+                    x: 14,
+                    y: 3,
+                },
+            ],
+            rain_override: Some(vec![
+                ScheduleEntry {
+                    time: 6.0,
+                    map: MapId::SnowMountain,
+                    x: 14,
+                    y: 3,
+                },
+                ScheduleEntry {
+                    time: 12.0,
+                    map: MapId::SnowMountain,
+                    x: 15,
+                    y: 5,
+                },
+                ScheduleEntry {
+                    time: 18.0,
+                    map: MapId::SnowMountain,
+                    x: 14,
+                    y: 3,
+                },
+            ]),
+            festival_override: None,
+        };
+
+        registry.npcs.insert("bjorn".into(), npc);
+        registry.schedules.insert("bjorn".into(), schedule);
     }
 }

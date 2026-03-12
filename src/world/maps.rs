@@ -1703,65 +1703,171 @@ fn generate_snow_mountain() -> MapDef {
             }
         };
 
-    // Mountain path running north-south through the centre
-    fill_rect(&mut tiles, 14, 0, 4, 24, TileKind::Path);
+    let set = |tiles: &mut Vec<TileKind>, x: usize, y: usize, kind: TileKind| {
+        if x < w && y < h {
+            tiles[y * w + x] = kind;
+        }
+    };
 
-    // Grassy clearings near the southern exit (warmer lowlands)
-    fill_rect(&mut tiles, 8, 19, 16, 5, TileKind::Grass);
+    // Grassy meadow at southern base (rows 19-23)
+    fill_rect(&mut tiles, 0, 19, 32, 5, TileKind::Grass);
 
-    // Small alpine meadow in the north-west
-    fill_rect(&mut tiles, 2, 3, 6, 4, TileKind::Grass);
+    // West clearing (rows 14-18, cols 2-7)
+    fill_rect(&mut tiles, 2, 14, 6, 5, TileKind::Grass);
 
-    // Frozen pond in the east
-    fill_rect(&mut tiles, 23, 8, 4, 3, TileKind::Water);
+    // East clearing (rows 15-18, cols 24-29)
+    fill_rect(&mut tiles, 24, 15, 6, 4, TileKind::Grass);
 
-    // Rocky plateau centre-west
-    fill_rect(&mut tiles, 4, 10, 5, 3, TileKind::Stone);
+    // Small alpine meadow (rows 6-8, cols 3-7)
+    fill_rect(&mut tiles, 3, 6, 5, 3, TileKind::Grass);
 
-    // Path branch east
-    fill_rect(&mut tiles, 18, 10, 6, 2, TileKind::Path);
+    // Grass shore around frozen lake (fishing access)
+    for y in 3..10usize {
+        for x in 22..32.min(w) {
+            let dist = (x as i32 - 27) * (x as i32 - 27) + (y as i32 - 6) * (y as i32 - 6);
+            if dist <= 16 && dist > 10 {
+                set(&mut tiles, x, y, TileKind::Grass);
+            }
+        }
+    }
+
+    // Switchback path — south entrance
+    fill_rect(&mut tiles, 14, 19, 4, 5, TileKind::Path);
+
+    // Path east (rows 18-19)
+    fill_rect(&mut tiles, 14, 18, 10, 2, TileKind::Path);
+
+    // Path north east side (rows 14-18)
+    fill_rect(&mut tiles, 22, 14, 2, 5, TileKind::Path);
+
+    // Path west (rows 13-14)
+    fill_rect(&mut tiles, 8, 13, 16, 2, TileKind::Path);
+
+    // Path north west side (rows 9-13)
+    fill_rect(&mut tiles, 8, 9, 2, 5, TileKind::Path);
+
+    // Path east to summit (rows 8-9)
+    fill_rect(&mut tiles, 8, 8, 12, 2, TileKind::Path);
+
+    // Path north to summit (rows 3-8)
+    fill_rect(&mut tiles, 14, 3, 2, 6, TileKind::Path);
+
+    // Summit clearing (rows 1-3, cols 12-18)
+    fill_rect(&mut tiles, 12, 1, 7, 3, TileKind::Path);
+
+    // Frozen mountain lake (northeast, elliptical)
+    for y in 4..9usize {
+        for x in 24..31usize {
+            if ((x as i32 - 27) * (x as i32 - 27) + (y as i32 - 6) * (y as i32 - 6)) <= 10 {
+                set(&mut tiles, x, y, TileKind::Water);
+            }
+        }
+    }
+
+    // Stream from lake
+    for y in 9..12usize {
+        set(&mut tiles, 26, y, TileKind::Water);
+    }
+
+    // Dirt patches
+    for &(x, y) in &[(5usize, 15usize), (6, 16), (4, 16), (26, 16), (27, 17)] {
+        set(&mut tiles, x, y, TileKind::Dirt);
+    }
+
+    // Grass patches for variety
+    for &(x, y) in &[(13usize, 10usize), (18, 12), (11, 17), (10, 6), (20, 10)] {
+        set(&mut tiles, x, y, TileKind::Grass);
+    }
 
     let objects = vec![
-        // Pine tree clusters on the western slope
-        ObjectPlacement { x: 1, y: 1, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 3, y: 1, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 0, y: 5, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 2, y: 7, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 1, y: 9, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 0, y: 12, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 2, y: 14, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 1, y: 17, kind: WorldObjectKind::Pine },
-        // Pine trees on the eastern slope
-        ObjectPlacement { x: 28, y: 2, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 30, y: 4, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 29, y: 6, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 28, y: 12, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 30, y: 14, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 29, y: 17, kind: WorldObjectKind::Pine },
-        // Rock formations along the mountain
-        ObjectPlacement { x: 6, y: 2, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 10, y: 4, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 12, y: 1, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 20, y: 3, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 22, y: 5, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 5, y: 11, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 7, y: 13, kind: WorldObjectKind::Rock },
-        ObjectPlacement { x: 25, y: 15, kind: WorldObjectKind::Rock },
-        // Scattered pines along the path
-        ObjectPlacement { x: 11, y: 8, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 19, y: 7, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 11, y: 15, kind: WorldObjectKind::Pine },
-        ObjectPlacement { x: 20, y: 16, kind: WorldObjectKind::Pine },
+        // Dense pines on western slope
+        ObjectPlacement { x: 0, y: 2, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 2, y: 3, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 1, y: 5, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 3, y: 6, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 0, y: 8, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 2, y: 10, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 1, y: 12, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 3, y: 15, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 0, y: 16, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 2, y: 18, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 4, y: 4, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 5, y: 7, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 4, y: 10, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 5, y: 12, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 6, y: 14, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 4, y: 17, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 5, y: 20, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 3, y: 21, kind: WorldObjectKind::Pine },
+        // Dense pines on eastern slope
+        ObjectPlacement { x: 28, y: 1, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 30, y: 3, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 31, y: 7, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 28, y: 10, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 30, y: 12, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 29, y: 14, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 31, y: 16, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 27, y: 3, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 27, y: 11, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 29, y: 16, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 30, y: 18, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 28, y: 20, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 31, y: 21, kind: WorldObjectKind::Pine },
+        // Scattered pines mid-map
+        ObjectPlacement { x: 11, y: 6, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 19, y: 5, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 13, y: 11, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 20, y: 11, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 11, y: 16, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 19, y: 16, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 10, y: 20, kind: WorldObjectKind::Pine },
+        ObjectPlacement { x: 20, y: 21, kind: WorldObjectKind::Pine },
+        // Large rocks (mineable ore deposits)
+        ObjectPlacement { x: 7, y: 2, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 10, y: 1, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 21, y: 1, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 11, y: 2, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 6, y: 10, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 12, y: 5, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 20, y: 7, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 25, y: 13, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 7, y: 17, kind: WorldObjectKind::LargeRock },
+        ObjectPlacement { x: 21, y: 17, kind: WorldObjectKind::LargeRock },
+        // Regular rocks
+        ObjectPlacement { x: 9, y: 4, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 11, y: 3, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 17, y: 4, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 22, y: 6, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 5, y: 9, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 13, y: 7, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 19, y: 10, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 24, y: 11, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 20, y: 15, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 6, y: 19, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 25, y: 19, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 13, y: 17, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 18, y: 15, kind: WorldObjectKind::Rock },
+        ObjectPlacement { x: 9, y: 6, kind: WorldObjectKind::Rock },
+        // Stumps
+        ObjectPlacement { x: 3, y: 8, kind: WorldObjectKind::Stump },
+        ObjectPlacement { x: 10, y: 12, kind: WorldObjectKind::Stump },
+        ObjectPlacement { x: 21, y: 10, kind: WorldObjectKind::Stump },
+        ObjectPlacement { x: 16, y: 16, kind: WorldObjectKind::Stump },
+        ObjectPlacement { x: 8, y: 21, kind: WorldObjectKind::Stump },
+        ObjectPlacement { x: 24, y: 20, kind: WorldObjectKind::Stump },
+        // Bushes (alpine shrubs)
+        ObjectPlacement { x: 5, y: 14, kind: WorldObjectKind::Bush },
+        ObjectPlacement { x: 7, y: 6, kind: WorldObjectKind::Bush },
+        ObjectPlacement { x: 19, y: 12, kind: WorldObjectKind::Bush },
+        ObjectPlacement { x: 25, y: 17, kind: WorldObjectKind::Bush },
+        ObjectPlacement { x: 3, y: 20, kind: WorldObjectKind::Bush },
+        ObjectPlacement { x: 15, y: 20, kind: WorldObjectKind::Bush },
+        ObjectPlacement { x: 27, y: 20, kind: WorldObjectKind::Bush },
     ];
 
     let forage_points = vec![
-        (3, 4),
-        (5, 6),
-        (9, 3),
-        (21, 4),
-        (26, 10),
-        (8, 16),
-        (24, 18),
+        (4, 7), (6, 8), (3, 14), (5, 16), (7, 20), (12, 21), (16, 22),
+        (20, 20), (26, 16), (27, 18), (13, 10), (18, 12), (11, 17), (22, 15),
     ];
 
     let transitions = vec![];

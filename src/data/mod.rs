@@ -9,7 +9,7 @@
 //! safely read them once GameState has advanced past Loading.
 
 mod crops;
-mod fish;
+pub mod fish;
 mod items;
 pub mod npcs;
 mod recipes;

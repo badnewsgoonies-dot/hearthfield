@@ -4,10 +4,11 @@
 //! season, and (for some) weather conditions. Their difficulty ratings are the
 //! highest in the game, making the minigame very challenging even when they bite.
 //!
-//! # Spec: 3 legendary fish
+//! # Spec: 4 legendary fish
 //! - Legend: rainy Forest (River), any season, difficulty 0.95, 2% spawn
 //! - Crimsonfish: Summer Beach (Ocean), difficulty 0.90, 2% spawn
 //! - Glacierfish: Winter Forest (River), difficulty 0.85, 1.5% spawn
+//! - Frostfang: Winter SnowMountain (MountainLake), snowy, difficulty 0.92, 1.5% spawn
 //!
 //! # Spawn rates
 //! Each legendary has a per-cast appearance probability (1.5–2%) that is checked
@@ -63,6 +64,15 @@ pub const LEGENDARY_FISH: &[LegendaryEntry] = &[
         0.85,
         0.015,
         None,
+    ),
+    // Frostfang — SnowMountain (MountainLake), Winter only, snowy weather, very hard (0.92), 1.5% chance
+    (
+        "frostfang",
+        MapId::SnowMountain,
+        Some(Season::Winter),
+        0.92,
+        0.015,
+        Some(Weather::Snowy),
     ),
 ];
 
@@ -130,6 +140,7 @@ pub fn legendary_fish_defs() -> Vec<FishDef> {
             MapId::Farm | MapId::Forest => FishLocation::River,
             MapId::Beach => FishLocation::Ocean,
             MapId::Mine | MapId::MineEntrance => FishLocation::MinePool,
+            MapId::SnowMountain => FishLocation::MountainLake,
             _ => FishLocation::Pond,
         }
     }
@@ -164,6 +175,7 @@ fn legendary_display_name(fish_id: &str) -> &'static str {
         "legend_fish" => "Legend",
         "crimsonfish" => "Crimsonfish",
         "glacierfish" => "Glacierfish",
+        "frostfang" => "Frostfang",
         _ => "Legendary Fish",
     }
 }
@@ -174,6 +186,7 @@ fn legendary_sell_price(fish_id: &str) -> u32 {
         "legend_fish" => 5_000,
         "crimsonfish" => 1_500,
         "glacierfish" => 1_200,
+        "frostfang" => 2_000,
         _ => 500,
     }
 }
@@ -183,8 +196,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_legendary_fish_table_has_three_entries() {
-        assert_eq!(LEGENDARY_FISH.len(), 3);
+    fn test_legendary_fish_table_has_four_entries() {
+        assert_eq!(LEGENDARY_FISH.len(), 4);
     }
 
     #[test]
@@ -192,6 +205,7 @@ mod tests {
         assert!(is_legendary("legend_fish"));
         assert!(is_legendary("crimsonfish"));
         assert!(is_legendary("glacierfish"));
+        assert!(is_legendary("frostfang"));
     }
 
     #[test]
@@ -233,7 +247,7 @@ mod tests {
     #[test]
     fn test_legendary_fish_defs_count() {
         let defs = legendary_fish_defs();
-        assert_eq!(defs.len(), 3);
+        assert_eq!(defs.len(), 4);
     }
 
     #[test]
