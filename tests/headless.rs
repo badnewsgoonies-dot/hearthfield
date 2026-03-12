@@ -5188,3 +5188,120 @@ fn test_pet_roam_area_reasonable() {
         assert!(height >= 6.0, "{kind:?} roam area too short: {height} tiles");
     }
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WAVE 3: Audit-verified regression tests
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// P0: BeeHouse must reject invalid input items (closes infinite-gold exploit).
+#[test]
+fn test_beehouse_rejects_invalid_input() {
+    // These should NOT produce honey
+    for bad_input in ["wood", "stone", "iron_ore", "gold_ore", "fiber", "coal", "egg", "milk"] {
+        let result = resolve_machine_output(MachineType::BeeHouse, bad_input);
+        assert!(
+            result.is_none(),
+            "BeeHouse accepted '{}' — exploit still open!",
+            bad_input
+        );
+    }
+}
+
+/// P0: BeeHouse should accept its intended input.
+#[test]
+fn test_beehouse_accepts_valid_input() {
+    let result = resolve_machine_output(MachineType::BeeHouse, "wild_honey");
+    assert!(result.is_some(), "BeeHouse should accept wild_honey");
+    let (item, qty) = result.unwrap();
+    assert_eq!(item, "honey");
+    assert_eq!(qty, 1);
+}
+
+/// P1: Quest with days_remaining=3 must survive exactly 3 expire_quests calls.
+#[test]
+fn test_quest_expiration_correct_day_count() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        expire_quests.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Add a quest with 3 days remaining
+    let quest = make_test_quest("expire_3day", 100, Some(3));
+    app.world_mut()
+        .resource_mut::<QuestLog>()
+        .active
+        .push(quest);
+
+    // Day 1: quest should survive (2 days left)
+    app.world_mut().send_event(DayEndEvent { day: 1, season: Season::Spring, year: 1 });
+    app.update();
+    let log = app.world().resource::<QuestLog>();
+    assert_eq!(log.active.len(), 1, "Quest should survive day 1");
+
+    // Day 2: quest should survive (1 day left)
+    app.world_mut().send_event(DayEndEvent { day: 2, season: Season::Spring, year: 1 });
+    app.update();
+    let log = app.world().resource::<QuestLog>();
+    assert_eq!(log.active.len(), 1, "Quest should survive day 2");
+
+    // Day 3: quest expires (0 days left)
+    app.world_mut().send_event(DayEndEvent { day: 3, season: Season::Spring, year: 1 });
+    app.update();
+    let log = app.world().resource::<QuestLog>();
+    assert_eq!(log.active.len(), 0, "Quest should expire on day 3");
+}
+
+/// P1: quality_from_happiness boundary values must match documented thresholds.
+#[test]
+fn test_quality_thresholds_boundary_values() {
+    // Exact boundaries: 230, 200, 128
+    assert_eq!(quality_from_happiness(255), ItemQuality::Iridium);
+    assert_eq!(quality_from_happiness(230), ItemQuality::Iridium);
+    assert_eq!(quality_from_happiness(229), ItemQuality::Gold);
+    assert_eq!(quality_from_happiness(200), ItemQuality::Gold);
+    assert_eq!(quality_from_happiness(199), ItemQuality::Silver);
+    assert_eq!(quality_from_happiness(128), ItemQuality::Silver);
+    assert_eq!(quality_from_happiness(127), ItemQuality::Normal);
+    assert_eq!(quality_from_happiness(0), ItemQuality::Normal);
+}
+
+/// P1: "All Seasons" achievement must require year >= 2 (not just day count).
+#[test]
+fn test_all_seasons_requires_year2() {
+    let mut app = build_test_app();
+    app.add_systems(
+        Update,
+        check_achievements.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    // Set days_played = 200 but year = 1 — should NOT unlock
+    {
+        let mut stats = app.world_mut().resource_mut::<PlayStats>();
+        stats.days_played = 200;
+    }
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.year = 1;
+    }
+    app.update();
+    let achievements = app.world().resource::<Achievements>();
+    assert!(
+        !achievements.unlocked.contains(&"all_seasons".to_string()),
+        "all_seasons should NOT unlock with year=1 even with 200 days played"
+    );
+
+    // Set year = 2 — should unlock
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.year = 2;
+    }
+    app.update();
+    let achievements = app.world().resource::<Achievements>();
+    assert!(
+        achievements.unlocked.contains(&"all_seasons".to_string()),
+        "all_seasons should unlock with year=2"
+    );
+}

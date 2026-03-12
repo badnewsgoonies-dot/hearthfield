@@ -397,9 +397,8 @@ pub fn resolve_machine_output(machine: MachineType, input: &str) -> Option<(Item
             _ => None,
         },
         MachineType::BeeHouse => match input {
-            // Bee houses produce honey without specific input.
-            "honey" => Some(("honey".to_string(), 1)),
-            _ => Some(("honey".to_string(), 1)),
+            "wild_honey" => Some(("honey".to_string(), 1)),
+            _ => None,
         },
         MachineType::RecyclingMachine => match input {
             "trash" => Some(("stone".to_string(), 3)),

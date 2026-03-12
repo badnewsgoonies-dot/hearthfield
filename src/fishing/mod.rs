@@ -430,9 +430,12 @@ impl FishingMinigameState {
         } else {
             0.0
         };
-        ratio >= 0.90
+        ratio >= PERFECT_CATCH_THRESHOLD
     }
 }
+
+/// Overlap ratio required for a "perfect catch" bonus (quality upgrade).
+const PERFECT_CATCH_THRESHOLD: f32 = 0.90;
 
 // ─── Marker Components ───────────────────────────────────────────────────────
 

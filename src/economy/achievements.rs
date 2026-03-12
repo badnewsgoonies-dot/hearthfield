@@ -249,7 +249,7 @@ fn evaluate_condition(
         }
 
         // ── Time / Seasons ───────────────────────────────────────────────
-        "all_seasons" => calendar.year >= 2 || stats.days_played >= 112,
+        "all_seasons" => calendar.year >= 2,
         "second_year" => calendar.year >= 2,
 
         // ── Animals ──────────────────────────────────────────────────────

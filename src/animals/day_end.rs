@@ -9,8 +9,8 @@ use bevy::prelude::*;
 //
 //   1. Track consecutive unfed days (UnfedDays component).
 //   2. Adjust happiness:
-//        - Fed today:   +10 (capped at u8::MAX = 255)
-//        - Not fed:     -20 (floors at 0)
+//        - Fed today:   +5 (capped at u8::MAX = 255)
+//        - Not fed:     -12 (floors at 0)
 //        - Petted today: +5 on top of the above
 //        - Outside on farm tiles: +5 on top of the above
 //   3. Reset daily flags (fed_today, petted_today).
@@ -19,10 +19,10 @@ use bevy::prelude::*;
 //      that were fed and are not blocked by a starvation streak.
 //
 // Happiness quality thresholds (deterministic — no RNG):
-//   happiness 200-255 → Iridium (2.0x)
-//   happiness 150-199 → Gold    (1.5x)
-//   happiness 100-149 → Silver  (1.25x)
-//   happiness   0-99  → Normal  (1.0x)
+//   happiness 230-255 → Iridium (2.0x)
+//   happiness 200-229 → Gold    (1.5x)
+//   happiness 128-199 → Silver  (1.25x)
+//   happiness   0-127 → Normal  (1.0x)
 //
 // Starvation block: if an animal goes 3+ consecutive days without food it
 // will not produce anything until the day it is fed again (that very day it

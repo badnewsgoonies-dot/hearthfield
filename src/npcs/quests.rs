@@ -834,12 +834,11 @@ pub fn expire_quests(
         // Decrement days and collect expired
         quest_log.active.retain_mut(|quest| {
             if let Some(ref mut days) = quest.days_remaining {
-                if *days <= 1 {
-                    // Quest has expired
+                *days -= 1;
+                if *days == 0 {
                     expired_titles.push(quest.title.clone());
                     return false; // Remove from active
                 }
-                *days -= 1;
             }
             true // Keep quest
         });
