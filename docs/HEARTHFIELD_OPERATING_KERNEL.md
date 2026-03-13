@@ -11,10 +11,10 @@ snapshot.
 
 Treat the following as live truth instead:
 
-- [.memory/STATE.md](/home/geni/swarm/hearthfield/.memory/STATE.md)
-- [dispatch-state.yaml](/home/geni/swarm/hearthfield/status/foreman/dispatch-state.yaml)
-- tranche reports in [status/launch](/home/geni/swarm/hearthfield/status/launch)
-- worker reports in [status/workers](/home/geni/swarm/hearthfield/status/workers)
+- `.memory/STATE.md` (relative to repo root)
+- `status/foreman/dispatch-state.yaml`
+- tranche reports in `status/launch/`
+- worker reports in `status/workers/`
 
 If this file's embedded snapshot-style content disagrees with those live files,
 the live files win.
@@ -62,7 +62,7 @@ When sources disagree, use this precedence:
 
 ---
 
-## 3. Loaded Source Set and Current Project Snapshot
+## 3. Loaded Source Set
 
 ### 3.1 Loaded source set
 
@@ -71,71 +71,32 @@ This kernel folds together the currently loaded Hearthfield operating materials:
 - onboarder / build methodology
 - `QUICKSTART`
 - `.memory/README`
-- `STATE`
-- `DEBT-player-starter-items-hoe`
-- `PRINCIPLE-tileset-silent-row-overflow`
 
-### 3.2 Current phase
+### 3.2 Live state (do not embed here)
 
-- macro phase: `finish spine`
-- wave phase: `Harden`
-- tier: `S`
+**Do not embed phase, debt, gate status, or decisions in this file.**
+These drift immediately. Read them from their canonical sources:
 
-### 3.3 Current `P0` debt
+- Phase, debt, decisions, gate status → `.memory/STATE.md`
+- Active artifacts → `.memory/*.yaml`
+- Recent history → `git log --oneline -15 -- src/{domain}/`
 
-- player uses `npc_farmer.png` placeholder; no dedicated sprite
-- tool animation uses walking bob; no dedicated art surface
+This section previously contained an embedded snapshot that became stale
+(tier S vs actual M, wave Harden vs actual Graduate, 129 tests vs actual 180+,
+resolved debts listed as active P0). Embedding was removed to prevent recurrence.
 
-### 3.4 Current `P1` debt
+### 3.3 Active principles (reference only)
 
-- starter items do not include a hoe; this blocks the farming critical path
-- `Hoe -> ToolUseEvent -> soil` is not yet verified end-to-end
-- season validation on planting is not yet confirmed
+These principles have `.yaml` artifacts on disk. Read the artifact for details:
 
-### 3.5 Known runtime or visual risks
+- `principle-world-tileset-silent-overflow.yaml` — atlas index mismatches are silent at compile time
+- `principle-world-visual-mapping-blindness.yaml` — workers assigning atlas indices without seeing images will mismap
 
-- `wood_bridge.png`: row 1 is referenced but only row 0 has art
-- `house_roof.png`: rows 3–4 are empty while indices `22–34` reference them
-- mining area floor variation is visually weak
-- atlas row and column mismatches can pass compile and headless tests but fail visually at runtime
+### 3.4 Staleness rule
 
-### 3.6 Last recorded decisions
-
-- swapped `character_spritesheet` to `npc_farmer.png` (`fe0b9d3`) `[Observed]`
-- added system ordering for `animate_player_sprite` (`fe0b9d3`) `[Observed]`
-- removed playbook docs from the repo and deliver via terminal onboarder (`e311de3`) `[Observed]`
-
-### 3.7 Current gate status
-
-- `cargo check`: PASS
-- `cargo test`: `129/129` PASS
-- `cargo clippy`: `0 warnings`
-
-### 3.8 Active loaded artifacts
-
-**DEBT-player-starter-items-hoe**
-- type: `debt`
-- evidence: `Observed`
-- domain: `player`
-- summary: `grant_starter_items` grants seeds, wood, stone, and bread but no hoe, blocking the farming loop
-- source refs:
-  - `src/player/interaction.rs:506-540`
-  - test output showing the hoe is absent from starter items
-- drift cue: resolved when a hoe is granted and a test asserts it
-
-**PRINCIPLE-tileset-silent-row-overflow**
-- type: `principle`
-- evidence: `Observed`
-- domain: `world`
-- summary: `TextureAtlas` row and column mismatches are silent in compile and headless tests and surface only visually
-- source refs:
-  - `src/world/mod.rs:402`
-  - `src/world/objects.rs:1541-1558`
-- drift cue: resolved when a sprite-sheet validator checks atlas indices against image dimensions
-
-### 3.9 Coverage gap
-
-`STATE` mentions additional active concerns whose dedicated artifact files were not loaded here. Treat them as live briefing items, not fully loaded memory.
+If you notice this section contradicting `.memory/STATE.md`, this section is wrong.
+Do not update this section to match STATE — instead, keep this section minimal
+and read STATE directly.
 
 ---
 

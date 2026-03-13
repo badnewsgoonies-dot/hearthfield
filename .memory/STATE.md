@@ -1,9 +1,9 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-12
-**HEAD:** c3ddfbcd (test: add item duplication regression test for crafting)
-**Branch:** master
-**Working tree:** dirty (graduation tests in progress)
+**Updated:** 2026-03-13
+**HEAD:** 163d7ef (docs: add orchestration operating stack)
+**Branch:** claude/llm-git-orchestration-OLSPR
+**Working tree:** dirty (red-team enforcement hardening in progress)
 
 ## Phase
 

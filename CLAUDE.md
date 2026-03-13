@@ -49,13 +49,15 @@ For multi-worker dispatch, follow `docs/SUB_AGENT_PLAYBOOK.md` in order.
 
 ## Key Paths
 
-- Contract: `src/shared/mod.rs` (2,343 lines)
+- Contract: `src/shared/mod.rs` (checksummed at `.contract.sha256` + `.contract-deps.sha256`)
 - Main: `src/main.rs` (plugin wiring)
 - Tests: `tests/headless.rs`
 - State: `.memory/STATE.md`
 - Kernel: `docs/HEARTHFIELD_OPERATING_KERNEL.md`
 - Playbook: `docs/SUB_AGENT_PLAYBOOK.md`
 - Gate scripts: `scripts/run-gates.sh`, `scripts/clamp-scope.sh`
+- Hook installer: `scripts/install-hooks.sh` (run once after clone)
+- CI: `.github/workflows/gates.yml`
 
 ## Domains (15+)
 

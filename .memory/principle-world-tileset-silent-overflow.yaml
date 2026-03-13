@@ -4,10 +4,11 @@ evidence: Observed
 domain: world
 summary: "TextureAtlas row/column index mismatches are silent at compile time and in headless tests — they surface only visually at runtime."
 source_refs:
-  - "file:hearthfield@src/world/mod.rs:402"
-  - "file:hearthfield@src/world/objects.rs:1541-1558"
+  - "file:hearthfield@src/world/mod.rs:217-260"
+  - "file:hearthfield@src/world/objects.rs:88-134"
   - "commit:hearthfield@f46f372"
   - "commit:hearthfield@5195b5f"
+source_ref_note: "mod.rs:217-260 = TerrainAtlases struct + ensure_atlases_loaded (grid dimensions hardcoded). objects.rs:88-134 = ObjectAtlases struct + ensure_object_atlases_loaded. Both demonstrate the pattern: atlas dimensions are compile-time constants that can silently mismatch actual image dimensions."
 why_it_matters: "An entire class of tileset bugs bypasses all automated gates. Every atlas index change requires visual verification."
 drift_cue: "Resolved if a sprite-sheet validation utility checks indices against actual image dimensions in the test suite."
 status: active

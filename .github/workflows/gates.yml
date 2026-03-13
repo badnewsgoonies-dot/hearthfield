@@ -1,0 +1,89 @@
+name: Gate Validation
+
+on:
+  push:
+    branches: [master, main, "claude/*"]
+  pull_request:
+    branches: [master, main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: "Gate 1: Contract integrity"
+        run: |
+          shasum -a 256 -c .contract.sha256
+          if [[ -f .contract-deps.sha256 ]]; then
+            shasum -a 256 -c .contract-deps.sha256
+          fi
+
+      - name: "Gate 2: Type check"
+        run: cargo check
+
+      - name: "Gate 3: Integration tests"
+        run: cargo test --test headless
+
+      - name: "Gate 4: Lint"
+        run: cargo clippy -- -D warnings
+
+      - name: "Gate 5: Domain connectivity"
+        run: |
+          HERMETIC=0
+          for d in src/*/; do
+            domain=$(basename "$d")
+            [[ "$domain" == "shared" ]] && continue
+            if [ -d "$d" ]; then
+              if ! grep -r --include="*.rs" -q "crate::shared" "$d"; then
+                echo "HERMETIC: $d has no shared contract import"
+                HERMETIC=1
+              fi
+            fi
+          done
+          exit $HERMETIC
+
+      - name: "Gate 6: STATE.md freshness (warning only)"
+        if: always()
+        run: |
+          if [[ -f .memory/STATE.md ]]; then
+            STATE_HEAD=$(grep -oP 'HEAD:\s*\K[a-f0-9]+' .memory/STATE.md || echo "MISSING")
+            CURRENT_HEAD=$(git rev-parse --short HEAD)
+            if [[ "$STATE_HEAD" != "MISSING" ]]; then
+              BEHIND=$(git rev-list --count "${STATE_HEAD}..HEAD" 2>/dev/null || echo "?")
+              echo "STATE.md HEAD: $STATE_HEAD | Current HEAD: $CURRENT_HEAD | Behind: $BEHIND commits"
+              if [[ "$BEHIND" -gt 5 ]]; then
+                echo "::warning::STATE.md is $BEHIND commits behind HEAD — update before shipping"
+              fi
+            fi
+          fi
+
+      - name: "Gate 7: Artifact source refs (warning only)"
+        if: always()
+        run: |
+          for artifact in .memory/*.yaml; do
+            [[ -f "$artifact" ]] || continue
+            while IFS= read -r line; do
+              filepath=$(echo "$line" | grep -oP '@\K[^:"]+' | head -1)
+              if [[ -n "$filepath" ]] && [[ ! -f "$filepath" ]]; then
+                echo "::warning::$(basename $artifact): '$filepath' not found"
+              fi
+            done < <(grep 'file:' "$artifact" 2>/dev/null || true)
+          done
