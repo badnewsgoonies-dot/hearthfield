@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-13T17:52Z
-**HEAD:** c49d080 (graduate: incorporate Codex cross-vendor validation into Constitution v4)
+**Updated:** 2026-03-13T19:30Z
+**HEAD:** 3e5a1b1 (chore: commit pre-existing map layout expansions)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -101,6 +101,7 @@
 - Gate 5 (connectivity): PASS — all domains import from shared contract
 - Gate 6 (STATE.md freshness): tracks HEAD drift (warning-only)
 - Gate 7 (artifact source refs): PASS — all file refs resolve
+- Gate 8 (STATE.md claim verification): spot-checks numeric claims against code (warning-only)
 - WASM build: infrastructure exists (build_wasm.sh), not recently verified
 
 ## Bugs Fixed This Session (commits 614cb86d..c3ddfbcd)

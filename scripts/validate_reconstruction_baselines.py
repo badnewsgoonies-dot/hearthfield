@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path("/home/geni/swarm/hearthfield")
+ROOT = Path(__file__).resolve().parent.parent
 RESEARCH = ROOT / "status" / "research"
 
 

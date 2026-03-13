@@ -57,12 +57,23 @@ else
   echo "  Strongly recommend: update .memory/STATE.md before proceeding." >&2
 fi
 
-# Check test count specifically (known high-drift numeric)
-state_tests=$(grep -oP 'Gate 3.*?:\s*\K\d+(?=\s+headless)' .memory/STATE.md 2>/dev/null || echo "")
-if [[ -n "$state_tests" && -f tests/headless.rs ]]; then
-  actual_tests=$(grep -c '#\[test\]' tests/headless.rs 2>/dev/null || echo "?")
-  if [[ "$state_tests" != "$actual_tests" ]]; then
-    echo "  ⚠ Test count: STATE says ${state_tests}, actual is ${actual_tests}" >&2
+# Run full claim verification if available (subsumes the old test-count check)
+if [[ -f scripts/verify-state-claims.sh ]]; then
+  CLAIM_OUTPUT=$(bash scripts/verify-state-claims.sh 2>&1 || true)
+  CLAIM_FAILURES=$(echo "$CLAIM_OUTPUT" | grep -c '✗' || true)
+  if [[ "$CLAIM_FAILURES" -gt 0 ]]; then
+    echo "" >&2
+    echo "  CLAIM VERIFICATION ($CLAIM_FAILURES failures):" >&2
+    echo "$CLAIM_OUTPUT" | grep '✗' >&2
+  fi
+else
+  # Fallback: check test count specifically (known high-drift numeric)
+  state_tests=$(grep -oP 'Gate 3.*?:\s*\K\d+(?=\s+headless)' .memory/STATE.md 2>/dev/null || echo "")
+  if [[ -n "$state_tests" && -f tests/headless.rs ]]; then
+    actual_tests=$(grep -c '#\[test\]' tests/headless.rs 2>/dev/null || echo "?")
+    if [[ "$state_tests" != "$actual_tests" ]]; then
+      echo "  ⚠ Test count: STATE says ${state_tests}, actual is ${actual_tests}" >&2
+    fi
   fi
 fi
 
