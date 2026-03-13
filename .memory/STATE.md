@@ -69,7 +69,9 @@
 - [Observed] Conflicting artifacts (Attack 6): agent correctly identified true artifact at 100% vs false at 0% — code is the tiebreaker
 - [Observed] FIX: Coverage Manifest added — explicit negative knowledge ("NOT covered" list). Agent usefulness rating went from 5/10 → 8/10. Agent found 3rd bug (achievement off-by-one) faster with manifest guiding search
 - [Observed] BUG P2: Achievement "Community Pillar" says "all 11 NPCs" but unlock condition only requires 10 (achievements.rs:64,218)
-- [Observed] 2x2 rerun (Sonnet 4.6): A1=9/10@18.5k, A2=8/10@18k, B1=9/10@110k+, B2=2/10@32k. Staleness cost A1 and A2 each 1pt vs previous run. B2 now honest (2/10 vs inflated 8/10). No cell hit 10/10. Structural facts stable after 7 commits; numerics drift. (status/research/trial-2x2-rerun-2026-03-13.md)
+- [Observed] 2x2 rerun (Sonnet 4.6): A1=9/10@18.5k, A2=8/10@18k, B1=9/10@49k, B2=2/10@32k. Staleness cost A1 and A2 each 1pt vs previous run. B2 now honest (2/10 vs inflated 8/10). No cell hit 10/10. Structural facts stable after 7 commits; numerics drift. (status/research/trial-2x2-rerun-2026-03-13.md)
+- [Observed] Multi-hop fork trial: 4 agents in chain, each compressing checkpoint for next. 5/5 at every hop. 169→30→15→8 lines (21x compression) with zero fidelity loss on structural facts. Minimum viable checkpoint = 8 lines. (status/research/reconstruction-fidelity-and-forks-2026-03-13.md)
+- [Observed] Reconstruction fidelity ratios: A1 mean 96.7%, A2 mean 86.7%, B1 mean 96.7% (at 2.6x cost), B2 honest 20%. Staleness decay = -1.4%/commit. Structural facts immune; numerics drift after 5 commits.
 
 ## Retired Debts (previously P0, now fixed)
 
