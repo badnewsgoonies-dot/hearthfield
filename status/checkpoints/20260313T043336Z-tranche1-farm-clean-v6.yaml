@@ -1,0 +1,186 @@
+label: tranche1-farm-clean-v6
+created_at_utc: 2026-03-13T04:33:36Z
+parent_session: 019ce4dc-9c4f-7250-a23f-bc539b7d90d1
+snapshot_session: 019ce578-9585-7643-af86-5166f8d0166c
+snapshot_session_file: /home/geni/.codex-runs/launch-farm/sessions/2026/03/13/rollout-2026-03-13T00-33-31-019ce578-9585-7643-af86-5166f8d0166c.jsonl
+repo: /home/geni/swarm/hearthfield
+worktree: /tmp/hearthfield-t1-farm
+branch: launch/tranche1-farm
+head_commit: 759b7b31938ed193c47930d666e6cb24eea0f273
+ledger: status/foreman/dispatch-state.yaml
+dispatch_state_hash: 845a206d8b4c7612e448812c3e36878c2c006572b9468c03358934ed3bb2ab31
+agents_hash: b40fd787ddc05cf8d2d103a2e7ad9887a0b95fae4d2318bd05ab4f61325b2429
+state_hash: 7ae34e15af5b1b95046c72f26e6c84dd85de47a21e2a0e9dff2a0feab318fe24
+snapshot_session_hash: 8601bee345536a5bf592aa14c8d7a803d3d4d65e40b90b564721bb68389a1ec2
+tracked_status_hash: efb6c221ca55e4ffc0b913db003d3673de2723d06f5a993e844122116dc12613
+tracked_diff_hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+untracked_hash: f857931642592450b714c8f26c0b30e9786bbcd58e151527254daf53ab2c2861
+tracked_dirty_files: []
+untracked_files:
+  - docs/HEARTHFIELD_BASE_GAME_RECONSTRUCTION_SPEC.md
+  - docs/HEARTHFIELD_REPLICATION_TARGET_SPEC.md
+  - docs/ORCHESTRATION_TOPOLOGY.md
+  - objectives/launch/tranche-1-farm-loop-rerun.md
+  - objectives/launch/tranche-1-farm-loop.md
+  - objectives/launch/tranche-1-player-day-start.md
+  - status/foreman/dispatch-state.yaml
+  - status/launch/TRANCHE_PLAN.md
+  - status/launch/tranche-0-report.md
+  - status/research/CLAIMS_TO_EVIDENCE.md
+  - status/research/CORPUS_GUIDE.md
+  - status/research/EXPERIMENT_REGISTRY.md
+  - status/research/IMPROVED_EXPERIMENT_DESIGN.md
+  - status/research/LOG_CODING_MANUAL.md
+  - status/research/TOPOLOGY_HYPOTHESIS.md
+  - status/research/asset_manifest.csv
+  - status/research/plugin_resource_event_inventory.csv
+  - status/research/reachable_surface_manifest.csv
+  - status/research/runtime_surface_manifest.csv
+  - status/research/runtime_used_asset_manifest.csv
+  - status/research/test_baseline_manifest.csv
+  - status/research/visual_mapping_manifest.csv
+  - status/workers/tranche-1-farm-loop.md
+reports:
+  - status/launch/TRANCHE_PLAN.md
+  - status/launch/tranche-0-report.md
+  - status/workers/action_daily_farming.md
+  - status/workers/action_fishing_mining.md
+  - status/workers/add-journal-screen.md
+  - status/workers/add-map-screen.md
+  - status/workers/add-pilot-tests.md
+  - status/workers/add-relationships-screen.md
+  - status/workers/animals_sprites_wave8.md
+  - status/workers/animals_wave6.md
+  - status/workers/animated-sprites.md
+  - status/workers/audit_daily_farming.md
+  - status/workers/audit_fishing_mining_animals.md
+  - status/workers/audit_social_economy.md
+  - status/workers/audit_ui_progression.md
+  - status/workers/building-sprites.md
+  - status/workers/city-ui-screens.md
+  - status/workers/compiler_warnings.md
+  - status/workers/cooking_expansion.md
+  - status/workers/crafting_wave5.md
+  - status/workers/cross-session-debrief.md
+  - status/workers/data_driven_maps.md
+  - status/workers/dead_code_audit.md
+  - status/workers/dead_code_fishing_economy.md
+  - status/workers/dead_code_npcs_save.md
+  - status/workers/dead_code_ui_world.md
+  - status/workers/dialogue_expansion.md
+  - status/workers/economy_wave5.md
+  - status/workers/evaluation_fix.md
+  - status/workers/feedback-crafting.md
+  - status/workers/feedback-farming.md
+  - status/workers/feedback-fishing-mining.md
+  - status/workers/feedback-shop.md
+  - status/workers/feedback-stamina.md
+  - status/workers/feedback-time-warnings.md
+  - status/workers/feedback-weather-season.md
+  - status/workers/feedback-weather.md
+  - status/workers/fishing_safety.md
+  - status/workers/fishing_wave5.md
+  - status/workers/fix-animal-atlas.md
+  - status/workers/fix-animal-pens.md
+  - status/workers/fix-animals-trough.md
+  - status/workers/fix-bed-sleep.md
+  - status/workers/fix-chef-achievement.md
+  - status/workers/fix-city-auto-interruptions.md
+  - status/workers/fix-city-stress-persistence.md
+  - status/workers/fix-city-task-progress.md
+  - status/workers/fix-cooking-counter.md
+  - status/workers/fix-crafting-counter.md
+  - status/workers/fix-crafting.md
+  - status/workers/fix-economy-save.md
+  - status/workers/fix-economy.md
+  - status/workers/fix-fishing-nighttime.md
+  - status/workers/fix-key-strings-wave9.md
+  - status/workers/fix-main-save-gaps.md
+  - status/workers/fix-missing-animal-items.md
+  - status/workers/fix-npcs-spouse.md
+  - status/workers/fix-npcs.md
+  - status/workers/fix-pilot-all-screens.md
+  - status/workers/fix-pilot-inventory.md
+  - status/workers/fix-pilot-new-game.md
+  - status/workers/fix-pilot-save-gaps-2.md
+  - status/workers/fix-pilot-save-gaps.md
+  - status/workers/fix-pilot-story-board.md
+  - status/workers/fix-pilot-ui-wiring.md
+  - status/workers/fix-player-tool-lock.md
+  - status/workers/fix-player.md
+  - status/workers/fix-save-trackers.md
+  - status/workers/fix-ui-prompts-icons.md
+  - status/workers/fix-world.md
+  - status/workers/hearthfield2-worker-architecture-report.md
+  - status/workers/hearthfield2-worker-critical-bugs-report.md
+  - status/workers/hearthfield2-worker-performance-report.md
+  - status/workers/impl_animal_cap.md
+  - status/workers/impl_animals.md
+  - status/workers/impl_blacksmith_cleanup.md
+  - status/workers/impl_combat.md
+  - status/workers/impl_feeding.md
+  - status/workers/impl_gold_fix.md
+  - status/workers/impl_hud_polish.md
+  - status/workers/impl_inventory_actions.md
+  - status/workers/impl_pause_menu.md
+  - status/workers/impl_playstats.md
+  - status/workers/impl_quest_display.md
+  - status/workers/impl_quests.md
+  - status/workers/impl_romance_items.md
+  - status/workers/impl_save_position.md
+  - status/workers/impl_save_stats.md
+  - status/workers/impl_shipping.md
+  - status/workers/impl_ui_functional.md
+  - status/workers/impl_ui_ux.md
+  - status/workers/impl_ui_visual.md
+  - status/workers/impl_weather_transitions.md
+  - status/workers/impl_world_visual.md
+  - status/workers/main-game-missing-screens.md
+  - status/workers/mining-sprites.md
+  - status/workers/mining_wave6.md
+  - status/workers/nora_schedule_fix.md
+  - status/workers/npc_dialogue.md
+  - status/workers/npc_schedules.md
+  - status/workers/npcs_quests_wave8.md
+  - status/workers/npcs_wave5.md
+  - status/workers/p1-blocker-inventory.md
+  - status/workers/path-autotiling.md
+  - status/workers/pilot-settings.md
+  - status/workers/pilot-sprite-wiring.md
+  - status/workers/quest_content.md
+  - status/workers/regression-audit-wave1.md
+  - status/workers/remaining-sprites.md
+  - status/workers/residential_district_wave1.md
+  - status/workers/save_shipping_log.md
+  - status/workers/scout_animals.md
+  - status/workers/scout_economy.md
+  - status/workers/scout_hud_touch.md
+  - status/workers/scout_mining_combat.md
+  - status/workers/scout_mining_floors.md
+  - status/workers/scout_mining_navigation.md
+  - status/workers/scout_npcs.md
+  - status/workers/scout_save_load.md
+  - status/workers/scout_ui.md
+  - status/workers/season_comments.md
+  - status/workers/sprite-upgrade.md
+  - status/workers/structure-sprites.md
+  - status/workers/terrain-transitions.md
+  - status/workers/tileset-audit.md
+  - status/workers/tranche-1-farm-loop.md
+  - status/workers/ui_wave6.md
+  - status/workers/unwrap_safety.md
+  - status/workers/verify_adventure.md
+  - status/workers/verify_economy.md
+  - status/workers/verify_farming_tools.md
+  - status/workers/verify_production.md
+  - status/workers/verify_social.md
+  - status/workers/visual-polish.md
+  - status/workers/visual_audit_report.md
+  - status/workers/visual_steam_quality_report.md
+  - status/workers/wave7_orchestrator_report.md
+  - status/workers/wave9_save_roundtrip.md
+  - status/workers/world_water_edges_wave8.md
+  - status/workers/world_wave6.md
+restore:
+  resume: cd /tmp/hearthfield-t1-farm && env CODEX_HOME=/home/geni/.codex-runs/launch-farm codex resume 019ce578-9585-7643-af86-5166f8d0166c
+  worktree: /tmp/hearthfield-t1-farm

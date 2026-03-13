@@ -1,0 +1,85 @@
+source_map,target_map,link_type,source_file,width,height,spawn_x,spawn_y,notes
+AnimalShop,,map,assets/maps/animal_shop.ron,12,12,6,8,map definition present
+AnimalShop,Town,transition,assets/maps/animal_shop.ron,,,,,
+AnimalShop,Town,edge_north,assets/maps/animal_shop.ron,,,,,
+Beach,,map,assets/maps/beach.ron,20,14,10,6,map definition present
+Beach,Town,transition,assets/maps/beach.ron,,,,,
+Beach,Town,edge_north,assets/maps/beach.ron,,,,,
+Beach,CoralIsland,edge_south,assets/maps/beach.ron,,,,,
+Beach,Farm,edge_east,assets/maps/beach.ron,,,,,
+Blacksmith,,map,assets/maps/blacksmith.ron,12,12,6,8,map definition present
+Blacksmith,Town,transition,assets/maps/blacksmith.ron,,,,,
+Blacksmith,Town,edge_north,assets/maps/blacksmith.ron,,,,,
+CoralIsland,,map,assets/maps/coral_island.ron,30,22,15,1,map definition present
+CoralIsland,Beach,transition,assets/maps/coral_island.ron,,,,,
+CoralIsland,Beach,edge_north,assets/maps/coral_island.ron,,,,,
+DeepForest,,map,assets/maps/deep_forest.ron,30,28,3,15,map definition present
+DeepForest,Forest,transition,assets/maps/deep_forest.ron,,,,,
+DeepForest,Forest,edge_west,assets/maps/deep_forest.ron,,,,,
+Farm,,map,assets/maps/farm.ron,32,24,16,12,map definition present
+Farm,Town,transition,assets/maps/farm.ron,,,,,
+Farm,Forest,transition,assets/maps/farm.ron,,,,,
+Farm,MineEntrance,transition,assets/maps/farm.ron,,,,,
+Farm,PlayerHouse,transition,assets/maps/farm.ron,,,,,
+Farm,PlayerHouse,door,assets/maps/farm.ron,,,,,
+Farm,SnowMountain,edge_north,assets/maps/farm.ron,,,,,
+Farm,Town,edge_south,assets/maps/farm.ron,,,,,
+Farm,Forest,edge_east,assets/maps/farm.ron,,,,,
+Farm,MineEntrance,edge_west,assets/maps/farm.ron,,,,,
+Forest,,map,assets/maps/forest.ron,22,18,8,8,map definition present
+Forest,Farm,transition,assets/maps/forest.ron,,,,,
+Forest,MineEntrance,edge_north,assets/maps/forest.ron,,,,,
+Forest,DeepForest,edge_east,assets/maps/forest.ron,,,,,
+Forest,Farm,edge_west,assets/maps/forest.ron,,,,,
+GeneralStore,,map,assets/maps/general_store.ron,12,12,6,8,map definition present
+GeneralStore,Town,transition,assets/maps/general_store.ron,,,,,
+GeneralStore,Town,edge_north,assets/maps/general_store.ron,,,,,
+Library,,map,assets/maps/library.ron,14,12,7,10,map definition present
+Library,Town,transition,assets/maps/library.ron,,,,,
+Library,Town,edge_north,assets/maps/library.ron,,,,,
+Mine,,map,assets/maps/mine.ron,24,24,12,12,map definition present
+Mine,MineEntrance,transition,assets/maps/mine.ron,,,,,
+MineEntrance,,map,assets/maps/mine_entrance.ron,14,12,7,6,map definition present
+MineEntrance,Farm,transition,assets/maps/mine_entrance.ron,,,,,
+MineEntrance,Mine,transition,assets/maps/mine_entrance.ron,,,,,
+MineEntrance,Mine,door,assets/maps/mine_entrance.ron,,,,,
+MineEntrance,SnowMountain,edge_north,assets/maps/mine_entrance.ron,,,,,
+MineEntrance,Forest,edge_south,assets/maps/mine_entrance.ron,,,,,
+MineEntrance,Farm,edge_east,assets/maps/mine_entrance.ron,,,,,
+PlayerHouse,,map,assets/maps/player_house.ron,16,16,8,8,map definition present
+PlayerHouse,Farm,transition,assets/maps/player_house.ron,,,,,
+PlayerHouse,Farm,edge_north,assets/maps/player_house.ron,,,,,
+SnowMountain,,map,assets/maps/snow_mountain.ron,32,24,16,22,map definition present
+SnowMountain,Farm,edge_south,assets/maps/snow_mountain.ron,,,,,
+Tavern,,map,assets/maps/tavern.ron,16,14,8,12,map definition present
+Tavern,Town,transition,assets/maps/tavern.ron,,,,,
+Tavern,Town,edge_north,assets/maps/tavern.ron,,,,,
+Town,,map,assets/maps/town.ron,28,22,12,8,map definition present
+Town,Farm,transition,assets/maps/town.ron,,,,,
+Town,GeneralStore,transition,assets/maps/town.ron,,,,,
+Town,AnimalShop,transition,assets/maps/town.ron,,,,,
+Town,Blacksmith,transition,assets/maps/town.ron,,,,,
+Town,TownWest,transition,assets/maps/town.ron,,,,,
+Town,Beach,transition,assets/maps/town.ron,,,,,
+Town,GeneralStore,door,assets/maps/town.ron,,,,,
+Town,AnimalShop,door,assets/maps/town.ron,,,,,
+Town,Blacksmith,door,assets/maps/town.ron,,,,,
+Town,Library,door,assets/maps/town.ron,,,,,
+Town,Tavern,door,assets/maps/town.ron,,,,,
+Town,Farm,edge_north,assets/maps/town.ron,,,,,
+Town,Beach,edge_south,assets/maps/town.ron,,,,,
+Town,Forest,edge_east,assets/maps/town.ron,,,,,
+Town,TownWest,edge_west,assets/maps/town.ron,,,,,
+TownHouseEast,,map,assets/maps/town_house_east.ron,12,12,6,8,map definition present
+TownHouseEast,TownWest,transition,assets/maps/town_house_east.ron,,,,,
+TownHouseEast,TownWest,edge_north,assets/maps/town_house_east.ron,,,,,
+TownHouseWest,,map,assets/maps/town_house_west.ron,12,12,6,8,map definition present
+TownHouseWest,TownWest,transition,assets/maps/town_house_west.ron,,,,,
+TownHouseWest,TownWest,edge_north,assets/maps/town_house_west.ron,,,,,
+TownWest,,map,assets/maps/town_west.ron,16,22,12,14,map definition present
+TownWest,Town,transition,assets/maps/town_west.ron,,,,,
+TownWest,TownHouseWest,transition,assets/maps/town_west.ron,,,,,
+TownWest,TownHouseEast,transition,assets/maps/town_west.ron,,,,,
+TownWest,TownHouseWest,door,assets/maps/town_west.ron,,,,,
+TownWest,TownHouseEast,door,assets/maps/town_west.ron,,,,,
+TownWest,Town,edge_east,assets/maps/town_west.ron,,,,,

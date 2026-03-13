@@ -7,11 +7,13 @@
 //!
 //! Run with: `cargo test --test headless`
 
+use bevy::asset::AssetPlugin;
 use bevy::image::Image;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use hearthfield::animals::pen_bounds_for;
 use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
+use hearthfield::calendar::{trigger_sleep, CalendarPlugin};
 use hearthfield::calendar::festivals::{
     check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
 };
@@ -64,8 +66,13 @@ use hearthfield::mining::components::{
     ActiveFloor, FloorSpawnRequest, InMine, MineGridPos, MineLadder,
 };
 use hearthfield::mining::{handle_rock_breaking, MiningAtlases, RockDestroyedEvent, RockHitEvent};
+use hearthfield::player::interaction::{
+    handle_day_end as handle_player_day_end, handle_map_transition as handle_player_map_transition,
+};
 use hearthfield::player::movement::player_movement;
 use hearthfield::player::{facing_offset, stamina_cost, CameraSnap, CollisionMap};
+use hearthfield::ui::cutscene_runner::activate_pending_cutscene;
+use hearthfield::ui::transitions::ScreenFade;
 use hearthfield::world::lighting::{update_day_night_tint, DayNightOverlay};
 use hearthfield::world::maps::MapDef;
 use hearthfield::world::weather_fx::{
@@ -4363,6 +4370,91 @@ fn test_camera_snap_defaults() {
 }
 
 #[test]
+fn test_map_transition_primes_camera_snap_and_invalidates_collision_map() {
+    let mut app = build_test_app();
+    app.init_resource::<CollisionMap>()
+        .init_resource::<CameraSnap>()
+        .insert_resource(hearthfield::world::map_data::build_map_registry())
+        .add_systems(Update, handle_player_map_transition);
+
+    let start = grid_to_world_center(4, 7);
+    app.world_mut().spawn((
+        Player,
+        GridPosition::new(4, 7),
+        LogicalPosition(start),
+    ));
+
+    {
+        let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+        player_state.current_map = MapId::Farm;
+    }
+
+    {
+        let mut collision_map = app.world_mut().resource_mut::<CollisionMap>();
+        collision_map.initialised = true;
+        collision_map.solid_tiles.insert((1, 1));
+        collision_map.solid_tiles.insert((2, 2));
+        collision_map.bounds = (0, 31, 0, 23);
+    }
+
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let town = registry
+        .maps
+        .get(&MapId::Town)
+        .expect("Town must be present in the map registry");
+
+    app.world_mut().send_event(MapTransitionEvent {
+        to_map: MapId::Town,
+        to_x: 15,
+        to_y: 20,
+    });
+
+    app.update();
+
+    let player_state = app.world().resource::<PlayerState>();
+    assert_eq!(
+        player_state.current_map,
+        MapId::Town,
+        "Map transitions should update the player's current map immediately"
+    );
+
+    let camera_snap = app.world().resource::<CameraSnap>();
+    assert_eq!(
+        camera_snap.frames_remaining, 3,
+        "Map transitions should prime a multi-frame camera snap for the loaded map"
+    );
+
+    let collision_map = app.world().resource::<CollisionMap>();
+    assert!(
+        !collision_map.initialised,
+        "Map transitions should invalidate the old collision map until the world syncs"
+    );
+    assert!(
+        collision_map.solid_tiles.is_empty(),
+        "Map transitions should clear stale solid tiles before the new map syncs"
+    );
+    assert_eq!(
+        collision_map.bounds,
+        (0, town.width as i32 - 1, 0, town.height as i32 - 1),
+        "Map transitions should update collision bounds to the destination map"
+    );
+
+    let world = app.world_mut();
+    let mut query = world.query_filtered::<(&LogicalPosition, &GridPosition), With<Player>>();
+    let (logical_pos, grid_pos) = query.single(world);
+    assert_eq!(
+        (grid_pos.x, grid_pos.y),
+        (15, 20),
+        "Map transitions should move the player to the target grid tile"
+    );
+    assert_eq!(
+        logical_pos.0,
+        grid_to_world_center(15, 20),
+        "Map transitions should align logical position with the target tile center"
+    );
+}
+
+#[test]
 fn test_collision_map_cleared_on_invalidation() {
     let mut collision_map = CollisionMap::default();
     collision_map.initialised = true;
@@ -4405,6 +4497,127 @@ fn test_world_map_set_solid_toggles() {
     assert!(
         world_map.is_walkable(5, 5),
         "Should be walkable after set_solid(false)"
+    );
+}
+
+#[test]
+fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
+    let mut app = build_test_app();
+    app.init_resource::<PlayerInput>()
+        .init_resource::<InteractionClaimed>()
+        .init_resource::<CutsceneQueue>()
+        .insert_resource(ScreenFade::default())
+        .add_plugins(AssetPlugin::default())
+        .add_plugins(CalendarPlugin)
+        .add_systems(
+            Update,
+            handle_player_day_end
+                .after(trigger_sleep)
+                .run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            PostUpdate,
+            activate_pending_cutscene.run_if(in_state(GameState::Playing)),
+        );
+
+    enter_playing_state(&mut app);
+
+    let start = grid_to_world_center(11, 4);
+    app.world_mut().spawn((
+        Player,
+        GridPosition::new(11, 4),
+        LogicalPosition(start),
+    ));
+
+    {
+        let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+        player_state.current_map = MapId::PlayerHouse;
+        player_state.stamina = 7.0;
+        player_state.max_stamina = 100.0;
+        player_state.health = 12.0;
+        player_state.max_health = 80.0;
+    }
+
+    {
+        let mut calendar = app.world_mut().resource_mut::<Calendar>();
+        calendar.day = 1;
+        calendar.season = Season::Spring;
+        calendar.year = 1;
+        calendar.hour = 22;
+        calendar.minute = 0;
+    }
+
+    app.world_mut().resource_mut::<PlayerInput>().interact = true;
+
+    app.update();
+
+    assert_eq!(
+        app.world().resource::<State<GameState>>().get(),
+        &GameState::Playing,
+        "Sleep should finish day-end work before the queued cutscene changes state"
+    );
+
+    {
+        let calendar = app.world().resource::<Calendar>();
+        assert_eq!(calendar.day, 2, "Sleep should advance to the next day");
+        assert_eq!(calendar.hour, 6, "The new day should start at 6 AM");
+        assert_eq!(calendar.minute, 0, "The new day should reset minutes");
+    }
+
+    {
+        let player_state = app.world().resource::<PlayerState>();
+        assert_eq!(
+            player_state.current_map,
+            MapId::PlayerHouse,
+            "Sleeping should keep the player in PlayerHouse"
+        );
+        assert_eq!(
+            player_state.stamina, player_state.max_stamina,
+            "Sleeping should fully restore stamina"
+        );
+        assert_eq!(
+            player_state.health, player_state.max_health,
+            "Sleeping should fully restore health"
+        );
+    }
+
+    {
+        let world = app.world_mut();
+        let mut query = world.query_filtered::<(&LogicalPosition, &GridPosition), With<Player>>();
+        let (logical_pos, grid_pos) = query.single(world);
+        assert_eq!(
+            (grid_pos.x, grid_pos.y),
+            (12, 4),
+            "Day-end reposition should place the player at the house bed spawn"
+        );
+        assert_eq!(
+            logical_pos.0,
+            grid_to_world_center(12, 4),
+            "Logical position should match the bed spawn tile"
+        );
+    }
+
+    {
+        let queue = app.world().resource::<CutsceneQueue>();
+        assert!(queue.active, "Sleep should arm the queued overnight cutscene");
+        assert!(
+            !queue.steps.is_empty(),
+            "Sleep should populate the overnight cutscene steps"
+        );
+    }
+
+    assert!(
+        app.world().resource::<ScreenFade>().active,
+        "Activating the sleep cutscene should enable the screen fade"
+    );
+
+    app.world_mut().resource_mut::<PlayerInput>().interact = false;
+    app.update();
+
+    assert_eq!(
+        app.world().resource::<State<GameState>>().get(),
+        &GameState::Cutscene,
+        "The queued overnight cutscene should activate on the next frame"
     );
 }
 

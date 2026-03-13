@@ -1,0 +1,164 @@
+inventory_type,name,source_file,details
+plugin_module,animals,src/main.rs,
+plugin_module,calendar,src/main.rs,
+plugin_module,crafting,src/main.rs,
+plugin_module,data,src/main.rs,
+plugin_module,economy,src/main.rs,
+plugin_module,farming,src/main.rs,
+plugin_module,fishing,src/main.rs,
+plugin_module,input,src/main.rs,
+plugin_module,mining,src/main.rs,
+plugin_module,npcs,src/main.rs,
+plugin_module,player,src/main.rs,
+plugin_module,save,src/main.rs,
+plugin_module,shared,src/main.rs,
+plugin_module,ui,src/main.rs,
+plugin_module,world,src/main.rs,
+plugin_registration,input::InputPlugin,src/main.rs,
+plugin_registration,calendar::CalendarPlugin,src/main.rs,
+plugin_registration,player::PlayerPlugin,src/main.rs,
+plugin_registration,farming::FarmingPlugin,src/main.rs,
+plugin_registration,animals::AnimalPlugin,src/main.rs,
+plugin_registration,world::WorldPlugin,src/main.rs,
+plugin_registration,npcs::NpcPlugin,src/main.rs,
+plugin_registration,economy::EconomyPlugin,src/main.rs,
+plugin_registration,crafting::CraftingPlugin,src/main.rs,
+plugin_registration,fishing::FishingPlugin,src/main.rs,
+plugin_registration,mining::MiningPlugin,src/main.rs,
+plugin_registration,ui::UiPlugin,src/main.rs,
+plugin_registration,save::SavePlugin,src/main.rs,
+plugin_registration,data::DataPlugin,src/main.rs,
+resource_registration,Calendar,src/main.rs,registered in App builder
+resource_registration,PlayerState,src/main.rs,registered in App builder
+resource_registration,Inventory,src/main.rs,registered in App builder
+resource_registration,FarmState,src/main.rs,registered in App builder
+resource_registration,AnimalState,src/main.rs,registered in App builder
+resource_registration,Relationships,src/main.rs,registered in App builder
+resource_registration,MineState,src/main.rs,registered in App builder
+resource_registration,UnlockedRecipes,src/main.rs,registered in App builder
+resource_registration,ShippingBin,src/main.rs,registered in App builder
+resource_registration,ItemRegistry,src/main.rs,registered in App builder
+resource_registration,CropRegistry,src/main.rs,registered in App builder
+resource_registration,FishRegistry,src/main.rs,registered in App builder
+resource_registration,RecipeRegistry,src/main.rs,registered in App builder
+resource_registration,NpcRegistry,src/main.rs,registered in App builder
+resource_registration,ShopData,src/main.rs,registered in App builder
+resource_registration,HouseState,src/main.rs,registered in App builder
+resource_registration,MarriageState,src/main.rs,registered in App builder
+resource_registration,QuestLog,src/main.rs,registered in App builder
+resource_registration,SprinklerState,src/main.rs,registered in App builder
+resource_registration,ActiveBuffs,src/main.rs,registered in App builder
+resource_registration,EvaluationScore,src/main.rs,registered in App builder
+resource_registration,RelationshipStages,src/main.rs,registered in App builder
+resource_registration,Achievements,src/main.rs,registered in App builder
+resource_registration,ShippingLog,src/main.rs,registered in App builder
+resource_registration,TutorialState,src/main.rs,registered in App builder
+resource_registration,PlayStats,src/main.rs,registered in App builder
+resource_registration,InputBlocks,src/main.rs,registered in App builder
+resource_registration,InteractionClaimed,src/main.rs,registered in App builder
+resource_registration,CutsceneQueue,src/main.rs,registered in App builder
+resource_registration,PlayerInput,src/main.rs,registered in App builder
+resource_registration,InputContext,src/main.rs,registered in App builder
+resource_registration,KeyBindings,src/main.rs,registered in App builder
+resource_registration,MenuTheme,src/main.rs,registered in App builder
+resource_registration,MenuAction,src/main.rs,registered in App builder
+event_registration,DayEndEvent,src/main.rs,registered in App builder
+event_registration,SeasonChangeEvent,src/main.rs,registered in App builder
+event_registration,ItemPickupEvent,src/main.rs,registered in App builder
+event_registration,ItemRemovedEvent,src/main.rs,registered in App builder
+event_registration,DialogueStartEvent,src/main.rs,registered in App builder
+event_registration,DialogueEndEvent,src/main.rs,registered in App builder
+event_registration,ShopTransactionEvent,src/main.rs,registered in App builder
+event_registration,ToolUseEvent,src/main.rs,registered in App builder
+event_registration,MapTransitionEvent,src/main.rs,registered in App builder
+event_registration,StaminaDrainEvent,src/main.rs,registered in App builder
+event_registration,GoldChangeEvent,src/main.rs,registered in App builder
+event_registration,GiftGivenEvent,src/main.rs,registered in App builder
+event_registration,CropHarvestedEvent,src/main.rs,registered in App builder
+event_registration,AnimalProductEvent,src/main.rs,registered in App builder
+event_registration,PlaySfxEvent,src/main.rs,registered in App builder
+event_registration,PlayMusicEvent,src/main.rs,registered in App builder
+event_registration,BouquetGivenEvent,src/main.rs,registered in App builder
+event_registration,ProposalEvent,src/main.rs,registered in App builder
+event_registration,WeddingEvent,src/main.rs,registered in App builder
+event_registration,SpouseActionEvent,src/main.rs,registered in App builder
+event_registration,QuestPostedEvent,src/main.rs,registered in App builder
+event_registration,QuestAcceptedEvent,src/main.rs,registered in App builder
+event_registration,QuestCompletedEvent,src/main.rs,registered in App builder
+event_registration,PlaceSprinklerEvent,src/main.rs,registered in App builder
+event_registration,EatFoodEvent,src/main.rs,registered in App builder
+event_registration,EvaluationTriggerEvent,src/main.rs,registered in App builder
+event_registration,HintEvent,src/main.rs,registered in App builder
+event_registration,AchievementUnlockedEvent,src/main.rs,registered in App builder
+event_registration,BuildingUpgradeEvent,src/main.rs,registered in App builder
+event_registration,ToolImpactEvent,src/main.rs,registered in App builder
+event_registration,ToastEvent,src/main.rs,registered in App builder
+shared_resource_type,Calendar,src/shared/mod.rs,derive(Resource)
+shared_resource_type,PlayerState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,Inventory,src/shared/mod.rs,derive(Resource)
+shared_resource_type,ItemRegistry,src/shared/mod.rs,derive(Resource)
+shared_resource_type,CropRegistry,src/shared/mod.rs,derive(Resource)
+shared_resource_type,FarmState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,AnimalState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,Relationships,src/shared/mod.rs,derive(Resource)
+shared_resource_type,NpcRegistry,src/shared/mod.rs,derive(Resource)
+shared_resource_type,ShopData,src/shared/mod.rs,derive(Resource)
+shared_resource_type,ShippingBin,src/shared/mod.rs,derive(Resource)
+shared_resource_type,RecipeRegistry,src/shared/mod.rs,derive(Resource)
+shared_resource_type,UnlockedRecipes,src/shared/mod.rs,derive(Resource)
+shared_resource_type,FishRegistry,src/shared/mod.rs,derive(Resource)
+shared_resource_type,MineState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,DayNightTint,src/shared/mod.rs,derive(Resource)
+shared_resource_type,HouseState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,MarriageState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,QuestLog,src/shared/mod.rs,derive(Resource)
+shared_resource_type,SprinklerState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,ActiveBuffs,src/shared/mod.rs,derive(Resource)
+shared_resource_type,EvaluationScore,src/shared/mod.rs,derive(Resource)
+shared_resource_type,RelationshipStages,src/shared/mod.rs,derive(Resource)
+shared_resource_type,Achievements,src/shared/mod.rs,derive(Resource)
+shared_resource_type,ShippingLog,src/shared/mod.rs,derive(Resource)
+shared_resource_type,TutorialState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,PlayStats,src/shared/mod.rs,derive(Resource)
+shared_resource_type,InputBlocks,src/shared/mod.rs,derive(Resource)
+shared_resource_type,InteractionClaimed,src/shared/mod.rs,derive(Resource)
+shared_resource_type,CutsceneQueue,src/shared/mod.rs,derive(Resource)
+shared_resource_type,PlayerInput,src/shared/mod.rs,derive(Resource)
+shared_resource_type,InputContext,src/shared/mod.rs,derive(Resource)
+shared_resource_type,KeyBindings,src/shared/mod.rs,derive(Resource)
+shared_resource_type,MenuTheme,src/shared/mod.rs,derive(Resource)
+shared_resource_type,MenuAction,src/shared/mod.rs,derive(Resource)
+shared_resource_type,DebugOverlayState,src/shared/mod.rs,derive(Resource)
+shared_resource_type,BoatMode,src/shared/mod.rs,derive(Resource)
+shared_event_type,DayEndEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,SeasonChangeEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ItemPickupEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ItemRemovedEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,DialogueStartEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,DialogueEndEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ShopTransactionEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ToolUseEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,MapTransitionEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,StaminaDrainEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,GoldChangeEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,GiftGivenEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,CropHarvestedEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,AnimalProductEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,PlaySfxEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,PlayMusicEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ToolImpactEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ToastEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,BouquetGivenEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,ProposalEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,WeddingEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,SpouseActionEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,MonsterSlainEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,QuestPostedEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,QuestAcceptedEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,QuestCompletedEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,PlaceSprinklerEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,EatFoodEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,EvaluationTriggerEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,HintEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,AchievementUnlockedEvent,src/shared/mod.rs,derive(Event)
+shared_event_type,BuildingUpgradeEvent,src/shared/mod.rs,derive(Event)

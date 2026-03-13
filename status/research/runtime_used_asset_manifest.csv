@@ -1,0 +1,117 @@
+asset_path,source_file,loader_kind,role_hint,notes
+assets/audio/music/pixel_1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_10.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_11.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_12.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_2.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_3.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_4.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_5.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_6.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_7.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_8.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/music/pixel_9.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_coin_cluster1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_coin_double1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_coin_single1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_damage_hit1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_menu_move1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_menu_select1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_movement_dooropen1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_movement_footsteps1a.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_movement_jump1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_damage1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_error1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_fanfare1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_impact1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_impact2.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_impact3.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_impact5.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_interaction5.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_sounds_powerup1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/audio/sfx/sfx_wpn_sword1.ogg,src/ui/audio.rs,audio_path_mapping,music_or_sfx,resolved from sfx_path/music_path match arms
+assets/fonts/sprout_lands.ttf,src/ui/mod.rs,asset_server.load,,static string load
+assets/maps/animal_shop.ron,src/world/map_data.rs,map_registry_load,animal_shop,loaded by load_map_data/build_map_registry
+assets/maps/beach.ron,src/world/map_data.rs,map_registry_load,beach,loaded by load_map_data/build_map_registry
+assets/maps/blacksmith.ron,src/world/map_data.rs,map_registry_load,blacksmith,loaded by load_map_data/build_map_registry
+assets/maps/coral_island.ron,src/world/map_data.rs,map_registry_load,coral_island,loaded by load_map_data/build_map_registry
+assets/maps/deep_forest.ron,src/world/map_data.rs,map_registry_load,deep_forest,loaded by load_map_data/build_map_registry
+assets/maps/farm.ron,src/world/map_data.rs,map_registry_load,farm,loaded by load_map_data/build_map_registry
+assets/maps/forest.ron,src/world/map_data.rs,map_registry_load,forest,loaded by load_map_data/build_map_registry
+assets/maps/general_store.ron,src/world/map_data.rs,map_registry_load,general_store,loaded by load_map_data/build_map_registry
+assets/maps/library.ron,src/world/map_data.rs,map_registry_load,library,loaded by load_map_data/build_map_registry
+assets/maps/mine.ron,src/world/map_data.rs,map_registry_load,mine,loaded by load_map_data/build_map_registry
+assets/maps/mine_entrance.ron,src/world/map_data.rs,map_registry_load,mine_entrance,loaded by load_map_data/build_map_registry
+assets/maps/player_house.ron,src/world/map_data.rs,map_registry_load,player_house,loaded by load_map_data/build_map_registry
+assets/maps/snow_mountain.ron,src/world/map_data.rs,map_registry_load,snow_mountain,loaded by load_map_data/build_map_registry
+assets/maps/tavern.ron,src/world/map_data.rs,map_registry_load,tavern,loaded by load_map_data/build_map_registry
+assets/maps/town.ron,src/world/map_data.rs,map_registry_load,town,loaded by load_map_data/build_map_registry
+assets/maps/town_house_east.ron,src/world/map_data.rs,map_registry_load,town_house_east,loaded by load_map_data/build_map_registry
+assets/maps/town_house_west.ron,src/world/map_data.rs,map_registry_load,town_house_west,loaded by load_map_data/build_map_registry
+assets/maps/town_west.ron,src/world/map_data.rs,map_registry_load,town_west,loaded by load_map_data/build_map_registry
+assets/sprites/barn.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/carpenter_board.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/character_actions.png,src/player/spawn.rs,asset_server.load,,static string load
+assets/sprites/character_spritesheet.png,src/player/spawn.rs,asset_server.load,,static string load
+assets/sprites/chest.png,src/world/chests.rs,asset_server.load,,static string load
+assets/sprites/chest.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/chicken.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/chicken_house.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/cow.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/crafting_bench.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/dog.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/door_anim.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/duck.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/egg_and_nest.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/egg_item.png,src/calendar/festivals.rs,asset_server.load,,static string load
+assets/sprites/farmhouse.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/fishing_atlas.png,src/fishing/mod.rs,asset_server.load,,static string load
+assets/sprites/furniture.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/goat.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/grass_biome.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/items_atlas.png,src/ui/hud.rs,asset_server.load,,static string load
+assets/sprites/items_atlas.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/machine_anim.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/milk_and_grass.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/mine_enemies.png,src/mining/spawning.rs,asset_server.load,,static string load
+assets/sprites/mining_atlas.png,src/mining/spawning.rs,asset_server.load,,static string load
+assets/sprites/npcs/npc_blacksmith.png,src/npcs/definitions.rs,npc_sprite_file,npc:elena,NPC spritesheet mapping
+assets/sprites/npcs/npc_child.png,src/npcs/definitions.rs,npc_sprite_file,npc:lily,NPC spritesheet mapping
+assets/sprites/npcs/npc_farmer.png,src/npcs/definitions.rs,npc_sprite_file,npc:nora,NPC spritesheet mapping
+assets/sprites/npcs/npc_healer.png,src/npcs/definitions.rs,npc_sprite_file,npc:doc,NPC spritesheet mapping
+assets/sprites/npcs/npc_merchant.png,src/npcs/definitions.rs,npc_sprite_file,npc:mira,NPC spritesheet mapping
+assets/sprites/npcs/npc_miner.png,src/npcs/definitions.rs,npc_sprite_file,npc:bjorn,NPC spritesheet mapping
+assets/sprites/npcs/npc_noble.png,src/npcs/definitions.rs,npc_sprite_file,npc:mayor_rex,NPC spritesheet mapping
+assets/sprites/npcs/npc_pirate.png,src/npcs/definitions.rs,npc_sprite_file,npc:old_tom,NPC spritesheet mapping
+assets/sprites/npcs/npc_scholar.png,src/npcs/definitions.rs,npc_sprite_file,npc:sam,NPC spritesheet mapping
+assets/sprites/npcs/npc_traveler.png,src/npcs/definitions.rs,npc_sprite_file,npc:marco,NPC spritesheet mapping
+assets/sprites/paths.png,src/world/mod.rs,asset_server.load,,static string load
+assets/sprites/pig.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/plants.png,src/farming/mod.rs,asset_server.load,,static string load
+assets/sprites/processing_machine.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/rabbit.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/scarecrow.png,src/farming/mod.rs,asset_server.load,,static string load
+assets/sprites/sheep.png,src/animals/mod.rs,asset_server.load,,static string load
+assets/sprites/shipping_bin.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/sprinkler.png,src/farming/mod.rs,asset_server.load,,static string load
+assets/sprites/sprinkler_anim.png,src/farming/mod.rs,asset_server.load,,static string load
+assets/sprites/tools.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/tree_sprites.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/well.png,src/world/objects.rs,asset_server.load,,static string load
+assets/sprites/wood_bridge.png,src/world/mod.rs,asset_server.load,,static string load
+assets/sprites/wood_bridge.png,src/world/objects.rs,asset_server.load,,static string load
+assets/tilesets/doors.png,src/world/objects.rs,asset_server.load,,static string load
+assets/tilesets/fences.png,src/world/objects.rs,asset_server.load,,static string load
+assets/tilesets/fungus_cave.png,src/mining/spawning.rs,asset_server.load,,static string load
+assets/tilesets/grass.png,src/world/mod.rs,asset_server.load,,static string load
+assets/tilesets/hills.png,src/world/mod.rs,asset_server.load,,static string load
+assets/tilesets/hills.png,src/world/objects.rs,asset_server.load,,static string load
+assets/tilesets/house_roof.png,src/world/objects.rs,asset_server.load,,static string load
+assets/tilesets/house_walls.png,src/world/objects.rs,asset_server.load,,static string load
+assets/tilesets/modern_farm_terrain.png,src/world/mod.rs,asset_server.load,,static string load
+assets/tilesets/tilled_dirt.png,src/farming/mod.rs,asset_server.load,,static string load
+assets/tilesets/tilled_dirt.png,src/world/mod.rs,asset_server.load,,static string load
+assets/tilesets/water.png,src/world/mod.rs,asset_server.load,,static string load
+assets/ui/dialog_box_big.png,src/ui/dialogue_box.rs,asset_server.load,,static string load
+assets/ui/play_button.png,src/ui/menu_kit.rs,asset_server.load,,static string load
+assets/ui/weather_icons.png,src/ui/hud.rs,asset_server.load,,static string load

@@ -1,0 +1,253 @@
+visual_type,role_id,asset_path,mapping_value,source_file,notes
+fixed_asset_load,player_main_spritesheet,assets/sprites/character_spritesheet.png,,src/player/spawn.rs,
+fixed_asset_load,player_action_spritesheet,assets/sprites/character_actions.png,,src/player/spawn.rs,
+fixed_asset_load,farming_plants_atlas,assets/sprites/plants.png,,src/farming/mod.rs,
+fixed_asset_load,farming_dirt_atlas,assets/tilesets/tilled_dirt.png,,src/farming/mod.rs,
+fixed_asset_load,sprinkler_sprite,assets/sprites/sprinkler.png,,src/farming/mod.rs,
+fixed_asset_load,sprinkler_anim,assets/sprites/sprinkler_anim.png,,src/farming/mod.rs,
+fixed_asset_load,scarecrow_sprite,assets/sprites/scarecrow.png,,src/farming/mod.rs,
+fixed_asset_load,fishing_atlas,assets/sprites/fishing_atlas.png,,src/fishing/mod.rs,
+fixed_asset_load,hud_item_icons,assets/sprites/items_atlas.png,,src/ui/hud.rs,
+fixed_asset_load,hud_weather_icons,assets/ui/weather_icons.png,,src/ui/hud.rs,
+fixed_asset_load,dialog_box_big,assets/ui/dialog_box_big.png,,src/ui/dialogue_box.rs,
+fixed_asset_load,world_grass_tiles,assets/tilesets/grass.png,,src/world/mod.rs,
+fixed_asset_load,world_dirt_tiles,assets/tilesets/tilled_dirt.png,,src/world/mod.rs,
+fixed_asset_load,world_water_tiles,assets/tilesets/water.png,,src/world/mod.rs,
+fixed_asset_load,world_paths,assets/sprites/paths.png,,src/world/mod.rs,
+fixed_asset_load,world_bridge,assets/sprites/wood_bridge.png,,src/world/mod.rs,
+fixed_asset_load,world_terrain,assets/tilesets/modern_farm_terrain.png,,src/world/mod.rs,
+fixed_asset_load,object_grass_biome,assets/sprites/grass_biome.png,,src/world/objects.rs,
+fixed_asset_load,object_fences,assets/tilesets/fences.png,,src/world/objects.rs,
+fixed_asset_load,object_tree_sprites,assets/sprites/tree_sprites.png,,src/world/objects.rs,
+fixed_asset_load,object_house_walls,assets/tilesets/house_walls.png,,src/world/objects.rs,
+fixed_asset_load,object_house_roof,assets/tilesets/house_roof.png,,src/world/objects.rs,
+fixed_asset_load,object_doors,assets/tilesets/doors.png,,src/world/objects.rs,
+fixed_asset_load,object_door_anim,assets/sprites/door_anim.png,,src/world/objects.rs,
+fixed_asset_load,object_furniture_atlas,assets/sprites/furniture.png,,src/world/objects.rs,
+fixed_asset_load,object_shipping_bin,assets/sprites/shipping_bin.png,,src/world/objects.rs,
+fixed_asset_load,object_crafting_bench,assets/sprites/crafting_bench.png,,src/world/objects.rs,
+fixed_asset_load,object_carpenter_board,assets/sprites/carpenter_board.png,,src/world/objects.rs,
+fixed_asset_load,object_processing_machine,assets/sprites/processing_machine.png,,src/world/objects.rs,
+fixed_asset_load,object_machine_anim,assets/sprites/machine_anim.png,,src/world/objects.rs,
+fixed_asset_load,world_chest,assets/sprites/chest.png,,src/world/chests.rs,
+fixed_asset_load,main_menu_play_button,assets/ui/play_button.png,,src/ui/menu_kit.rs,
+fixed_asset_load,font_main,assets/fonts/sprout_lands.ttf,,src/ui/mod.rs,
+item_icon,turnip_seeds,assets/sprites/items_atlas.png,0,src/data/items.rs,item sprite_index
+item_icon,potato_seeds,assets/sprites/items_atlas.png,1,src/data/items.rs,item sprite_index
+item_icon,cauliflower_seeds,assets/sprites/items_atlas.png,2,src/data/items.rs,item sprite_index
+item_icon,strawberry_seeds,assets/sprites/items_atlas.png,3,src/data/items.rs,item sprite_index
+item_icon,melon_seeds,assets/sprites/items_atlas.png,4,src/data/items.rs,item sprite_index
+item_icon,tomato_seeds,assets/sprites/items_atlas.png,5,src/data/items.rs,item sprite_index
+item_icon,blueberry_seeds,assets/sprites/items_atlas.png,6,src/data/items.rs,item sprite_index
+item_icon,corn_seeds,assets/sprites/items_atlas.png,7,src/data/items.rs,item sprite_index
+item_icon,eggplant_seeds,assets/sprites/items_atlas.png,8,src/data/items.rs,item sprite_index
+item_icon,pumpkin_seeds,assets/sprites/items_atlas.png,9,src/data/items.rs,item sprite_index
+item_icon,cranberry_seeds,assets/sprites/items_atlas.png,10,src/data/items.rs,item sprite_index
+item_icon,yam_seeds,assets/sprites/items_atlas.png,11,src/data/items.rs,item sprite_index
+item_icon,wheat_seeds,assets/sprites/items_atlas.png,12,src/data/items.rs,item sprite_index
+item_icon,coffee_beans,assets/sprites/items_atlas.png,13,src/data/items.rs,item sprite_index
+item_icon,ancient_seeds,assets/sprites/items_atlas.png,14,src/data/items.rs,item sprite_index
+item_icon,hops_seeds,assets/sprites/items_atlas.png,15,src/data/items.rs,item sprite_index
+item_icon,turnip,assets/sprites/items_atlas.png,20,src/data/items.rs,item sprite_index
+item_icon,potato,assets/sprites/items_atlas.png,21,src/data/items.rs,item sprite_index
+item_icon,cauliflower,assets/sprites/items_atlas.png,22,src/data/items.rs,item sprite_index
+item_icon,strawberry,assets/sprites/items_atlas.png,23,src/data/items.rs,item sprite_index
+item_icon,melon,assets/sprites/items_atlas.png,24,src/data/items.rs,item sprite_index
+item_icon,tomato,assets/sprites/items_atlas.png,25,src/data/items.rs,item sprite_index
+item_icon,blueberry,assets/sprites/items_atlas.png,26,src/data/items.rs,item sprite_index
+item_icon,corn,assets/sprites/items_atlas.png,27,src/data/items.rs,item sprite_index
+item_icon,eggplant,assets/sprites/items_atlas.png,28,src/data/items.rs,item sprite_index
+item_icon,pumpkin,assets/sprites/items_atlas.png,29,src/data/items.rs,item sprite_index
+item_icon,cranberry,assets/sprites/items_atlas.png,30,src/data/items.rs,item sprite_index
+item_icon,yam,assets/sprites/items_atlas.png,31,src/data/items.rs,item sprite_index
+item_icon,wheat,assets/sprites/items_atlas.png,32,src/data/items.rs,item sprite_index
+item_icon,hops,assets/sprites/items_atlas.png,222,src/data/items.rs,item sprite_index
+item_icon,rice,assets/sprites/items_atlas.png,123,src/data/items.rs,item sprite_index
+item_icon,truffle,assets/sprites/items_atlas.png,124,src/data/items.rs,item sprite_index
+item_icon,coffee,assets/sprites/items_atlas.png,33,src/data/items.rs,item sprite_index
+item_icon,ancient_fruit,assets/sprites/items_atlas.png,34,src/data/items.rs,item sprite_index
+item_icon,egg,assets/sprites/items_atlas.png,40,src/data/items.rs,item sprite_index
+item_icon,large_egg,assets/sprites/items_atlas.png,41,src/data/items.rs,item sprite_index
+item_icon,milk,assets/sprites/items_atlas.png,42,src/data/items.rs,item sprite_index
+item_icon,large_milk,assets/sprites/items_atlas.png,43,src/data/items.rs,item sprite_index
+item_icon,wool,assets/sprites/items_atlas.png,44,src/data/items.rs,item sprite_index
+item_icon,cheese,assets/sprites/items_atlas.png,45,src/data/items.rs,item sprite_index
+item_icon,cloth,assets/sprites/items_atlas.png,46,src/data/items.rs,item sprite_index
+item_icon,mayonnaise,assets/sprites/items_atlas.png,47,src/data/items.rs,item sprite_index
+item_icon,sardine,assets/sprites/items_atlas.png,50,src/data/items.rs,item sprite_index
+item_icon,herring,assets/sprites/items_atlas.png,51,src/data/items.rs,item sprite_index
+item_icon,bass,assets/sprites/items_atlas.png,52,src/data/items.rs,item sprite_index
+item_icon,trout,assets/sprites/items_atlas.png,53,src/data/items.rs,item sprite_index
+item_icon,salmon,assets/sprites/items_atlas.png,54,src/data/items.rs,item sprite_index
+item_icon,catfish,assets/sprites/items_atlas.png,55,src/data/items.rs,item sprite_index
+item_icon,carp,assets/sprites/items_atlas.png,56,src/data/items.rs,item sprite_index
+item_icon,pike,assets/sprites/items_atlas.png,57,src/data/items.rs,item sprite_index
+item_icon,perch,assets/sprites/items_atlas.png,58,src/data/items.rs,item sprite_index
+item_icon,eel,assets/sprites/items_atlas.png,59,src/data/items.rs,item sprite_index
+item_icon,tuna,assets/sprites/items_atlas.png,60,src/data/items.rs,item sprite_index
+item_icon,swordfish,assets/sprites/items_atlas.png,61,src/data/items.rs,item sprite_index
+item_icon,sturgeon,assets/sprites/items_atlas.png,62,src/data/items.rs,item sprite_index
+item_icon,pufferfish,assets/sprites/items_atlas.png,63,src/data/items.rs,item sprite_index
+item_icon,octopus,assets/sprites/items_atlas.png,64,src/data/items.rs,item sprite_index
+item_icon,squid,assets/sprites/items_atlas.png,65,src/data/items.rs,item sprite_index
+item_icon,anglerfish,assets/sprites/items_atlas.png,66,src/data/items.rs,item sprite_index
+item_icon,legend_fish,assets/sprites/items_atlas.png,67,src/data/items.rs,item sprite_index
+item_icon,glacier_fish,assets/sprites/items_atlas.png,68,src/data/items.rs,item sprite_index
+item_icon,crimson_fish,assets/sprites/items_atlas.png,69,src/data/items.rs,item sprite_index
+item_icon,stone,assets/sprites/items_atlas.png,70,src/data/items.rs,item sprite_index
+item_icon,copper_ore,assets/sprites/items_atlas.png,71,src/data/items.rs,item sprite_index
+item_icon,iron_ore,assets/sprites/items_atlas.png,72,src/data/items.rs,item sprite_index
+item_icon,gold_ore,assets/sprites/items_atlas.png,73,src/data/items.rs,item sprite_index
+item_icon,coal,assets/sprites/items_atlas.png,74,src/data/items.rs,item sprite_index
+item_icon,quartz,assets/sprites/items_atlas.png,75,src/data/items.rs,item sprite_index
+item_icon,amethyst,assets/sprites/items_atlas.png,76,src/data/items.rs,item sprite_index
+item_icon,emerald,assets/sprites/items_atlas.png,77,src/data/items.rs,item sprite_index
+item_icon,ruby,assets/sprites/items_atlas.png,78,src/data/items.rs,item sprite_index
+item_icon,diamond,assets/sprites/items_atlas.png,79,src/data/items.rs,item sprite_index
+item_icon,copper_bar,assets/sprites/items_atlas.png,80,src/data/items.rs,item sprite_index
+item_icon,iron_bar,assets/sprites/items_atlas.png,81,src/data/items.rs,item sprite_index
+item_icon,gold_bar,assets/sprites/items_atlas.png,82,src/data/items.rs,item sprite_index
+item_icon,iridium_bar,assets/sprites/items_atlas.png,83,src/data/items.rs,item sprite_index
+item_icon,fried_egg,assets/sprites/items_atlas.png,90,src/data/items.rs,item sprite_index
+item_icon,baked_potato,assets/sprites/items_atlas.png,91,src/data/items.rs,item sprite_index
+item_icon,salad,assets/sprites/items_atlas.png,92,src/data/items.rs,item sprite_index
+item_icon,cheese_omelette,assets/sprites/items_atlas.png,93,src/data/items.rs,item sprite_index
+item_icon,pancakes,assets/sprites/items_atlas.png,94,src/data/items.rs,item sprite_index
+item_icon,fish_stew,assets/sprites/items_atlas.png,95,src/data/items.rs,item sprite_index
+item_icon,grilled_fish,assets/sprites/items_atlas.png,127,src/data/items.rs,item sprite_index
+item_icon,sashimi,assets/sprites/items_atlas.png,128,src/data/items.rs,item sprite_index
+item_icon,roasted_pumpkin,assets/sprites/items_atlas.png,129,src/data/items.rs,item sprite_index
+item_icon,corn_chowder,assets/sprites/items_atlas.png,141,src/data/items.rs,item sprite_index
+item_icon,melon_smoothie,assets/sprites/items_atlas.png,146,src/data/items.rs,item sprite_index
+item_icon,truffle_risotto,assets/sprites/items_atlas.png,144,src/data/items.rs,item sprite_index
+item_icon,blueberry_pie,assets/sprites/items_atlas.png,103,src/data/items.rs,item sprite_index
+item_icon,cranberry_sauce,assets/sprites/items_atlas.png,97,src/data/items.rs,item sprite_index
+item_icon,pumpkin_soup,assets/sprites/items_atlas.png,96,src/data/items.rs,item sprite_index
+item_icon,fruit_salad,assets/sprites/items_atlas.png,142,src/data/items.rs,item sprite_index
+item_icon,cooked_fish,assets/sprites/items_atlas.png,98,src/data/items.rs,item sprite_index
+item_icon,bread,assets/sprites/items_atlas.png,99,src/data/items.rs,item sprite_index
+item_icon,pizza,assets/sprites/items_atlas.png,143,src/data/items.rs,item sprite_index
+item_icon,spaghetti,assets/sprites/items_atlas.png,145,src/data/items.rs,item sprite_index
+item_icon,ice_cream,assets/sprites/items_atlas.png,147,src/data/items.rs,item sprite_index
+item_icon,cake,assets/sprites/items_atlas.png,148,src/data/items.rs,item sprite_index
+item_icon,cookie,assets/sprites/items_atlas.png,149,src/data/items.rs,item sprite_index
+item_icon,turnip_soup,assets/sprites/items_atlas.png,150,src/data/items.rs,item sprite_index
+item_icon,strawberry_jam,assets/sprites/items_atlas.png,151,src/data/items.rs,item sprite_index
+item_icon,cauliflower_gratin,assets/sprites/items_atlas.png,152,src/data/items.rs,item sprite_index
+item_icon,sardine_toast,assets/sprites/items_atlas.png,153,src/data/items.rs,item sprite_index
+item_icon,corn_tortilla,assets/sprites/items_atlas.png,154,src/data/items.rs,item sprite_index
+item_icon,blueberry_muffin,assets/sprites/items_atlas.png,155,src/data/items.rs,item sprite_index
+item_icon,pumpkin_bread,assets/sprites/items_atlas.png,156,src/data/items.rs,item sprite_index
+item_icon,cranberry_tart,assets/sprites/items_atlas.png,157,src/data/items.rs,item sprite_index
+item_icon,yam_pudding,assets/sprites/items_atlas.png,158,src/data/items.rs,item sprite_index
+item_icon,stuffed_eggplant,assets/sprites/items_atlas.png,159,src/data/items.rs,item sprite_index
+item_icon,coffee_pudding,assets/sprites/items_atlas.png,115,src/data/items.rs,item sprite_index
+item_icon,smoked_eel,assets/sprites/items_atlas.png,160,src/data/items.rs,item sprite_index
+item_icon,truffle_pasta,assets/sprites/items_atlas.png,117,src/data/items.rs,item sprite_index
+item_icon,tuna_tartare,assets/sprites/items_atlas.png,118,src/data/items.rs,item sprite_index
+item_icon,eggplant_stir_fry,assets/sprites/items_atlas.png,119,src/data/items.rs,item sprite_index
+item_icon,wood,assets/sprites/items_atlas.png,110,src/data/items.rs,item sprite_index
+item_icon,hardwood,assets/sprites/items_atlas.png,111,src/data/items.rs,item sprite_index
+item_icon,fiber,assets/sprites/items_atlas.png,112,src/data/items.rs,item sprite_index
+item_icon,sap,assets/sprites/items_atlas.png,113,src/data/items.rs,item sprite_index
+item_icon,pine_tar,assets/sprites/items_atlas.png,114,src/data/items.rs,item sprite_index
+item_icon,maple_syrup,assets/sprites/items_atlas.png,166,src/data/items.rs,item sprite_index
+item_icon,wheat_flour,assets/sprites/items_atlas.png,125,src/data/items.rs,item sprite_index
+item_icon,sugar,assets/sprites/items_atlas.png,126,src/data/items.rs,item sprite_index
+item_icon,slime,assets/sprites/items_atlas.png,116,src/data/items.rs,item sprite_index
+item_icon,bat_wing,assets/sprites/items_atlas.png,35,src/data/items.rs,item sprite_index
+item_icon,oak_resin,assets/sprites/items_atlas.png,36,src/data/items.rs,item sprite_index
+item_icon,hay,assets/sprites/items_atlas.png,216,src/data/items.rs,item sprite_index
+item_icon,bait,assets/sprites/items_atlas.png,217,src/data/items.rs,item sprite_index
+item_icon,tackle,assets/sprites/items_atlas.png,218,src/data/items.rs,item sprite_index
+item_icon,bomb,assets/sprites/items_atlas.png,219,src/data/items.rs,item sprite_index
+item_icon,cherry_bomb,assets/sprites/items_atlas.png,220,src/data/items.rs,item sprite_index
+item_icon,mega_bomb,assets/sprites/items_atlas.png,221,src/data/items.rs,item sprite_index
+item_icon,animal_chicken,assets/sprites/items_atlas.png,197,src/data/items.rs,item sprite_index
+item_icon,animal_cow,assets/sprites/items_atlas.png,198,src/data/items.rs,item sprite_index
+item_icon,animal_sheep,assets/sprites/items_atlas.png,199,src/data/items.rs,item sprite_index
+item_icon,animal_goat,assets/sprites/items_atlas.png,200,src/data/items.rs,item sprite_index
+item_icon,animal_duck,assets/sprites/items_atlas.png,204,src/data/items.rs,item sprite_index
+item_icon,animal_rabbit,assets/sprites/items_atlas.png,208,src/data/items.rs,item sprite_index
+item_icon,animal_pig,assets/sprites/items_atlas.png,212,src/data/items.rs,item sprite_index
+item_icon,animal_horse,assets/sprites/items_atlas.png,213,src/data/items.rs,item sprite_index
+item_icon,animal_cat,assets/sprites/items_atlas.png,214,src/data/items.rs,item sprite_index
+item_icon,animal_dog,assets/sprites/items_atlas.png,215,src/data/items.rs,item sprite_index
+item_icon,building_coop,assets/sprites/items_atlas.png,201,src/data/items.rs,item sprite_index
+item_icon,building_big_coop,assets/sprites/items_atlas.png,202,src/data/items.rs,item sprite_index
+item_icon,building_deluxe_coop,assets/sprites/items_atlas.png,203,src/data/items.rs,item sprite_index
+item_icon,building_barn,assets/sprites/items_atlas.png,205,src/data/items.rs,item sprite_index
+item_icon,building_big_barn,assets/sprites/items_atlas.png,206,src/data/items.rs,item sprite_index
+item_icon,building_deluxe_barn,assets/sprites/items_atlas.png,207,src/data/items.rs,item sprite_index
+item_icon,recipe_book_basic_sprinkler,assets/sprites/items_atlas.png,209,src/data/items.rs,item sprite_index
+item_icon,recipe_book_pancakes,assets/sprites/items_atlas.png,210,src/data/items.rs,item sprite_index
+item_icon,recipe_book_spaghetti,assets/sprites/items_atlas.png,211,src/data/items.rs,item sprite_index
+crop_growth,turnip,assets/sprites/plants.png,"0,1,2,3",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,potato,assets/sprites/plants.png,"10,11,12,13",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,cauliflower,assets/sprites/plants.png,"0,1,2,3,4",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,strawberry,assets/sprites/plants.png,"0,1,2,3",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,melon,assets/sprites/plants.png,"40,41,42,43,44",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,tomato,assets/sprites/plants.png,"0,1,2,3,4",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,blueberry,assets/sprites/plants.png,"60,61,62,63,64",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,corn,assets/sprites/plants.png,"0,1,2,3,4,5",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,eggplant,assets/sprites/plants.png,"80,81,82,83,84",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,pumpkin,assets/sprites/plants.png,"0,1,2,3,4",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,cranberry,assets/sprites/plants.png,"100,101,102,103",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,yam,assets/sprites/plants.png,"110,111,112,113,114",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,hops,assets/sprites/plants.png,"120,121,122,123,124",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,wheat,assets/sprites/plants.png,"0,1,2,3",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,coffee,assets/sprites/plants.png,"0,1,2,3,4",src/data/crops.rs,crop sprite_stages baseline
+crop_growth,ancient_fruit,assets/sprites/plants.png,"140,141,142,143,144,145",src/data/crops.rs,crop sprite_stages baseline
+fish_sprite,sardine,assets/sprites/fishing_atlas.png,23,src/data/fish.rs,fish sprite_index
+fish_sprite,herring,assets/sprites/fishing_atlas.png,17,src/data/fish.rs,fish sprite_index
+fish_sprite,bass,assets/sprites/fishing_atlas.png,21,src/data/fish.rs,fish sprite_index
+fish_sprite,trout,assets/sprites/fishing_atlas.png,19,src/data/fish.rs,fish sprite_index
+fish_sprite,salmon,assets/sprites/fishing_atlas.png,22,src/data/fish.rs,fish sprite_index
+fish_sprite,catfish,assets/sprites/fishing_atlas.png,20,src/data/fish.rs,fish sprite_index
+fish_sprite,carp,assets/sprites/fishing_atlas.png,16,src/data/fish.rs,fish sprite_index
+fish_sprite,pike,assets/sprites/fishing_atlas.png,24,src/data/fish.rs,fish sprite_index
+fish_sprite,perch,assets/sprites/fishing_atlas.png,18,src/data/fish.rs,fish sprite_index
+fish_sprite,eel,assets/sprites/fishing_atlas.png,27,src/data/fish.rs,fish sprite_index
+fish_sprite,tuna,assets/sprites/fishing_atlas.png,25,src/data/fish.rs,fish sprite_index
+fish_sprite,swordfish,assets/sprites/fishing_atlas.png,26,src/data/fish.rs,fish sprite_index
+fish_sprite,sturgeon,assets/sprites/fishing_atlas.png,30,src/data/fish.rs,fish sprite_index
+fish_sprite,pufferfish,assets/sprites/fishing_atlas.png,29,src/data/fish.rs,fish sprite_index
+fish_sprite,octopus,assets/sprites/fishing_atlas.png,45,src/data/fish.rs,fish sprite_index
+fish_sprite,squid,assets/sprites/fishing_atlas.png,46,src/data/fish.rs,fish sprite_index
+fish_sprite,anglerfish,assets/sprites/fishing_atlas.png,28,src/data/fish.rs,fish sprite_index
+fish_sprite,legend_fish,assets/sprites/fishing_atlas.png,31,src/data/fish.rs,fish sprite_index
+fish_sprite,glacier_fish,assets/sprites/fishing_atlas.png,47,src/data/fish.rs,fish sprite_index
+fish_sprite,crimson_fish,assets/sprites/fishing_atlas.png,44,src/data/fish.rs,fish sprite_index
+fish_sprite,goldfish,assets/sprites/fishing_atlas.png,37,src/data/fish.rs,fish sprite_index
+fish_sprite,sunfish,assets/sprites/fishing_atlas.png,38,src/data/fish.rs,fish sprite_index
+fish_sprite,bullhead,assets/sprites/fishing_atlas.png,39,src/data/fish.rs,fish sprite_index
+fish_sprite,koi,assets/sprites/fishing_atlas.png,32,src/data/fish.rs,fish sprite_index
+fish_sprite,ghostfish,assets/sprites/fishing_atlas.png,33,src/data/fish.rs,fish sprite_index
+fish_sprite,stonefish,assets/sprites/fishing_atlas.png,34,src/data/fish.rs,fish sprite_index
+fish_sprite,ice_pip,assets/sprites/fishing_atlas.png,35,src/data/fish.rs,fish sprite_index
+fish_sprite,lava_eel,assets/sprites/fishing_atlas.png,36,src/data/fish.rs,fish sprite_index
+fish_sprite,ice_perch,assets/sprites/fishing_atlas.png,48,src/data/fish.rs,fish sprite_index
+fish_sprite,frost_trout,assets/sprites/fishing_atlas.png,49,src/data/fish.rs,fish sprite_index
+fish_sprite,glacial_pike,assets/sprites/fishing_atlas.png,50,src/data/fish.rs,fish sprite_index
+npc_spritesheet,margaret,assets/sprites/npcs/npc_miner.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,marco,assets/sprites/npcs/npc_traveler.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,lily,assets/sprites/npcs/npc_child.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,old_tom,assets/sprites/npcs/npc_pirate.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,elena,assets/sprites/npcs/npc_blacksmith.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,mira,assets/sprites/npcs/npc_merchant.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,doc,assets/sprites/npcs/npc_healer.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,mayor_rex,assets/sprites/npcs/npc_noble.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,sam,assets/sprites/npcs/npc_scholar.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,nora,assets/sprites/npcs/npc_farmer.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_spritesheet,bjorn,assets/sprites/npcs/npc_miner.png,4x4@48x48 -> render 24x24,src/npcs/definitions.rs,npc_sprite_file mapping
+npc_portrait_index,margaret,assets/sprites/npcs/npc_miner.png,0,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,marco,assets/sprites/npcs/npc_traveler.png,1,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,lily,assets/sprites/npcs/npc_child.png,2,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,old_tom,assets/sprites/npcs/npc_pirate.png,3,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,elena,assets/sprites/npcs/npc_blacksmith.png,4,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,mira,assets/sprites/npcs/npc_merchant.png,5,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,doc,assets/sprites/npcs/npc_healer.png,6,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,mayor_rex,assets/sprites/npcs/npc_noble.png,7,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,sam,assets/sprites/npcs/npc_scholar.png,8,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,nora,assets/sprites/npcs/npc_farmer.png,9,src/data/npcs.rs,portrait_index baseline
+npc_portrait_index,bjorn,assets/sprites/npcs/npc_miner.png,10,src/data/npcs.rs,portrait_index baseline

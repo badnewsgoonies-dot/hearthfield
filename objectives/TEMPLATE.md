@@ -33,6 +33,16 @@ Do NOT create orchestration infrastructure. Implement only the scoped deliverabl
 
 Done = every validation command passes, no required tests are skipped, and the deliverables and quantitative targets are met.
 
+## Mandatory lane closeout
+After the worker completes, the orchestrator/foreman must:
+
+1. Clamp scope mechanically with `bash scripts/clamp-scope.sh [allowed_prefix_1] [allowed_prefix_2...]`
+2. Re-run the validation commands on the clamped result
+3. Review the clamped diff only
+
+If the clamped result is empty or no longer valid, discard the run and relaunch.
+Do not ask for acceptance on an unclamped bounded-lane result.
+
 ## When done
 Write completion report to `status/workers/[name].md` containing:
 - Files created or modified

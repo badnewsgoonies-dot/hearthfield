@@ -1,0 +1,62 @@
+label: tranche1-farm-clean-v8
+created_at_utc: 2026-03-13T05:01:44Z
+parent_session: 019ce4dc-9c4f-7250-a23f-bc539b7d90d1
+snapshot_session: 019ce592-5a4f-7a20-adcd-8445a24ac59c
+snapshot_session_file: /home/geni/.codex-runs/launch-farm/sessions/2026/03/13/rollout-2026-03-13T01-01-39-019ce592-5a4f-7a20-adcd-8445a24ac59c.jsonl
+codex_home: /home/geni/.codex-runs/launch-farm
+repo: /home/geni/swarm/hearthfield
+worktree: /tmp/hearthfield-t1-farm
+branch: launch/tranche1-farm
+head_commit: 759b7b31938ed193c47930d666e6cb24eea0f273
+ledger: status/foreman/dispatch-state.yaml
+dispatch_state_hash: 5c268e3cf232d7f5d898bf952671b3450c272e8cdad6cd4148e2036abfeca0fa
+agents_hash: b40fd787ddc05cf8d2d103a2e7ad9887a0b95fae4d2318bd05ab4f61325b2429
+state_hash: 7ae34e15af5b1b95046c72f26e6c84dd85de47a21e2a0e9dff2a0feab318fe24
+snapshot_session_hash: 341a15f4a8e683fcd585d3086fab0ad1fd2da23e52124934221a791396e63d42
+tracked_status_hash: efb6c221ca55e4ffc0b913db003d3673de2723d06f5a993e844122116dc12613
+tracked_diff_hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+untracked_hash: f857931642592450b714c8f26c0b30e9786bbcd58e151527254daf53ab2c2861
+allow_prefixes: []
+strict_untracked: 0
+ledger_files:
+  - path: AGENTS.md
+    sha256: b40fd787ddc05cf8d2d103a2e7ad9887a0b95fae4d2318bd05ab4f61325b2429
+  - path: .memory/STATE.md
+    sha256: 7ae34e15af5b1b95046c72f26e6c84dd85de47a21e2a0e9dff2a0feab318fe24
+  - path: status/foreman/dispatch-state.yaml
+    sha256: 5c268e3cf232d7f5d898bf952671b3450c272e8cdad6cd4148e2036abfeca0fa
+tracked_dirty_files: []
+tracked_outside_allowlist: []
+untracked_files:
+  - docs/HEARTHFIELD_BASE_GAME_RECONSTRUCTION_SPEC.md
+  - docs/HEARTHFIELD_REPLICATION_TARGET_SPEC.md
+  - docs/ORCHESTRATION_TOPOLOGY.md
+  - objectives/launch/tranche-1-farm-loop-rerun.md
+  - objectives/launch/tranche-1-farm-loop.md
+  - objectives/launch/tranche-1-player-day-start.md
+  - status/foreman/dispatch-state.yaml
+  - status/launch/TRANCHE_PLAN.md
+  - status/launch/tranche-0-report.md
+  - status/research/CLAIMS_TO_EVIDENCE.md
+  - status/research/CORPUS_GUIDE.md
+  - status/research/EXPERIMENT_REGISTRY.md
+  - status/research/IMPROVED_EXPERIMENT_DESIGN.md
+  - status/research/LOG_CODING_MANUAL.md
+  - status/research/TOPOLOGY_HYPOTHESIS.md
+  - status/research/asset_manifest.csv
+  - status/research/plugin_resource_event_inventory.csv
+  - status/research/reachable_surface_manifest.csv
+  - status/research/runtime_surface_manifest.csv
+  - status/research/runtime_used_asset_manifest.csv
+  - status/research/test_baseline_manifest.csv
+  - status/research/visual_mapping_manifest.csv
+  - status/workers/tranche-1-farm-loop.md
+untracked_outside_allowlist: []
+reports:
+  - status/launch/TRANCHE_PLAN.md
+  - status/launch/tranche-0-report.md
+  - status/workers/tranche-1-farm-loop.md
+restore:
+  resume: cd /tmp/hearthfield-t1-farm && env CODEX_HOME=/home/geni/.codex-runs/launch-farm codex resume 019ce592-5a4f-7a20-adcd-8445a24ac59c
+  exec_resume_template: cd /tmp/hearthfield-t1-farm && env CODEX_HOME=/home/geni/.codex-runs/launch-farm codex exec resume 019ce592-5a4f-7a20-adcd-8445a24ac59c "<prompt>"
+  worktree: /tmp/hearthfield-t1-farm

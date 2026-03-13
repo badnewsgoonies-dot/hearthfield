@@ -1,0 +1,144 @@
+campaign_id: hearthfield-quality-floor-launch
+baseline_branch: master
+baseline_commit: 759b7b31
+integration_branch: launch/base
+integration_worktree: /tmp/hearthfield-launch
+phase: tranche_2
+active_lanes:
+  - lane_id: tranche_1_player_day_start
+    tranche: tranche_1
+    status: completed
+    goal: preserve boot -> spawn -> house-exit -> sleep playable spine
+    owned_paths:
+      - src/main.rs
+      - src/player/
+      - src/ui/main_menu.rs
+      - src/ui/tutorial.rs
+      - src/ui/intro_sequence.rs
+      - src/world/map_data.rs
+      - tests/headless.rs
+    next_action: checkpoint-integrate verification-only report
+    validation:
+      cargo_check: pass
+      targeted_tests:
+        - cargo test --test headless test_headless_boot_smoke_transitions_and_ticks
+        - cargo test --test headless test_save_roundtrip_preserves_current_map
+        - cargo test --test headless test_starter_items_include_hoe
+        - cargo test --test headless test_sleep_rollover_advances_day_before_cutscene_state_change
+    report_path: status/workers/tranche-1-player-day-start.md
+  - lane_id: tranche_1_farm_core_loop
+    tranche: tranche_1
+    status: completed
+    goal: preserve till -> plant -> water -> grow -> harvest -> ship -> gold loop
+    owned_paths:
+      - src/farming/
+      - src/economy/gold.rs
+      - src/economy/shipping.rs
+      - src/player/tools.rs
+      - tests/headless.rs
+    next_action: checkpoint-integrate verification-only report
+    validation:
+      cargo_check: pass
+      targeted_tests:
+        - cargo test --test headless test_full_crop_lifecycle
+        - cargo test --test headless test_shipping_bin_sells_on_day_end
+        - cargo test --test headless test_gold_clamps_to_zero
+        - cargo test --test headless test_season_validation_blocks_wrong_season_crop
+    report_path: status/workers/tranche-1-farm-loop.md
+  - lane_id: tranche_2_world_graph_travel
+    tranche: tranche_2
+    status: completed
+    goal: preserve map registry, travel parity, and reachable world links
+    owned_paths:
+      - src/world/map_data.rs
+      - src/world/mod.rs
+      - src/player/interaction.rs
+      - src/save/mod.rs
+      - assets/maps/
+      - tests/headless.rs
+    next_action: checkpoint-integrate verification-only report
+    validation:
+      cargo_check: pass
+      targeted_tests:
+        - cargo test --test headless test_save_roundtrip_preserves_current_map
+        - cargo test --test headless test_snow_mountain_map_registered
+        - cargo test --test headless test_farm_to_snow_mountain_transition
+        - cargo test --test headless test_town_west_map_registered_and_reachable_from_town
+        - cargo test --test headless test_town_houses_are_accessed_from_town_west_not_town
+    report_path: status/workers/tranche-2-world-graph-travel.md
+  - lane_id: tranche_2_collision_lighting
+    tranche: tranche_2
+    status: completed
+    goal: preserve collision invalidation and indoor/outdoor lighting parity
+    owned_paths:
+      - src/world/mod.rs
+      - src/world/lighting.rs
+      - src/world/weather_fx.rs
+      - src/player/camera.rs
+      - tests/headless.rs
+    next_action: checkpoint-integrate verification-only report
+    validation:
+      cargo_check: pass
+      targeted_tests:
+        - cargo test --test headless test_collision_map_solid_tiles_blocking
+        - cargo test --test headless test_collision_map_cleared_on_invalidation
+        - cargo test --test headless test_world_map_set_solid_toggles
+        - cargo test --test headless test_library_and_tavern_use_indoor_lighting_tint
+        - cargo test --test headless test_library_and_tavern_suppress_and_cleanup_weather_particles
+        - cargo test --test headless test_map_transition_primes_camera_snap_and_invalidates_collision_map
+    report_path: status/workers/tranche-2-collision-lighting.md
+  - lane_id: tranche_3_shipping_and_gold
+    tranche: tranche_3
+    status: active
+    goal: preserve shipping sale flow, gold application, and shipping/economy save state
+    owned_paths:
+      - src/economy/gold.rs
+      - src/economy/shipping.rs
+      - src/save/mod.rs
+      - tests/headless.rs
+    next_action: run objectives/launch/tranche-3-shipping-and-gold.md in /tmp/hearthfield-t3-shipping
+    validation:
+      cargo_check: null
+      targeted_tests: []
+    report_path: status/workers/tranche-3-shipping-and-gold.md
+planned_tranches:
+  - tranche_id: tranche_0
+    name: control_plane
+    status: completed
+    goal: freeze launch scaffolding and generate first tranche packets
+    outputs:
+      - status/launch/tranche-0-report.md
+      - objectives/launch/tranche-1-*.md
+  - tranche_id: tranche_1
+    name: playable_spine
+    status: completed
+    goal: boot, spawn, house exit/sleep, day-one loop
+  - tranche_id: tranche_2
+    name: world_graph_spine
+    status: completed
+    goal: world graph, transitions, collision, lighting/weather parity
+  - tranche_id: tranche_3
+    name: economy_progression_spine
+    status: active
+    goal: gold, shipping, shops, upgrades, achievements/evaluation
+  - tranche_id: tranche_4
+    name: social_spine
+    status: planned
+    goal: NPC definitions, schedules, dialogue, gifts, quests, romance
+  - tranche_id: tranche_5
+    name: systems_breadth
+    status: planned
+    goal: crafting, cooking, machines, fishing, mining
+  - tranche_id: tranche_6
+    name: ui_breadth
+    status: planned
+    goal: all shipped player-facing screens and overlays
+  - tranche_id: tranche_7
+    name: save_parity_hardening
+    status: planned
+    goal: save/load parity, visual parity, hardening/regression pass
+known_confounds:
+  - current baseline docs and research manifests are uncommitted in the main checkout
+  - launch execution should stay isolated from the main checkout unless intentionally merged
+next_action: run tranche_3 shipping_and_gold, then queue town_shop_loop
+resume_command: codex exec --full-auto -C /tmp/hearthfield-launch - < objectives/launch/tranche-3-shipping-and-gold.md
