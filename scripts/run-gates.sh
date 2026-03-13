@@ -127,18 +127,20 @@ echo ""
 
 # ── Gate 7: Artifact Source Refs (spot check) ──────
 echo "== Gate 7: Artifact Source Refs =="
-ARTIFACT_WARN=0
+ARTIFACT_WARN_FILE=$(mktemp)
+echo "0" > "$ARTIFACT_WARN_FILE"
 for artifact in .memory/*.yaml; do
     [[ -f "$artifact" ]] || continue
-    # Check file:repo@path refs — extract the path portion before any :line suffix
     grep 'file:' "$artifact" 2>/dev/null | while IFS= read -r line; do
         filepath=$(echo "$line" | sed -n 's/.*@\([^:"]*\).*/\1/p')
         if [[ -n "$filepath" ]] && [[ ! -f "$filepath" ]]; then
             echo "  ⚠ $(basename "$artifact"): '$filepath' not found"
-            ARTIFACT_WARN=1
+            echo "1" > "$ARTIFACT_WARN_FILE"
         fi
     done || true
 done
+ARTIFACT_WARN=$(cat "$ARTIFACT_WARN_FILE")
+rm -f "$ARTIFACT_WARN_FILE"
 if [ "$ARTIFACT_WARN" -eq 0 ]; then
     echo "  ✓ All artifact file refs resolve"
 else
