@@ -70,6 +70,21 @@ fn festival_display_name(kind: FestivalKind) -> &'static str {
     }
 }
 
+fn recover_egg_hunt_after_load(festival: &mut FestivalState) {
+    // Egg Hunt progress depends on a runtime-only timer. If a save/load round-trip
+    // restores `started = true` but drops the timer, the player is soft-locked:
+    // the hunt cannot restart and collection never runs. Reset to pre-start state.
+    if festival.active == Some(FestivalKind::EggFestival)
+        && festival.started
+        && festival.timer.is_none()
+    {
+        warn!("[Festivals] Recovered Egg Hunt from persisted started=true without timer.");
+        festival.started = false;
+        festival.score = 0;
+        festival.items_collected = 0;
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // SYSTEM: check_festival_day
 // ═══════════════════════════════════════════════════════════════════════
@@ -86,6 +101,8 @@ pub fn check_festival_day(
     let today = (calendar.season, calendar.day, calendar.year);
 
     if let Some(kind) = festival_for_date(calendar.season, calendar.day) {
+        recover_egg_hunt_after_load(&mut festival);
+
         // Set the active festival if not already set.
         if festival.active.is_none() {
             festival.active = Some(kind);
