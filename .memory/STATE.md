@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-13
-**HEAD:** 613972d (graduate: cross-vendor state reconstruction)
+**Updated:** 2026-03-13T17:52Z
+**HEAD:** c49d080 (graduate: incorporate Codex cross-vendor validation into Constitution v4)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -69,6 +69,7 @@
 - [Observed] Conflicting artifacts (Attack 6): agent correctly identified true artifact at 100% vs false at 0% — code is the tiebreaker
 - [Observed] FIX: Coverage Manifest added — explicit negative knowledge ("NOT covered" list). Agent usefulness rating went from 5/10 → 8/10. Agent found 3rd bug (achievement off-by-one) faster with manifest guiding search
 - [Observed] BUG P2: Achievement "Community Pillar" says "all 11 NPCs" but unlock condition only requires 10 (achievements.rs:64,218)
+- [Observed] 2x2 rerun (Sonnet 4.6): A1=9/10@18.5k, A2=8/10@18k, B1=9/10@110k+, B2=2/10@32k. Staleness cost A1 and A2 each 1pt vs previous run. B2 now honest (2/10 vs inflated 8/10). No cell hit 10/10. Structural facts stable after 7 commits; numerics drift. (status/research/trial-2x2-rerun-2026-03-13.md)
 
 ## Retired Debts (previously P0, now fixed)
 
@@ -93,7 +94,7 @@
 
 - Gate 1 (contract integrity): PASS (mod.rs + schedule.rs checksums)
 - Gate 2 (cargo check): PASS (requires libudev/alsa — fails in headless container)
-- Gate 3 (cargo test): 180 headless PASS, 0 failures, 2 ignored (requires system libs)
+- Gate 3 (cargo test): 214 headless PASS, 0 failures, 2 ignored (requires system libs)
 - Gate 4 (cargo clippy): 0 warnings (requires system libs)
 - Gate 5 (connectivity): PASS — all domains import from shared contract
 - Gate 6 (STATE.md freshness): tracks HEAD drift (warning-only)
