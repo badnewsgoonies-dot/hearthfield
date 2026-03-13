@@ -4,6 +4,21 @@
 
 This is the machine-facing operating kernel for the Hearthfield project. Use it to reconstruct the working set for a fresh session without replaying long transcripts.
 
+**Status note**
+
+This file is the Hearthfield-specific adapter layer, not the live project
+snapshot.
+
+Treat the following as live truth instead:
+
+- [.memory/STATE.md](/home/geni/swarm/hearthfield/.memory/STATE.md)
+- [dispatch-state.yaml](/home/geni/swarm/hearthfield/status/foreman/dispatch-state.yaml)
+- tranche reports in [status/launch](/home/geni/swarm/hearthfield/status/launch)
+- worker reports in [status/workers](/home/geni/swarm/hearthfield/status/workers)
+
+If this file's embedded snapshot-style content disagrees with those live files,
+the live files win.
+
 **What this file replaces**
 
 - transcript replay as memory
