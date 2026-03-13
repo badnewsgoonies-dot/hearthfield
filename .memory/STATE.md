@@ -93,6 +93,8 @@
 - [Inferred] Mining floor transitions (no ECS tests for entry/exit/descent — code traced only)
 - [Inferred] Crafting, social, economy loops functional but not runtime-verified end-to-end since feature additions
 - [Assumed] WASM build still works after sailing + deep forest additions
+- [Observed] BUG: Fishing double stamina drain — player/tools.rs drains at cast time, then resolve.rs drains 4 (catch) or 2 (escape) again (tools.rs:122, resolve.rs:140,171)
+- [Observed] DESIGN GAP: Perfect catch toast says "Quality upgraded!" but ItemPickupEvent has no quality field — upgrade is cosmetic only (minigame.rs:246-254, shared/mod.rs:871-875)
 - [Assumed] Mining atlas tile indices (cave_tiles constants) match actual fungus_cave.png — see PRINCIPLE-world-tileset-silent-overflow
 
 ## Current Runtime Surfaces
