@@ -136,9 +136,6 @@ pub fn catch_fish(
         sfx_id: "fish_caught".to_string(),
     });
 
-    // Drain stamina (full cast costs 4)
-    stamina_events.send(StaminaDrainEvent { amount: 4.0 });
-
     // Despawn bobber
     for entity in bobber_entities {
         commands.entity(entity).despawn_recursive();
@@ -167,9 +164,6 @@ pub fn end_fishing_escape(
     bobber_entities: Vec<Entity>,
     from_fishing_state: bool,
 ) {
-    // Partial stamina drain for a failed or cancelled cast
-    stamina_events.send(StaminaDrainEvent { amount: 2.0 });
-
     // Despawn bobber
     for entity in bobber_entities {
         commands.entity(entity).despawn_recursive();
