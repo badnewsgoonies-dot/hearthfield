@@ -88,8 +88,12 @@
 ## Critical Path Uncertainties
 
 - [Observed] Fishing and mining loops verified end-to-end via code tracing (this session)
+- [Observed] ItemPickupEvent→inventory cross-domain wiring confirmed (interaction.rs:482-509)
+- [Inferred] Mining combat subsystem (no ECS tests for player attack, enemy AI, knockout)
+- [Inferred] Mining floor transitions (no ECS tests for entry/exit/descent — code traced only)
 - [Inferred] Crafting, social, economy loops functional but not runtime-verified end-to-end since feature additions
 - [Assumed] WASM build still works after sailing + deep forest additions
+- [Assumed] Mining atlas tile indices (cave_tiles constants) match actual fungus_cave.png — see PRINCIPLE-world-tileset-silent-overflow
 
 ## Current Runtime Surfaces
 
