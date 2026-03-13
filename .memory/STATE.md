@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** 7e4a25b (fix: cooking path item dupe on full inventory)
+**HEAD:** edcdd14 (docs: record economy audit findings + update HEAD ref)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -52,8 +52,12 @@
 - [Observed] Contract violation defense: two-layer (hook blocks dirty diff + SHA-256 checksum gate) — tested live, both caught tampering
 - [Observed] Crafting loop: bench interaction→recipe check→ingredient consume→item add→full-inventory guard, all wired (bench.rs, tested in headless)
 - [Observed] Economy loop: earn (shop sell + shipping bin) → spend (shop buy + blacksmith) → persist (PlayerState serde), gold.rs:16 central handler
-- [Observed] Cross-domain GoldChangeEvent wiring: 10 producers, 5 consumers, negative gold clamped to 0
+- [Observed] Cross-domain GoldChangeEvent wiring: 8 producers, 5 consumers, negative gold clamped to 0 (corrected from 10 — Trial G verified)
 - [Observed] Cold restart reconstruction: fresh agent correctly rebuilt full state from artifacts alone (tier, phase, debts, uncertainties, HEAD drift)
+- [Observed] Artifact-only vs transcript comparison (Trial E): both agents found real bugs; artifact-only used 50% fewer tokens (19k vs 38k) with equivalent accuracy
+- [Observed] Stale artifact causes misdirection (Trial F): 5-commit-stale STATE.md had 9/9 data points wrong, would cause redundant bug fixes and wasted verification
+- [Observed] STATE.md claim-to-code accuracy (Trial G): 4/5 claims confirmed against source, 1 partial (producer count 8 not 10). 80% full-accuracy on numeric claims
+- [Observed] Artifact transfers decision context (Trial H): fresh agent derived core doctrine ("demote evidence levels, verification-first") from artifacts alone, correctly prioritized P0 > P1
 
 ## Retired Debts (previously P0, now fixed)
 
