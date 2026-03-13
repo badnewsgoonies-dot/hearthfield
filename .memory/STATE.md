@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-13T20:15Z
-**HEAD:** 00ccc03 (graduate: primed fork trials — context checkpoint closes cross-domain blind spots)
+**Updated:** 2026-03-13T22:30Z
+**HEAD:** 96581dd (fix: 5 bugs from pyramid trial — purchase bypass, pig outdoor, hay guard, festival name, egg bounds)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -74,6 +74,12 @@
 - [Observed] Reconstruction fidelity ratios: A1 mean 96.7%, A2 mean 86.7%, B1 mean 96.7% (at 2.6x cost), B2 honest 20%. Staleness decay = -1.4%/commit. Structural facts immune; numerics drift after 5 commits.
 - [Observed] Fork effectiveness (bare spawn): Trial A 9/10@21.9k, Trial C 12/15@170k (2.77x parallel speedup). Cross-domain blind spots caused 3 misses. (status/research/fork-effectiveness-trials-2026-03-13.md)
 - [Observed] Primed fork trials: 40-line context checkpoint raised Trial A from 90%→100% (-12% tokens), Trial C from 80%→100% (+7% tokens, +53% wall time). All gains from cross-domain wiring map. Optimal primitive = "pass the wiring map, not the full context." (status/research/primed-fork-trials-2026-03-13.md)
+- [Observed] Pyramid trial (1→3→9): Codex cannot execute true pyramid — session thread limit (max 6 cumulative), sub-agent sandbox (LandlockRestrict) blocks depth-2 file reads. Root cost 12k confirms compression theory. Claude Code depth-1 workers shipped all 5 fixes in ~2min. (status/trials/pyramid-results.md)
+- [Observed] FIX: spawning.rs same-frame purchase bypass (P1) — spawned_this_frame counter added to housing cap check (commit 96581dd)
+- [Observed] FIX: day_end.rs pig truffle outdoor requirement (P2) — is_outside_on_farm_tile guard added (commit 96581dd)
+- [Observed] FIX: feeding.rs redundant hay feeding (P2) — early-return guard when all animals already fed_today (commit 96581dd)
+- [Observed] FIX: mod.rs festival name mismatch (P2) — "Spring Dance" → "Egg Festival" aligned with FestivalKind (commit 96581dd)
+- [Observed] FIX: festivals.rs egg spawn bounds (P2) — range tightened from -8..8 to -6..6 tiles (commit 96581dd)
 
 ## Retired Debts (previously P0, now fixed)
 
@@ -98,7 +104,7 @@
 
 - Gate 1 (contract integrity): PASS (mod.rs + schedule.rs checksums)
 - Gate 2 (cargo check): PASS (requires libudev/alsa — fails in headless container)
-- Gate 3 (cargo test): 214 headless PASS, 0 failures, 2 ignored (requires system libs)
+- Gate 3 (cargo test): 215 headless PASS, 0 failures, 2 ignored (requires system libs)
 - Gate 4 (cargo clippy): 0 warnings (requires system libs)
 - Gate 5 (connectivity): PASS — all domains import from shared contract
 - Gate 6 (STATE.md freshness): tracks HEAD drift (warning-only)
