@@ -88,9 +88,9 @@ Same 10-question quiz, 4 independent agents with different information access:
 - Q8: festival soft-lock + animal state ✅
 - Q9: efficiency cache finding ✅
 - Q10: [Inferred] ✅
-- **Tool calls: ~169** (self-reported 24, actual bash invocations ~85)
-- **Tokens: ~110k+ (cache_read: 2.7M, cache_creation: 109k, output: 1.8k)**
-- **Duration: ~210s**
+- **Tool calls: 84** (self-reported 24)
+- **Tokens: ~49k**
+- **Duration: ~273s**
 
 ### B2 (code only)
 - Q1: DON'T KNOW ❌
@@ -113,7 +113,7 @@ Same 10-question quiz, 4 independent agents with different information access:
 |------|-------|--------|----------|------------|----------------------|
 | A1 (STATE+git) | **9/10** | ~18.5k | ~26s | 3 | 0.49 |
 | A2 (STATE only) | **8/10** | ~18k | ~14s | 1 | 0.44 |
-| B1 (git only) | **9/10** | ~110k+ | ~210s | ~85 | 0.08 |
+| B1 (git only) | **9/10** | ~49k | ~273s | 84 | 0.18 |
 | B2 (code only) | **2/10** | ~32k | ~106s | 29 | 0.06 |
 
 ## Comparison With Previous Run (commit 05efe9f)
