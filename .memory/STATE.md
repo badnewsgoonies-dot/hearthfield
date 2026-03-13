@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** c86ed36 (graduate: Codex multi-agent trials)
+**HEAD:** 613972d (graduate: cross-vendor state reconstruction)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -63,6 +63,12 @@
 - [Observed] Parallel codex exec isolation (Trial J): 3 workers ran simultaneously with CODEX_HOME isolation, all correct, no session interference
 - [Observed] Cross-LLM nesting (Trial K): Claude→Codex orchestrator→2 Codex sub-agents — full audit with source citations, 2-layer nesting, 16k tokens. Confirmed 8 GoldChangeEvent producers and shop quality gap
 - [Observed] Cross-vendor state reconstruction (2x2 repeat with Codex/gpt-5.4): identical scores to Claude — A1=10/10, A2=9/10, B1=10/10, B2=8/10. Artifact reconstruction is vendor-independent. Codex B2 correctly refused unanswerable questions (more disciplined than Claude B2 which cheated)
+- [Observed] BREAK FOUND: STATE.md covers only ~55% of critical paths (Attack 7). Blind spots: animals, festivals, weather, romance, chests, building upgrades, sleep/day-end, achievements, DLC
+- [Observed] Attack 7 found 2 real bugs STATE.md missed: festival save/load soft-lock + animal state not surviving save/load
+- [Observed] Poisoned STATE (Attack 1): agent caught 10/10 deliberate lies by verifying against code — artifact cannot override source
+- [Observed] Conflicting artifacts (Attack 6): agent correctly identified true artifact at 100% vs false at 0% — code is the tiebreaker
+- [Observed] FIX: Coverage Manifest added — explicit negative knowledge ("NOT covered" list). Agent usefulness rating went from 5/10 → 8/10. Agent found 3rd bug (achievement off-by-one) faster with manifest guiding search
+- [Observed] BUG P2: Achievement "Community Pillar" says "all 11 NPCs" but unlock condition only requires 10 (achievements.rs:64,218)
 
 ## Retired Debts (previously P0, now fixed)
 
@@ -136,3 +142,27 @@
 | Tool tutorial: Mayor Rex intro | [Observed] wired |
 | Crafting: bench → select → craft | [Observed] full loop traced: bench interaction (bench.rs:75-114), recipe check (bench.rs:228-239), consume (bench.rs:257-270), add (bench.rs:174-198), dupe fix graduated |
 | Economy: earn → spend → persist | [Observed] shop sell (shop_screen.rs:670), shipping (shipping.rs:124), buy (shop_screen.rs:624), gold handler (gold.rs:16), serde roundtrip |
+
+## Coverage Manifest (what STATE.md knows vs doesn't)
+
+**Covered domains (verified or traced):**
+farming, fishing, mining, crafting, economy, player/tools, world/maps, save/load (partial), calendar (day/season), ui/shops, sailing
+
+**NOT covered (no verification, no tracing, silence ≠ working):**
+- animals (spawning, products, day-end, save/load fidelity)
+- festivals (triggers, minigames, save/load during festival)
+- weather (effects, crop impact, visual fx)
+- romance/social (dating, marriage, friendship progression)
+- chest storage (placement, transfer, persistence)
+- building upgrades (house, coop, barn, silo progression)
+- sleep/day-end flow (stamina collapse, bed transition)
+- NPC dialogue/quests (quest completion, reward flow)
+- achievements (unlock triggers, persistence)
+- DLC content (pilot, police — separate crates)
+
+**Coverage estimate: ~55% of critical paths. Agents MUST NOT assume uncovered domains work.**
+
+## Bugs Found Via Coverage Gap Analysis (Attack 7)
+
+- [Observed] BUG P1: Festival save/load soft-lock — saving mid-Egg Hunt loses timer (festivals.rs:29 skips serialization), but hunt refuses to restart if started=true (festivals.rs:132) and refuses to run without timer (festivals.rs:191). Player permanently stuck.
+- [Observed] BUG P1: Animal state doesn't survive save/load — SheepWoolCooldown and PendingProductQuality are ECS-only components (animals/day_end.rs:32), not serialized in AnimalState (shared/mod.rs:575). Position, cooldown, quality all lost on reload.
