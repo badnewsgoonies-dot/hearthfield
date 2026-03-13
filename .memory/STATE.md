@@ -1,9 +1,9 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** 163d7ef (docs: add orchestration operating stack)
+**HEAD:** cdba947 (graduate: fishing + mining loops [Observed])
 **Branch:** claude/llm-git-orchestration-OLSPR
-**Working tree:** dirty (red-team enforcement hardening in progress)
+**Working tree:** clean
 
 ## Phase
 
@@ -18,8 +18,8 @@
 
 ## P1 Debt (next wave)
 
-- Fishing loop — end-to-end verification needed
-- Mining loop — end-to-end verification needed
+- ~~Fishing loop~~ — graduated to [Observed], see Runtime Surfaces table
+- ~~Mining loop~~ — graduated to [Observed], see Runtime Surfaces table
 - Crafting loop — crafting bench interaction end-to-end
 - Social loop — NPC friendship progression verification
 - Economy loop — earn/spend/upgrade cycle verification
@@ -43,6 +43,11 @@
 - [Observed] Save/load preserves current_map + grid position (graduated test)
 - [Observed] Building collision works: stone tiles solid, doors carved out (graduated test)
 - [Observed] Starter items include hoe + seeds (graduated test)
+- [Observed] Orchestration enforcement hardened: clamp-scope rewritten (temp files, verified clean), contract-deps checksummed, hook paths portable, gates expanded to 7 (commits cdcc85c..b5b4740)
+- [Observed] Claude Code agents wired: domain-worker (Sonnet, scoped), auditor (Sonnet, read-only), red-team (Opus, read-only) — .claude/agents/ (commit b9a5854)
+- [Observed] Mechanical hooks active: PreToolUse blocks Rust edits from orchestrator + guards agent dispatch; PostToolUse checks contract integrity after Bash (commit cdcc85c)
+- [Observed] Fishing loop: cast→bite→minigame→catch→inventory→reset, all wired via ECS systems (src/fishing/cast.rs, minigame.rs, resolve.rs)
+- [Observed] Mining loop: entry→floor spawn→rock breaking→ore pickup→ladder descent→exit, 20 floors, elevator every 5 (src/mining/transitions.rs, rock_breaking.rs, ladder.rs)
 
 ## Retired Debts (previously P0, now fixed)
 
@@ -55,12 +60,19 @@
 - ~~Shop auto-entry requires verification~~ — [Observed] position-triggered on door tiles (src/player/interaction.rs:135-151)
 - ~~Season validation on planting~~ — [Observed] crop_can_grow_in_season + kills on season change (graduated tests)
 - ~~Save/load preserves map state~~ — [Observed] current_map + grid coords serialized (graduated test)
+- ~~Orchestration enforcement gaps (red-team finding)~~ — hardened: scope clamping, contract checksums, hook wiring all mechanical (commits cdcc85c..b5b4740)
+- ~~Fishing loop e2e~~ — [Observed] full state machine traced: cast→bite→minigame→catch→inventory→reset
+- ~~Mining loop e2e~~ — [Observed] full loop traced: entry→rock breaking→ladder descent→exit, elevator system
 
 ## Gate Status
 
-- cargo check: PASS
-- cargo test: 180 headless PASS, 0 failures, 2 ignored
-- cargo clippy: 0 warnings
+- Gate 1 (contract integrity): PASS (mod.rs + schedule.rs checksums)
+- Gate 2 (cargo check): PASS (requires libudev/alsa — fails in headless container)
+- Gate 3 (cargo test): 180 headless PASS, 0 failures, 2 ignored (requires system libs)
+- Gate 4 (cargo clippy): 0 warnings (requires system libs)
+- Gate 5 (connectivity): PASS — all domains import from shared contract
+- Gate 6 (STATE.md freshness): tracks HEAD drift (warning-only)
+- Gate 7 (artifact source refs): PASS — all file refs resolve
 - WASM build: infrastructure exists (build_wasm.sh), not recently verified
 
 ## Bugs Fixed This Session (commits 614cb86d..c3ddfbcd)
@@ -75,7 +87,8 @@
 
 ## Critical Path Uncertainties
 
-- [Inferred] Core gameplay loops (fishing, mining, crafting, social, economy) are functional but not runtime-verified end-to-end since feature additions
+- [Observed] Fishing and mining loops verified end-to-end via code tracing (this session)
+- [Inferred] Crafting, social, economy loops functional but not runtime-verified end-to-end since feature additions
 - [Assumed] WASM build still works after sailing + deep forest additions
 
 ## Current Runtime Surfaces
@@ -86,8 +99,8 @@
 | Town: walk → enter shops → buy/sell | [Observed] shop entry position-triggered; collision verified |
 | Beach → Coral Island: sailing loop | [Observed] wired and reachable |
 | Forest → Deep Forest | [Observed] wired and reachable |
-| Mine: enter → descend → mine → exit | [Inferred] functional (rock breaking ECS test passes) |
-| Fishing: cast → wait → catch | [Inferred] functional (state reset verified in code) |
+| Mine: enter → descend → mine → exit | [Observed] full loop traced: entry (transitions.rs:17-67), rock breaking (rock_breaking.rs:35-134), ladder descent (ladder.rs:14-95), exit (ladder.rs:99-147), day-end penalty (transitions.rs:72-123) |
+| Fishing: cast → wait → catch | [Observed] full loop traced: cast (cast.rs:63-189), bite timer (cast.rs:192-238), minigame (minigame.rs:50-311), catch→inventory (resolve.rs:66-69), state reset (resolve.rs:147-152) |
 | Save/Load roundtrip | [Observed] current_map + grid position graduated |
 | Tool tutorial: Mayor Rex intro | [Observed] wired |
 | Crafting: bench → select → craft | [Observed] ECS tests pass; dupe fix graduated |
