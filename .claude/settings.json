@@ -30,6 +30,15 @@
             "command": "bash scripts/hook-contract-integrity.sh"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/hook-session-freshness.sh"
+          }
+        ]
       }
     ]
   }

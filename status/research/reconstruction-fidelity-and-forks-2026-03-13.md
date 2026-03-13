@@ -121,13 +121,25 @@ The current result proves lossless TARGETED compression, not lossless GENERAL co
 | pre-commit | Contract checksum (.contract.sha256 + .contract-deps.sha256) | YES |
 | pre-push | Runs full gate suite (scripts/run-gates.sh) | YES |
 
+### Checkpoint Infrastructure (already exists)
+
+| Component | Script/Path | Purpose | Status |
+|-----------|------------|---------|--------|
+| checkpoint-state.sh | scripts/checkpoint-state.sh | Creates composite orchestration checkpoint (session fork + manifest + ledger) | Active |
+| restore-checkpoint.sh | scripts/restore-checkpoint.sh | Restores from checkpoint manifest, supports Codex resume | Active |
+| Checkpoint ledger | status/foreman/checkpoints.yaml | Durable record of 9 snapshots (label, session, branch, HEAD, manifest) | Active |
+| Checkpoint manifests | status/checkpoints/*.yaml | Individual manifest files per checkpoint | Active |
+| Reconstruction baselines | scripts/generate_reconstruction_baselines.py | Asset inventory CSVs (runtime_used, visual_mapping, reachable_surfaces) | Active |
+| Baseline validator | scripts/validate_reconstruction_baselines.py | Asset validation against baselines | Active |
+| Dispatch state | status/foreman/dispatch-state.yaml | Worker assignments + status tracking | Active |
+
 ### What's Missing for Fork/Reconstruction
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
-| **No post-checkout hook** | Nothing updates STATE.md when switching branches/checkpoints | HIGH |
+| **No post-checkout hook** | Nothing wires checkpoint-state.sh / restore-checkpoint.sh to branch switches | HIGH |
 | **No SessionStart hook** | Nothing verifies STATE.md freshness at session boot | HIGH |
-| **No post-agent hook** | Nothing captures agent output as a checkpoint | MEDIUM |
+| **No post-agent hook** | Nothing auto-captures agent output as a checkpoint entry | MEDIUM |
 | **No STATE.md freshness enforcer** | Gate 6 warns but doesn't block | MEDIUM |
 | **No multi-hop checkpoint format** | No standard for compressed state transfer between agents | LOW |
 
