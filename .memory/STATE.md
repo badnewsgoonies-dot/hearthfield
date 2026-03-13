@@ -104,7 +104,9 @@
 - [Inferred] Social loop functional but not runtime-verified end-to-end since feature additions
 - [Assumed] WASM build still works after sailing + deep forest additions
 - ~~[Observed] BUG: Fishing double stamina drain~~ — FIXED in commit fa54fa9
+- [Observed] BUG P0: Cooking path item dupe on full inventory — partial try_add not removed before refund (cooking.rs:143-162). Same class as bench fix ddcb11d.
 - [Observed] DESIGN GAP: Perfect catch toast says "Quality upgraded!" but ItemPickupEvent has no quality field — upgrade is cosmetic only (minigame.rs:246-254, shared/mod.rs:871-875)
+- [Observed] DESIGN: C key opens crafting without proximity check — player can craft from anywhere (bench.rs:274)
 - [Assumed] Mining atlas tile indices (cave_tiles constants) match actual fungus_cave.png — see PRINCIPLE-world-tileset-silent-overflow
 
 ## Current Runtime Surfaces

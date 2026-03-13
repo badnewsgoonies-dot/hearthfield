@@ -142,6 +142,10 @@ pub fn handle_cook_item(
 
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
         if leftover > 0 {
+            let added = recipe.result_quantity - leftover;
+            if added > 0 {
+                inventory.try_remove(&recipe.result, added);
+            }
             warn!(
                 "Inventory full after cooking '{}' — refunding materials",
                 recipe.name
