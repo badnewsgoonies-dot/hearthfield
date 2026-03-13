@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** edcdd14 (docs: record economy audit findings + update HEAD ref)
+**HEAD:** 666fc2f (graduate: trials E-H)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -58,6 +58,7 @@
 - [Observed] Stale artifact causes misdirection (Trial F): 5-commit-stale STATE.md had 9/9 data points wrong, would cause redundant bug fixes and wasted verification
 - [Observed] STATE.md claim-to-code accuracy (Trial G): 4/5 claims confirmed against source, 1 partial (producer count 8 not 10). 80% full-accuracy on numeric claims
 - [Observed] Artifact transfers decision context (Trial H): fresh agent derived core doctrine ("demote evidence levels, verification-first") from artifacts alone, correctly prioritized P0 > P1
+- [Observed] 2x2 AB trial (10-question quiz): A1(STATE+git)=10/10@33k, A2(STATE)=9/10@20k, B1(git)=10/10@24k, B2(code)=8/10@40k. STATE.md is an efficiency cache: same accuracy as git-only at 60% token cost and 46% wall time. Staleness caused A2's only miss (Q10). Code-only cannot answer session-state questions at all
 
 ## Retired Debts (previously P0, now fixed)
 
