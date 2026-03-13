@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** 253bfe8 (graduate: fishing + mining loops [Observed])
+**HEAD:** fa54fa9 (fix: fishing double stamina drain)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -20,9 +20,9 @@
 
 - ~~Fishing loop~~ — graduated to [Observed], see Runtime Surfaces table
 - ~~Mining loop~~ — graduated to [Observed], see Runtime Surfaces table
-- Crafting loop — crafting bench interaction end-to-end
+- ~~Crafting loop~~ — graduated to [Observed], full loop traced
 - Social loop — NPC friendship progression verification
-- Economy loop — earn/spend/upgrade cycle verification
+- ~~Economy loop~~ — graduated to [Observed], earn/spend/persist traced
 - WASM/browser — build + deploy verification
 - Performance / endurance — extended play session test
 - Full-year playthrough — season transitions, festival triggers
@@ -48,6 +48,12 @@
 - [Observed] Mechanical hooks active: PreToolUse blocks Rust edits from orchestrator + guards agent dispatch; PostToolUse checks contract integrity after Bash (commit cdcc85c)
 - [Observed] Fishing loop: cast→bite→minigame→catch→inventory→reset, all wired via ECS systems (src/fishing/cast.rs, minigame.rs, resolve.rs)
 - [Observed] Mining loop: entry→floor spawn→rock breaking→ore pickup→ladder descent→exit, 20 floors, elevator every 5 (src/mining/transitions.rs, rock_breaking.rs, ladder.rs)
+- [Observed] Fishing double stamina bug FIXED: removed duplicate StaminaDrainEvent from resolve.rs (commit fa54fa9) — worker dispatched, scope clamped, verified
+- [Observed] Contract violation defense: two-layer (hook blocks dirty diff + SHA-256 checksum gate) — tested live, both caught tampering
+- [Observed] Crafting loop: bench interaction→recipe check→ingredient consume→item add→full-inventory guard, all wired (bench.rs, tested in headless)
+- [Observed] Economy loop: earn (shop sell + shipping bin) → spend (shop buy + blacksmith) → persist (PlayerState serde), gold.rs:16 central handler
+- [Observed] Cross-domain GoldChangeEvent wiring: 10 producers, 5 consumers, negative gold clamped to 0
+- [Observed] Cold restart reconstruction: fresh agent correctly rebuilt full state from artifacts alone (tier, phase, debts, uncertainties, HEAD drift)
 
 ## Retired Debts (previously P0, now fixed)
 
@@ -63,6 +69,9 @@
 - ~~Orchestration enforcement gaps (red-team finding)~~ — hardened: scope clamping, contract checksums, hook wiring all mechanical (commits cdcc85c..b5b4740)
 - ~~Fishing loop e2e~~ — [Observed] full state machine traced: cast→bite→minigame→catch→inventory→reset
 - ~~Mining loop e2e~~ — [Observed] full loop traced: entry→rock breaking→ladder descent→exit, elevator system
+- ~~Fishing double stamina drain~~ — FIXED (commit fa54fa9), duplicate StaminaDrainEvent removed from resolve.rs
+- ~~Crafting loop e2e~~ — [Observed] bench→recipe check→consume→add→full-inventory guard (audit confirmed)
+- ~~Economy loop e2e~~ — [Observed] earn (shop+shipping) → spend (shop+blacksmith) → persist (serde) (audit confirmed)
 
 ## Gate Status
 
@@ -91,9 +100,10 @@
 - [Observed] ItemPickupEvent→inventory cross-domain wiring confirmed (interaction.rs:482-509)
 - [Inferred] Mining combat subsystem (no ECS tests for player attack, enemy AI, knockout)
 - [Inferred] Mining floor transitions (no ECS tests for entry/exit/descent — code traced only)
-- [Inferred] Crafting, social, economy loops functional but not runtime-verified end-to-end since feature additions
+- [Observed] Crafting and economy loops verified end-to-end via code tracing (this session)
+- [Inferred] Social loop functional but not runtime-verified end-to-end since feature additions
 - [Assumed] WASM build still works after sailing + deep forest additions
-- [Observed] BUG: Fishing double stamina drain — player/tools.rs drains at cast time, then resolve.rs drains 4 (catch) or 2 (escape) again (tools.rs:122, resolve.rs:140,171)
+- ~~[Observed] BUG: Fishing double stamina drain~~ — FIXED in commit fa54fa9
 - [Observed] DESIGN GAP: Perfect catch toast says "Quality upgraded!" but ItemPickupEvent has no quality field — upgrade is cosmetic only (minigame.rs:246-254, shared/mod.rs:871-875)
 - [Assumed] Mining atlas tile indices (cave_tiles constants) match actual fungus_cave.png — see PRINCIPLE-world-tileset-silent-overflow
 
@@ -109,4 +119,5 @@
 | Fishing: cast → wait → catch | [Observed] full loop traced: cast (cast.rs:63-189), bite timer (cast.rs:192-238), minigame (minigame.rs:50-311), catch→inventory (resolve.rs:66-69), state reset (resolve.rs:147-152) |
 | Save/Load roundtrip | [Observed] current_map + grid position graduated |
 | Tool tutorial: Mayor Rex intro | [Observed] wired |
-| Crafting: bench → select → craft | [Observed] ECS tests pass; dupe fix graduated |
+| Crafting: bench → select → craft | [Observed] full loop traced: bench interaction (bench.rs:75-114), recipe check (bench.rs:228-239), consume (bench.rs:257-270), add (bench.rs:174-198), dupe fix graduated |
+| Economy: earn → spend → persist | [Observed] shop sell (shop_screen.rs:670), shipping (shipping.rs:124), buy (shop_screen.rs:624), gold handler (gold.rs:16), serde roundtrip |
