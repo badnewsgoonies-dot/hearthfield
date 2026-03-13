@@ -42,9 +42,13 @@ Read `.memory/STATE.md` and `docs/HEARTHFIELD_OPERATING_KERNEL.md` before acting
 For multi-worker dispatch, follow `docs/SUB_AGENT_PLAYBOOK.md` in order.
 
 - Contract: `src/shared/mod.rs` — frozen, checksummed at `.contract.sha256`
-- Workers: Copilot CLI or Codex CLI. Sonnet ≈ Opus for well-scoped tasks.
+- Dispatch: use Claude Code agents (`.claude/agents/`). Subagents cannot nest — one level only.
+  - `domain-worker` — scoped implementation (Sonnet). Include domain path + objective.
+  - `auditor` — read-only claim verification (Sonnet). Use after workers to filter false positives.
+  - `red-team` — adversarial analysis (Opus). Use to find enforcement gaps.
 - Scope: `bash scripts/clamp-scope.sh src/{domain}/` after EVERY worker
 - Commit after every worker. Fresh context per worker.
+- Workers must cite source_refs for every claim. Claims without refs are false positives.
 - Never let workers choose visual atlas indices without seeing the actual image.
 
 ## Key Paths
@@ -58,6 +62,8 @@ For multi-worker dispatch, follow `docs/SUB_AGENT_PLAYBOOK.md` in order.
 - Gate scripts: `scripts/run-gates.sh`, `scripts/clamp-scope.sh`
 - Hook installer: `scripts/install-hooks.sh` (run once after clone)
 - CI: `.github/workflows/gates.yml`
+- Agents: `.claude/agents/` (domain-worker, auditor, red-team)
+- Hooks config: `.claude/settings.json`
 
 ## Domains (15+)
 
