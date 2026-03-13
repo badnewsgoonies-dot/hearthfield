@@ -195,6 +195,67 @@ The hooks above would work identically in Codex because:
 - They trigger on git operations (post-checkout) or file state (.memory/)
 - The checkpoint format is plain text, not model-specific
 
+## Part 5: Codex Fork Model (Research)
+
+### How Codex Handles Forking
+
+| Capability | Codex CLI | Hearthfield Equivalent |
+|-----------|-----------|----------------------|
+| **Session forking** | `codex fork` / `codex fork --last` — forks a session into a new thread preserving transcript | `checkpoint-state.sh` — forks session into manifest + ledger entry |
+| **In-TUI branching** | Esc×2 → walk back → Enter to fork from any prior turn | No equivalent (Claude Code doesn't support mid-session branching) |
+| **Sub-agent spawning** | Native: `spawn_agents_on_csv` for batch, `/experimental` for ad-hoc | `.claude/agents/` (domain-worker, auditor, red-team) |
+| **CODEX_HOME isolation** | Separate SQLite state DB per `CODEX_HOME` directory | Trial J confirmed: parallel agents with isolated CODEX_HOME worked |
+| **Session resume** | `codex resume [--last | <ID> | --all]` backed by SQLite + JSONL | `restore-checkpoint.sh --label <name>` backed by YAML ledger |
+| **Memory pipeline** | 2-phase: extract raw_memory per rollout → global consolidation in SQLite | `.memory/STATE.md` + `.memory/*.yaml` (manual, not auto-consolidated) |
+| **Worktrees** | Codex App: native per-thread worktrees. CLI: manual (open issue #13120) | Claude Code: `--worktree` flag on Agent tool (native) |
+| **Approval inheritance** | Sub-agents inherit parent sandbox policy + approvals | Sub-agents inherit CLAUDE_AGENT_DEPTH (hooks check depth) |
+
+### What Codex Has That We Don't
+
+1. **SQLite-backed memory pipeline** — auto-extracts structured memory per session, consolidates cross-session. Our `.memory/*.yaml` is manual.
+2. **In-TUI session branching** — fork from any prior turn. We can only fork at checkpoint boundaries.
+3. **`spawn_agents_on_csv`** — batch primitive for parallel workers from structured data. We dispatch workers individually.
+4. **Resume picker** — `codex resume` shows recent sessions. Our `restore-checkpoint.sh` requires knowing the label.
+
+### What We Have That Codex CLI Doesn't
+
+1. **Native git worktrees on Agent tool** — Claude Code's `isolation: "worktree"` is built-in. Codex CLI has an open issue (#13120) requesting this.
+2. **Mechanical scope clamping** — `clamp-scope.sh` reverts out-of-scope changes. Codex relies on prompt-only scope control.
+3. **Contract integrity hooks** — SHA-256 checksums on shared interfaces, enforced at pre-commit + post-bash. No Codex equivalent found.
+4. **Evidence-level tagging** — [Observed]/[Inferred]/[Assumed] in state files. Codex memory pipeline doesn't distinguish evidence quality.
+5. **Freshness hooks** — Our new SessionStart + post-checkout hooks detect stale state. Codex doesn't warn about stale checkpoints.
+
+### Synthesis: The Combined Fork Model
+
+The optimal fork system combines both approaches:
+
+```
+                    ┌─────────────────────────────┐
+                    │  Checkpoint (disk artifact)  │
+                    │  STATE.md + manifests + SHA  │
+                    └──────────┬──────────────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+     ┌────────▼──────┐ ┌──────▼───────┐ ┌──────▼───────┐
+     │ Claude Code   │ │ Codex CLI    │ │ Any LLM      │
+     │ resume via    │ │ resume via   │ │ resume via   │
+     │ Read STATE.md │ │ codex resume │ │ Read STATE.md│
+     │ + hooks fire  │ │ + SQLite     │ │ (cross-vendor│
+     └───────────────┘ └──────────────┘ └──────────────┘
+```
+
+The disk artifact (STATE.md) is the vendor-neutral checkpoint. It works for Claude, Codex, and GPT-5.4 (proven in trials). Codex's SQLite is a richer but vendor-locked checkpoint. The hooks ensure freshness regardless of which tool reads the artifact.
+
+### Sources
+
+- [Codex CLI Reference](https://developers.openai.com/codex/cli/reference)
+- [Codex Multi-Agents](https://developers.openai.com/codex/multi-agent/)
+- [Codex App Worktrees](https://developers.openai.com/codex/app/worktrees/)
+- [Codex Memory System (DeepWiki)](https://deepwiki.com/openai/codex/3.7-memory-system)
+- [GitHub Issue: Git worktrees #13120](https://github.com/openai/codex/issues/13120)
+- [parallel-code (worktree orchestrator)](https://github.com/johannesjo/parallel-code)
+
 ## Summary Table
 
 | Finding | Value | Source |
