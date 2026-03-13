@@ -199,13 +199,21 @@ in operational artifacts.
 
 ### M2: Bug-Finding Is The Best Validation
 
-The adversarial testing process found 12+ real bugs across three rounds:
+The adversarial testing process found 15+ real bugs across three rounds:
 festival save/load, animal state loss, achievement off-by-one, NPC schedule
 mutation, kitchen stove gating, wedding timer persistence, economy dual
 mutation, dead code false oracle (try_buy/try_sell), contradictory gold
 trackers (EconomyStats vs PlayStats), achievement description mismatch,
 duplicate achievement conditions, permanently zero stats (mine_floors_cleared,
-festivals_attended).
+festivals_attended), portrait_index hardcoded to 0 (dialogue_box.rs:154
+ignores threaded portrait selection), spouse breakfast toasts before inventory
+check succeeds (romance.rs:403), NPC schedule fallback picks end-of-day
+location when time is before first entry (schedule.rs:54).
+
+Cross-vendor validation: Codex gpt-5.4 independently found the same C10
+verification-harm pattern (portrait, breakfast, schedule bugs) and the same
+cross-principle contradictions as Claude Opus, confirming C5's vendor-
+independence claim extends to adversarial analysis, not just reconstruction.
 
 Constitutional testing is a bug-finding methodology, not just governance.
 
@@ -266,12 +274,12 @@ rationalization:
    found only scope and boundary issues. The core principles (C1-C10) have
    not required structural revision since v3.
 
-2. **Single-attacker monoculture.** All three rounds were executed by Claude
-   Opus within a single extended session. A genuinely adversarial round would
-   use a different model, a different human, or a fresh context. The
-   constitution's robustness is tested against one attacker's blind spots,
-   not against all possible attacks. This is [Inferred] sufficient, not
-   [Observed] sufficient.
+2. **Single-attacker monoculture — partially mitigated.** Rounds 1-3 were
+   executed by Claude Opus. However, Codex gpt-5.4 independently validated
+   the same findings (C7 honest enforcement, C10 verification harm, cross-
+   principle contradictions, M3 circularity) and surfaced 3 additional bugs.
+   The constitution is now [Observed] cross-vendor consistent but still
+   tested by only two model families within a single session.
 
 3. **No retained v1/v2.** The v1→v2→v3 narrative exists only in the current
    document and commit messages. No prior version was separately committed.
@@ -307,6 +315,17 @@ applicable rule wins.
 **Principles not in the table** (C8 negative knowledge, C9 depth-1 nesting)
 are design defaults, not conflict-resolution rules. They apply when no
 specific conflict exists.
+
+**Three-layer model** (independently derived by both Claude and Codex):
+Most cross-principle conflicts arise because principles implicitly mix three
+layers of truth. Assigning each claim to its layer resolves most ambiguity:
+- **Descriptive:** what exists in code now (C1's domain)
+- **Evidentiary:** what has been verified to behave correctly (C4's domain)
+- **Procedural:** what is admissible in the workflow (C7's domain)
+
+C8/C3 are routing mechanisms (prioritize where to look) not evidence sources.
+C10 bridges all three: reconstruct (descriptive) → verify (evidentiary) →
+graduate (procedural) → commit.
 
 ## Appendix B: Known Gaps (with remediation triggers)
 
