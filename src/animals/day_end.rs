@@ -296,7 +296,9 @@ pub fn handle_day_end_for_animals(
                     }
                     AnimalKind::Pig => {
                         // Pigs find truffles daily when outdoors and happy.
-                        if animal.happiness >= 50 {
+                        // Must be outside on a farm tile — pigs cannot find
+                        // truffles while confined indoors.
+                        if animal.happiness >= 50 && is_outside_on_farm_tile(logical_pos) {
                             animal.product_ready = true;
                             commands
                                 .entity(entity)

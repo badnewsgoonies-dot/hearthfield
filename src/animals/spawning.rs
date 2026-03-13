@@ -494,6 +494,7 @@ pub fn handle_animal_purchase(
     mut toast_writer: EventWriter<ToastEvent>,
 ) {
     let mut rng = rand::thread_rng();
+    let mut spawned_this_frame: u32 = 0;
 
     for ev in shop_events.read() {
         if !ev.is_purchase {
@@ -536,7 +537,7 @@ pub fn handle_animal_purchase(
                     })
                     .count();
                 let max = (animal_state.coop_level as usize) * 4;
-                if count >= max {
+                if count + spawned_this_frame as usize >= max {
                     toast_writer.send(ToastEvent {
                         message: "Your coop is full! Upgrade to house more animals.".to_string(),
                         duration_secs: 3.0,
@@ -558,7 +559,7 @@ pub fn handle_animal_purchase(
                     })
                     .count();
                 let max = (animal_state.barn_level as usize) * 4;
-                if count >= max {
+                if count + spawned_this_frame as usize >= max {
                     toast_writer.send(ToastEvent {
                         message: "Your barn is full! Upgrade to house more animals.".to_string(),
                         duration_secs: 3.0,
@@ -604,6 +605,7 @@ pub fn handle_animal_purchase(
         };
 
         spawn_animal_entity(&mut commands, &sprite_data, animal_data, spawn_pos);
+        spawned_this_frame += 1;
 
         sfx_writer.send(PlaySfxEvent {
             sfx_id: format!("{}_cry", ev.item_id),

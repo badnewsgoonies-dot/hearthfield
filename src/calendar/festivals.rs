@@ -177,8 +177,9 @@ pub fn start_egg_hunt(
     let egg_image: Handle<Image> = asset_server.load("sprites/egg_item.png");
     let mut rng = rand::thread_rng();
     for _ in 0..20 {
-        let x = rng.gen_range(-8..8) as f32 * TILE_SIZE;
-        let y = rng.gen_range(-8..8) as f32 * TILE_SIZE;
+        // Range clamped to -6..6 tiles to keep eggs within the festival egg hunt area.
+        let x = rng.gen_range(-6..6) as f32 * TILE_SIZE;
+        let y = rng.gen_range(-6..6) as f32 * TILE_SIZE;
 
         let mut egg_sprite = Sprite::from_image(egg_image.clone());
         egg_sprite.custom_size = Some(Vec2::new(12.0, 12.0));
