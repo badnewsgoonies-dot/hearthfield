@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** fa54fa9 (fix: fishing double stamina drain)
+**HEAD:** 7e4a25b (fix: cooking path item dupe on full inventory)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -72,6 +72,7 @@
 - ~~Fishing double stamina drain~~ — FIXED (commit fa54fa9), duplicate StaminaDrainEvent removed from resolve.rs
 - ~~Crafting loop e2e~~ — [Observed] bench→recipe check→consume→add→full-inventory guard (audit confirmed)
 - ~~Economy loop e2e~~ — [Observed] earn (shop+shipping) → spend (shop+blacksmith) → persist (serde) (audit confirmed)
+- ~~Cooking path item dupe on full inventory~~ — FIXED (commit 7e4a25b), partial try_add removed before refund
 
 ## Gate Status
 
@@ -104,10 +105,13 @@
 - [Inferred] Social loop functional but not runtime-verified end-to-end since feature additions
 - [Assumed] WASM build still works after sailing + deep forest additions
 - ~~[Observed] BUG: Fishing double stamina drain~~ — FIXED in commit fa54fa9
-- [Observed] BUG P0: Cooking path item dupe on full inventory — partial try_add not removed before refund (cooking.rs:143-162). Same class as bench fix ddcb11d.
+- ~~[Observed] BUG P0: Cooking path item dupe on full inventory~~ — FIXED in commit 7e4a25b
 - [Observed] DESIGN GAP: Perfect catch toast says "Quality upgraded!" but ItemPickupEvent has no quality field — upgrade is cosmetic only (minigame.rs:246-254, shared/mod.rs:871-875)
 - [Observed] DESIGN: C key opens crafting without proximity check — player can craft from anywhere (bench.rs:274)
 - [Assumed] Mining atlas tile indices (cave_tiles constants) match actual fungus_cave.png — see PRINCIPLE-world-tileset-silent-overflow
+- [Observed] ECONOMY GAP: try_buy/try_sell in shop.rs are dead code (#[allow(dead_code)]) — runtime shop UI reimplements buy/sell inline in shop_screen.rs, so unit tests don't cover actual runtime path
+- [Observed] ECONOMY GAP: Shop sell ignores ItemQuality::sell_multiplier() — only shipping bin (shipping.rs:124) respects quality pricing
+- [Observed] ECONOMY GAP: Dual gold mutation — shop UI directly mutates player.gold while blacksmith/shipping use GoldChangeEvent → apply_gold_changes (gold.rs:16). EconomyStats only tracks event-based path
 
 ## Current Runtime Surfaces
 
