@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
 **Updated:** 2026-03-13
-**HEAD:** 05efe9f (graduate: 2x2 AB trial)
+**HEAD:** c86ed36 (graduate: Codex multi-agent trials)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -62,6 +62,7 @@
 - [Observed] Codex CLI multi-agent (Trial I): native spawn_agent+wait worked — orchestrator spawned 2 explorer sub-agents, both returned correct answers (8,625 tokens)
 - [Observed] Parallel codex exec isolation (Trial J): 3 workers ran simultaneously with CODEX_HOME isolation, all correct, no session interference
 - [Observed] Cross-LLM nesting (Trial K): Claude→Codex orchestrator→2 Codex sub-agents — full audit with source citations, 2-layer nesting, 16k tokens. Confirmed 8 GoldChangeEvent producers and shop quality gap
+- [Observed] Cross-vendor state reconstruction (2x2 repeat with Codex/gpt-5.4): identical scores to Claude — A1=10/10, A2=9/10, B1=10/10, B2=8/10. Artifact reconstruction is vendor-independent. Codex B2 correctly refused unanswerable questions (more disciplined than Claude B2 which cheated)
 
 ## Retired Debts (previously P0, now fixed)
 
