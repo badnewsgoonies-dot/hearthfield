@@ -1,7 +1,7 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-13T19:30Z
-**HEAD:** b0e5e68 (harden: mechanical claim verification for STATE.md reconstruction)
+**Updated:** 2026-03-13T20:15Z
+**HEAD:** 00ccc03 (graduate: primed fork trials — context checkpoint closes cross-domain blind spots)
 **Branch:** claude/llm-git-orchestration-OLSPR
 **Working tree:** clean
 
@@ -72,6 +72,8 @@
 - [Observed] 2x2 rerun (Sonnet 4.6): A1=9/10@18.5k, A2=8/10@18k, B1=9/10@49k, B2=2/10@32k. Staleness cost A1 and A2 each 1pt vs previous run. B2 now honest (2/10 vs inflated 8/10). No cell hit 10/10. Structural facts stable after 7 commits; numerics drift. (status/research/trial-2x2-rerun-2026-03-13.md)
 - [Observed] Multi-hop fork trial: 4 agents in chain, each compressing checkpoint for next. 5/5 at every hop. 169→30→15→8 lines (21x compression) with zero fidelity loss on structural facts. Minimum viable checkpoint = 8 lines. (status/research/reconstruction-fidelity-and-forks-2026-03-13.md)
 - [Observed] Reconstruction fidelity ratios: A1 mean 96.7%, A2 mean 86.7%, B1 mean 96.7% (at 2.6x cost), B2 honest 20%. Staleness decay = -1.4%/commit. Structural facts immune; numerics drift after 5 commits.
+- [Observed] Fork effectiveness (bare spawn): Trial A 9/10@21.9k, Trial C 12/15@170k (2.77x parallel speedup). Cross-domain blind spots caused 3 misses. (status/research/fork-effectiveness-trials-2026-03-13.md)
+- [Observed] Primed fork trials: 40-line context checkpoint raised Trial A from 90%→100% (-12% tokens), Trial C from 80%→100% (+7% tokens, +53% wall time). All gains from cross-domain wiring map. Optimal primitive = "pass the wiring map, not the full context." (status/research/primed-fork-trials-2026-03-13.md)
 
 ## Retired Debts (previously P0, now fixed)
 
