@@ -179,10 +179,8 @@ fn edge_transition_hardcoded(map: &MapId, gx: i32, gy: i32) -> Option<(MapId, i3
             return Some((MapId::TownWest, 14, clamp_to_interior(gy, 0, 21)));
         }
     }
-    if *map == MapId::TownWest {
-        if gx >= max_x {
-            return Some((MapId::Town, 1, clamp_to_interior(gy, 0, 21)));
-        }
+    if *map == MapId::TownWest && gx >= max_x {
+        return Some((MapId::Town, 1, clamp_to_interior(gy, 0, 21)));
     }
     if *map == MapId::Beach {
         if gy >= max_y {

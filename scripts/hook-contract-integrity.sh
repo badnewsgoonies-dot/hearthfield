@@ -5,12 +5,15 @@
 
 input=$(cat)
 
-# Only check in the hearthfield repo
-if [[ ! -f /home/geni/swarm/hearthfield/.contract.sha256 ]]; then
+# Resolve repo root relative to this script (works on any machine)
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Only check if contract checksum exists in this repo
+if [[ ! -f "$REPO_ROOT/.contract.sha256" ]]; then
   exit 0
 fi
 
-cd /home/geni/swarm/hearthfield
+cd "$REPO_ROOT"
 
 # Check if shared/mod.rs has uncommitted changes
 if ! git diff --quiet -- src/shared/mod.rs 2>/dev/null; then

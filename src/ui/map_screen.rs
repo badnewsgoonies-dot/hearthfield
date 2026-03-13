@@ -320,7 +320,7 @@ fn build_map_adjacency(map_registry: &MapRegistry) -> HashMap<MapId, Vec<MapId>>
     let mut adjacency = HashMap::new();
 
     for (&map_id, map_data) in &map_registry.maps {
-        adjacency.entry(map_id).or_insert_with(Vec::new);
+        adjacency.entry(map_id).or_default();
 
         for linked_map in linked_maps(map_data) {
             push_link(&mut adjacency, map_id, linked_map);
@@ -340,22 +340,23 @@ fn linked_maps(map_data: &MapData) -> Vec<MapId> {
     for door in &map_data.doors {
         push_unique_map(&mut links, door.to_map);
     }
-    for edge in [
+    for (map_id, _) in [
         map_data.edges.north.as_ref(),
         map_data.edges.south.as_ref(),
         map_data.edges.east.as_ref(),
         map_data.edges.west.as_ref(),
-    ] {
-        if let Some((map_id, _)) = edge {
-            push_unique_map(&mut links, *map_id);
-        }
+    ]
+    .into_iter()
+    .flatten()
+    {
+        push_unique_map(&mut links, *map_id);
     }
 
     links
 }
 
 fn push_link(adjacency: &mut HashMap<MapId, Vec<MapId>>, from: MapId, to: MapId) {
-    let neighbors = adjacency.entry(from).or_insert_with(Vec::new);
+    let neighbors = adjacency.entry(from).or_default();
     push_unique_map(neighbors, to);
 }
 

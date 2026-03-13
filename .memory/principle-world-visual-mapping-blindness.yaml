@@ -4,7 +4,8 @@ evidence: Observed
 domain: world
 summary: "Workers told to use atlas index N without seeing the actual image will place wrong sprites — index 2 for bed was actually a barrel."
 source_refs:
-  - "runtime:screenshot@screens/furniture-barrel-bed-mismatch.png"
+  - "runtime:screenshot@screens/furniture-barrel-bed-mismatch.png [MISSING — original screenshot not preserved]"
+evidence_note: "Original evidence was a runtime screenshot showing barrel sprite rendered where bed was intended. Screenshot was not committed to repo. Evidence level should be treated as [Inferred] until re-verified visually."
 why_it_matters: "Delegation compression at single-item granularity. The orchestrator must read the image, build the mapping, and include it in the worker spec."
 drift_cue: "Any worker spec assigning atlas indices without an explicit index-to-visual mapping table attached."
 status: active
