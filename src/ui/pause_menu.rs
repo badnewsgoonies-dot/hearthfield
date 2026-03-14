@@ -84,10 +84,10 @@ pub fn spawn_pause_menu(
                         Text::new(""),
                         TextFont {
                             font: font.clone(),
-                            font_size: 12.0,
+                            font_size: 14.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.95, 0.75, 0.45)),
+                        TextColor(Color::srgb(1.0, 0.88, 0.62)),
                     ));
 
                     // Controls reminder
@@ -165,7 +165,7 @@ pub fn pause_menu_navigation(
             }
             1 => {
                 let slot = active_slot.slot;
-                state.status_message = format!("Saving Slot {}...", slot + 1);
+                state.status_message = format!("Securing Slot {}...", slot + 1);
                 save_writer.send(SaveRequestEvent { slot });
             }
             2 => {
@@ -190,12 +190,12 @@ pub fn handle_save_complete_in_pause_menu(
 
     for ev in complete_events.read() {
         if ev.success {
-            state.status_message = format!("Saved to Slot {}.", ev.slot + 1);
+            state.status_message = format!("Progress secured in Slot {}.", ev.slot + 1);
         } else {
             state.status_message = ev
                 .error_message
                 .clone()
-                .unwrap_or_else(|| "Save failed.".to_string());
+                .unwrap_or_else(|| "Could not secure your progress.".to_string());
         }
     }
 }
