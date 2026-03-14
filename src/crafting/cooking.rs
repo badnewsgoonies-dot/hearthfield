@@ -93,12 +93,15 @@ pub fn handle_cook_item(
         if !has_all_non_wildcard_ingredients(&inventory, recipe) {
             let missing = missing_non_wildcard_description(&inventory, recipe);
             warn!("Cannot cook '{}' — missing: {}", recipe.name, missing);
-            ui_state.set_feedback(format!("Missing ingredients: {}", missing));
+            ui_state.set_feedback(format!(
+                "Still needed before this comes together: {}",
+                missing
+            ));
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
             toast_events.send(ToastEvent {
-                message: "Missing ingredients!".into(),
+                message: "Almost there. One more ingredient and this is ready for the pan.".into(),
                 duration_secs: 2.0,
             });
             continue;
@@ -109,12 +112,12 @@ pub fn handle_cook_item(
 
         if has_any_fish_ingredient && fish_item.is_none() {
             warn!("Cannot cook '{}' — no fish in inventory", recipe.name);
-            ui_state.set_feedback("Need fish to cook this recipe!".to_string());
+            ui_state.set_feedback("Any fresh fish will finish this recipe.".to_string());
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
             toast_events.send(ToastEvent {
-                message: "Missing ingredients!".into(),
+                message: "Almost there. One more ingredient and this is ready for the pan.".into(),
                 duration_secs: 2.0,
             });
             continue;
@@ -184,9 +187,9 @@ pub fn handle_cook_item(
             .or_insert(0) += 1;
 
         let feedback = if recipe.result_quantity > 1 {
-            format!("Cooked {} x{}", recipe.name, recipe.result_quantity)
+            format!("Served {} x{}", recipe.name, recipe.result_quantity)
         } else {
-            format!("Cooked {}!", recipe.name)
+            format!("Served {}.", recipe.name)
         };
         info!("{}", feedback);
         ui_state.set_feedback(feedback);
@@ -195,7 +198,7 @@ pub fn handle_cook_item(
             sfx_id: "cook_success".to_string(),
         });
         toast_events.send(ToastEvent {
-            message: format!("{} crafted!", recipe.name),
+            message: format!("{} is hot and ready.", recipe.name),
             duration_secs: 2.0,
         });
 
