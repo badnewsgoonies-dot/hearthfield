@@ -398,3 +398,40 @@ pub fn populate_fish(registry: &mut FishRegistry) {
         registry.fish.insert(f.id.clone(), f);
     }
 }
+
+pub fn fish_description(fish_id: &str) -> &'static str {
+    match fish_id {
+        "sardine" => "A small silver schooler that always seems happiest near a breezy shore.",
+        "herring" => "A humble ocean fish with a clean shine and a talent for showing up in numbers.",
+        "bass" => "A sturdy river favorite that fights just enough to wake up your wrists.",
+        "trout" => "A speckled river fish that flashes bright when it turns in clear water.",
+        "salmon" => "A strong red-fleshed traveler that feels at home in a determined current.",
+        "catfish" => "A whiskered bottom-dweller that seems to enjoy muddy banks and rainy weather.",
+        "carp" => "A broad, patient pond fish that turns up almost anywhere there is still water.",
+        "pike" => "A lean river hunter with a long nose and a sudden temper on the line.",
+        "perch" => "A striped little river fish that makes winter water feel more lively.",
+        "eel" => "A slick twilight swimmer that slips through rain-dark surf like a ribbon.",
+        "tuna" => "A hefty ocean fish built for distance, muscle, and open blue water.",
+        "swordfish" => "A swift sea predator with a sharp bill and a proud, cutting silhouette.",
+        "sturgeon" => "An old river giant with armored scales and the patience of deep water.",
+        "pufferfish" => "A round little oddball that looks harmless until it decides otherwise.",
+        "octopus" => "A clever coastal drifter with soft arms and the habit of vanishing into shadow.",
+        "squid" => "A pale night fisher that arrives with winter evenings and lamp-lit docks.",
+        "anglerfish" => "A darkwater prowler that feels almost mythic when it rises after sundown.",
+        "legend_fish" => "A near-impossible river catch spoken of in the same tone as weather and luck.",
+        "glacier_fish" => "A cold-bright legend that seems carved from the quietest part of winter.",
+        "crimson_fish" => "A vivid summer legend that burns through saltwater like a red spark.",
+        "goldfish" => "A bright pond familiar whose orange flicker makes still water feel friendly.",
+        "sunfish" => "A round little basker that seems made for warm noon light and lazy ponds.",
+        "bullhead" => "A blunt, stubborn pond fish that keeps close to the silty bottom.",
+        "koi" => "A graceful pond jewel that moves like it already knows it is being admired.",
+        "ghostfish" => "A pale cave swimmer that looks almost translucent in the mine pools.",
+        "stonefish" => "A rough little ambusher so still it can pass for part of the floor.",
+        "ice_pip" => "A sharp, chilly mine fish with a glint like frost on old metal.",
+        "lava_eel" => "A fierce heat-loving eel that writhes through the mines like living fire.",
+        "ice_perch" => "A crisp mountain-lake catch that feels right at home in thin winter light.",
+        "frost_trout" => "A cold-stream trout with a clean bite and a silver-blue back.",
+        "glacial_pike" => "A hard-eyed alpine predator that arrives with snow and leaves a story behind.",
+        _ => "A familiar fish from Hearthfield's waters.",
+    }
+}
