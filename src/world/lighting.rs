@@ -63,58 +63,58 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
     static KEYFRAMES: &[TintKeyframe] = &[
         TintKeyframe {
             hour: 0.0,
-            tint: (0.16, 0.18, 0.30),
-            intensity: 0.58,
-        }, // midnight — deep blue, clearly dark
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.45,
+        }, // midnight — slightly less oppressive
         TintKeyframe {
             hour: 5.0,
-            tint: (0.20, 0.22, 0.34),
-            intensity: 0.50,
-        }, // late night — still quiet, hinting at dawn
+            tint: (0.45, 0.34, 0.42),
+            intensity: 0.45,
+        }, // pre-dawn — warm mauve on the horizon
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.80, 0.72),
-            intensity: 0.22,
-        }, // sunrise — hopeful golden pink
+            tint: (1.0, 0.72, 0.42),
+            intensity: 0.15,
+        }, // sunrise — warmer, more saturated amber
         TintKeyframe {
             hour: 8.0,
-            tint: (1.0, 0.96, 0.90),
+            tint: (1.0, 0.96, 0.88),
             intensity: 0.05,
-        }, // morning — soft warmth before neutral daylight
+        }, // morning — lingering warmth
         TintKeyframe {
             hour: 10.0,
-            tint: (1.0, 0.995, 0.98),
+            tint: (1.0, 1.0, 1.0),
             intensity: 0.0,
-        }, // full daylight — bright and nearly neutral
+        }, // full daylight
         TintKeyframe {
             hour: 16.0,
-            tint: (1.0, 0.99, 0.97),
+            tint: (1.0, 1.0, 1.0),
             intensity: 0.0,
-        }, // afternoon daylight — still clear and neutral
+        }, // full daylight
         TintKeyframe {
             hour: 17.0,
-            tint: (1.0, 0.86, 0.66),
-            intensity: 0.10,
+            tint: (1.0, 0.92, 0.70),
+            intensity: 0.08,
         }, // golden hour — warm amber
         TintKeyframe {
             hour: 18.0,
-            tint: (1.0, 0.68, 0.38),
-            intensity: 0.24,
-        }, // sunset — warm orange
+            tint: (0.70, 0.58, 0.90),
+            intensity: 0.18,
+        }, // sunset — cooler indigo-violet
         TintKeyframe {
             hour: 20.0,
-            tint: (0.42, 0.46, 0.68),
-            intensity: 0.38,
-        }, // twilight — cooling into blue-violet
+            tint: (0.42, 0.40, 0.72),
+            intensity: 0.3,
+        }, // twilight — deeper blue-purple
         TintKeyframe {
             hour: 22.0,
-            tint: (0.18, 0.20, 0.32),
-            intensity: 0.54,
-        }, // night — quiet and properly dark
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.45,
+        }, // night
         TintKeyframe {
             hour: 24.0,
-            tint: (0.16, 0.18, 0.30),
-            intensity: 0.58,
+            tint: (0.3, 0.3, 0.5),
+            intensity: 0.45,
         }, // midnight (wrap)
     ];
     KEYFRAMES
@@ -251,23 +251,6 @@ pub fn update_day_night_tint(
     mut overlay_query: Query<&mut BackgroundColor, With<DayNightOverlay>>,
     lightning: Option<Res<LightningFlash>>,
 ) {
-    if player_state.current_map == MapId::Mine {
-        let mine_tint = (0.6, 0.65, 0.8);
-        let mine_intensity = 0.35;
-        let mine_overlay = (mine_tint.0 * 0.15, mine_tint.1 * 0.15, mine_tint.2 * 0.15, mine_intensity);
-        day_night_tint.intensity = mine_intensity;
-        day_night_tint.tint = mine_tint;
-        for mut bg in &mut overlay_query {
-            *bg = BackgroundColor(Color::srgba(
-                mine_overlay.0,
-                mine_overlay.1,
-                mine_overlay.2,
-                mine_overlay.3,
-            ));
-        }
-        return;
-    }
-
     // Indoor maps: consistent warm ambient lighting instead of day/night cycle.
     // Subtle warm tint: Color::srgb(1.0, 0.97, 0.92) at very low intensity.
     if is_indoor_map(player_state.current_map) {
