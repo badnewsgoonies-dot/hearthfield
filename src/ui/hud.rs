@@ -521,13 +521,13 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                 Text::new(""),
                 TextFont {
                     font: font.clone(),
-                    font_size: 14.0,
+                    font_size: 18.0,
                     ..default()
                 },
-                TextColor(Color::srgba(1.0, 0.95, 0.7, 0.0)),
+                TextColor(Color::srgba(1.0, 0.97, 0.82, 0.0)),
                 Node {
                     align_self: AlignSelf::Center,
-                    margin: UiRect::bottom(Val::Px(2.0)),
+                    margin: UiRect::bottom(Val::Px(8.0)),
                     ..default()
                 },
                 PickingBehavior::IGNORE,
@@ -1735,7 +1735,7 @@ pub fn update_interaction_prompt(
         return;
     }
 
-    let range = TILE_SIZE * 1.8;
+    let range = TILE_SIZE * 2.6;
     let mut best_label: Option<(f32, String)> = None;
     let interact_key = key_display(bindings.interact);
     let secondary_key = key_display(bindings.tool_secondary);
@@ -1744,7 +1744,7 @@ pub fn update_interaction_prompt(
     for (tf, inter) in &interactable_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((d, format!("[{}] {}", interact_key, inter.label)));
+            best_label = Some((d, format!("Press [{}] to {}", interact_key, inter.label)));
         }
     }
 
@@ -1752,7 +1752,7 @@ pub fn update_interaction_prompt(
     for tf in &chest_query {
         let d = player_pos.0.distance(tf.translation.truncate());
         if d <= range && best_label.as_ref().is_none_or(|b| d < b.0) {
-            best_label = Some((d, format!("[{}] Storage", interact_key)));
+            best_label = Some((d, format!("Press [{}] to open storage", interact_key)));
         }
     }
 
@@ -1767,11 +1767,11 @@ pub fn update_interaction_prompt(
                 .unwrap_or(&npc.id);
             let label = if has_gift {
                 format!(
-                    "[{}] Talk to {} | [{}] Give Gift",
+                    "Press [{}] to talk to {}  •  [{}] to give a gift",
                     interact_key, name, secondary_key
                 )
             } else {
-                format!("[{}] Talk to {}", interact_key, name)
+                format!("Press [{}] to talk to {}", interact_key, name)
             };
             best_label = Some((d, label));
         }
@@ -1788,7 +1788,7 @@ pub fn update_interaction_prompt(
     for (mut text, mut tc) in &mut prompt_query {
         if let Some(label) = &best_label_text {
             **text = label.clone();
-            tc.0 = Color::srgb(1.0, 0.95, 0.7);
+            tc.0 = Color::srgb(1.0, 0.97, 0.82);
         } else {
             text.0.clear();
             tc.0 = Color::srgba(1.0, 1.0, 1.0, 0.0);
