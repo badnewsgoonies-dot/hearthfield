@@ -92,10 +92,10 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             birthday_day: 14,
             gift_preferences: prefs,
             default_dialogue: vec![
-                "Spring rain makes the whole bakery smell like yeast and lilacs, dear. Even your farm drifts in on it.".into(),
+                "The Egg Festival is only a few days off, dear. I've already started testing cakes and praying the square doesn't run out of eggs.".into(),
                 "Summer mornings come early, and Nora swears she can smell my crusts before the rooster starts.".into(),
                 "Autumn has Margaret baking before sunrise, and Old Tom pretending he isn't waiting for the first hand pie.".into(),
-                "Winter sends half the town to my counter just to thaw out and ask whether your chimney is finally behaving.".into(),
+                "Winter Star sneaks up on people. If you're bringing a gift, make it thoughtful enough to warm cold hands.".into(),
                 "Have you eaten yet, dear? A farm doesn't run on stubbornness alone.".into(),
                 "Mayor Rex says the town notices every new furrow on your farm. I say that's because people are nosy.".into(),
             ],
@@ -1398,8 +1398,8 @@ pub fn populate_npcs(registry: &mut NpcRegistry) {
             gift_preferences: prefs,
             default_dialogue: vec![
                 "Hey, spring's got this puddle-pop rhythm today. Your farm path even keeps time when people squish through it.".into(),
-                "Hey, summer makes everything louder. Open windows, cicadas, Marco yelling about basil. Great material.".into(),
-                "Hey, autumn sounds like boots on leaves and everybody swapping rumors on the way home.".into(),
+                "Luau's coming, and half the town's pretending not to care while Marco rehearses his big soup opinions.".into(),
+                "Harvest Festival's basically a crop brag with pie on the side. Bring something good or Mayor Rex will make a speech about civic pride.".into(),
                 "Hey, winter's perfect for moody guitar parts. Town gets so quiet you can hear Mayor Rex clear his throat from the square.".into(),
                 "I'm practicing every day. Soon Hearthfield's gossip will have a soundtrack.".into(),
                 "This town needs more music and fewer people whispering outside the general store. If they're going to stare at your farm, they should at least clap on beat.".into(),
