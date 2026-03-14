@@ -333,9 +333,9 @@ pub fn write_all_ron_files() -> std::io::Result<()> {
 fn doors_for(map_id: MapId) -> Vec<DoorDef> {
     match map_id {
         MapId::Farm => vec![DoorDef {
-            x_min: 15,
-            x_max: 16,
-            y: 2,
+            x_min: 7,
+            x_max: 8,
+            y: 19,
             to_map: MapId::PlayerHouse,
             to_x: 8,
             to_y: 14,
@@ -422,8 +422,8 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         MapId::Farm => EdgeDefs {
             north: Some((MapId::SnowMountain, EdgeTarget::ClampX(1))),
             south: Some((MapId::Town, EdgeTarget::ClampX(20))),
-            east: Some((MapId::Forest, EdgeTarget::ClampY(1))),
-            west: Some((MapId::MineEntrance, EdgeTarget::Fixed(12, 6))),
+            east: Some((MapId::Forest, EdgeTarget::Fixed(1, 10))),
+            west: Some((MapId::MineEntrance, EdgeTarget::Fixed(12, 10))),
         },
         MapId::Town => EdgeDefs {
             north: Some((MapId::Farm, EdgeTarget::ClampX(1))),
