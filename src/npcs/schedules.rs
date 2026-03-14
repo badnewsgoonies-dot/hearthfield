@@ -255,7 +255,7 @@ fn mayor_rex_schedule(season: Season) -> NpcSchedule {
         Season::Summer => (MapId::Beach, 14, 9),
         Season::Winter => (MapId::Town, 14, 10),
         Season::Fall => (MapId::Forest, 10, 15),
-        Season::Spring => (MapId::Town, 18, 14),
+        Season::Spring => (MapId::Town, 6, 8),
     };
 
     NpcSchedule {
@@ -1144,10 +1144,10 @@ fn sam_schedule(season: Season) -> NpcSchedule {
         _ => (MapId::MineEntrance, 6, 10),
     };
 
-    // Sam visits Coral Island in summer & spring afternoons (pirate spirit)
+    // Sam visits Coral Island in summer afternoons and busks in town during spring
     let (afternoon_map, aft_x, aft_y) = match season {
         Season::Summer => (MapId::CoralIsland, 10, 8), // exploring the island
-        Season::Spring => (MapId::CoralIsland, 12, 10), // treasure hunting
+        Season::Spring => (MapId::Town, 18, 14),        // busking in the plaza
         _ => (MapId::MineEntrance, 6, 10),             // stays near mine
     };
 
@@ -1577,14 +1577,14 @@ fn lily_schedule(season: Season) -> NpcSchedule {
         Season::Summer => (MapId::Beach, 12, 8), // beach! beach! beach!
         Season::Fall => (MapId::DeepForest, 6, 8), // deep forest adventure! (nature lover)
         Season::Winter => (MapId::Town, 8, 20),  // library (mom's orders)
-        Season::Spring => (MapId::Town, 8, 20),  // near library oak tree
+        Season::Spring => (MapId::Town, 6, 8),   // near the general store frontage
     };
 
     let (afternoon_map, aft_x, aft_y) = match season {
         Season::Summer => (MapId::Beach, 10, 7),     // sand castles
         Season::Fall => (MapId::DeepForest, 10, 12), // deeper into the deep forest
         Season::Winter => (MapId::Town, 18, 17),     // south park (brief outdoor time)
-        Season::Spring => (MapId::DeepForest, 8, 6), // spring wildflower meadow in deep forest
+        Season::Spring => (MapId::Town, 23, 18),     // spring energy near the blacksmith edge of town
     };
 
     NpcSchedule {
