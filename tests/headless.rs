@@ -13,10 +13,10 @@ use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use hearthfield::animals::pen_bounds_for;
 use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
-use hearthfield::calendar::{trigger_sleep, CalendarPlugin};
 use hearthfield::calendar::festivals::{
     check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
 };
+use hearthfield::calendar::{trigger_sleep, CalendarPlugin};
 use hearthfield::crafting::food_buff_for_item;
 use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
 use hearthfield::data::DataPlugin;
@@ -3194,7 +3194,6 @@ fn test_festival_check_recovers_egg_hunt_state_after_save_load() {
     );
 }
 
-
 // ═════════════════════════════════════════════════════════════════════════════
 // NEW TESTS: Crafting Machine Outputs (pure function)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -4448,11 +4447,8 @@ fn test_map_transition_primes_camera_snap_and_invalidates_collision_map() {
         .add_systems(Update, handle_player_map_transition);
 
     let start = grid_to_world_center(4, 7);
-    app.world_mut().spawn((
-        Player,
-        GridPosition::new(4, 7),
-        LogicalPosition(start),
-    ));
+    app.world_mut()
+        .spawn((Player, GridPosition::new(4, 7), LogicalPosition(start)));
 
     {
         let mut player_state = app.world_mut().resource_mut::<PlayerState>();
@@ -4593,11 +4589,8 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
     enter_playing_state(&mut app);
 
     let start = grid_to_world_center(11, 4);
-    app.world_mut().spawn((
-        Player,
-        GridPosition::new(11, 4),
-        LogicalPosition(start),
-    ));
+    app.world_mut()
+        .spawn((Player, GridPosition::new(11, 4), LogicalPosition(start)));
 
     {
         let mut player_state = app.world_mut().resource_mut::<PlayerState>();
@@ -4669,7 +4662,10 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
 
     {
         let queue = app.world().resource::<CutsceneQueue>();
-        assert!(queue.active, "Sleep should arm the queued overnight cutscene");
+        assert!(
+            queue.active,
+            "Sleep should arm the queued overnight cutscene"
+        );
         assert!(
             !queue.steps.is_empty(),
             "Sleep should populate the overnight cutscene steps"
