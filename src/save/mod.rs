@@ -9,6 +9,7 @@ use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::animals::{PendingProductQuality, SheepWoolCooldown};
 use crate::calendar::festivals::FestivalState;
 use crate::crafting::machines::{ProcessingMachine, ProcessingMachineRegistry, SavedMachine};
 use crate::economy::blacksmith::ToolUpgradeQueue;
@@ -158,6 +159,19 @@ impl Default for SessionTimer {
     }
 }
 
+/// Save-local per-animal ECS state not carried by the shared `AnimalState` contract.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SavedAnimalRuntimeState {
+    pub wool_cooldown_days: Option<u8>,
+    pub pending_product_quality: Option<ItemQuality>,
+}
+
+/// Runtime resource used to reattach save-local animal ECS state after load.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct LoadedAnimalRuntimeStates {
+    pub animals: Vec<SavedAnimalRuntimeState>,
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // SYSTEM PARAM BUNDLES (to stay within Bevy's 16-param limit)
 // ═══════════════════════════════════════════════════════════════════════
@@ -276,6 +290,7 @@ impl Plugin for SavePlugin {
             .init_resource::<SaveSlotInfoCache>()
             .init_resource::<GameStatistics>()
             .init_resource::<SessionTimer>()
+            .init_resource::<LoadedAnimalRuntimeStates>()
             // Events emitted/received by this plugin
             .add_event::<SaveRequestEvent>()
             .add_event::<LoadRequestEvent>()
@@ -400,6 +415,8 @@ struct FullSaveFile {
     pub mine_state: MineState,
     pub unlocked_recipes: UnlockedRecipes,
     pub shipping_bin: ShippingBin,
+    #[serde(default)]
+    pub animal_runtime_states: Vec<SavedAnimalRuntimeState>,
     pub total_gold_earned: u64,
     pub total_items_shipped: u64,
     #[serde(default)]
@@ -513,6 +530,7 @@ fn write_save(
     shipping_bin_quality: &ShippingBinQuality,
     festival_state: &FestivalState,
     farm_visit_tracker: &FarmVisitTracker,
+    animal_runtime_states: &[SavedAnimalRuntimeState],
     chests: &[StorageChest],
     placed_machines: &[SavedMachine],
 ) -> Result<(), String> {
@@ -529,6 +547,7 @@ fn write_save(
         inventory: inventory.clone(),
         farm_state: farm_state.clone(),
         animal_state: animal_state.clone(),
+        animal_runtime_states: animal_runtime_states.to_vec(),
         relationships: relationships.clone(),
         mine_state: mine_state.clone(),
         unlocked_recipes: unlocked_recipes.clone(),
@@ -618,6 +637,7 @@ fn write_save(
     shipping_bin_quality: &ShippingBinQuality,
     festival_state: &FestivalState,
     farm_visit_tracker: &FarmVisitTracker,
+    animal_runtime_states: &[SavedAnimalRuntimeState],
     chests: &[StorageChest],
     placed_machines: &[SavedMachine],
 ) -> Result<(), String> {
@@ -632,6 +652,7 @@ fn write_save(
         inventory: inventory.clone(),
         farm_state: farm_state.clone(),
         animal_state: animal_state.clone(),
+        animal_runtime_states: animal_runtime_states.to_vec(),
         relationships: relationships.clone(),
         mine_state: mine_state.clone(),
         unlocked_recipes: unlocked_recipes.clone(),
@@ -818,6 +839,11 @@ fn handle_save_request(
     core: CoreSaveResources,
     ext: ExtendedResources,
     player_grid_q: Query<&GridPosition, With<Player>>,
+    animal_query: Query<(
+        &Animal,
+        Option<&SheepWoolCooldown>,
+        Option<&PendingProductQuality>,
+    )>,
     chest_query: Query<&StorageChest, With<ChestMarker>>,
     machine_query: Query<(&ProcessingMachine, &GridPosition)>,
 ) {
@@ -830,6 +856,23 @@ fn handle_save_request(
             player_state.save_grid_x = gp.x;
             player_state.save_grid_y = gp.y;
         }
+
+        // Rebuild save-time animal ordering from ECS so the shared `AnimalState`
+        // and save-local runtime snapshots stay aligned in the file.
+        let animal_runtime_states: Vec<SavedAnimalRuntimeState> = animal_query
+            .iter()
+            .map(|(animal, wool_cooldown, pending_quality)| SavedAnimalRuntimeState {
+                wool_cooldown_days: wool_cooldown.map(|cooldown| cooldown.days_since_last_wool),
+                pending_product_quality: pending_quality.map(|quality| quality.quality),
+            })
+            .collect();
+        let animal_state_for_save = AnimalState {
+            animals: animal_query
+                .iter()
+                .map(|(animal, _, _)| animal.clone())
+                .collect(),
+            ..core.animal_state.clone()
+        };
 
         // Collect all chest contents from ECS entities
         let chests: Vec<StorageChest> = chest_query.iter().cloned().collect();
@@ -856,7 +899,7 @@ fn handle_save_request(
             &player_state,
             &core.inventory,
             &core.farm_state,
-            &core.animal_state,
+            &animal_state_for_save,
             &core.relationships,
             &core.mine_state,
             &core.unlocked_recipes,
@@ -885,6 +928,7 @@ fn handle_save_request(
             &ext.shipping_bin_quality,
             &ext.festival_state,
             &ext.farm_visit_tracker,
+            &animal_runtime_states,
             &chests,
             &placed_machines,
         ) {
@@ -924,6 +968,7 @@ fn handle_load_request(
     mut player_state: ResMut<PlayerState>,
     mut core: CoreLoadResources,
     mut ext: ExtendedResourcesMut,
+    mut animal_runtime_states: ResMut<LoadedAnimalRuntimeStates>,
     mut chests: ChestLoadResources,
     mut machines: MachineLoadResources,
 ) {
@@ -949,6 +994,7 @@ fn handle_load_request(
                 }
                 *core.farm_state = file.farm_state;
                 *core.animal_state = file.animal_state;
+                animal_runtime_states.animals = file.animal_runtime_states;
                 *core.relationships = file.relationships;
                 *core.mine_state = file.mine_state;
                 *core.unlocked_recipes = file.unlocked_recipes;
@@ -1146,6 +1192,7 @@ fn handle_new_game(
     mut player_state: ResMut<PlayerState>,
     mut core: CoreLoadResources,
     mut ext: ExtendedResourcesMut,
+    mut animal_runtime_states: ResMut<LoadedAnimalRuntimeStates>,
     mut machine_registry: ResMut<ProcessingMachineRegistry>,
     existing_chests: Query<Entity, With<ChestMarker>>,
     existing_machines: Query<Entity, With<ProcessingMachine>>,
@@ -1175,6 +1222,7 @@ fn handle_new_game(
         *core.inventory = Inventory::default();
         *core.farm_state = FarmState::default();
         *core.animal_state = AnimalState::default();
+        *animal_runtime_states = LoadedAnimalRuntimeStates::default();
         *core.relationships = Relationships::default();
         *core.mine_state = MineState::default();
         *core.unlocked_recipes = UnlockedRecipes::default();
