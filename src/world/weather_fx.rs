@@ -178,7 +178,7 @@ pub fn ensure_weather_sprites_loaded(images: &mut Assets<Image>, sprites: &mut W
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Maximum number of weather particles alive at once to prevent performance issues.
-const MAX_WEATHER_PARTICLES: usize = 600;
+const MAX_WEATHER_PARTICLES: usize = 720;
 
 /// Returns true if the given map is indoors (no weather particles).
 fn is_indoor_map(map_id: MapId) -> bool {
@@ -241,23 +241,23 @@ pub fn spawn_weather_particles(
     let cam_y = cam_tf.translation.y;
 
     // Spawn area: slightly wider than the visible area to avoid visible pop-in.
-    let spawn_left = cam_x - half_w - 20.0;
-    let spawn_right = cam_x + half_w + 20.0;
-    let spawn_top = cam_y + half_h + 10.0;
+    let spawn_left = cam_x - half_w - 28.0;
+    let spawn_right = cam_x + half_w + 28.0;
+    let spawn_top = cam_y + half_h + 14.0;
 
     let budget = MAX_WEATHER_PARTICLES - existing;
 
     match calendar.weather {
         Weather::Rainy => {
-            let count = 3.min(budget);
+            let count = 4.min(budget);
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                let speed = rng.gen_range(170.0..310.0);
+                let speed = rng.gen_range(190.0..340.0);
 
                 let mut sprite = Sprite::from_image(weather_sprites.rain_image.clone());
-                sprite.custom_size = Some(Vec2::new(2.5, 10.0));
-                sprite.color = Color::srgba(0.43, 0.5, 0.72, 0.82);
+                sprite.custom_size = Some(Vec2::new(2.75, 11.5));
+                sprite.color = Color::srgba(0.48, 0.58, 0.80, 0.86);
 
                 commands.spawn((
                     RainDrop { speed },
@@ -268,15 +268,15 @@ pub fn spawn_weather_particles(
             }
         }
         Weather::Stormy => {
-            let count = 5.min(budget);
+            let count = 7.min(budget);
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                let speed = rng.gen_range(280.0..480.0);
+                let speed = rng.gen_range(320.0..540.0);
 
                 let mut sprite = Sprite::from_image(weather_sprites.storm_image.clone());
-                sprite.custom_size = Some(Vec2::new(3.5, 10.0));
-                sprite.color = Color::srgba(0.38, 0.45, 0.72, 0.84);
+                sprite.custom_size = Some(Vec2::new(3.8, 12.0));
+                sprite.color = Color::srgba(0.44, 0.53, 0.82, 0.88);
 
                 commands.spawn((
                     RainDrop { speed },
@@ -287,20 +287,20 @@ pub fn spawn_weather_particles(
             }
         }
         Weather::Snowy => {
-            let count = 2.min(budget);
+            let count = 3.min(budget);
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                let speed = rng.gen_range(14.0..28.0);
+                let speed = rng.gen_range(16.0..32.0);
                 let drift_freq = rng.gen_range(0.7..1.8);
-                let drift_amp = rng.gen_range(7.0..18.0);
+                let drift_amp = rng.gen_range(10.0..22.0);
                 let drift_phase = rng.gen_range(0.0..std::f32::consts::TAU);
 
-                let alpha = rng.gen_range(0.72_f32..0.92);
-                let brightness = rng.gen_range(0.94_f32..1.0);
+                let alpha = rng.gen_range(0.78_f32..0.96);
+                let brightness = rng.gen_range(0.96_f32..1.0);
 
                 let mut sprite = Sprite::from_image(weather_sprites.snow_image.clone());
-                sprite.custom_size = Some(Vec2::new(6.5, 6.5));
+                sprite.custom_size = Some(Vec2::new(7.0, 7.0));
                 sprite.color = Color::srgba(brightness, brightness * 0.985, 0.97, alpha);
 
                 commands.spawn((
