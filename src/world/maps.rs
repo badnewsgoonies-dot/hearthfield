@@ -575,10 +575,22 @@ fn generate_beach() -> MapDef {
     ];
 
     let objects = vec![
+        // Rocky top-right shelf
         ObjectPlacement {
             x: 17,
             y: 1,
             kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 18,
+            y: 2,
+            kind: WorldObjectKind::Rock,
+        },
+        // Mid-beach driftwood line
+        ObjectPlacement {
+            x: 6,
+            y: 7,
+            kind: WorldObjectKind::Driftwood,
         },
         ObjectPlacement {
             x: 7,
@@ -586,9 +598,56 @@ fn generate_beach() -> MapDef {
             kind: WorldObjectKind::Log,
         },
         ObjectPlacement {
+            x: 8,
+            y: 8,
+            kind: WorldObjectKind::Driftwood,
+        },
+        ObjectPlacement {
             x: 12,
             y: 6,
             kind: WorldObjectKind::Log,
+        },
+        ObjectPlacement {
+            x: 13,
+            y: 7,
+            kind: WorldObjectKind::Driftwood,
+        },
+        // Shell and coral scatter near tidal pools and shore
+        ObjectPlacement {
+            x: 4,
+            y: 7,
+            kind: WorldObjectKind::Coral,
+        },
+        ObjectPlacement {
+            x: 5,
+            y: 8,
+            kind: WorldObjectKind::Coral,
+        },
+        ObjectPlacement {
+            x: 9,
+            y: 7,
+            kind: WorldObjectKind::Coral,
+        },
+        ObjectPlacement {
+            x: 10,
+            y: 8,
+            kind: WorldObjectKind::Coral,
+        },
+        // Lower shore rock and driftwood breakup
+        ObjectPlacement {
+            x: 2,
+            y: 8,
+            kind: WorldObjectKind::Rock,
+        },
+        ObjectPlacement {
+            x: 11,
+            y: 8,
+            kind: WorldObjectKind::Driftwood,
+        },
+        ObjectPlacement {
+            x: 18,
+            y: 8,
+            kind: WorldObjectKind::Rock,
         },
     ];
 
@@ -1696,18 +1755,25 @@ fn generate_coral_island() -> MapDef {
         });
     }
 
-    // Southeast tide pools: Coral objects (8+)
+    // Southeast tide pools: denser coral formations
     let coral_spots = [
+        (19, 13),
         (21, 14),
+        (22, 14),
         (23, 14),
         (25, 14),
         (27, 14),
         (20, 16),
+        (21, 16),
         (22, 16),
         (24, 16),
         (26, 16),
+        (27, 16),
+        (20, 17),
         (21, 18),
+        (23, 18),
         (24, 18),
+        (26, 18),
     ];
     for (cx, cy) in &coral_spots {
         objects.push(ObjectPlacement {
@@ -1717,8 +1783,17 @@ fn generate_coral_island() -> MapDef {
         });
     }
 
-    // Southeast rocks (4+)
-    let rock_spots = [(22, 13), (25, 13), (20, 15), (26, 15)];
+    // Tide pool rocks and exposed coastal stone
+    let rock_spots = [
+        (22, 13),
+        (25, 13),
+        (20, 15),
+        (22, 15),
+        (24, 15),
+        (26, 15),
+        (19, 17),
+        (25, 17),
+    ];
     for (rx, ry) in &rock_spots {
         objects.push(ObjectPlacement {
             x: *rx,
@@ -1727,13 +1802,34 @@ fn generate_coral_island() -> MapDef {
         });
     }
 
-    // West beach driftwood (5+)
-    let driftwood_spots = [(4, 5), (4, 9), (4, 13), (4, 17), (6, 19)];
+    // West and south beach driftwood patterns
+    let driftwood_spots = [
+        (4, 5),
+        (5, 6),
+        (4, 9),
+        (5, 10),
+        (4, 13),
+        (5, 14),
+        (4, 17),
+        (6, 18),
+        (9, 19),
+        (14, 19),
+    ];
     for (dx, dy) in &driftwood_spots {
         objects.push(ObjectPlacement {
             x: *dx,
             y: *dy,
             kind: WorldObjectKind::Driftwood,
+        });
+    }
+
+    // Larger washed-up timber mixed into the drift lines
+    let beach_logs = [(6, 8), (5, 16), (11, 19), (18, 19)];
+    for (lx, ly) in &beach_logs {
+        objects.push(ObjectPlacement {
+            x: *lx,
+            y: *ly,
+            kind: WorldObjectKind::Log,
         });
     }
 
@@ -1759,6 +1855,58 @@ fn generate_coral_island() -> MapDef {
         transitions,
         objects,
         forage_points,
+    }
+}
+
+#[cfg(test)]
+mod map_object_generation_tests {
+    use super::*;
+
+    fn count_kind(objects: &[ObjectPlacement], kind: WorldObjectKind) -> usize {
+        objects.iter().filter(|object| object.kind == kind).count()
+    }
+
+    fn has_object(objects: &[ObjectPlacement], x: i32, y: i32, kind: WorldObjectKind) -> bool {
+        objects
+            .iter()
+            .any(|object| object.x == x && object.y == y && object.kind == kind)
+    }
+
+    #[test]
+    fn beach_has_dense_coastal_decorations() {
+        let beach = generate_beach();
+
+        assert!(count_kind(&beach.objects, WorldObjectKind::Rock) >= 4);
+        assert!(count_kind(&beach.objects, WorldObjectKind::Driftwood) >= 4);
+        assert!(count_kind(&beach.objects, WorldObjectKind::Coral) >= 4);
+        assert!(count_kind(&beach.objects, WorldObjectKind::Log) >= 2);
+        assert!(has_object(&beach.objects, 4, 7, WorldObjectKind::Coral));
+        assert!(has_object(&beach.objects, 7, 7, WorldObjectKind::Log));
+        assert!(has_object(
+            &beach.objects,
+            13,
+            7,
+            WorldObjectKind::Driftwood
+        ));
+    }
+
+    #[test]
+    fn coral_island_has_dense_reef_and_drift_lines() {
+        let island = generate_coral_island();
+
+        assert!(count_kind(&island.objects, WorldObjectKind::PalmTree) >= 20);
+        assert!(count_kind(&island.objects, WorldObjectKind::Coral) >= 16);
+        assert!(count_kind(&island.objects, WorldObjectKind::Rock) >= 8);
+        assert!(count_kind(&island.objects, WorldObjectKind::Driftwood) >= 10);
+        assert!(count_kind(&island.objects, WorldObjectKind::Log) >= 4);
+        assert!(has_object(&island.objects, 19, 13, WorldObjectKind::Coral));
+        assert!(has_object(
+            &island.objects,
+            5,
+            14,
+            WorldObjectKind::Driftwood
+        ));
+        assert!(has_object(&island.objects, 18, 19, WorldObjectKind::Log));
     }
 }
 
