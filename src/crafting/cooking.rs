@@ -128,7 +128,10 @@ pub fn handle_cook_item(
             if has_any_fish_ingredient {
                 let removed = inventory.try_remove(fish_id, 1);
                 if removed == 0 {
-                    warn!("Cooking '{}': fish '{}' vanished before consumption", recipe.name, fish_id);
+                    warn!(
+                        "Cooking '{}': fish '{}' vanished before consumption",
+                        recipe.name, fish_id
+                    );
                 }
                 info!("Consumed fish '{}' for cooking '{}'", fish_id, recipe.name);
             }

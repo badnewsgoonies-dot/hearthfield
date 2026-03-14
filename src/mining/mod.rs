@@ -29,9 +29,9 @@ use bevy::prelude::*;
 use components::*;
 use movement::MineMoveCooldown;
 #[allow(unused_imports)]
-pub use rock_impact::{RockDestroyedEvent, RockHitEvent};
-#[allow(unused_imports)]
 pub use rock_breaking::handle_rock_breaking;
+#[allow(unused_imports)]
+pub use rock_impact::{RockDestroyedEvent, RockHitEvent};
 #[allow(unused_imports)]
 pub use spawning::MiningAtlases;
 

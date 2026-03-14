@@ -15,6 +15,9 @@ use std::path::{Path, PathBuf};
 #[derive(Component)]
 pub struct MainMenuRoot;
 
+#[derive(Component)]
+pub struct MainMenuTitle;
+
 /// Tracks main menu selection
 #[derive(Resource)]
 pub struct MainMenuState {
@@ -39,6 +42,8 @@ const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
 const LOAD_MENU_OPTION_COUNT: usize = NUM_SAVE_SLOTS + 1;
 const ROOT_MENU_OPTION_COUNT: usize = MAIN_MENU_OPTIONS.len();
 const MENU_MODE_FADE_DURATION: f32 = 0.22;
+const TITLE_BOB_SPEED: f32 = 1.35;
+const TITLE_BOB_AMOUNT: f32 = 5.0;
 const MAIN_MENU_MAX_ITEMS: usize = if ROOT_MENU_OPTION_COUNT > LOAD_MENU_OPTION_COUNT {
     ROOT_MENU_OPTION_COUNT
 } else {
@@ -145,32 +150,57 @@ pub fn spawn_main_menu(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(30.0),
+                row_gap: Val::Px(22.0),
                 ..default()
             },
             BackgroundColor(Color::srgb(0.12, 0.18, 0.08)),
         ))
         .with_children(|parent| {
-            // Game title
-            menu_kit::spawn_menu_title(parent, "HEARTHFIELD", &theme, &font);
-
-            // Subtitle
-            parent.spawn((
-                Text::new("A Farming & Life Simulator"),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 16.0,
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    row_gap: Val::Px(6.0),
+                    margin: UiRect::bottom(Val::Px(10.0)),
                     ..default()
-                },
-                TextColor(Color::srgb(0.7, 0.8, 0.6)),
-            ));
+                })
+                .with_children(|title_block| {
+                    title_block.spawn((
+                        MainMenuTitle,
+                        Node {
+                            margin: UiRect::top(Val::Px(0.0)),
+                            ..default()
+                        },
+                        Text::new("HEARTHFIELD"),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: theme.title_font_size + 14.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(1.0, 0.94, 0.72)),
+                        PickingBehavior::IGNORE,
+                    ));
+
+                    title_block.spawn((
+                        Text::new("A Farming & Life Simulator"),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.76, 0.84, 0.67)),
+                        PickingBehavior::IGNORE,
+                    ));
+                });
 
             // Menu options container
             parent
                 .spawn(Node {
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
-                    row_gap: Val::Px(8.0),
+                    width: Val::Px(theme.button_width + 36.0),
+                    row_gap: Val::Px(12.0),
+                    margin: UiRect::vertical(Val::Px(6.0)),
                     ..default()
                 })
                 .with_children(|menu| {
@@ -269,9 +299,10 @@ pub fn update_main_menu_visuals(
     state: Option<Res<MainMenuState>>,
     mut visual_state: Option<ResMut<MainMenuVisualState>>,
     cache: Option<Res<SaveSlotInfoCache>>,
-    mut item_query: Query<(&MenuItem, &mut ImageNode, &mut Visibility)>,
+    mut item_query: Query<(&MenuItem, &mut ImageNode, &mut Node, &mut Visibility)>,
+    mut title_query: Query<(&mut Node, &mut TextColor, &mut TextFont), With<MainMenuTitle>>,
     mut text_query: Query<
-        (&MenuButtonText, &mut Text, &mut TextColor),
+        (&MenuButtonText, &mut Text, &mut TextColor, &mut TextFont),
         Without<MainMenuStatusText>,
     >,
     mut status_query: Query<&mut Text, (With<MainMenuStatusText>, Without<MenuButtonText>)>,
@@ -292,9 +323,20 @@ pub fn update_main_menu_visuals(
         * visual_state.transition_t
         * (3.0 - 2.0 * visual_state.transition_t);
     let pulse = ((time.elapsed_secs() * 4.5).sin() * 0.5 + 0.5) * 0.75;
+    let title_bob = (time.elapsed_secs() * TITLE_BOB_SPEED).sin();
     let option_count = current_option_count(state.mode);
 
-    for (item, mut image_node, mut visibility) in &mut item_query {
+    if let Ok((mut title_node, mut title_color, mut title_font)) = title_query.single_mut() {
+        title_node.margin.top = Val::Px(title_bob * TITLE_BOB_AMOUNT);
+        title_font.font_size = 50.0 + (title_bob * 0.5 + 0.5) * 2.0;
+        title_color.0 = Color::srgb(
+            1.0,
+            0.92 + (title_bob * 0.5 + 0.5) * 0.04,
+            0.70 + (title_bob * 0.5 + 0.5) * 0.05,
+        );
+    }
+
+    for (item, mut image_node, mut node, mut visibility) in &mut item_query {
         if item.index >= option_count {
             *visibility = Visibility::Hidden;
             continue;
@@ -302,6 +344,11 @@ pub fn update_main_menu_visuals(
         *visibility = Visibility::Visible;
         let selected = item.index == state.cursor;
         let selected_pulse = if selected { pulse } else { 0.0 };
+        node.margin.left = if selected {
+            Val::Px(8.0 + pulse * 4.0)
+        } else {
+            Val::Px(0.0)
+        };
         set_button_visual_animated(
             &mut image_node,
             selected,
@@ -310,7 +357,7 @@ pub fn update_main_menu_visuals(
         );
     }
 
-    for (btn_text, mut text, mut color) in &mut text_query {
+    for (btn_text, mut text, mut color, mut font) in &mut text_query {
         if btn_text.index >= option_count {
             text.0.clear();
             continue;
@@ -325,6 +372,7 @@ pub fn update_main_menu_visuals(
         text.0 = label;
         let selected = btn_text.index == state.cursor;
         let alpha = 0.75 + fade_in * 0.25;
+        font.font_size = if selected { 19.0 + pulse * 1.5 } else { 17.0 };
         color.0 = if selected {
             let glow = 0.85 + pulse * 0.15;
             Color::srgba(1.0, glow, 0.72, alpha)
