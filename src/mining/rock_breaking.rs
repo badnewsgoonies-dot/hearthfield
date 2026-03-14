@@ -22,11 +22,11 @@ fn pickaxe_damage(tier: ToolTier) -> u8 {
 /// Stamina cost for a pickaxe swing.
 fn pickaxe_stamina_cost(tier: ToolTier) -> f32 {
     match tier {
-        ToolTier::Basic => 4.0,
-        ToolTier::Copper => 3.5,
-        ToolTier::Iron => 3.0,
-        ToolTier::Gold => 2.5,
-        ToolTier::Iridium => 2.0,
+        ToolTier::Basic => 3.5,
+        ToolTier::Copper => 3.0,
+        ToolTier::Iron => 2.6,
+        ToolTier::Gold => 2.2,
+        ToolTier::Iridium => 1.8,
     }
 }
 
@@ -135,7 +135,7 @@ pub fn handle_rock_breaking(
 
 /// Reveal the ladder if the broken rock contained it, probability triggers, or all rocks gone.
 ///
-/// Ladder probability: 5% base + 2% per rock broken this floor, max 30%.
+/// Ladder probability: 2% base + 4% per rock broken this floor, max 55%.
 /// If the broken rock directly contains the ladder, it always reveals.
 /// If all rocks are destroyed, the ladder is always revealed.
 fn check_ladder_reveal(
@@ -152,8 +152,8 @@ fn check_ladder_reveal(
     // Always reveal if all rocks are gone
     let all_gone = active_floor.rocks_remaining == 0;
 
-    // Probability-based reveal: 5% base + 2% per rock broken, max 30%
-    let probability = (0.05 + active_floor.rocks_broken_this_floor as f64 * 0.02).min(0.30);
+    // Probability-based reveal: 2% base + 4% per rock broken, max 55%
+    let probability = (0.02 + active_floor.rocks_broken_this_floor as f64 * 0.04).min(0.55);
     let prob_reveal = rand::thread_rng().gen_bool(probability);
 
     for (grid_pos, mut ladder, mut sprite) in ladders.iter_mut() {
@@ -174,7 +174,7 @@ fn check_ladder_reveal(
                 );
                 sprite.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
             } else {
-                sprite.color = Color::srgb(0.65, 0.50, 0.25);
+                sprite.color = Color::srgb(0.82, 0.68, 0.32);
             }
         }
     }
