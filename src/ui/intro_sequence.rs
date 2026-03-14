@@ -28,38 +28,38 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     // Narrative text cards.
     steps.push_back(CutsceneStep::ShowText(
         "Spring 1, Year 1".into(),
-        0.6,
+        0.85,
     ));
     steps.push_back(CutsceneStep::ShowText(
-        "Mayor Rex is waiting outside the farmhouse door.".into(),
-        0.7,
+        "Mayor Rex is waiting just outside your door.".into(),
+        0.95,
     ));
 
     // First-morning card.
     steps.push_back(CutsceneStep::ShowText(
-        "This is your first morning as the new farmer.".into(),
-        0.8,
+        "Your turnip seeds are packed and ready for your first field.".into(),
+        1.0,
     ));
 
     // Keep the final setup prompt brief so the intro stays moving.
     steps.push_back(CutsceneStep::ShowText(
-        "Step outside and meet him.".into(),
-        0.6,
+        "Step outside, meet him, then plant near the house.".into(),
+        0.85,
     ));
 
     // Reveal the farm.
-    steps.push_back(CutsceneStep::FadeIn(0.6));
+    steps.push_back(CutsceneStep::FadeIn(0.75));
 
     // Let the player see the farm for a moment.
-    steps.push_back(CutsceneStep::Wait(0.9));
+    steps.push_back(CutsceneStep::Wait(1.2));
 
     // Mayor Rex greets the player with intro-specific lines.
     steps.push_back(CutsceneStep::StartDialogueCustom {
         npc_id: "mayor_rex".into(),
         lines: vec![
-            "Morning. I'm Mayor Rex. I wanted to be here when you stepped into your new life.".into(),
-            "Your turnip seeds are already in your pack. Plant a few by the house and you'll feel the farm answer back.".into(),
-            "When you're ready, take the south path into town. Folks are already wondering who came home to the old farm.".into(),
+            "Morning. I'm Mayor Rex. I wanted to welcome you before the town carried the news ahead of me.".into(),
+            "You've already got turnip seeds in your pack. Step outside, till a patch, plant them, and water them before noon.".into(),
+            "After that, follow the south path into town. Hearthfield likes to know its neighbors by name.".into(),
         ],
         portrait_index: Some(7),
     });
