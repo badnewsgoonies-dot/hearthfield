@@ -33,6 +33,8 @@ pub use rock_impact::{RockDestroyedEvent, RockHitEvent};
 #[allow(unused_imports)]
 pub use rock_breaking::handle_rock_breaking;
 #[allow(unused_imports)]
+pub use combat::{enemy_attack_player, handle_player_attack};
+#[allow(unused_imports)]
 pub use spawning::MiningAtlases;
 
 pub struct MiningPlugin;

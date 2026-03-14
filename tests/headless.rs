@@ -55,6 +55,7 @@ use hearthfield::shared::*;
 use hearthfield::ui::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use hearthfield::world::objects::seasonal_forageables;
 use std::collections::HashMap;
+use std::time::Duration;
 
 use hearthfield::crafting::{
     consume_ingredients, handle_craft_item, handle_open_crafting, has_all_ingredients,
@@ -63,9 +64,13 @@ use hearthfield::crafting::{
     ALL_CRAFTING_RECIPE_IDS,
 };
 use hearthfield::mining::components::{
-    ActiveFloor, FloorSpawnRequest, InMine, MineGridPos, MineLadder,
+    ActiveFloor, EnemyAttackCooldown, FloorSpawnRequest, InMine, MineGridPos, MineLadder,
+    PlayerIFrames,
 };
-use hearthfield::mining::{handle_rock_breaking, MiningAtlases, RockDestroyedEvent, RockHitEvent};
+use hearthfield::mining::{
+    enemy_attack_player, handle_player_attack, handle_rock_breaking, MiningAtlases,
+    RockDestroyedEvent, RockHitEvent,
+};
 use hearthfield::player::interaction::{
     handle_day_end as handle_player_day_end, handle_map_transition as handle_player_map_transition,
 };
