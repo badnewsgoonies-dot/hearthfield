@@ -9,7 +9,7 @@ use bevy::prelude::*;
 #[allow(clippy::type_complexity)]
 pub fn camera_follow_player(
     time: Res<Time>,
-    player_query: Query<&LogicalPosition, (With<Player>, Without<Camera2d>)>,
+    player_query: Query<(&LogicalPosition, &PlayerMovement), (With<Player>, Without<Camera2d>)>,
     mut camera_query: Query<
         (&mut Transform, &OrthographicProjection),
         (With<Camera2d>, Without<Player>),
@@ -17,18 +17,28 @@ pub fn camera_follow_player(
     world_map: Res<WorldMap>,
     mut snap: ResMut<CameraSnap>,
 ) {
-    let Ok(logical_pos) = player_query.get_single() else {
+    let Ok((logical_pos, movement)) = player_query.get_single() else {
         return;
     };
     let Ok((mut cam_tf, projection)) = camera_query.get_single_mut() else {
         return;
     };
 
-    let target_x = logical_pos.0.x.round();
+    let target_x = logical_pos.0.x
+        + match movement.facing {
+            Facing::Left => -18.0,
+            Facing::Right => 18.0,
+            _ => 0.0,
+        };
     // Offset camera upward by slightly less than half the player sprite height
     // so the player sits a bit lower on screen. LogicalPosition is at the feet
     // because player sprite uses BottomCenter anchor.
-    let target_y = logical_pos.0.y.round() + 20.0;
+    let target_y = logical_pos.0.y
+        + match movement.facing {
+            Facing::Up => 34.0,
+            Facing::Down => 22.0,
+            Facing::Left | Facing::Right => 28.0,
+        };
 
     // Snap if countdown active or if camera is very far from target (teleport)
     let dx = (target_x - cam_tf.translation.x).abs();
@@ -41,7 +51,7 @@ pub fn camera_follow_player(
         }
         (target_x, target_y)
     } else {
-        let lerp_speed = 7.5;
+        let lerp_speed = 6.0;
         let t = (lerp_speed * time.delta_secs()).min(1.0);
         (
             cam_tf.translation.x + (target_x - cam_tf.translation.x) * t,
