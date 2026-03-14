@@ -18,7 +18,7 @@ const HINTS: &[HintDef] = &[
     },
     HintDef {
         id: "npc_nearby",
-        message: "Press F to talk to villagers. Give gifts to build friendship!",
+        message: "Press F beside a villager to talk. Gifts raise friendship hearts.",
     },
     HintDef {
         id: "rainy_day",
@@ -35,12 +35,12 @@ const HINTS: &[HintDef] = &[
     // Fix 4: Shipping bin hint
     HintDef {
         id: "shipping_bin",
-        message: "Put items in the Shipping Bin near your house to sell them overnight for gold!",
+        message: "Put an item in the Shipping Bin beside your house to sell it overnight for gold.",
     },
     // Fix 5: Inventory hint
     HintDef {
         id: "open_inventory",
-        message: "Press E to open your inventory and see your items and tools!",
+        message: "Press E to open inventory, click Turnip Seeds, close it, then press F on tilled soil.",
     },
 ];
 
@@ -142,7 +142,7 @@ pub fn forward_hint_to_toast(
     for hint in hints.read() {
         toasts.send(ToastEvent {
             message: hint.message.clone(),
-            duration_secs: 5.0,
+            duration_secs: 6.5,
         });
     }
 }
@@ -156,11 +156,11 @@ pub fn forward_hint_to_toast(
 // Fix 2: Updated all objective descriptions for clarity.
 pub const OBJECTIVES: &[(&str, &str)] = &[
     ("exit_house",   "Leave your house \u{2014} walk south to the door and exit"),
-    ("till_soil",    "Till some soil \u{2014} select your Hoe with [ or ], then press Space on grass"),
-    ("plant_seeds",  "Plant seeds \u{2014} press E to open inventory, click turnip seeds to select, close inventory, then press F on tilled soil"),
-    ("water_crops",  "Water your crops \u{2014} select Watering Can with [ or ], then press Space on planted soil"),
-    ("visit_town",   "Visit the town \u{2014} walk south from your farm to explore"),
-    ("go_to_bed",    "End the day \u{2014} go home, walk to your bed, and press F to sleep"),
+    ("till_soil",    "Till soil outside \u{2014} equip the Hoe with [ or ], then press Space on grass."),
+    ("plant_seeds",  "Plant turnip seeds \u{2014} press E, click Turnip Seeds, close inventory, then press F on tilled soil."),
+    ("water_crops",  "Water the planted soil \u{2014} equip the Watering Can with [ or ], then press Space on the crop."),
+    ("visit_town",   "Visit town \u{2014} walk south off your farm until the map changes to Town."),
+    ("go_to_bed",    "End the day \u{2014} return home, stand by the bed, and press F to sleep."),
 ];
 
 // Fix 3: Day 2 objectives
