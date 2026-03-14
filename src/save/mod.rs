@@ -981,6 +981,7 @@ fn handle_load_request(
                 *ext.tool_upgrade_queue = file.tool_upgrade_queue;
                 *ext.shipping_bin_quality = file.shipping_bin_quality;
                 *ext.festival_state = file.festival_state;
+                ext.festival_state.restore_runtime_state();
                 *ext.farm_visit_tracker = file.farm_visit_tracker;
 
                 // Restore storage chests: despawn any existing chest entities

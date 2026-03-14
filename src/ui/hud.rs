@@ -215,11 +215,11 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                 .spawn((
                     Node {
                         width: Val::Percent(100.0),
-                        height: Val::Px(44.0),
+                        height: Val::Px(64.0),
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::SpaceBetween,
                         align_items: AlignItems::Center,
-                        padding: UiRect::axes(Val::Px(12.0), Val::Px(4.0)),
+                        padding: UiRect::axes(Val::Px(14.0), Val::Px(6.0)),
                         ..default()
                     },
                     BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
@@ -230,14 +230,25 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                     top_bar
                         .spawn((
                             Node {
-                                flex_direction: FlexDirection::Row,
-                                align_items: AlignItems::Center,
-                                column_gap: Val::Px(16.0),
+                                flex_direction: FlexDirection::Column,
+                                justify_content: JustifyContent::Center,
+                                row_gap: Val::Px(4.0),
                                 ..default()
                             },
                             PickingBehavior::IGNORE,
                         ))
                         .with_children(|left| {
+                            left.spawn((
+                                Text::new("Time"),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.7)),
+                                PickingBehavior::IGNORE,
+                            ));
+
                             left.spawn((
                                 HudTimeText,
                                 Text::new("Spring 1, Year 1 - 6:00 AM"),
@@ -251,48 +262,95 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                             ));
 
                             left.spawn((
-                                HudWeatherIcon,
-                                ImageNode::default(),
                                 Node {
-                                    width: Val::Px(16.0),
-                                    height: Val::Px(16.0),
+                                    flex_direction: FlexDirection::Row,
+                                    align_items: AlignItems::Center,
+                                    column_gap: Val::Px(6.0),
                                     ..default()
                                 },
                                 PickingBehavior::IGNORE,
-                            ));
+                            ))
+                            .with_children(|weather| {
+                                weather.spawn((
+                                    Text::new("Weather"),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 10.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.7)),
+                                    PickingBehavior::IGNORE,
+                                ));
 
-                            left.spawn((
-                                HudWeatherText,
-                                Text::new("Sunny"),
+                                weather.spawn((
+                                    HudWeatherIcon,
+                                    ImageNode::default(),
+                                    Node {
+                                        width: Val::Px(16.0),
+                                        height: Val::Px(16.0),
+                                        ..default()
+                                    },
+                                    PickingBehavior::IGNORE,
+                                ));
+
+                                weather.spawn((
+                                    HudWeatherText,
+                                    Text::new("Sunny"),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 14.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgb(1.0, 0.9, 0.5)),
+                                    PickingBehavior::IGNORE,
+                                ));
+                            });
+                        });
+
+                    // Center: current tool
+                    top_bar
+                        .spawn((
+                            Node {
+                                flex_direction: FlexDirection::Column,
+                                align_items: AlignItems::Center,
+                                justify_content: JustifyContent::Center,
+                                row_gap: Val::Px(2.0),
+                                min_width: Val::Px(220.0),
+                                ..default()
+                            },
+                            PickingBehavior::IGNORE,
+                        ))
+                        .with_children(|tool| {
+                            tool.spawn((
+                                Text::new("Current Tool"),
                                 TextFont {
                                     font: font.clone(),
-                                    font_size: 16.0,
+                                    font_size: 10.0,
                                     ..default()
                                 },
-                                TextColor(Color::srgb(1.0, 0.9, 0.5)),
+                                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.75)),
+                                PickingBehavior::IGNORE,
+                            ));
+
+                            tool.spawn((
+                                HudToolText,
+                                Text::new("Hoe"),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 20.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.95, 1.0)),
                                 PickingBehavior::IGNORE,
                             ));
                         });
 
-                    // Center: tool name
-                    top_bar.spawn((
-                        HudToolText,
-                        Text::new("Hoe"),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 16.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.8, 0.85, 1.0)),
-                        PickingBehavior::IGNORE,
-                    ));
-
-                    // Right group: gold + stamina
+                    // Right group: gold + health + stamina
                     top_bar
                         .spawn((
                             Node {
                                 flex_direction: FlexDirection::Row,
-                                align_items: AlignItems::Center,
+                                align_items: AlignItems::FlexStart,
                                 column_gap: Val::Px(16.0),
                                 ..default()
                             },
@@ -300,19 +358,6 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                         ))
                         .with_children(|right| {
                             // Gold
-                            right.spawn((
-                                HudGoldText,
-                                Text::new("500 G"),
-                                TextFont {
-                                    font: font.clone(),
-                                    font_size: 18.0,
-                                    ..default()
-                                },
-                                TextColor(Color::srgb(1.0, 0.84, 0.0)),
-                                PickingBehavior::IGNORE,
-                            ));
-
-                            // Bars group (health + stamina stacked)
                             right
                                 .spawn((
                                     Node {
@@ -322,57 +367,149 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                                     },
                                     PickingBehavior::IGNORE,
                                 ))
-                                .with_children(|bars| {
-                                    // Health bar container
-                                    bars.spawn((
-                                        HudHealthBar,
-                                        Node {
-                                            width: Val::Px(120.0),
-                                            height: Val::Px(10.0),
-                                            border: UiRect::all(Val::Px(1.0)),
+                                .with_children(|gold| {
+                                    gold.spawn((
+                                        Text::new("Gold"),
+                                        TextFont {
+                                            font: font.clone(),
+                                            font_size: 10.0,
                                             ..default()
                                         },
-                                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
-                                        BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
+                                        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.7)),
+                                        PickingBehavior::IGNORE,
+                                    ));
+
+                                    gold.spawn((
+                                        HudGoldText,
+                                        Text::new("500 G"),
+                                        TextFont {
+                                            font: font.clone(),
+                                            font_size: 18.0,
+                                            ..default()
+                                        },
+                                        TextColor(Color::srgb(1.0, 0.84, 0.0)),
+                                        PickingBehavior::IGNORE,
+                                    ));
+                                });
+
+                            // Bars group (health + stamina stacked)
+                            right
+                                .spawn((
+                                    Node {
+                                        flex_direction: FlexDirection::Column,
+                                        justify_content: JustifyContent::Center,
+                                        row_gap: Val::Px(4.0),
+                                        ..default()
+                                    },
+                                    PickingBehavior::IGNORE,
+                                ))
+                                .with_children(|bars| {
+                                    // Health bar row
+                                    bars.spawn((
+                                        Node {
+                                            flex_direction: FlexDirection::Row,
+                                            align_items: AlignItems::Center,
+                                            column_gap: Val::Px(8.0),
+                                            ..default()
+                                        },
                                         PickingBehavior::IGNORE,
                                     ))
-                                    .with_children(|bar| {
-                                        bar.spawn((
-                                            HudHealthFill,
-                                            Node {
-                                                width: Val::Percent(100.0),
-                                                height: Val::Percent(100.0),
+                                    .with_children(|row| {
+                                        row.spawn((
+                                            Text::new("Health"),
+                                            TextFont {
+                                                font: font.clone(),
+                                                font_size: 11.0,
                                                 ..default()
                                             },
-                                            BackgroundColor(Color::srgb(0.85, 0.2, 0.2)),
+                                            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
+                                            Node {
+                                                width: Val::Px(42.0),
+                                                ..default()
+                                            },
                                             PickingBehavior::IGNORE,
                                         ));
+
+                                        row.spawn((
+                                            HudHealthBar,
+                                            Node {
+                                                width: Val::Px(132.0),
+                                                height: Val::Px(12.0),
+                                                border: UiRect::all(Val::Px(1.0)),
+                                                ..default()
+                                            },
+                                            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+                                            BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
+                                            PickingBehavior::IGNORE,
+                                        ))
+                                        .with_children(
+                                            |bar| {
+                                                bar.spawn((
+                                                    HudHealthFill,
+                                                    Node {
+                                                        width: Val::Percent(100.0),
+                                                        height: Val::Percent(100.0),
+                                                        ..default()
+                                                    },
+                                                    BackgroundColor(Color::srgb(0.85, 0.2, 0.2)),
+                                                    PickingBehavior::IGNORE,
+                                                ));
+                                            },
+                                        );
                                     });
 
-                                    // Stamina bar container
+                                    // Stamina bar row
                                     bars.spawn((
-                                        HudStaminaBar,
                                         Node {
-                                            width: Val::Px(120.0),
-                                            height: Val::Px(10.0),
-                                            border: UiRect::all(Val::Px(1.0)),
+                                            flex_direction: FlexDirection::Row,
+                                            align_items: AlignItems::Center,
+                                            column_gap: Val::Px(8.0),
                                             ..default()
                                         },
-                                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
-                                        BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
                                         PickingBehavior::IGNORE,
                                     ))
-                                    .with_children(|bar| {
-                                        bar.spawn((
-                                            HudStaminaFill,
-                                            Node {
-                                                width: Val::Percent(100.0),
-                                                height: Val::Percent(100.0),
+                                    .with_children(|row| {
+                                        row.spawn((
+                                            Text::new("Stamina"),
+                                            TextFont {
+                                                font: font.clone(),
+                                                font_size: 11.0,
                                                 ..default()
                                             },
-                                            BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                                            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
+                                            Node {
+                                                width: Val::Px(42.0),
+                                                ..default()
+                                            },
                                             PickingBehavior::IGNORE,
                                         ));
+
+                                        row.spawn((
+                                            HudStaminaBar,
+                                            Node {
+                                                width: Val::Px(132.0),
+                                                height: Val::Px(12.0),
+                                                border: UiRect::all(Val::Px(1.0)),
+                                                ..default()
+                                            },
+                                            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+                                            BorderColor(Color::srgba(0.6, 0.6, 0.6, 0.8)),
+                                            PickingBehavior::IGNORE,
+                                        ))
+                                        .with_children(
+                                            |bar| {
+                                                bar.spawn((
+                                                    HudStaminaFill,
+                                                    Node {
+                                                        width: Val::Percent(100.0),
+                                                        height: Val::Percent(100.0),
+                                                        ..default()
+                                                    },
+                                                    BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                                                    PickingBehavior::IGNORE,
+                                                ));
+                                            },
+                                        );
                                     });
                                 });
                         });
@@ -513,94 +650,118 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
             HotbarRoot,
             Node {
                 width: Val::Percent(100.0),
-                height: Val::Px(56.0),
-                flex_direction: FlexDirection::Row,
+                height: Val::Px(74.0),
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                column_gap: Val::Px(3.0),
+                row_gap: Val::Px(4.0),
                 padding: UiRect::bottom(Val::Px(6.0)),
                 ..default()
             },
             PickingBehavior::IGNORE,
         ))
         .with_children(|hotbar| {
-            for i in 0..HOTBAR_SLOTS {
-                hotbar
-                    .spawn((
-                        HotbarSlot { index: i },
-                        Node {
-                            width: Val::Px(46.0),
-                            height: Val::Px(46.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            flex_direction: FlexDirection::Column,
-                            border: UiRect::all(Val::Px(2.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgba(0.15, 0.12, 0.1, 0.85)),
-                        BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.8)),
-                        PickingBehavior::IGNORE,
-                    ))
-                    .with_children(|slot| {
-                        // Slot key number (1-9, 0 for slot 10+)
-                        let key_label = if i < 9 {
-                            format!("{}", i + 1)
-                        } else {
-                            String::new()
-                        };
-                        slot.spawn((
-                            Text::new(key_label),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 10.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgba(0.5, 0.5, 0.45, 0.7)),
-                            Node {
-                                align_self: AlignSelf::FlexStart,
-                                margin: UiRect::left(Val::Px(2.0)),
-                                ..default()
-                            },
-                            PickingBehavior::IGNORE,
-                        ));
-                        // Item icon (shown when atlas is loaded)
-                        slot.spawn((
-                            HotbarItemIcon { index: i },
-                            Node {
-                                width: Val::Px(32.0),
-                                height: Val::Px(32.0),
-                                ..default()
-                            },
-                            // ImageNode will be set dynamically in update_hotbar
-                            Visibility::Hidden,
-                            PickingBehavior::IGNORE,
-                        ));
-                        // Item name fallback (shown when atlas not loaded)
-                        slot.spawn((
-                            HotbarItemText { index: i },
-                            Text::new(""),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 12.0,
-                                ..default()
-                            },
-                            TextColor(Color::WHITE),
-                            PickingBehavior::IGNORE,
-                        ));
-                        // Quantity
-                        slot.spawn((
-                            HotbarQuantityText { index: i },
-                            Text::new(""),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 9.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                            PickingBehavior::IGNORE,
-                        ));
-                    });
-            }
+            hotbar.spawn((
+                Text::new("Inventory"),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.75)),
+                PickingBehavior::IGNORE,
+            ));
+
+            hotbar
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        column_gap: Val::Px(3.0),
+                        ..default()
+                    },
+                    PickingBehavior::IGNORE,
+                ))
+                .with_children(|slots| {
+                    for i in 0..HOTBAR_SLOTS {
+                        slots
+                            .spawn((
+                                HotbarSlot { index: i },
+                                Node {
+                                    width: Val::Px(46.0),
+                                    height: Val::Px(46.0),
+                                    justify_content: JustifyContent::Center,
+                                    align_items: AlignItems::Center,
+                                    flex_direction: FlexDirection::Column,
+                                    border: UiRect::all(Val::Px(2.0)),
+                                    ..default()
+                                },
+                                BackgroundColor(Color::srgba(0.15, 0.12, 0.1, 0.85)),
+                                BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.8)),
+                                PickingBehavior::IGNORE,
+                            ))
+                            .with_children(|slot| {
+                                // Slot key number (1-9, 0 for slot 10+)
+                                let key_label = if i < 9 {
+                                    format!("{}", i + 1)
+                                } else {
+                                    String::new()
+                                };
+                                slot.spawn((
+                                    Text::new(key_label),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 10.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgba(0.5, 0.5, 0.45, 0.7)),
+                                    Node {
+                                        align_self: AlignSelf::FlexStart,
+                                        margin: UiRect::left(Val::Px(2.0)),
+                                        ..default()
+                                    },
+                                    PickingBehavior::IGNORE,
+                                ));
+                                // Item icon (shown when atlas is loaded)
+                                slot.spawn((
+                                    HotbarItemIcon { index: i },
+                                    Node {
+                                        width: Val::Px(32.0),
+                                        height: Val::Px(32.0),
+                                        ..default()
+                                    },
+                                    // ImageNode will be set dynamically in update_hotbar
+                                    Visibility::Hidden,
+                                    PickingBehavior::IGNORE,
+                                ));
+                                // Item name fallback (shown when atlas not loaded)
+                                slot.spawn((
+                                    HotbarItemText { index: i },
+                                    Text::new(""),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 12.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::WHITE),
+                                    PickingBehavior::IGNORE,
+                                ));
+                                // Quantity
+                                slot.spawn((
+                                    HotbarQuantityText { index: i },
+                                    Text::new(""),
+                                    TextFont {
+                                        font: font.clone(),
+                                        font_size: 9.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                                    PickingBehavior::IGNORE,
+                                ));
+                            });
+                    }
+                });
         });
 }
 

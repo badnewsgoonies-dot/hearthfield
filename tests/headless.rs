@@ -3125,6 +3125,76 @@ fn test_festival_cleanup_on_day_end() {
     );
 }
 
+#[test]
+fn test_festival_check_recovers_egg_hunt_state_after_save_load() {
+    // Simulate a save/load round-trip that persists started=true but drops
+    // the timer (timer has #[serde(skip)]).  After reload, check_festival_day
+    // must call recover_egg_hunt_after_load and reset the state so the player
+    // is not soft-locked.
+
+    // Step 1: build a broken FestivalState (started=true, timer=Some(...))
+    let pre_save = FestivalState {
+        active: Some(FestivalKind::EggFestival),
+        started: true,
+        timer: Some(Timer::from_seconds(30.0, TimerMode::Once)),
+        score: 9,
+        items_collected: 4,
+        ..FestivalState::default()
+    };
+
+    // Step 2: round-trip through serde — #[serde(skip)] drops the timer.
+    let post_load = serde_roundtrip(&pre_save);
+
+    // Verify the serde contract: timer is None after roundtrip.
+    assert!(
+        post_load.timer.is_none(),
+        "timer must be None after serde roundtrip (it has #[serde(skip)])"
+    );
+    // started=true is preserved by serde.
+    assert!(post_load.started, "started should be true after roundtrip");
+
+    // Step 3: inject the broken post-load state into an app and run
+    // check_festival_day on Spring 13.
+    let mut app = build_test_app();
+    app.insert_resource(post_load);
+    app.add_systems(
+        Update,
+        check_festival_day.run_if(in_state(GameState::Playing)),
+    );
+    enter_playing_state(&mut app);
+
+    {
+        let mut cal = app.world_mut().resource_mut::<Calendar>();
+        cal.season = Season::Spring;
+        cal.day = 13;
+        cal.year = 1;
+    }
+
+    app.update();
+
+    // Step 4: assert recovery — state must be reset to pre-start values.
+    let festival = app.world().resource::<FestivalState>();
+    assert_eq!(
+        festival.active,
+        Some(FestivalKind::EggFestival),
+        "active should still be EggFestival after recovery"
+    );
+    assert!(
+        !festival.started,
+        "started must be false after recovery (was soft-locked true)"
+    );
+    assert!(
+        festival.timer.is_none(),
+        "timer must be None after recovery"
+    );
+    assert_eq!(festival.score, 0, "score must be reset to 0 after recovery");
+    assert_eq!(
+        festival.items_collected, 0,
+        "items_collected must be reset to 0 after recovery"
+    );
+}
+
+
 // ═════════════════════════════════════════════════════════════════════════════
 // NEW TESTS: Crafting Machine Outputs (pure function)
 // ═════════════════════════════════════════════════════════════════════════════

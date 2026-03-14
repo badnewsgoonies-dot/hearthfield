@@ -520,7 +520,7 @@ fn detect_festival_day(
     announced.year = calendar.year;
 
     let festival_name = match (calendar.season, calendar.day) {
-        (Season::Spring, 13) => "Spring Dance",
+        (Season::Spring, 13) => "Egg Festival",
         (Season::Summer, 11) => "Summer Luau",
         (Season::Fall, 16) => "Fall Harvest Festival",
         (Season::Winter, 25) => "Winter Star Festival",

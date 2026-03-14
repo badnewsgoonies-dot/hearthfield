@@ -52,6 +52,29 @@ pub fn handle_feed_trough_interact(
             continue;
         }
 
+        // Early-return guard: if every eligible animal is already fed today,
+        // skip the inner loop entirely — avoids redundant iteration when the
+        // player removes multiple hay items in one day.
+        let all_fed = animal_query.iter().all(|(_e, a, _lp)| {
+            if matches!(
+                a.kind,
+                AnimalKind::Chicken
+                    | AnimalKind::Cow
+                    | AnimalKind::Sheep
+                    | AnimalKind::Goat
+                    | AnimalKind::Duck
+                    | AnimalKind::Rabbit
+                    | AnimalKind::Pig
+            ) {
+                a.fed_today
+            } else {
+                true // companions are irrelevant to the check
+            }
+        });
+        if all_fed {
+            continue;
+        }
+
         // Hay was consumed — feed all productive barn/coop animals.
         let mut fed_count = 0u32;
         for (_entity, mut animal, animal_lp) in animal_query.iter_mut() {

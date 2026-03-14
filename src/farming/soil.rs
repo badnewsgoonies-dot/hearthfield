@@ -4,6 +4,8 @@ use super::{FarmEntities, SoilTileEntity};
 use crate::shared::*;
 use bevy::prelude::*;
 
+const FIRST_HOE_USE_HINT_ID: &str = "first_hoe_use";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Hoe — till a dirt tile
 // ─────────────────────────────────────────────────────────────────────────────
@@ -12,6 +14,7 @@ pub fn handle_hoe_tool_use(
     mut tool_events: EventReader<ToolUseEvent>,
     mut farm_state: ResMut<FarmState>,
     mut farm_entities: ResMut<FarmEntities>,
+    mut tutorial: ResMut<TutorialState>,
     mut commands: Commands,
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
@@ -52,6 +55,18 @@ pub fn handle_hoe_tool_use(
         sfx_events.send(PlaySfxEvent {
             sfx_id: "hoe".to_string(),
         });
+
+        if !tutorial
+            .hints_shown
+            .iter()
+            .any(|shown| shown == FIRST_HOE_USE_HINT_ID)
+        {
+            tutorial.hints_shown.push(FIRST_HOE_USE_HINT_ID.to_string());
+            toast_events.send(ToastEvent {
+                message: "Tilled!".into(),
+                duration_secs: 1.5,
+            });
+        }
 
         // Spawn a soil sprite entity if one doesn't already exist.
         spawn_or_update_soil_entity(&mut commands, &mut farm_entities, pos, SoilState::Tilled);
@@ -193,5 +208,91 @@ pub fn soil_color(state: SoilState) -> Color {
         SoilState::Untilled => Color::srgb(0.55, 0.42, 0.28), // light dirt (shouldn't be rendered)
         SoilState::Tilled => Color::srgb(0.45, 0.32, 0.20),   // medium brown
         SoilState::Watered => Color::srgb(0.30, 0.22, 0.15),  // dark wet soil
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn drain_toasts(app: &mut App) -> Vec<ToastEvent> {
+        app.world_mut()
+            .resource_mut::<Events<ToastEvent>>()
+            .drain()
+            .collect()
+    }
+
+    fn hoe_event(x: i32, y: i32) -> ToolUseEvent {
+        ToolUseEvent {
+            tool: ToolKind::Hoe,
+            tier: ToolTier::Basic,
+            target_x: x,
+            target_y: y,
+        }
+    }
+
+    #[test]
+    fn first_successful_hoe_use_shows_tilled_toast_once() {
+        let mut app = App::new();
+        app.init_resource::<FarmState>();
+        app.init_resource::<FarmEntities>();
+        app.init_resource::<TutorialState>();
+        app.add_event::<ToolUseEvent>();
+        app.add_event::<StaminaDrainEvent>();
+        app.add_event::<PlaySfxEvent>();
+        app.add_event::<ToastEvent>();
+        app.add_systems(Update, handle_hoe_tool_use);
+
+        app.world_mut().send_event(hoe_event(2, 3));
+        app.update();
+
+        let toasts = drain_toasts(&mut app);
+        assert_eq!(toasts.len(), 1);
+        assert_eq!(toasts[0].message, "Tilled!");
+        assert!(
+            app.world()
+                .resource::<TutorialState>()
+                .hints_shown
+                .iter()
+                .any(|shown| shown == FIRST_HOE_USE_HINT_ID)
+        );
+
+        app.world_mut().send_event(hoe_event(4, 5));
+        app.update();
+
+        let toasts = drain_toasts(&mut app);
+        assert!(toasts.is_empty());
+    }
+
+    #[test]
+    fn already_tilled_tile_keeps_existing_feedback() {
+        let mut app = App::new();
+        app.init_resource::<FarmState>();
+        app.init_resource::<FarmEntities>();
+        app.init_resource::<TutorialState>();
+        app.add_event::<ToolUseEvent>();
+        app.add_event::<StaminaDrainEvent>();
+        app.add_event::<PlaySfxEvent>();
+        app.add_event::<ToastEvent>();
+        app.add_systems(Update, handle_hoe_tool_use);
+
+        app.world_mut()
+            .resource_mut::<FarmState>()
+            .soil
+            .insert((1, 1), SoilState::Tilled);
+
+        app.world_mut().send_event(hoe_event(1, 1));
+        app.update();
+
+        let toasts = drain_toasts(&mut app);
+        assert_eq!(toasts.len(), 1);
+        assert_eq!(toasts[0].message, "Already tilled!");
+        assert!(
+            !app.world()
+                .resource::<TutorialState>()
+                .hints_shown
+                .iter()
+                .any(|shown| shown == FIRST_HOE_USE_HINT_ID)
+        );
     }
 }

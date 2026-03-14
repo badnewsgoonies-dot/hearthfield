@@ -65,10 +65,10 @@ pub struct FallingLeaf {
 /// The tint is applied as a multiplicative colour: White = no change.
 fn terrain_tint(season: Season) -> Color {
     match season {
-        Season::Spring => Color::WHITE, // lush — no modification needed
-        Season::Summer => Color::srgb(1.0, 0.95, 0.85), // warm golden haze
-        Season::Fall => Color::srgb(1.0, 0.80, 0.55), // orange warmth
-        Season::Winter => Color::srgb(0.85, 0.90, 1.00), // cool blue-white
+        Season::Spring => Color::srgb(0.88, 1.00, 0.90), // fresh green lift
+        Season::Summer => Color::srgb(1.00, 0.93, 0.76), // sun-baked golden warmth
+        Season::Fall => Color::srgb(1.00, 0.74, 0.46),   // stronger orange-amber cast
+        Season::Winter => Color::srgb(0.80, 0.88, 1.00), // cool blue-white
     }
 }
 
@@ -79,20 +79,20 @@ fn tree_tint(season: Season, variant_b: bool) -> Color {
     match season {
         Season::Spring => {
             if variant_b {
-                Color::srgb(1.0, 0.7, 0.8) // cherry blossom pink
+                Color::srgb(1.00, 0.76, 0.86) // brighter cherry blossom pink
             } else {
-                Color::srgb(0.7, 1.0, 0.6) // light spring green
+                Color::srgb(0.62, 1.00, 0.58) // vivid spring green
             }
         }
-        Season::Summer => Color::srgb(0.6, 0.9, 0.5), // deep summer green
+        Season::Summer => Color::srgb(0.82, 0.94, 0.46), // warm late-summer green
         Season::Fall => {
             if variant_b {
-                Color::srgb(1.0, 0.85, 0.30) // golden yellow
+                Color::srgb(1.00, 0.78, 0.20) // harvest gold
             } else {
-                Color::srgb(1.0, 0.60, 0.30) // burnt orange
+                Color::srgb(0.96, 0.48, 0.18) // stronger burnt orange
             }
         }
-        Season::Winter => Color::srgb(0.6, 0.5, 0.4), // bare brown-grey
+        Season::Winter => Color::srgb(0.72, 0.78, 0.84), // frosted blue-grey
     }
 }
 
@@ -101,10 +101,10 @@ fn tree_tint(season: Season, variant_b: bool) -> Color {
 /// season shift for consistency.
 fn object_tint(season: Season) -> Color {
     match season {
-        Season::Spring => Color::WHITE,
-        Season::Summer => Color::srgb(1.0, 0.97, 0.90),
-        Season::Fall => Color::srgb(0.95, 0.90, 0.80),
-        Season::Winter => Color::srgb(0.90, 0.93, 1.00),
+        Season::Spring => Color::srgb(0.95, 1.00, 0.96),
+        Season::Summer => Color::srgb(1.00, 0.95, 0.86),
+        Season::Fall => Color::srgb(0.98, 0.86, 0.72),
+        Season::Winter => Color::srgb(0.86, 0.92, 1.00),
     }
 }
 

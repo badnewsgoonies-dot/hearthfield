@@ -43,6 +43,26 @@ pub struct FestivalState {
     pub announced_day: Option<(Season, u8, u32)>,
 }
 
+impl FestivalState {
+    /// Rebuild runtime-only festival state after deserializing a save file.
+    pub fn restore_runtime_state(&mut self) {
+        match self.active {
+            Some(FestivalKind::EggFestival) if self.started => {
+                // Egg Hunt entities and timer are runtime-only, so reloaded
+                // saves must return to the pre-hunt state instead of staying
+                // stuck in a started-but-unrunnable softlock.
+                self.started = false;
+                self.timer = None;
+                self.score = 0;
+                self.items_collected = 0;
+            }
+            _ => {
+                self.timer = None;
+            }
+        }
+    }
+}
+
 /// Marker component for egg entities spawned during the Egg Festival.
 #[derive(Component, Debug, Clone)]
 pub struct FestivalEgg;
@@ -70,6 +90,21 @@ fn festival_display_name(kind: FestivalKind) -> &'static str {
     }
 }
 
+fn recover_egg_hunt_after_load(festival: &mut FestivalState) {
+    // Egg Hunt progress depends on a runtime-only timer. If a save/load round-trip
+    // restores `started = true` but drops the timer, the player is soft-locked:
+    // the hunt cannot restart and collection never runs. Reset to pre-start state.
+    if festival.active == Some(FestivalKind::EggFestival)
+        && festival.started
+        && festival.timer.is_none()
+    {
+        warn!("[Festivals] Recovered Egg Hunt from persisted started=true without timer.");
+        festival.started = false;
+        festival.score = 0;
+        festival.items_collected = 0;
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // SYSTEM: check_festival_day
 // ═══════════════════════════════════════════════════════════════════════
@@ -86,6 +121,8 @@ pub fn check_festival_day(
     let today = (calendar.season, calendar.day, calendar.year);
 
     if let Some(kind) = festival_for_date(calendar.season, calendar.day) {
+        recover_egg_hunt_after_load(&mut festival);
+
         // Set the active festival if not already set.
         if festival.active.is_none() {
             festival.active = Some(kind);
@@ -160,8 +197,9 @@ pub fn start_egg_hunt(
     let egg_image: Handle<Image> = asset_server.load("sprites/egg_item.png");
     let mut rng = rand::thread_rng();
     for _ in 0..20 {
-        let x = rng.gen_range(-8..8) as f32 * TILE_SIZE;
-        let y = rng.gen_range(-8..8) as f32 * TILE_SIZE;
+        // Range clamped to -6..6 tiles to keep eggs within the festival egg hunt area.
+        let x = rng.gen_range(-6..6) as f32 * TILE_SIZE;
+        let y = rng.gen_range(-6..6) as f32 * TILE_SIZE;
 
         let mut egg_sprite = Sprite::from_image(egg_image.clone());
         egg_sprite.custom_size = Some(Vec2::new(12.0, 12.0));

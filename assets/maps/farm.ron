@@ -859,14 +859,64 @@
             kind: Stump,
         ),
         (
+            x: 5,
+            y: 19,
+            kind: Stump,
+        ),
+        (
             x: 25,
             y: 14,
             kind: Stump,
         ),
         (
+            x: 27,
+            y: 15,
+            kind: Stump,
+        ),
+        (
+            x: 14,
+            y: 3,
+            kind: Bush,
+        ),
+        (
+            x: 17,
+            y: 3,
+            kind: Bush,
+        ),
+        (
+            x: 14,
+            y: 5,
+            kind: Bush,
+        ),
+        (
+            x: 17,
+            y: 5,
+            kind: Bush,
+        ),
+        (
             x: 23,
             y: 17,
             kind: Bush,
+        ),
+        (
+            x: 2,
+            y: 7,
+            kind: Rock,
+        ),
+        (
+            x: 3,
+            y: 12,
+            kind: Rock,
+        ),
+        (
+            x: 2,
+            y: 22,
+            kind: Tree,
+        ),
+        (
+            x: 29,
+            y: 22,
+            kind: Tree,
         ),
     ],
     forage_points: [
