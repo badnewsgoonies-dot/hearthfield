@@ -68,18 +68,18 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // midnight — deep blue, clearly dark
         TintKeyframe {
             hour: 5.0,
-            tint: (0.20, 0.22, 0.34),
-            intensity: 0.50,
+            tint: (0.34, 0.24, 0.30),
+            intensity: 0.46,
         }, // late night — still quiet, hinting at dawn
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.84, 0.78),
-            intensity: 0.18,
+            tint: (1.0, 0.72, 0.62),
+            intensity: 0.28,
         }, // sunrise — hopeful golden pink
         TintKeyframe {
             hour: 8.0,
-            tint: (1.0, 0.97, 0.93),
-            intensity: 0.03,
+            tint: (1.0, 0.94, 0.88),
+            intensity: 0.06,
         }, // morning — soft warmth before neutral daylight
         TintKeyframe {
             hour: 10.0,
@@ -93,18 +93,18 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // afternoon daylight — still clear and neutral
         TintKeyframe {
             hour: 17.0,
-            tint: (1.0, 0.82, 0.58),
-            intensity: 0.14,
+            tint: (1.0, 0.76, 0.50),
+            intensity: 0.22,
         }, // golden hour — warm amber
         TintKeyframe {
             hour: 18.0,
-            tint: (1.0, 0.60, 0.30),
-            intensity: 0.30,
+            tint: (1.0, 0.68, 0.36),
+            intensity: 0.38,
         }, // sunset — warm orange
         TintKeyframe {
             hour: 20.0,
-            tint: (0.36, 0.40, 0.62),
-            intensity: 0.34,
+            tint: (0.46, 0.36, 0.42),
+            intensity: 0.28,
         }, // twilight — cooling into blue-violet
         TintKeyframe {
             hour: 22.0,
@@ -141,14 +141,14 @@ fn weather_adjusted_outdoor_tint(
 ) -> ((f32, f32, f32), f32) {
     match weather {
         Weather::Rainy => {
-            let tint = desaturate_tint(tint, 0.35);
-            let tint = (tint.0 * 0.72, tint.1 * 0.74, tint.2 * 0.78);
-            (tint, (intensity + 0.12).min(0.58))
+            let tint = desaturate_tint(tint, 0.50);
+            let tint = (tint.0 * 0.60, tint.1 * 0.64, tint.2 * 0.70);
+            (tint, (intensity + 0.18).min(0.66))
         }
         Weather::Stormy => {
-            let tint = desaturate_tint(tint, 0.45);
-            let tint = (tint.0 * 0.62, tint.1 * 0.65, tint.2 * 0.72);
-            (tint, (intensity + 0.18).min(0.68))
+            let tint = desaturate_tint(tint, 0.60);
+            let tint = (tint.0 * 0.50, tint.1 * 0.54, tint.2 * 0.62);
+            (tint, (intensity + 0.26).min(0.76))
         }
         _ => (tint, intensity),
     }
