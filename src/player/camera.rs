@@ -25,15 +25,15 @@ pub fn camera_follow_player(
     };
 
     let target_x = logical_pos.0.x.round();
-    // Offset camera upward by half the player sprite height (24px) so the
-    // player appears centered on screen. LogicalPosition is at the feet
+    // Offset camera upward by slightly less than half the player sprite height
+    // so the player sits a bit lower on screen. LogicalPosition is at the feet
     // because player sprite uses BottomCenter anchor.
-    let target_y = logical_pos.0.y.round() + 24.0;
+    let target_y = logical_pos.0.y.round() + 20.0;
 
     // Snap if countdown active or if camera is very far from target (teleport)
     let dx = (target_x - cam_tf.translation.x).abs();
     let dy = (target_y - cam_tf.translation.y).abs();
-    let should_snap = snap.frames_remaining > 0 || dx > TILE_SIZE * 4.0 || dy > TILE_SIZE * 4.0;
+    let should_snap = snap.frames_remaining > 0 || dx > TILE_SIZE * 3.0 || dy > TILE_SIZE * 3.0;
 
     let (smooth_x, smooth_y) = if should_snap {
         if snap.frames_remaining > 0 {
@@ -41,7 +41,7 @@ pub fn camera_follow_player(
         }
         (target_x, target_y)
     } else {
-        let lerp_speed = 5.0;
+        let lerp_speed = 7.5;
         let t = (lerp_speed * time.delta_secs()).min(1.0);
         (
             cam_tf.translation.x + (target_x - cam_tf.translation.x) * t,
