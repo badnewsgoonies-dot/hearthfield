@@ -154,14 +154,14 @@ pub fn handle_craft_item(
 
         // Check all ingredients are present
         if !has_all_ingredients(&inventory, recipe) {
-            let missing = missing_ingredients_description(&inventory, recipe);
+            let missing = missing_ingredients_description(&inventory, recipe, &item_registry);
             warn!("Cannot craft '{}' — missing: {}", recipe.name, missing);
-            ui_state.set_feedback(format!("Missing materials: {}", missing));
+            ui_state.set_feedback(format!("Still needed for {}: {}", recipe.name, missing));
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "craft_fail".to_string(),
             });
             toast_events.send(ToastEvent {
-                message: "Missing ingredients!".into(),
+                message: "You’re close. Grab the last material and try again.".into(),
                 duration_secs: 2.0,
             });
             continue;
@@ -239,7 +239,11 @@ pub fn has_all_ingredients(inventory: &Inventory, recipe: &Recipe) -> bool {
 }
 
 /// Returns a human-readable list of missing ingredients.
-fn missing_ingredients_description(inventory: &Inventory, recipe: &Recipe) -> String {
+fn missing_ingredients_description(
+    inventory: &Inventory,
+    recipe: &Recipe,
+    item_registry: &ItemRegistry,
+) -> String {
     let mut parts = Vec::new();
     for (item_id, qty) in &recipe.ingredients {
         if item_id == "any_fish" {
@@ -247,7 +251,12 @@ fn missing_ingredients_description(inventory: &Inventory, recipe: &Recipe) -> St
         }
         let have = inventory.count(item_id) as u8;
         if have < *qty {
-            parts.push(format!("{} (have {}/{})", item_id, have, qty));
+            let missing_qty = qty - have;
+            let display_name = item_registry
+                .get(item_id)
+                .map(|item| item.name.as_str())
+                .unwrap_or(item_id);
+            parts.push(format!("{} x{} more", display_name, missing_qty));
         }
     }
     parts.join(", ")
