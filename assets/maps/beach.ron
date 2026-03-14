@@ -291,7 +291,27 @@
             kind: Rock,
         ),
         (
+            x: 9,
+            y: 5,
+            kind: Stump,
+        ),
+        (
+            x: 3,
+            y: 6,
+            kind: Log,
+        ),
+        (
+            x: 5,
+            y: 6,
+            kind: Stump,
+        ),
+        (
             x: 7,
+            y: 7,
+            kind: Log,
+        ),
+        (
+            x: 14,
             y: 7,
             kind: Log,
         ),
@@ -299,6 +319,31 @@
             x: 12,
             y: 6,
             kind: Log,
+        ),
+        (
+            x: 5,
+            y: 8,
+            kind: Rock,
+        ),
+        (
+            x: 8,
+            y: 8,
+            kind: Rock,
+        ),
+        (
+            x: 13,
+            y: 8,
+            kind: Rock,
+        ),
+        (
+            x: 18,
+            y: 8,
+            kind: Rock,
+        ),
+        (
+            x: 18,
+            y: 9,
+            kind: Rock,
         ),
     ],
     forage_points: [

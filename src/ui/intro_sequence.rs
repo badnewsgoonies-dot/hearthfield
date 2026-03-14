@@ -54,10 +54,12 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     steps.push_back(CutsceneStep::StartDialogueCustom {
         npc_id: "mayor_rex".into(),
         lines: vec![
-            "There you are. Welcome to Hearthfield, and welcome to your new life.".into(),
-            "Your grandfather cared deeply for this place. I think he'd be glad to see you here.".into(),
-            "I've tucked a few seeds into your pack to help you start.".into(),
-            "Try tilling the soil outside with your hoe, then plant those seeds. Come find me in town if you need a hand.".into(),
+            "There you are. Welcome to Hearthfield, and welcome home.".into(),
+            "Your grandfather loved this farm, and I know he'd be happy to see someone bringing it back to life.".into(),
+            "We're a small town, but folks look after one another. The general store has everything you need to get started.".into(),
+            "And if you wander by the animal shop, Emily loves meeting new folks.".into(),
+            "I've tucked a few turnip seeds into your pack to help you settle in.".into(),
+            "Till some soil near your house, plant those turnip seeds, and water them every day.".into(),
         ],
         portrait_index: Some(7),
     });
