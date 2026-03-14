@@ -144,70 +144,53 @@ fn generate_farm() -> MapDef {
             }
         };
 
-    // Player house footprint (top center)
-    fill_rect(&mut tiles, 13, 0, 6, 3, TileKind::Stone);
-    // Path from house down to fields
-    fill_rect(&mut tiles, 15, 3, 2, 3, TileKind::Path);
+    // Player house footprint (south-west)
+    fill_rect(&mut tiles, 2, 17, 6, 3, TileKind::Stone);
+    // Path from house up to fields
+    fill_rect(&mut tiles, 6, 5, 2, 13, TileKind::Path);
     // Shipping bin area (right of house)
     fill_rect(&mut tiles, 20, 1, 2, 2, TileKind::WoodFloor);
 
     // Central farming area (the tillable field)
-    fill_rect(&mut tiles, 6, 6, 20, 10, TileKind::Dirt);
+    fill_rect(&mut tiles, 4, 5, 24, 12, TileKind::Dirt);
 
-    // Animal buildings (bottom-left)
-    fill_rect(&mut tiles, 3, 16, 5, 3, TileKind::Stone); // Barn
-    fill_rect(&mut tiles, 9, 17, 3, 2, TileKind::Stone); // Chicken coop
-    fill_rect(&mut tiles, 8, 19, 4, 1, TileKind::Path); // Path connecting
-
-    // Pond (bottom-right)
-    fill_rect(&mut tiles, 24, 17, 5, 4, TileKind::Water);
-    // Pond shoreline
-    for dy in 0..6 {
-        for dx in 0..7 {
-            let xx = 23 + dx;
-            let yy = 16 + dy;
-            if xx < w && yy < h {
-                let is_edge = dx == 0 || dy == 0 || dx == 6 || dy == 5;
-                if is_edge && tiles[yy * w + xx] != TileKind::Water {
-                    tiles[yy * w + xx] = TileKind::Sand;
-                }
-            }
-        }
-    }
+    // Animal buildings (north edge)
+    fill_rect(&mut tiles, 2, 1, 5, 3, TileKind::Stone); // Barn
+    fill_rect(&mut tiles, 24, 1, 3, 2, TileKind::Stone); // Chicken coop
 
     // Path west to mine
-    fill_rect(&mut tiles, 0, 9, 6, 2, TileKind::Path);
+    fill_rect(&mut tiles, 0, 10, 6, 2, TileKind::Path);
     // Path east to forest
-    fill_rect(&mut tiles, 26, 9, 6, 2, TileKind::Path);
+    fill_rect(&mut tiles, 26, 10, 6, 2, TileKind::Path);
     // Path south to town
-    fill_rect(&mut tiles, 14, 16, 3, 8, TileKind::Path);
+    fill_rect(&mut tiles, 14, 21, 3, 3, TileKind::Path);
 
     let transitions = vec![
         // South exit -> Town
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (13, 23, 5, 1),
+            from_rect: (14, 23, 3, 1),
             to_map: MapId::Town,
             to_pos: (12, 1),
         },
         // East exit -> Forest
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (31, 8, 1, 4),
+            from_rect: (31, 10, 1, 2),
             to_map: MapId::Forest,
             to_pos: (1, 7),
         },
         // West exit -> Mine Entrance
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (0, 8, 1, 4),
+            from_rect: (0, 10, 1, 2),
             to_map: MapId::MineEntrance,
             to_pos: (12, 6),
         },
         // House entrance
         MapTransition {
             from_map: MapId::Farm,
-            from_rect: (15, 0, 2, 1),
+            from_rect: (6, 17, 2, 1),
             to_map: MapId::PlayerHouse,
             to_pos: (8, 14),
         },
