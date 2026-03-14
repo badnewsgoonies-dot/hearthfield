@@ -328,11 +328,11 @@ pub fn update_crafting_display(
     atlas_data: Res<ItemAtlasData>,
     mut name_query: Query<
         (&CraftingRecipeName, &mut Text, &mut TextColor),
-        Without<CraftingRecipeMaterials>,
+        (Without<CraftingRecipeMaterials>, Without<CraftingStatusText>, Without<CraftingFeaturedName>, Without<CraftingFeaturedDescription>, Without<CraftingFeaturedMaterials>),
     >,
     mut mat_query: Query<
         (&CraftingRecipeMaterials, &mut Text, &mut TextColor),
-        Without<CraftingRecipeName>,
+        (Without<CraftingRecipeName>, Without<CraftingStatusText>, Without<CraftingFeaturedName>, Without<CraftingFeaturedDescription>, Without<CraftingFeaturedMaterials>),
     >,
     mut row_query: Query<(&CraftingRecipeRow, &mut BackgroundColor)>,
     mut status_query: Query<
@@ -341,6 +341,9 @@ pub fn update_crafting_display(
             With<CraftingStatusText>,
             Without<CraftingRecipeName>,
             Without<CraftingRecipeMaterials>,
+            Without<CraftingFeaturedName>,
+            Without<CraftingFeaturedDescription>,
+            Without<CraftingFeaturedMaterials>,
         ),
     >,
     mut featured_name_query: Query<
@@ -349,6 +352,9 @@ pub fn update_crafting_display(
             With<CraftingFeaturedName>,
             Without<CraftingFeaturedDescription>,
             Without<CraftingFeaturedMaterials>,
+            Without<CraftingRecipeName>,
+            Without<CraftingRecipeMaterials>,
+            Without<CraftingStatusText>,
         ),
     >,
     mut featured_description_query: Query<
@@ -357,6 +363,9 @@ pub fn update_crafting_display(
             With<CraftingFeaturedDescription>,
             Without<CraftingFeaturedName>,
             Without<CraftingFeaturedMaterials>,
+            Without<CraftingRecipeName>,
+            Without<CraftingRecipeMaterials>,
+            Without<CraftingStatusText>,
         ),
     >,
     mut featured_materials_query: Query<
@@ -365,6 +374,9 @@ pub fn update_crafting_display(
             With<CraftingFeaturedMaterials>,
             Without<CraftingFeaturedName>,
             Without<CraftingFeaturedDescription>,
+            Without<CraftingRecipeName>,
+            Without<CraftingRecipeMaterials>,
+            Without<CraftingStatusText>,
         ),
     >,
     featured_icon_query: Query<Entity, With<CraftingFeaturedIcon>>,
