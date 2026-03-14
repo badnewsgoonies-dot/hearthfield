@@ -19,9 +19,15 @@ pub fn handle_hoe_tool_use(
     mut stamina_events: EventWriter<StaminaDrainEvent>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
+    player_state: Res<PlayerState>,
 ) {
     for event in tool_events.read() {
         if event.tool != ToolKind::Hoe {
+            continue;
+        }
+
+        // Farming tools only work on the farm map.
+        if player_state.current_map != MapId::Farm {
             continue;
         }
 
@@ -87,6 +93,7 @@ pub fn handle_watering_can_tool_use(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
     player_query: Query<&PlayerMovement, With<Player>>,
+    player_state: Res<PlayerState>,
 ) {
     // Determine the direction the player is currently facing.
     // Fall back to Down if the query returns nothing (shouldn't happen in normal play).
@@ -97,6 +104,11 @@ pub fn handle_watering_can_tool_use(
 
     for event in tool_events.read() {
         if event.tool != ToolKind::WateringCan {
+            continue;
+        }
+
+        // Farming tools only work on the farm map.
+        if player_state.current_map != MapId::Farm {
             continue;
         }
 
@@ -231,12 +243,19 @@ mod tests {
         }
     }
 
+    fn farm_player_state() -> PlayerState {
+        let mut ps = PlayerState::default();
+        ps.current_map = MapId::Farm;
+        ps
+    }
+
     #[test]
     fn first_successful_hoe_use_shows_tilled_toast_once() {
         let mut app = App::new();
         app.init_resource::<FarmState>();
         app.init_resource::<FarmEntities>();
         app.init_resource::<TutorialState>();
+        app.insert_resource(farm_player_state());
         app.add_event::<ToolUseEvent>();
         app.add_event::<StaminaDrainEvent>();
         app.add_event::<PlaySfxEvent>();
@@ -269,6 +288,7 @@ mod tests {
         app.init_resource::<FarmState>();
         app.init_resource::<FarmEntities>();
         app.init_resource::<TutorialState>();
+        app.insert_resource(farm_player_state());
         app.add_event::<ToolUseEvent>();
         app.add_event::<StaminaDrainEvent>();
         app.add_event::<PlaySfxEvent>();

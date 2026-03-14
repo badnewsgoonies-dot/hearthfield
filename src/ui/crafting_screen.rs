@@ -13,7 +13,6 @@ pub struct CraftingScreenRoot;
 
 #[derive(Component)]
 pub struct CraftingRecipeIcon {
-    #[allow(dead_code)]
     pub index: usize,
 }
 
@@ -51,6 +50,8 @@ pub struct CraftingFeaturedMaterials;
 #[derive(Resource)]
 pub struct CraftingUiState {
     pub cursor: usize,
+    /// Scroll offset for the 6-row viewport
+    pub scroll_offset: usize,
     /// Sorted list of recipe IDs to display
     pub visible_recipes: Vec<String>,
     pub status_message: String,
@@ -83,6 +84,7 @@ pub fn spawn_crafting_screen(
 
     commands.insert_resource(CraftingUiState {
         cursor: 0,
+        scroll_offset: 0,
         visible_recipes: visible.clone(),
         status_message: String::new(),
         status_timer: 0.0,
@@ -366,6 +368,7 @@ pub fn update_crafting_display(
         ),
     >,
     featured_icon_query: Query<Entity, With<CraftingFeaturedIcon>>,
+    icon_query: Query<(Entity, &CraftingRecipeIcon)>,
 ) {
     let Some(ui_state) = ui_state else { return };
 
@@ -436,7 +439,7 @@ pub fn update_crafting_display(
     }
 
     for (name_comp, mut text, mut color) in &mut name_query {
-        let idx = name_comp.index;
+        let idx = name_comp.index + ui_state.scroll_offset;
         if idx < ui_state.visible_recipes.len() {
             let recipe_id = &ui_state.visible_recipes[idx];
             if let Some(recipe) = recipe_registry.recipes.get(recipe_id) {
@@ -454,7 +457,7 @@ pub fn update_crafting_display(
     }
 
     for (mat_comp, mut text, mut color) in &mut mat_query {
-        let idx = mat_comp.index;
+        let idx = mat_comp.index + ui_state.scroll_offset;
         if idx < ui_state.visible_recipes.len() {
             let recipe_id = &ui_state.visible_recipes[idx];
             if let Some(recipe) = recipe_registry.recipes.get(recipe_id) {
@@ -482,10 +485,33 @@ pub fn update_crafting_display(
 
     // Cursor highlight
     for (row, mut bg) in &mut row_query {
-        if row.index == ui_state.cursor {
+        if row.index + ui_state.scroll_offset == ui_state.cursor {
             *bg = BackgroundColor(Color::srgba(0.42, 0.26, 0.12, 0.96));
         } else {
             *bg = BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.6));
+        }
+    }
+
+    // Update recipe row icons based on scroll offset
+    for (entity, icon) in &icon_query {
+        let idx = icon.index + ui_state.scroll_offset;
+        let mut entity_commands = commands.entity(entity);
+        entity_commands.remove::<ImageNode>();
+        if atlas_data.loaded {
+            if let Some(recipe_id) = ui_state.visible_recipes.get(idx) {
+                if let Some(recipe) = recipe_registry.recipes.get(recipe_id.as_str()) {
+                    if let Some(item_def) = item_registry.get(&recipe.result) {
+                        entity_commands.insert(ImageNode {
+                            image: atlas_data.image.clone(),
+                            texture_atlas: Some(TextureAtlas {
+                                layout: atlas_data.layout.clone(),
+                                index: item_icon_index(item_def.sprite_index),
+                            }),
+                            ..default()
+                        });
+                    }
+                }
+            }
         }
     }
 }
@@ -515,6 +541,14 @@ pub fn crafting_navigation(
     }
     if action.move_up && ui_state.cursor > 0 {
         ui_state.cursor -= 1;
+    }
+
+    // Keep cursor visible in the 6-row viewport
+    if ui_state.cursor >= ui_state.scroll_offset + 6 {
+        ui_state.scroll_offset = ui_state.cursor - 5;
+    }
+    if ui_state.cursor < ui_state.scroll_offset {
+        ui_state.scroll_offset = ui_state.cursor;
     }
 
     if action.activate && ui_state.cursor < ui_state.visible_recipes.len() {

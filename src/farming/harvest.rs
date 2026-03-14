@@ -130,7 +130,13 @@ pub fn handle_harvest_attempt(
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
     crop_registry: Res<CropRegistry>,
+    player_state: Res<PlayerState>,
 ) {
+    // Farming tools only work on the farm map.
+    if player_state.current_map != MapId::Farm {
+        return;
+    }
+
     for event in harvest_events.read() {
         let pos = (event.grid_x, event.grid_y);
 

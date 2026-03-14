@@ -1,8 +1,8 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-13T22:30Z
-**HEAD:** 96581dd (fix: 5 bugs from pyramid trial — purchase bypass, pig outdoor, hay guard, festival name, egg bounds)
-**Branch:** claude/llm-git-orchestration-OLSPR
+**Updated:** 2026-03-14T21:00Z
+**HEAD:** c7477fd7 (stack-1773520523: task 5 — first-day feel pass)
+**Branch:** master
 **Working tree:** clean
 
 ## Phase
@@ -28,6 +28,23 @@
 - Full-year playthrough — season transitions, festival triggers
 - Pilot DLC — end-to-end playability
 - City DLC — end-to-end playability
+
+## Playtesting Debt (2026-03-14, Geni runtime observations)
+
+### P1 — Functional gaps
+- **Hoe on house floor** [V4 runtime]: Code guards exist (current_map != Farm), but user reports hoe still tills inside house. Either door transition not firing or tool visual bypasses guard. Needs cargo run verification.
+- **Barn/Coop not enterable**: No DoorDef wired for Farm→Barn or Farm→Coop. Buildings are visual-only. Player expectation: if it's a building, I should be able to walk in.
+- **NPCs on farm Day 1**: Farm visit system triggers for 8+ heart NPCs (30% weekday mornings), but NPCs showing up on Day 1 means either schedule defaults are wrong or friendship gating isn't working.
+
+### P1 — Design coherence
+- **Menus scattered across keys**: E/C/M/J/L/F1/F2 for 7 different screens. Not discoverable. Player expectation: one key opens a tabbed menu. Toggle behavior inconsistent (some close with same key, some only Escape).
+- **Cooking vs Crafting identical UI**: Both use CraftingUiState, same visual layout, same interaction. Only difference is recipe filter (is_cooking flag). Player can't tell them apart. Needs distinct visual identity or merge into one screen with tabs.
+- **Day purpose / town purpose unclear**: Player arrives in town without motivation. Mayor Rex intro provides guidance but if skipped or missed, there's no "why am I here" signal. Need persistent day objective or quest breadcrumb.
+
+### P2 — Feel gaps
+- **Terrain needs blueprint/layout markers**: No visual indicator of tillable area on the farm. Dirt rectangle exists in code (4,5 to 28,17) but nothing marks it for the player. Needs grid overlay, soil color difference, or tooltip "fertile soil" when hovering.
+- **Town houses (West/East) empty**: Enterable but no purpose inside. Player enters, sees nothing useful, leaves. Either add content or lock until story progression.
+- **Collision verification needed**: General collision testing not done at runtime. Buildings, fences, water edges, map boundaries all need V4 walk-through.
 
 ## Last Decisions
 

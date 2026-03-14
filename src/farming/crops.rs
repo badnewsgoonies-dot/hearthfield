@@ -122,7 +122,13 @@ pub fn handle_plant_seed(
     mut toast_writer: EventWriter<ToastEvent>,
     crop_registry: Res<CropRegistry>,
     calendar: Res<Calendar>,
+    player_state: Res<PlayerState>,
 ) {
+    // Farming tools only work on the farm map.
+    if player_state.current_map != MapId::Farm {
+        return;
+    }
+
     for event in plant_events.read() {
         let pos = (event.grid_x, event.grid_y);
 
