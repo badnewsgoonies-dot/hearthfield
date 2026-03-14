@@ -59,9 +59,9 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
     // --- Player spawn (bottom-center) ---
     let spawn_pos = (MINE_WIDTH / 2, 1);
 
-    // --- Determine rock count (8-15, increasing with depth) ---
-    let min_rocks = (8 + (floor as usize) / 5).min(15); // 8 at floor 1, up to 12 at floor 20
-    let max_rocks_cap = 15usize;
+    // --- Determine rock count (7-18, increasing with depth) ---
+    let min_rocks = (7 + (floor as usize) / 3).min(18); // 7 at floor 1, up to 13 at floor 20
+    let max_rocks_cap = 18usize;
     let max_rocks = rng.gen_range(min_rocks..=max_rocks_cap);
 
     // Reserve tiles: spawn area (3x3 around spawn) and border row at bottom
@@ -100,7 +100,12 @@ pub fn generate_floor(floor: u8) -> FloorBlueprint {
 
     // --- Place ladder ---
     // Pick a random position in the upper half that isn't occupied, OR hide it in a rock.
-    let hide_ladder = rng.gen_bool(0.6); // 60% chance the ladder is hidden in a rock
+    let hide_ladder = rng.gen_bool(match floor {
+        1..=5 => 0.25,
+        6..=10 => 0.45,
+        11..=15 => 0.70,
+        _ => 0.88,
+    });
     let (ladder_pos, ladder_hidden, ladder_rock_index) = if hide_ladder && !rocks.is_empty() {
         // Put ladder inside a random rock in the upper half of the map
         let upper_rocks: Vec<usize> = rocks
@@ -258,18 +263,18 @@ fn pick_gem(rng: &mut StdRng) -> String {
 ///
 /// Spec:
 /// - Floors 1-5:  1-2 GreenSlime → total 1-2
-/// - Floors 6-10: 2-3 GreenSlime + 1 Bat → total 3-4
-/// - Floors 11-15: 2-3 Bat + 1-2 RockCrab → total 3-5
-/// - Floors 16-20: 2-4 mixed → total 2-4
+/// - Floors 6-10: 3-5 mixed toward GreenSlime
+/// - Floors 11-15: 4-6 mixed toward RockCrab
+/// - Floors 16-20: 5-7 sharp mixed pressure
 fn enemy_count_for_floor(floor: u8, rng: &mut StdRng) -> usize {
     if floor <= 5 {
         rng.gen_range(1..=2)
     } else if floor <= 10 {
-        rng.gen_range(3..=4)
-    } else if floor <= 15 {
         rng.gen_range(3..=5)
+    } else if floor <= 15 {
+        rng.gen_range(4..=6)
     } else {
-        rng.gen_range(2..=4)
+        rng.gen_range(5..=7)
     }
 }
 
@@ -277,32 +282,29 @@ fn enemy_count_for_floor(floor: u8, rng: &mut StdRng) -> usize {
 ///
 /// Spec:
 /// - Floors 1-5:  GreenSlime only
-/// - Floors 6-10: mostly GreenSlime + some Bat
-/// - Floors 11-15: mostly Bat + some RockCrab
-/// - Floors 16-20: mixed (all three)
+/// - Floors 6-10: GreenSlime/Bat at 60/40
+/// - Floors 11-15: Bat/RockCrab at 45/55
+/// - Floors 16-20: GreenSlime/Bat/RockCrab at 15/35/50
 fn pick_enemy_kind(floor: u8, rng: &mut StdRng) -> MineEnemy {
     let roll: f64 = rng.gen();
     if floor <= 5 {
         MineEnemy::GreenSlime
     } else if floor <= 10 {
-        // 2-3 GreenSlime + 1 Bat → ~70% slime, 30% bat
-        if roll < 0.70 {
+        if roll < 0.60 {
             MineEnemy::GreenSlime
         } else {
             MineEnemy::Bat
         }
     } else if floor <= 15 {
-        // 2-3 Bat + 1-2 RockCrab → ~60% bat, 40% crab
-        if roll < 0.60 {
+        if roll < 0.45 {
             MineEnemy::Bat
         } else {
             MineEnemy::RockCrab
         }
     } else {
-        // Floors 16-20: mixed
-        if roll < 0.30 {
+        if roll < 0.15 {
             MineEnemy::GreenSlime
-        } else if roll < 0.60 {
+        } else if roll < 0.50 {
             MineEnemy::Bat
         } else {
             MineEnemy::RockCrab
@@ -313,11 +315,11 @@ fn pick_enemy_kind(floor: u8, rng: &mut StdRng) -> MineEnemy {
 /// Build an EnemyBlueprint with stats scaled to floor depth.
 ///
 /// Base stats per spec:
-/// - GreenSlime: HP 20, DMG 5, Speed 30
-/// - Bat: HP 15, DMG 8, Speed 50
-/// - RockCrab: HP 40, DMG 12, Speed 15
+/// - GreenSlime: HP 20, DMG 5, Speed 34
+/// - Bat: HP 15, DMG 8, Speed 56
+/// - RockCrab: HP 40, DMG 12, Speed 18
 ///
-/// Floor scaling: +1 HP per floor, +0.5 DMG per floor.
+/// Floor scaling: +1 HP per floor, +0.7 DMG per floor.
 fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlueprint {
     let f = floor as f32;
     match kind {
@@ -327,8 +329,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 20.0 + f,
             max_health: 20.0 + f,
-            damage: 5.0 + f * 0.5,
-            speed: 30.0,
+            damage: 5.0 + f * 0.7,
+            speed: 34.0,
         },
         MineEnemy::Bat => EnemyBlueprint {
             x,
@@ -336,8 +338,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 15.0 + f,
             max_health: 15.0 + f,
-            damage: 8.0 + f * 0.5,
-            speed: 50.0,
+            damage: 8.0 + f * 0.7,
+            speed: 56.0,
         },
         MineEnemy::RockCrab => EnemyBlueprint {
             x,
@@ -345,8 +347,8 @@ fn make_enemy_blueprint(kind: MineEnemy, floor: u8, x: i32, y: i32) -> EnemyBlue
             kind,
             health: 40.0 + f,
             max_health: 40.0 + f,
-            damage: 12.0 + f * 0.5,
-            speed: 15.0,
+            damage: 12.0 + f * 0.7,
+            speed: 18.0,
         },
     }
 }
@@ -415,21 +417,21 @@ mod tests {
             let mut rng_floor_10 = StdRng::seed_from_u64(seed);
             let floor_10_count = enemy_count_for_floor(10, &mut rng_floor_10);
             assert!(
-                (3..=4).contains(&floor_10_count),
+                (3..=5).contains(&floor_10_count),
                 "floor 10 enemy count out of expected range: {floor_10_count}"
             );
 
             let mut rng_floor_15 = StdRng::seed_from_u64(seed);
             let floor_15_count = enemy_count_for_floor(15, &mut rng_floor_15);
             assert!(
-                (3..=5).contains(&floor_15_count),
+                (4..=6).contains(&floor_15_count),
                 "floor 15 enemy count out of expected range: {floor_15_count}"
             );
 
             let mut rng_floor_20 = StdRng::seed_from_u64(seed);
             let floor_20_count = enemy_count_for_floor(20, &mut rng_floor_20);
             assert!(
-                (2..=4).contains(&floor_20_count),
+                (5..=7).contains(&floor_20_count),
                 "floor 20 enemy count out of expected range: {floor_20_count}"
             );
         }
