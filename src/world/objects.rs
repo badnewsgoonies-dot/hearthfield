@@ -1702,6 +1702,20 @@ fn town_buildings() -> Vec<BuildingDef> {
     ]
 }
 
+fn town_decorations() -> Vec<(Vec2, WorldObjectKind)> {
+    vec![
+        // Bench stand-ins along the main north-south path.
+        (Vec2::new(224.0, -100.0), WorldObjectKind::Log),
+        (Vec2::new(224.0, 0.0), WorldObjectKind::Log),
+        (Vec2::new(224.0, 100.0), WorldObjectKind::Log),
+        // Flower pot stand-ins near the General Store and Animal Shop entrances.
+        (grid_to_world_center(4, 3), WorldObjectKind::Bush),
+        (grid_to_world_center(23, 3), WorldObjectKind::Bush),
+        // Signpost stand-in near the town square.
+        (grid_to_world_center(10, 11), WorldObjectKind::Dock),
+    ]
+}
+
 fn farm_buildings() -> Vec<BuildingDef> {
     vec![
         // Player house (lower-left area) — composite farmhouse sprite (128x160)
@@ -1936,6 +1950,31 @@ pub fn spawn_building_sprites(
                     current_frame: 0,
                     ping_pong_dir: 1,
                 },
+            ));
+        }
+    }
+
+    if player_state.current_map == MapId::Town {
+        for (world_pos, kind) in town_decorations() {
+            let mut sprite = Sprite::from_atlas_image(
+                object_atlases.grass_biome_image.clone(),
+                TextureAtlas {
+                    layout: object_atlases.grass_biome_layout.clone(),
+                    index: kind.atlas_index(),
+                },
+            );
+            sprite.custom_size = Some(kind.sprite_size());
+            if let Some(tint) = kind.object_tint_color() {
+                sprite.color = tint;
+            }
+
+            commands.spawn((
+                BuildingOverlay,
+                WorldObject,
+                sprite,
+                Transform::from_xyz(world_pos.x, world_pos.y, Z_ENTITY_BASE),
+                YSorted,
+                Visibility::default(),
             ));
         }
     }
