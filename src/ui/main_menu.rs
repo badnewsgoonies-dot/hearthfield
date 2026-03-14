@@ -34,10 +34,17 @@ pub enum MainMenuMode {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Skywarden", "City Office", "Quit"];
+const MAIN_MENU_OPTIONS: &[&str] = &[
+    "New Game",
+    "Load Game",
+    "Fishing Encyclopedia",
+    "Skywarden",
+    "City Office",
+    "Quit",
+];
 
 #[cfg(target_arch = "wasm32")]
-const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game"];
+const MAIN_MENU_OPTIONS: &[&str] = &["New Game", "Load Game", "Fishing Encyclopedia"];
 const LOAD_MENU_BACK_INDEX: usize = NUM_SAVE_SLOTS;
 const LOAD_MENU_OPTION_COUNT: usize = NUM_SAVE_SLOTS + 1;
 const ROOT_MENU_OPTION_COUNT: usize = MAIN_MENU_OPTIONS.len();
@@ -448,8 +455,11 @@ pub fn main_menu_navigation(
                     state.cursor = 0;
                     state.status_message.clear();
                 }
+                2 => {
+                    next_state.set(GameState::FishEncyclopedia);
+                }
                 #[cfg(not(target_arch = "wasm32"))]
-                2 => match launch_dlc(&SKYWARDEN_TARGET) {
+                3 => match launch_dlc(&SKYWARDEN_TARGET) {
                     Ok(()) => {
                         state.status_message = "Launching Skywarden...".to_string();
                         app_exit.send(AppExit::Success);
@@ -459,7 +469,7 @@ pub fn main_menu_navigation(
                     }
                 },
                 #[cfg(not(target_arch = "wasm32"))]
-                3 => match launch_dlc(&CITY_OFFICE_TARGET) {
+                4 => match launch_dlc(&CITY_OFFICE_TARGET) {
                     Ok(()) => {
                         state.status_message = "Launching City Office...".to_string();
                         app_exit.send(AppExit::Success);
@@ -469,7 +479,7 @@ pub fn main_menu_navigation(
                     }
                 },
                 #[cfg(not(target_arch = "wasm32"))]
-                4 => {
+                5 => {
                     app_exit.send(AppExit::Success);
                 }
                 _ => {}
