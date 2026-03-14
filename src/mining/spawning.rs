@@ -84,14 +84,37 @@ pub fn load_mining_atlas(
 }
 
 /// Fallback color palette for mine visuals (used when atlas not yet loaded).
-const FLOOR_COLOR: Color = Color::srgb(0.15, 0.12, 0.18);
-const WALL_COLOR: Color = Color::srgb(0.08, 0.06, 0.10);
-const ROCK_STONE_COLOR: Color = Color::srgb(0.45, 0.42, 0.40);
-const ROCK_COPPER_COLOR: Color = Color::srgb(0.72, 0.45, 0.20);
-const ROCK_IRON_COLOR: Color = Color::srgb(0.55, 0.55, 0.60);
-const ROCK_GOLD_COLOR: Color = Color::srgb(0.85, 0.75, 0.20);
-const ROCK_GEM_COLOR: Color = Color::srgb(0.60, 0.20, 0.80);
+const ROCK_STONE_COLOR: Color = Color::srgb(0.39, 0.40, 0.42);
+const ROCK_COPPER_COLOR: Color = Color::srgb(0.76, 0.47, 0.22);
+const ROCK_IRON_COLOR: Color = Color::srgb(0.50, 0.56, 0.66);
+const ROCK_GOLD_COLOR: Color = Color::srgb(0.92, 0.78, 0.24);
+const ROCK_GEM_COLOR: Color = Color::srgb(0.56, 0.24, 0.84);
 const EXIT_COLOR: Color = Color::srgb(0.40, 0.70, 0.40);
+
+fn fallback_tile_palette(floor: u8) -> (Color, Color, f32) {
+    match floor {
+        1..=5 => (
+            Color::srgb(0.18, 0.16, 0.18),
+            Color::srgb(0.11, 0.09, 0.11),
+            0.035,
+        ),
+        6..=10 => (
+            Color::srgb(0.14, 0.13, 0.17),
+            Color::srgb(0.08, 0.08, 0.11),
+            0.025,
+        ),
+        11..=15 => (
+            Color::srgb(0.11, 0.12, 0.16),
+            Color::srgb(0.07, 0.08, 0.12),
+            0.015,
+        ),
+        _ => (
+            Color::srgb(0.08, 0.10, 0.14),
+            Color::srgb(0.05, 0.07, 0.11),
+            0.008,
+        ),
+    }
+}
 
 /// System: detects when a floor spawn is requested and carries it out.
 pub fn spawn_mine_floor(
@@ -144,7 +167,9 @@ pub fn spawn_mine_floor(
     };
 }
 
-fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlases: &MiningAtlases) {
+fn spawn_tiles(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &MiningAtlases) {
+    let (floor_color, wall_color, checker_accent) = fallback_tile_palette(blueprint.floor);
+
     for y in 0..MINE_HEIGHT {
         for x in 0..MINE_WIDTH {
             let is_wall = x == 0 || x == MINE_WIDTH - 1 || y == MINE_HEIGHT - 1;
@@ -172,11 +197,16 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlases: &M
                 s
             } else {
                 let color = if is_wall {
-                    WALL_COLOR
+                    wall_color
                 } else if checker_bright {
-                    Color::srgb(0.15 + 0.02, 0.12 + 0.02, 0.18 + 0.02)
+                    let srgb = floor_color.to_srgba();
+                    Color::srgb(
+                        srgb.red + checker_accent,
+                        srgb.green + checker_accent,
+                        srgb.blue + checker_accent,
+                    )
                 } else {
-                    FLOOR_COLOR
+                    floor_color
                 };
                 Sprite {
                     color,
@@ -196,7 +226,7 @@ fn spawn_tiles(commands: &mut Commands, _blueprint: &FloorBlueprint, atlases: &M
     }
 }
 
-const ROCK_IRIDIUM_COLOR: Color = Color::srgb(0.40, 0.20, 0.60);
+const ROCK_IRIDIUM_COLOR: Color = Color::srgb(0.34, 0.22, 0.66);
 
 fn rock_color(drop_item: &str) -> Color {
     match drop_item {
@@ -366,8 +396,9 @@ fn spawn_ladder(commands: &mut Commands, blueprint: &FloorBlueprint, atlases: &M
         s.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
         s
     } else {
+        let (floor_color, _, _) = fallback_tile_palette(blueprint.floor);
         let color = if blueprint.ladder_hidden {
-            FLOOR_COLOR
+            floor_color
         } else {
             Color::srgb(0.75, 0.60, 0.30)
         };
