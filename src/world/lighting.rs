@@ -68,23 +68,23 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // midnight — deep blue, clearly dark
         TintKeyframe {
             hour: 5.0,
-            tint: (0.34, 0.24, 0.30),
-            intensity: 0.46,
+            tint: (0.46, 0.31, 0.24),
+            intensity: 0.38,
         }, // late night — still quiet, hinting at dawn
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.72, 0.62),
-            intensity: 0.28,
+            tint: (1.0, 0.80, 0.64),
+            intensity: 0.36,
         }, // sunrise — hopeful golden pink
         TintKeyframe {
             hour: 8.0,
-            tint: (1.0, 0.94, 0.88),
-            intensity: 0.06,
+            tint: (1.0, 0.95, 0.86),
+            intensity: 0.14,
         }, // morning — soft warmth before neutral daylight
         TintKeyframe {
             hour: 10.0,
-            tint: (1.0, 0.995, 0.98),
-            intensity: 0.0,
+            tint: (1.0, 0.98, 0.94),
+            intensity: 0.02,
         }, // full daylight — bright and nearly neutral
         TintKeyframe {
             hour: 16.0,
