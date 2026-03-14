@@ -68,13 +68,13 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // midnight — deep blue, clearly dark
         TintKeyframe {
             hour: 5.0,
-            tint: (0.46, 0.31, 0.24),
-            intensity: 0.38,
+            tint: (0.42, 0.30, 0.26),
+            intensity: 0.42,
         }, // late night — still quiet, hinting at dawn
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.80, 0.64),
-            intensity: 0.36,
+            tint: (1.0, 0.84, 0.70),
+            intensity: 0.30,
         }, // sunrise — hopeful golden pink
         TintKeyframe {
             hour: 8.0,
@@ -93,18 +93,18 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // afternoon daylight — still clear and neutral
         TintKeyframe {
             hour: 17.0,
-            tint: (1.0, 0.76, 0.50),
-            intensity: 0.22,
+            tint: (1.0, 0.79, 0.56),
+            intensity: 0.18,
         }, // golden hour — warm amber
         TintKeyframe {
             hour: 18.0,
-            tint: (1.0, 0.68, 0.36),
-            intensity: 0.38,
+            tint: (1.0, 0.70, 0.40),
+            intensity: 0.32,
         }, // sunset — warm orange
         TintKeyframe {
             hour: 20.0,
-            tint: (0.46, 0.36, 0.42),
-            intensity: 0.28,
+            tint: (0.40, 0.34, 0.44),
+            intensity: 0.34,
         }, // twilight — cooling into blue-violet
         TintKeyframe {
             hour: 22.0,
@@ -141,14 +141,14 @@ fn weather_adjusted_outdoor_tint(
 ) -> ((f32, f32, f32), f32) {
     match weather {
         Weather::Rainy => {
-            let tint = desaturate_tint(tint, 0.50);
-            let tint = (tint.0 * 0.60, tint.1 * 0.64, tint.2 * 0.70);
-            (tint, (intensity + 0.18).min(0.66))
+            let tint = desaturate_tint(tint, 0.35);
+            let tint = (tint.0 * 0.74, tint.1 * 0.76, tint.2 * 0.78);
+            (tint, (intensity + 0.16).min(0.62))
         }
         Weather::Stormy => {
-            let tint = desaturate_tint(tint, 0.60);
-            let tint = (tint.0 * 0.50, tint.1 * 0.54, tint.2 * 0.62);
-            (tint, (intensity + 0.26).min(0.76))
+            let tint = desaturate_tint(tint, 0.45);
+            let tint = (tint.0 * 0.66, tint.1 * 0.68, tint.2 * 0.72);
+            (tint, (intensity + 0.24).min(0.72))
         }
         _ => (tint, intensity),
     }
