@@ -9,6 +9,36 @@ use rand::Rng;
 // it, then idle briefly before picking the next point.
 // ─────────────────────────────────────────────────────────────────────────────
 
+fn stop_radius_for(kind: AnimalKind) -> f32 {
+    match kind {
+        AnimalKind::Chicken => 0.75,
+        AnimalKind::Cow => 2.5,
+        AnimalKind::Rabbit => 0.6,
+        AnimalKind::Dog => 1.25,
+        _ => 1.5,
+    }
+}
+
+fn idle_secs_for(kind: AnimalKind, rng: &mut impl Rng) -> f32 {
+    match kind {
+        AnimalKind::Chicken => rng.gen_range(0.35_f32..=0.9_f32),
+        AnimalKind::Cow => rng.gen_range(2.8_f32..=5.0_f32),
+        AnimalKind::Rabbit => rng.gen_range(0.15_f32..=0.55_f32),
+        AnimalKind::Dog => rng.gen_range(0.4_f32..=1.0_f32),
+        _ => rng.gen_range(1.5_f32..=3.5_f32),
+    }
+}
+
+fn retarget_secs_for(kind: AnimalKind, rng: &mut impl Rng) -> f32 {
+    match kind {
+        AnimalKind::Chicken => rng.gen_range(0.6_f32..=1.4_f32),
+        AnimalKind::Cow => rng.gen_range(3.5_f32..=6.0_f32),
+        AnimalKind::Rabbit => rng.gen_range(0.25_f32..=0.8_f32),
+        AnimalKind::Dog => rng.gen_range(0.5_f32..=1.2_f32),
+        _ => rng.gen_range(2.0_f32..=4.0_f32),
+    }
+}
+
 pub fn handle_animal_wander(
     time: Res<Time>,
     mut query: Query<(
@@ -21,7 +51,7 @@ pub fn handle_animal_wander(
 ) {
     let mut rng = rand::thread_rng();
 
-    for (mut logical_pos, mut transform, mut wander, _animal, facing_opt) in query.iter_mut() {
+    for (mut logical_pos, mut transform, mut wander, animal, facing_opt) in query.iter_mut() {
         // Advance the timer.
         wander.timer.tick(time.delta());
 
@@ -30,11 +60,12 @@ pub fn handle_animal_wander(
             let current = logical_pos.0;
             let delta = target - current;
             let dist = delta.length();
+            let stop_radius = stop_radius_for(animal.kind);
 
-            if dist < 1.5 {
+            if dist < stop_radius {
                 // Arrived — clear target, start idle timer.
                 wander.target = None;
-                let idle_secs = rng.gen_range(1.5_f32..=3.5_f32);
+                let idle_secs = idle_secs_for(animal.kind, &mut rng);
                 wander.timer = Timer::from_seconds(idle_secs, TimerMode::Once);
             } else {
                 // Step toward the target, capped by speed × dt.
@@ -75,7 +106,7 @@ pub fn handle_animal_wander(
             let ty = rng.gen_range(wander.pen_min.y..=wander.pen_max.y);
             wander.target = Some(Vec2::new(tx, ty));
 
-            let next_secs = rng.gen_range(2.0_f32..=4.0_f32);
+            let next_secs = retarget_secs_for(animal.kind, &mut rng);
             wander.timer = Timer::from_seconds(next_secs, TimerMode::Once);
         }
     }
