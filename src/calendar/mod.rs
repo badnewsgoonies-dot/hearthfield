@@ -201,8 +201,15 @@ pub fn trigger_sleep(
     // Build sleep transition cutscene.
     let day_label = format!("Day {} - {:?}, Year {}", next_day, next_season, next_year);
     let mut steps = std::collections::VecDeque::new();
-    steps.push_back(CutsceneStep::FadeOut(1.4));
-    steps.push_back(CutsceneStep::Wait(0.9));
+    steps.push_back(CutsceneStep::FadeOut(1.8));
+    steps.push_back(CutsceneStep::Wait(1.2));
+    if calendar.day == 1 {
+        steps.push_back(CutsceneStep::ShowText("You made it home.".into(), 1.6));
+        steps.push_back(CutsceneStep::ShowText(
+            "Day one is done. The farmhouse kept the light for you.".into(),
+            1.8,
+        ));
+    }
 
     // Season change announcement.
     if calendar.day >= DAYS_PER_SEASON {
@@ -221,8 +228,8 @@ pub fn trigger_sleep(
         ));
     }
 
-    steps.push_back(CutsceneStep::ShowText(day_label, 3.0));
-    steps.push_back(CutsceneStep::FadeIn(2.0));
+    steps.push_back(CutsceneStep::ShowText(day_label, 2.4));
+    steps.push_back(CutsceneStep::FadeIn(2.4));
 
     cutscene_queue.steps = steps;
     // NOTE: Don't set active or change state here. The DayEndEvent must
@@ -580,7 +587,8 @@ fn time_warnings(
     if calendar.hour >= 22 && !*warned_10pm {
         *warned_10pm = true;
         toast_events.send(ToastEvent {
-            message: "It's getting late. Head home and get some rest!".into(),
+            message: "It's getting late. Head home. The farmhouse is waiting for you."
+                .into(),
             duration_secs: 4.0,
         });
     }
