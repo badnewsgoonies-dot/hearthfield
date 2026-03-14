@@ -23,32 +23,32 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     // Narrative text cards.
     steps.push_back(CutsceneStep::ShowText(
         "Your grandfather left you one last letter...".into(),
-        3.0,
+        2.4,
     ));
     steps.push_back(CutsceneStep::ShowText(
         "'Dear child,\nWelcome to your new life at Hearthfield Farm.\nTake this little patch of land and make it your own.'".into(),
-        4.5,
+        3.6,
     ));
 
     // Day card.
-    steps.push_back(CutsceneStep::ShowText("Spring 1, Year 1".into(), 2.5));
+    steps.push_back(CutsceneStep::ShowText("Spring 1, Year 1".into(), 2.0));
 
     // Controls reference card — kept brief so the intro stays moving.
     steps.push_back(CutsceneStep::ShowText(
         "Move: WASD | Use tool: Space | Interact: F\n\
          Inventory: E | Crafting: C | Cycle tools: [ ]"
             .into(),
-        4.0,
+        3.0,
     ));
 
     // Signal NPC spawning to place Mayor Rex on the farm for the intro greeting.
     steps.push_back(CutsceneStep::SetFlag("mayor_intro_visit".into(), true));
 
     // Reveal the farm.
-    steps.push_back(CutsceneStep::FadeIn(1.5));
+    steps.push_back(CutsceneStep::FadeIn(1.2));
 
     // Let the player see the farm for a moment.
-    steps.push_back(CutsceneStep::Wait(1.0));
+    steps.push_back(CutsceneStep::Wait(0.6));
 
     // Mayor Rex greets the player with intro-specific lines.
     steps.push_back(CutsceneStep::StartDialogueCustom {
@@ -56,10 +56,10 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
         lines: vec![
             "There you are. Welcome to Hearthfield, and welcome home.".into(),
             "Your grandfather loved this farm, and I know he'd be happy to see someone bringing it back to life.".into(),
-            "We're a small town, but folks look after one another. The general store has everything you need to get started.".into(),
-            "And if you wander by the animal shop, Emily loves meeting new folks.".into(),
-            "I've tucked a few turnip seeds into your pack to help you settle in.".into(),
-            "Till some soil near your house, plant those turnip seeds, and water them every day.".into(),
+            "We're a small town, but folks look after one another. Visit the general store after this if you need more seeds.".into(),
+            "First things first: till a patch by the house, plant those turnip seeds, and water them today.".into(),
+            "I've tucked a few turnip seeds into your pack so you can get your first crop started right away.".into(),
+            "Once those are in the ground, press F near your mailbox or head into town and introduce yourself at your own pace.".into(),
         ],
         portrait_index: Some(7),
     });
