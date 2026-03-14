@@ -60,11 +60,11 @@ fn color_bg_bar() -> Color {
 }
 
 fn color_fish_zone() -> Color {
-    Color::srgb(0.9, 0.35, 0.1)
+    Color::srgb(0.72, 0.58, 0.34)
 }
 
 fn color_catch_bar() -> Color {
-    Color::srgb(0.2, 0.85, 0.3)
+    Color::srgb(0.46, 0.72, 0.56)
 }
 
 fn color_progress_bg() -> Color {
@@ -72,11 +72,11 @@ fn color_progress_bg() -> Color {
 }
 
 fn color_progress_fill() -> Color {
-    Color::srgb(0.1, 0.7, 0.95)
+    Color::srgb(0.39, 0.64, 0.74)
 }
 
 fn color_progress_fill_near() -> Color {
-    Color::srgb(0.95, 0.85, 0.1)
+    Color::srgb(0.73, 0.70, 0.42)
 }
 
 // ─── Z-layers ─────────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ pub fn spawn_minigame_ui(mut commands: Commands, minigame_state: Res<FishingMini
     let screen_to_world = PIXEL_SCALE;
 
     // Bar position: right side, vertically centered
-    let bar_world_x = (SCREEN_WIDTH / 2.0 - 90.0) * screen_to_world;
+    let bar_world_x = (SCREEN_WIDTH / 2.0 - 140.0) * screen_to_world;
     let bar_world_y = 0.0_f32;
 
     // Convert bar dimensions from screen-pixels to world units
@@ -218,8 +218,8 @@ pub fn animate_bobber(
         let is_bite = fishing_state.phase == FishingPhase::BitePending;
 
         // Faster, deeper bob when a fish has bitten
-        let bob_speed = if is_bite { 4.0 } else { 1.5 };
-        let bob_amplitude = if is_bite { 6.0 } else { 2.0 };
+        let bob_speed = if is_bite { 3.0 } else { 1.2 };
+        let bob_amplitude = if is_bite { 4.0 } else { 1.5 };
 
         bobber.bob_timer.tick(time.delta());
 
