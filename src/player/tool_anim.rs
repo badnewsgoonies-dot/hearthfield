@@ -6,20 +6,20 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use rand::Rng;
 
-const TOOL_SWING_DURATION_MULTIPLIER: f32 = 1.15;
-const IMPACT_PARTICLE_COUNT_MULTIPLIER: f32 = 1.5;
+const TOOL_SWING_DURATION_MULTIPLIER: f32 = 1.08;
+const IMPACT_PARTICLE_COUNT_MULTIPLIER: f32 = 2.0;
 
 /// Per-tool frame duration in seconds. Heavy tools feel weighty,
 /// light tools feel snappy. Total animation = duration x 4 frames.
 fn tool_frame_duration(tool: ToolKind) -> f32 {
     TOOL_SWING_DURATION_MULTIPLIER
         * match tool {
-            ToolKind::Axe => 0.15,         // 0.60s total — heavy, impactful chop
-            ToolKind::Pickaxe => 0.14,     // 0.56s total — heavy swing
-            ToolKind::Hoe => 0.12,         // 0.48s total — deliberate tilling
+            ToolKind::Axe => 0.145,        // 0.58s total — heavy, impactful chop
+            ToolKind::Pickaxe => 0.135,    // 0.54s total — heavy swing
+            ToolKind::Hoe => 0.105,        // 0.42s total — deliberate tilling
             ToolKind::FishingRod => 0.11,  // 0.44s total — quick cast flick
-            ToolKind::WateringCan => 0.10, // 0.40s total — smooth pour
-            ToolKind::Scythe => 0.08,      // 0.32s total — fast sweep
+            ToolKind::WateringCan => 0.09, // 0.36s total — smooth pour
+            ToolKind::Scythe => 0.075,     // 0.30s total — fast sweep
         }
 }
 
@@ -42,10 +42,10 @@ fn tool_swing_params(tool: ToolKind, frame: usize) -> (f32, Vec2) {
     match tool {
         // Hoe / Pickaxe / Axe: overhead swing arc
         ToolKind::Hoe | ToolKind::Pickaxe | ToolKind::Axe => match frame {
-            0 => (-45.0, Vec2::new(0.0, 1.0)), // wind-up: tilt back
-            1 => (-15.0, Vec2::new(0.0, 0.5)), // mid-swing
-            2 => (30.0, Vec2::new(0.0, -1.0)), // impact: snap forward
-            3 => (10.0, Vec2::ZERO),           // recovery
+            0 => (-52.0, Vec2::new(0.0, 1.4)), // wind-up: tilt back
+            1 => (-18.0, Vec2::new(0.0, 0.7)), // mid-swing
+            2 => (40.0, Vec2::new(0.0, -1.8)), // impact: snap forward
+            3 => (12.0, Vec2::ZERO),           // recovery
             _ => (0.0, Vec2::ZERO),
         },
         // Watering can: gentle forward tilt (pour)
@@ -171,9 +171,9 @@ pub fn animate_tool_use(
             if frame >= 2 && !*impact_fired {
                 *impact_fired = true;
                 // Impact flash: bright white burst
-                sprite.color = Color::srgb(1.5, 1.5, 1.5);
+                sprite.color = Color::srgb(1.7, 1.68, 1.55);
                 // Impact squash: brief scale distortion
-                transform.scale = Vec3::new(1.1, 0.9, 1.0);
+                transform.scale = Vec3::new(1.16, 0.86, 1.0);
                 let g = world_to_grid(logical_pos.0.x, logical_pos.0.y);
                 let (px, py) = (g.x, g.y);
                 let (dx, dy) = facing_offset(&movement.facing);
@@ -215,7 +215,7 @@ pub fn animate_tool_use(
                     }
                     // Recovery frame: scale back to normal, fade tint
                     if new_frame == 3 {
-                        sprite.color = Color::srgb(1.15, 1.15, 1.05);
+                        sprite.color = Color::srgb(1.2, 1.16, 1.04);
                         transform.scale = Vec3::ONE;
                     }
                     movement.anim_state = PlayerAnimState::ToolUse {
