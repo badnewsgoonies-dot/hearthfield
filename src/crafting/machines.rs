@@ -527,7 +527,10 @@ pub fn tick_processing_machines(
                 );
 
                 toast_events.send(ToastEvent {
-                    message: format!("{} is ready in your {}!", output_name, machine_name),
+                    message: format!(
+                        "Your {} has finished a fresh batch of {}.",
+                        machine_name, output_name
+                    ),
                     duration_secs: 4.0,
                 });
             }
@@ -579,7 +582,10 @@ pub fn handle_insert_machine_input(
                 machine.machine_type.display_name()
             );
             toast_events.send(ToastEvent {
-                message: format!("{} is already busy!", machine.machine_type.display_name()),
+                message: format!(
+                    "{} is already hard at work.",
+                    machine.machine_type.display_name()
+                ),
                 duration_secs: 2.0,
             });
             continue;
@@ -602,7 +608,7 @@ pub fn handle_insert_machine_input(
             );
             toast_events.send(ToastEvent {
                 message: format!(
-                    "{} can't process that item.",
+                    "{} needs a different ingredient to start transforming anything.",
                     machine.machine_type.display_name()
                 ),
                 duration_secs: 2.5,
@@ -654,7 +660,7 @@ pub fn handle_insert_machine_input(
         );
 
         toast_events.send(ToastEvent {
-            message: format!("Processing {} in {}...", input_display, machine_name),
+            message: format!("The {} starts working on {}.", machine_name, input_display),
             duration_secs: 3.0,
         });
 
@@ -725,7 +731,7 @@ pub fn handle_collect_machine_output(
             info!("Collected '{}' from {}", output_id, machine_name);
 
             toast_events.send(ToastEvent {
-                message: format!("{} collected from your {}!", output_display, machine_name),
+                message: format!("You pull {} out of the {}.", output_display, machine_name),
                 duration_secs: 3.0,
             });
 
