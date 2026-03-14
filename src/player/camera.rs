@@ -26,8 +26,8 @@ pub fn camera_follow_player(
 
     let target_x = logical_pos.0.x
         + match movement.facing {
-            Facing::Left => -18.0,
-            Facing::Right => 18.0,
+            Facing::Left => -22.0,
+            Facing::Right => 22.0,
             _ => 0.0,
         };
     // Offset camera upward by slightly less than half the player sprite height
@@ -35,15 +35,16 @@ pub fn camera_follow_player(
     // because player sprite uses BottomCenter anchor.
     let target_y = logical_pos.0.y
         + match movement.facing {
-            Facing::Up => 34.0,
-            Facing::Down => 22.0,
-            Facing::Left | Facing::Right => 28.0,
+            Facing::Up => 38.0,
+            Facing::Down => 18.0,
+            Facing::Left | Facing::Right => 30.0,
         };
 
     // Snap if countdown active or if camera is very far from target (teleport)
     let dx = (target_x - cam_tf.translation.x).abs();
     let dy = (target_y - cam_tf.translation.y).abs();
-    let should_snap = snap.frames_remaining > 0 || dx > TILE_SIZE * 3.0 || dy > TILE_SIZE * 3.0;
+    let should_snap =
+        snap.frames_remaining > 0 || dx > TILE_SIZE * 2.25 || dy > TILE_SIZE * 2.25;
 
     let (smooth_x, smooth_y) = if should_snap {
         if snap.frames_remaining > 0 {
@@ -51,7 +52,7 @@ pub fn camera_follow_player(
         }
         (target_x, target_y)
     } else {
-        let lerp_speed = 6.0;
+        let lerp_speed = 8.5;
         let t = (lerp_speed * time.delta_secs()).min(1.0);
         (
             cam_tf.translation.x + (target_x - cam_tf.translation.x) * t,
