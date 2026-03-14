@@ -65,10 +65,10 @@ pub struct FallingLeaf {
 /// The tint is applied as a multiplicative colour: White = no change.
 fn terrain_tint(season: Season) -> Color {
     match season {
-        Season::Spring => Color::srgb(0.88, 1.00, 0.90), // fresh green lift
-        Season::Summer => Color::srgb(1.00, 0.93, 0.76), // sun-baked golden warmth
-        Season::Fall => Color::srgb(1.00, 0.74, 0.46),   // stronger orange-amber cast
-        Season::Winter => Color::srgb(0.80, 0.88, 1.00), // cool blue-white
+        Season::Spring => Color::srgb(0.86, 1.00, 0.88), // fresher green lift
+        Season::Summer => Color::srgb(1.00, 0.94, 0.80), // sun-baked golden warmth
+        Season::Fall => Color::srgb(1.00, 0.70, 0.42),   // warmer orange-amber cast
+        Season::Winter => Color::srgb(0.82, 0.90, 1.00), // cool blue-white
     }
 }
 
@@ -79,20 +79,20 @@ fn tree_tint(season: Season, variant_b: bool) -> Color {
     match season {
         Season::Spring => {
             if variant_b {
-                Color::srgb(1.00, 0.76, 0.86) // brighter cherry blossom pink
+                Color::srgb(1.00, 0.80, 0.88) // brighter cherry blossom pink
             } else {
-                Color::srgb(0.62, 1.00, 0.58) // vivid spring green
+                Color::srgb(0.58, 1.00, 0.54) // vivid spring green
             }
         }
-        Season::Summer => Color::srgb(0.82, 0.94, 0.46), // warm late-summer green
+        Season::Summer => Color::srgb(0.80, 0.92, 0.42), // warm late-summer green
         Season::Fall => {
             if variant_b {
-                Color::srgb(1.00, 0.78, 0.20) // harvest gold
+                Color::srgb(1.00, 0.76, 0.18) // harvest gold
             } else {
-                Color::srgb(0.96, 0.48, 0.18) // stronger burnt orange
+                Color::srgb(0.94, 0.42, 0.16) // stronger burnt orange
             }
         }
-        Season::Winter => Color::srgb(0.72, 0.78, 0.84), // frosted blue-grey
+        Season::Winter => Color::srgb(0.74, 0.80, 0.86), // frosted blue-grey
     }
 }
 
@@ -101,10 +101,10 @@ fn tree_tint(season: Season, variant_b: bool) -> Color {
 /// season shift for consistency.
 fn object_tint(season: Season) -> Color {
     match season {
-        Season::Spring => Color::srgb(0.95, 1.00, 0.96),
-        Season::Summer => Color::srgb(1.00, 0.95, 0.86),
-        Season::Fall => Color::srgb(0.98, 0.86, 0.72),
-        Season::Winter => Color::srgb(0.86, 0.92, 1.00),
+        Season::Spring => Color::srgb(0.96, 1.00, 0.97),
+        Season::Summer => Color::srgb(1.00, 0.96, 0.88),
+        Season::Fall => Color::srgb(0.98, 0.84, 0.68),
+        Season::Winter => Color::srgb(0.88, 0.94, 1.00),
     }
 }
 
@@ -175,7 +175,7 @@ pub fn apply_seasonal_tint(
 
 /// Spawn a single falling leaf above the camera viewport during autumn.
 ///
-/// Rate: approximately one leaf every 60 frames (tracked via `LeafSpawnAccumulator`).
+/// Rate: approximately one leaf every 32 frames (tracked via `LeafSpawnAccumulator`).
 pub fn spawn_falling_leaves(
     mut commands: Commands,
     calendar: Res<Calendar>,
@@ -189,13 +189,13 @@ pub fn spawn_falling_leaves(
     }
 
     // Accumulate time and emit at ~60fps cadence.
-    // Spawn rate: 1 leaf every ~45 frames for denser autumn atmosphere.
+    // Spawn rate: 1 leaf every ~32 frames for denser autumn atmosphere.
     accum.frames += time.delta_secs() * 60.0;
 
-    if accum.frames < 45.0 {
+    if accum.frames < 32.0 {
         return;
     }
-    accum.frames -= 45.0;
+    accum.frames -= 32.0;
 
     let camera_pos = camera_query
         .iter()
