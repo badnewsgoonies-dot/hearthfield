@@ -6,17 +6,25 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use rand::Rng;
 
+const TOOL_SWING_DURATION_MULTIPLIER: f32 = 1.15;
+const IMPACT_PARTICLE_COUNT_MULTIPLIER: f32 = 1.5;
+
 /// Per-tool frame duration in seconds. Heavy tools feel weighty,
 /// light tools feel snappy. Total animation = duration x 4 frames.
 fn tool_frame_duration(tool: ToolKind) -> f32 {
-    match tool {
-        ToolKind::Axe => 0.15,         // 0.60s total — heavy, impactful chop
-        ToolKind::Pickaxe => 0.14,     // 0.56s total — heavy swing
-        ToolKind::Hoe => 0.12,         // 0.48s total — deliberate tilling
-        ToolKind::FishingRod => 0.11,  // 0.44s total — quick cast flick
-        ToolKind::WateringCan => 0.10, // 0.40s total — smooth pour
-        ToolKind::Scythe => 0.08,      // 0.32s total — fast sweep
-    }
+    TOOL_SWING_DURATION_MULTIPLIER
+        * match tool {
+            ToolKind::Axe => 0.15,         // 0.60s total — heavy, impactful chop
+            ToolKind::Pickaxe => 0.14,     // 0.56s total — heavy swing
+            ToolKind::Hoe => 0.12,         // 0.48s total — deliberate tilling
+            ToolKind::FishingRod => 0.11,  // 0.44s total — quick cast flick
+            ToolKind::WateringCan => 0.10, // 0.40s total — smooth pour
+            ToolKind::Scythe => 0.08,      // 0.32s total — fast sweep
+        }
+}
+
+fn scaled_impact_particle_count(count: usize) -> usize {
+    ((count as f32) * IMPACT_PARTICLE_COUNT_MULTIPLIER).round() as usize
 }
 
 /// Map a tool animation frame number onto the walk-frame bob cycle.
@@ -733,27 +741,27 @@ pub fn spawn_impact_particles(
         let (color, count, gravity) = match event.tool {
             ToolKind::Hoe => (
                 Color::srgba(0.55, 0.42, 0.28, 0.8),
-                rng.gen_range(4..=6usize),
+                scaled_impact_particle_count(rng.gen_range(4..=6usize)),
                 100.0f32,
             ),
             ToolKind::Pickaxe => (
                 Color::srgba(0.6, 0.6, 0.6, 0.8),
-                rng.gen_range(4..=6usize),
+                scaled_impact_particle_count(rng.gen_range(4..=6usize)),
                 100.0f32,
             ),
             ToolKind::Axe => (
                 Color::srgba(0.6, 0.45, 0.25, 0.8),
-                rng.gen_range(4..=6usize),
+                scaled_impact_particle_count(rng.gen_range(4..=6usize)),
                 100.0f32,
             ),
             ToolKind::Scythe => (
                 Color::srgba(0.4, 0.6, 0.25, 0.8),
-                rng.gen_range(4..=6usize),
+                scaled_impact_particle_count(rng.gen_range(4..=6usize)),
                 100.0f32,
             ),
             ToolKind::WateringCan => (
                 Color::srgba(0.4, 0.6, 1.0, 0.6),
-                rng.gen_range(3..=4usize),
+                scaled_impact_particle_count(rng.gen_range(3..=4usize)),
                 60.0f32,
             ),
             // Fishing rod: no ground impact particles
