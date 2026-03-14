@@ -63,21 +63,48 @@ pub fn handle_animal_interact(
 
         // Pet the animal.
         if !animal.petted_today {
+            let prior_happiness = animal.happiness;
             animal.petted_today = true;
-            // Immediate happiness bonus (capped at u8::MAX by saturating_add).
-            animal.happiness = animal.happiness.saturating_add(5);
+            // Lower-mood animals get a larger first pet boost.
+            let happiness_bump = match prior_happiness {
+                0..=79 => 12,
+                80..=159 => 8,
+                160..=219 => 4,
+                220..=u8::MAX => 1,
+            };
+            animal.happiness = animal.happiness.saturating_add(happiness_bump);
 
-            let pet_text = match animal.kind {
-                AnimalKind::Chicken => "Bawk!",
-                AnimalKind::Cow => "Moo~",
-                AnimalKind::Sheep => "Baa!",
-                AnimalKind::Goat => "Meh!",
-                AnimalKind::Duck => "Quack!",
-                AnimalKind::Rabbit => "~squeak~",
-                AnimalKind::Pig => "Oink!",
-                AnimalKind::Horse => "Neigh!",
-                AnimalKind::Cat => "<3",
-                AnimalKind::Dog => "Woof!",
+            let pet_text = match (animal.kind, prior_happiness) {
+                (AnimalKind::Chicken, 0..=79) => "Bawk?",
+                (AnimalKind::Chicken, 80..=159) => "Bawk!",
+                (AnimalKind::Chicken, 160..=u8::MAX) => "Bawk bawk!",
+                (AnimalKind::Cow, 0..=79) => "Mrrrmoo...",
+                (AnimalKind::Cow, 80..=159) => "Moo~",
+                (AnimalKind::Cow, 160..=u8::MAX) => "Mooooh!",
+                (AnimalKind::Sheep, 0..=79) => "Baa..?",
+                (AnimalKind::Sheep, 80..=159) => "Baa!",
+                (AnimalKind::Sheep, 160..=u8::MAX) => "Baa-aa!",
+                (AnimalKind::Goat, 0..=79) => "Meh...",
+                (AnimalKind::Goat, 80..=159) => "Meh!",
+                (AnimalKind::Goat, 160..=u8::MAX) => "Meeeeh!",
+                (AnimalKind::Duck, 0..=79) => "quack...",
+                (AnimalKind::Duck, 80..=159) => "Quack!",
+                (AnimalKind::Duck, 160..=u8::MAX) => "Quack-quack!",
+                (AnimalKind::Rabbit, 0..=79) => "sniff...",
+                (AnimalKind::Rabbit, 80..=159) => "~squeak~",
+                (AnimalKind::Rabbit, 160..=u8::MAX) => "binky!",
+                (AnimalKind::Pig, 0..=79) => "snorf...",
+                (AnimalKind::Pig, 80..=159) => "Oink!",
+                (AnimalKind::Pig, 160..=u8::MAX) => "Oink oink!",
+                (AnimalKind::Horse, 0..=79) => "hnnh...",
+                (AnimalKind::Horse, 80..=159) => "Neigh!",
+                (AnimalKind::Horse, 160..=u8::MAX) => "Neeeigh!",
+                (AnimalKind::Cat, 0..=79) => "mrrp...",
+                (AnimalKind::Cat, 80..=159) => "prrr...",
+                (AnimalKind::Cat, 160..=u8::MAX) => "<3",
+                (AnimalKind::Dog, 0..=79) => "ruff...",
+                (AnimalKind::Dog, 80..=159) => "Woof!",
+                (AnimalKind::Dog, 160..=u8::MAX) => "Wag wag!",
             };
 
             // Heart feedback above animal.
@@ -85,7 +112,7 @@ pub fn handle_animal_interact(
                 &mut commands,
                 animal_pos.extend(Z_EFFECTS) + Vec3::new(0.0, 14.0, 0.0),
                 pet_text,
-                Color::srgb(1.0, 0.4, 0.7),
+                Color::srgb(1.0, 0.52, 0.72),
             );
 
             sfx_writer.send(PlaySfxEvent {
@@ -93,11 +120,33 @@ pub fn handle_animal_interact(
             });
         } else {
             // Already petted today — give small feedback so player knows.
+            let repeat_text = match (animal.kind, animal.happiness) {
+                (AnimalKind::Chicken, 0..=159) => "Another peck later?",
+                (AnimalKind::Chicken, 160..=u8::MAX) => "This hen feels adored.",
+                (AnimalKind::Cow, 0..=159) => "Come back for more moo time.",
+                (AnimalKind::Cow, 160..=u8::MAX) => "This cow is fully content.",
+                (AnimalKind::Sheep, 0..=159) => "A gentle pat later?",
+                (AnimalKind::Sheep, 160..=u8::MAX) => "This sheep feels cozy.",
+                (AnimalKind::Goat, 0..=159) => "Maybe another scritch soon?",
+                (AnimalKind::Goat, 160..=u8::MAX) => "This goat is pleased.",
+                (AnimalKind::Duck, 0..=159) => "Try another pat later.",
+                (AnimalKind::Duck, 160..=u8::MAX) => "This duck feels cherished.",
+                (AnimalKind::Rabbit, 0..=159) => "Soft pets again later?",
+                (AnimalKind::Rabbit, 160..=u8::MAX) => "This bun is fully soothed.",
+                (AnimalKind::Pig, 0..=159) => "Save a snuggle for later.",
+                (AnimalKind::Pig, 160..=u8::MAX) => "This pig is happily spoiled.",
+                (AnimalKind::Horse, 0..=159) => "Another brush later?",
+                (AnimalKind::Horse, 160..=u8::MAX) => "This horse feels admired.",
+                (AnimalKind::Cat, 0..=159) => "Maybe another pet later.",
+                (AnimalKind::Cat, 160..=u8::MAX) => "This cat has been well loved.",
+                (AnimalKind::Dog, 0..=159) => "More pats later, friend?",
+                (AnimalKind::Dog, 160..=u8::MAX) => "This dog is already adored.",
+            };
             spawn_floating_text(
                 &mut commands,
                 animal_pos.extend(Z_EFFECTS) + Vec3::new(0.0, 14.0, 0.0),
-                "Already happy!",
-                Color::srgb(0.8, 0.8, 0.4),
+                repeat_text,
+                Color::srgb(0.95, 0.82, 0.52),
             );
         }
 
