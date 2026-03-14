@@ -30,19 +30,19 @@ pub fn spawn_toast_container(mut commands: Commands) {
         ToastContainer,
         Node {
             position_type: PositionType::Absolute,
-            top: Val::Px(60.0),
+            top: Val::Px(72.0),
             left: Val::Percent(50.0),
             // We translate back by a fixed amount to centre the column.
             // Bevy 0.15 doesn't expose `transform` on UI nodes directly, so
             // we use a generous max-width with auto margins to stay centred.
-            width: Val::Px(320.0),
+            width: Val::Px(360.0),
             // Shift left by half of the width to truly center it.
             margin: UiRect {
-                left: Val::Px(-160.0),
+                left: Val::Px(-180.0),
                 ..default()
             },
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(6.0),
+            row_gap: Val::Px(8.0),
             align_items: AlignItems::Center,
             ..default()
         },
@@ -75,6 +75,13 @@ fn toast_accent_color(message: &str) -> Color {
     } else if lower.contains("full") || lower.contains("can't") || lower.contains("not enough") {
         // Red accent for error/warning messages.
         Color::srgb(0.95, 0.25, 0.25)
+    } else if lower.contains("autosave")
+        || lower.contains("saved")
+        || lower.contains("save")
+        || lower.contains("loaded")
+    {
+        // Soft green accent for save/load system confirmations.
+        Color::srgb(0.74, 0.88, 0.68)
     } else {
         // Neutral white/grey accent for everything else.
         Color::srgba(0.8, 0.8, 0.8, 0.6)
@@ -126,8 +133,8 @@ pub fn handle_toast_events(
                     border: UiRect::all(Val::Px(1.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)),
-                BorderColor(Color::srgba(0.5, 0.5, 0.5, 0.5)),
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.82)),
+                BorderColor(Color::srgba(0.5, 0.5, 0.5, 0.68)),
                 PickingBehavior::IGNORE,
             ))
             .with_children(|parent| {
@@ -147,16 +154,16 @@ pub fn handle_toast_events(
                     Text::new(message),
                     TextFont {
                         font,
-                        font_size: 14.0,
+                        font_size: 15.0,
                         ..default()
                     },
                     TextColor(Color::WHITE),
                     Node {
                         padding: UiRect {
-                            left: Val::Px(8.0),
-                            right: Val::Px(12.0),
-                            top: Val::Px(5.0),
-                            bottom: Val::Px(5.0),
+                            left: Val::Px(10.0),
+                            right: Val::Px(14.0),
+                            top: Val::Px(7.0),
+                            bottom: Val::Px(7.0),
                         },
                         ..default()
                     },
@@ -187,7 +194,7 @@ pub fn update_toasts(
 
             if toast.timer.just_finished() {
                 // Transition to fade-out phase.
-                toast.fade_timer = Some(Timer::from_seconds(0.5, TimerMode::Once));
+                toast.fade_timer = Some(Timer::from_seconds(0.7, TimerMode::Once));
             }
         } else if let Some(ft) = toast.fade_timer.as_mut() {
             // Tick fade timer.
@@ -210,7 +217,7 @@ pub fn update_toasts(
                     current.to_srgba().red,
                     current.to_srgba().green,
                     current.to_srgba().blue,
-                    0.75 * alpha,
+                    0.82 * alpha,
                 );
 
                 // Fade the text children and accent bar.
