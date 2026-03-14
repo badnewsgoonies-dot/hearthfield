@@ -1,10 +1,10 @@
 //! Visual impact feedback when the player mines rocks with a pickaxe.
 //!
 //! Provides:
-//! - `RockShake` — oscillates the rock sprite ±1.5px in X over 0.12s on hit
-//! - `DamageFlash` — flashes the rock sprite white for one frame (0.05s) on hit
-//! - Spark particles — 2-3 bright yellow-white sparks on hit
-//! - Rock destruction burst — 6-8 stone fragments + dust poof on destroy
+//! - `RockShake` — oscillates the rock sprite ±2.5px in X over 0.16s on hit
+//! - `DamageFlash` — flashes the rock sprite white for one frame (0.08s) on hit
+//! - Spark particles — 4-6 bright yellow-white sparks on hit
+//! - Rock destruction burst — 10-14 stone fragments + dust poof on destroy
 
 use bevy::prelude::*;
 use rand::Rng;
@@ -25,7 +25,7 @@ pub struct RockShake {
 }
 
 /// Applied to a rock entity on pickaxe hit.
-/// Sets the sprite colour to a bright overexposed white for 0.05 s then removes itself.
+/// Sets the sprite colour to a bright overexposed white for 0.08 s then removes itself.
 #[derive(Component, Debug)]
 pub struct DamageFlash {
     pub timer: Timer,
@@ -77,7 +77,7 @@ pub struct RockDestroyedEvent {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// System: on `RockHitEvent`, add `RockShake` and `DamageFlash` to the rock entity
-/// and spawn 2-3 spark particles at the impact position.
+/// and spawn 4-6 spark particles at the impact position.
 pub fn handle_rock_hit_effects(
     mut commands: Commands,
     mut hit_events: EventReader<RockHitEvent>,
@@ -97,21 +97,21 @@ pub fn handle_rock_hit_effects(
             let original_x = transform.translation.x;
             commands.entity(event.rock_entity).insert((
                 RockShake {
-                    timer: Timer::from_seconds(0.12, TimerMode::Once),
+                    timer: Timer::from_seconds(0.16, TimerMode::Once),
                     original_x,
                 },
                 DamageFlash {
-                    timer: Timer::from_seconds(0.05, TimerMode::Once),
+                    timer: Timer::from_seconds(0.08, TimerMode::Once),
                 },
             ));
         }
 
-        // Spawn 2-3 spark particles
-        let count = rng.gen_range(2usize..=3);
+        // Spawn 4-6 spark particles
+        let count = rng.gen_range(4usize..=6);
         for _ in 0..count {
             let angle = rng.gen_range(0.0f32..std::f32::consts::TAU);
-            let speed = rng.gen_range(80.0f32..120.0);
-            let lifetime_secs = rng.gen_range(0.10f32..0.15);
+            let speed = rng.gen_range(110.0f32..170.0);
+            let lifetime_secs = rng.gen_range(0.14f32..0.22);
 
             commands.spawn((
                 RockSpark {
@@ -120,7 +120,7 @@ pub fn handle_rock_hit_effects(
                 },
                 Sprite {
                     color: Color::srgba(1.0, 0.9, 0.5, 0.9),
-                    custom_size: Some(Vec2::splat(1.0)),
+                    custom_size: Some(Vec2::splat(1.8)),
                     ..default()
                 },
                 Transform::from_xyz(event.world_x, event.world_y, Z_EFFECTS),
@@ -130,7 +130,7 @@ pub fn handle_rock_hit_effects(
     }
 }
 
-/// System: on `RockDestroyedEvent`, spawn 6-8 stone fragments + a gray dust poof.
+/// System: on `RockDestroyedEvent`, spawn 10-14 stone fragments + a gray dust poof.
 pub fn handle_rock_destroyed_effects(
     mut commands: Commands,
     mut destroy_events: EventReader<RockDestroyedEvent>,
@@ -147,24 +147,24 @@ pub fn handle_rock_destroyed_effects(
         let wx = event.world_x;
         let wy = event.world_y;
 
-        // 6-8 stone fragments
-        let count = rng.gen_range(6usize..=8);
+        // 10-14 stone fragments
+        let count = rng.gen_range(10usize..=14);
         for _ in 0..count {
             let angle = rng.gen_range(0.0f32..std::f32::consts::TAU);
-            let speed = rng.gen_range(60.0f32..120.0);
-            let lifetime_secs = rng.gen_range(0.40f32..0.60);
+            let speed = rng.gen_range(90.0f32..170.0);
+            let lifetime_secs = rng.gen_range(0.55f32..0.80);
             let initial_alpha = 0.85f32;
 
             commands.spawn((
                 StoneFragment {
                     lifetime: Timer::from_seconds(lifetime_secs, TimerMode::Once),
                     velocity: Vec2::new(angle.cos() * speed, angle.sin() * speed),
-                    gravity: 120.0,
+                    gravity: 150.0,
                     initial_alpha,
                 },
                 Sprite {
                     color: Color::srgba(0.55, 0.55, 0.55, initial_alpha),
-                    custom_size: Some(Vec2::splat(3.0)),
+                    custom_size: Some(Vec2::splat(4.5)),
                     ..default()
                 },
                 Transform::from_xyz(wx, wy, Z_EFFECTS),
@@ -173,17 +173,17 @@ pub fn handle_rock_destroyed_effects(
             ));
         }
 
-        // Gray dust poof (same pattern as TillPoof but gray, 10x10 px)
+        // Gray dust poof (same pattern as TillPoof but gray, 14x14 px)
         commands.spawn((
             RockDestroyPoof {
-                timer: Timer::from_seconds(0.25, TimerMode::Once),
+                timer: Timer::from_seconds(0.38, TimerMode::Once),
             },
             Sprite {
-                color: Color::srgba(0.55, 0.55, 0.55, 0.35),
-                custom_size: Some(Vec2::splat(10.0)),
+                color: Color::srgba(0.55, 0.55, 0.55, 0.45),
+                custom_size: Some(Vec2::splat(14.0)),
                 ..default()
             },
-            Transform::from_xyz(wx, wy, Z_EFFECTS - 1.0).with_scale(Vec3::splat(0.5)),
+            Transform::from_xyz(wx, wy, Z_EFFECTS - 1.0).with_scale(Vec3::splat(0.75)),
             Visibility::default(),
             MineFloorEntity,
         ));
@@ -210,7 +210,7 @@ pub fn update_rock_shake(
         } else {
             // Oscillate: sin over [0, π] produces a smooth out-and-back motion
             let t = shake.timer.fraction(); // 0..1
-            let offset = (t * std::f32::consts::PI * 4.0).sin() * 1.5;
+            let offset = (t * std::f32::consts::PI * 5.0).sin() * 2.5;
             transform.translation.x = shake.original_x + offset;
         }
     }
