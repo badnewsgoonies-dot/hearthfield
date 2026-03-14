@@ -68,19 +68,19 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // midnight — slightly less oppressive
         TintKeyframe {
             hour: 5.0,
-            tint: (0.3, 0.3, 0.5),
+            tint: (0.45, 0.34, 0.42),
             intensity: 0.45,
-        }, // late night
+        }, // pre-dawn — warm mauve on the horizon
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.85, 0.55),
+            tint: (1.0, 0.72, 0.42),
             intensity: 0.15,
-        }, // sunrise — warmer, more golden
+        }, // sunrise — warmer, more saturated amber
         TintKeyframe {
             hour: 8.0,
-            tint: (1.0, 1.0, 0.95),
+            tint: (1.0, 0.96, 0.88),
             intensity: 0.05,
-        }, // morning
+        }, // morning — lingering warmth
         TintKeyframe {
             hour: 10.0,
             tint: (1.0, 1.0, 1.0),
@@ -98,14 +98,14 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
         }, // golden hour — warm amber
         TintKeyframe {
             hour: 18.0,
-            tint: (1.0, 0.75, 0.45),
+            tint: (0.70, 0.58, 0.90),
             intensity: 0.18,
-        }, // sunset — more dramatic
+        }, // sunset — cooler indigo-violet
         TintKeyframe {
             hour: 20.0,
-            tint: (0.6, 0.6, 0.9),
+            tint: (0.42, 0.40, 0.72),
             intensity: 0.3,
-        }, // twilight
+        }, // twilight — deeper blue-purple
         TintKeyframe {
             hour: 22.0,
             tint: (0.3, 0.3, 0.5),
