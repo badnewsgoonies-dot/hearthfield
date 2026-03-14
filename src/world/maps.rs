@@ -155,8 +155,8 @@ fn generate_farm() -> MapDef {
     fill_rect(&mut tiles, 4, 5, 24, 12, TileKind::Dirt);
 
     // Animal buildings (north edge)
-    fill_rect(&mut tiles, 2, 1, 5, 3, TileKind::Stone); // Barn
-    fill_rect(&mut tiles, 24, 1, 3, 2, TileKind::Stone); // Chicken coop
+    fill_rect(&mut tiles, 1, 1, 7, 4, TileKind::Stone); // Barn
+    fill_rect(&mut tiles, 23, 1, 5, 3, TileKind::Stone); // Chicken coop
 
     // Path west to mine
     fill_rect(&mut tiles, 0, 10, 6, 2, TileKind::Path);
@@ -211,6 +211,22 @@ fn generate_farm() -> MapDef {
             x,
             y: 1,
             kind: WorldObjectKind::Tree,
+        });
+    }
+
+    // Bushes and stumps around the animal buildings to make the corners feel lived-in.
+    for (x, y) in [(1, 4), (2, 4), (7, 4), (23, 3), (27, 3), (28, 3)] {
+        objects.push(ObjectPlacement {
+            x,
+            y,
+            kind: WorldObjectKind::Bush,
+        });
+    }
+    for (x, y) in [(3, 4), (25, 3)] {
+        objects.push(ObjectPlacement {
+            x,
+            y,
+            kind: WorldObjectKind::Stump,
         });
     }
 
