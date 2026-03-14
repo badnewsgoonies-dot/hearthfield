@@ -1042,11 +1042,11 @@ fn spawn_water_edge_overlays(
     let [r, g, b, _] = base.to_srgba().to_f32_array();
 
     // Inner band: narrower, higher alpha
-    let inner_color = Color::srgba(r, g, b, 0.25);
-    let inner_thick = 3.0;
+    let inner_color = Color::srgba(r, g, b, 0.22);
+    let inner_thick = 4.0;
     // Outer band: wider, lower alpha for feathered edge
-    let outer_color = Color::srgba(r, g, b, 0.12);
-    let outer_thick = 6.0;
+    let outer_color = Color::srgba(r, g, b, 0.10);
+    let outer_thick = 8.0;
 
     let half = TILE_SIZE / 2.0;
     let inner_offset = half - inner_thick / 2.0;
@@ -1147,7 +1147,7 @@ fn animate_water_tiles(
     mut overlay_query: Query<&mut Sprite, (With<WaterEdgeOverlay>, Without<WaterTile>)>,
 ) {
     // Alpha values for the 4 phases: ramp up then back down for a gentle pulse.
-    const EDGE_ALPHAS: [f32; 4] = [0.18, 0.25, 0.30, 0.25];
+    const EDGE_ALPHAS: [f32; 4] = [0.14, 0.22, 0.32, 0.22];
 
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
