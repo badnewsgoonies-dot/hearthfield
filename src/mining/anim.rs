@@ -260,9 +260,9 @@ fn draw_rock_crab(data: &mut [u8], w: usize) {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// System: animate enemy idle behaviors based on their type.
-/// - Slimes: vertical squash-stretch (scale Y 0.85-1.15 at 1.5 Hz, X inverse)
-/// - Bats: wing flap via scale X oscillation + small vertical bob (+-2px at 2 Hz)
-/// - Rock crabs: subtle horizontal wobble (+-1px at 0.5 Hz)
+/// - Slimes: vertical squash-stretch with a larger silhouette and faster pulse
+/// - Bats: stronger wing flap via scale X oscillation + more pronounced vertical bob
+/// - Rock crabs: quicker horizontal wobble with a wider idle offset
 pub fn animate_enemy_idle(
     time: Res<Time>,
     mut query: Query<(
@@ -286,37 +286,35 @@ pub fn animate_enemy_idle(
 
         match monster.kind {
             MineEnemy::GreenSlime => {
-                // Squash-stretch: Y oscillates 0.85-1.15 at 1.5 Hz
-                let freq = 1.5 * std::f32::consts::TAU;
+                // Squash-stretch with a larger silhouette and sharper warning motion.
+                let freq = 1.8 * std::f32::consts::TAU;
                 let wave = ((t + phase) * freq).sin();
-                let scale_y = 1.0 + wave * 0.15; // 0.85 to 1.15
-                let scale_x = 1.0 - wave * 0.10; // inverse (wider when squished)
-                                                 // Preserve Z scale from original spawn (1.2)
-                let base_scale = 1.2;
+                let scale_y = 1.0 + wave * 0.22;
+                let scale_x = 1.0 - wave * 0.14; // inverse (wider when squished)
+                let base_scale = 1.28;
                 transform.scale = Vec3::new(base_scale * scale_x, base_scale * scale_y, 1.0);
             }
             MineEnemy::Bat => {
                 // Wing flap: scale X oscillation + vertical bob
-                let flap_freq = 2.0 * std::f32::consts::TAU;
-                let bob_freq = 2.0 * std::f32::consts::TAU;
+                let flap_freq = 2.6 * std::f32::consts::TAU;
+                let bob_freq = 2.3 * std::f32::consts::TAU;
                 let flap = ((t + phase) * flap_freq).sin();
                 let bob = ((t + phase) * bob_freq).cos();
 
-                let base_scale = 1.2;
-                transform.scale = Vec3::new(base_scale * (1.0 + flap * 0.12), base_scale, 1.0);
-                // Vertical bob +-2 pixels (applied as offset from grid position)
+                let base_scale = 1.30;
+                transform.scale = Vec3::new(base_scale * (1.0 + flap * 0.20), base_scale, 1.0);
+                // Vertical bob is applied as an offset from grid position.
                 // We modify only the fractional part to avoid fighting with grid snap
                 let grid_y = (transform.translation.y / TILE_SIZE).round() * TILE_SIZE;
-                transform.translation.y = grid_y + bob * 2.0;
+                transform.translation.y = grid_y + bob * 3.5;
             }
             MineEnemy::RockCrab => {
-                // Subtle side-to-side wobble at 0.5 Hz
-                let wobble_freq = 0.5 * std::f32::consts::TAU;
+                // Side-to-side wobble with a slightly larger idle footprint.
+                let wobble_freq = 0.8 * std::f32::consts::TAU;
                 let wobble = ((t + phase) * wobble_freq).sin();
                 let grid_x = (transform.translation.x / TILE_SIZE).round() * TILE_SIZE;
-                transform.translation.x = grid_x + wobble * 1.0;
-                // Keep base scale
-                transform.scale = Vec3::splat(1.2);
+                transform.translation.x = grid_x + wobble * 1.75;
+                transform.scale = Vec3::splat(1.28);
             }
         }
 
@@ -351,8 +349,8 @@ pub fn animate_ore_shimmer(
         // Spawn a small sparkle particle near the ore
         // Random offset within the tile (using time-based pseudo-random)
         let t = time.elapsed_secs();
-        let offset_x = ((t * 127.1).sin() * 6.0).round();
-        let offset_y = ((t * 311.7).cos() * 6.0).round();
+        let offset_x = ((t * 127.1).sin() * 8.0).round();
+        let offset_y = ((t * 311.7).cos() * 8.0).round();
 
         let particle_pos = Vec3::new(
             ore_transform.translation.x + offset_x,
@@ -362,14 +360,14 @@ pub fn animate_ore_shimmer(
 
         let mut sprite = Sprite::from_image(particle_handle.clone());
         sprite.color = shimmer.color;
-        sprite.custom_size = Some(Vec2::splat(4.0));
+        sprite.custom_size = Some(Vec2::splat(5.0));
 
         commands.spawn((
             sprite,
             Transform::from_translation(particle_pos),
             MineFloorEntity,
             ShimmerParticle {
-                lifetime: Timer::from_seconds(0.4, TimerMode::Once),
+                lifetime: Timer::from_seconds(0.55, TimerMode::Once),
             },
         ));
     }
@@ -392,7 +390,7 @@ pub fn update_shimmer_particles(
         let progress = particle.lifetime.fraction();
 
         // Float upward slightly
-        transform.translation.y += time.delta_secs() * 8.0;
+        transform.translation.y += time.delta_secs() * 11.0;
 
         // Fade out
         let alpha = 1.0 - progress;
