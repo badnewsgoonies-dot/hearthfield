@@ -1704,36 +1704,36 @@ fn town_buildings() -> Vec<BuildingDef> {
 
 fn farm_buildings() -> Vec<BuildingDef> {
     vec![
-        // Player house (top center of farm) — composite farmhouse sprite (128x160)
+        // Player house (lower-left area) — composite farmhouse sprite (128x160)
         BuildingDef {
-            x: 13,
-            y: 0,
+            x: 2,
+            y: 17,
             w: 6,
             h: 3,
-            door_x: 15,
-            door_y: 0,
+            door_x: 7,
+            door_y: 19,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
             composite: Some(BuildingImage::Farmhouse),
         },
-        // Chicken coop (bottom-left area) — composite chicken house sprite (48x48)
+        // Chicken coop (upper-right area) — composite chicken house sprite (48x48)
         BuildingDef {
-            x: 9,
-            y: 17,
+            x: 24,
+            y: 1,
             w: 3,
             h: 2,
-            door_x: 10,
-            door_y: 17,
+            door_x: 25,
+            door_y: 2,
             roof_tint: Color::srgb(0.9, 0.8, 0.5),
             composite: Some(BuildingImage::ChickenHouse),
         },
-        // Barn (bottom-left area) — composite barn sprite (128x160)
+        // Barn (upper-left area) — composite barn sprite (128x160)
         BuildingDef {
-            x: 3,
-            y: 16,
+            x: 2,
+            y: 1,
             w: 5,
             h: 3,
-            door_x: 5,
-            door_y: 16,
+            door_x: 4,
+            door_y: 3,
             roof_tint: Color::srgb(0.7, 0.3, 0.3),
             composite: Some(BuildingImage::Barn),
         },
