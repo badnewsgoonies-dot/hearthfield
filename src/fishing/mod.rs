@@ -70,6 +70,7 @@ impl Plugin for FishingPlugin {
             .add_systems(
                 Update,
                 (
+                    update_fishing_proximity_hint,
                     cast::handle_tool_use_for_fishing,
                     cast::update_bite_timer,
                     cast::handle_bite_reaction_window,
@@ -488,6 +489,10 @@ pub struct WaterRipple {
 #[derive(Component)]
 pub struct MinigameRoot;
 
+/// A subtle world-space indicator shown on a nearby fishable water tile.
+#[derive(Component)]
+pub struct FishingProximityHint;
+
 /// The dark background bar for the minigame.
 #[derive(Component)]
 pub struct MinigameBgBar;
@@ -507,3 +512,103 @@ pub struct MinigameProgressFill;
 /// Progress bar background.
 #[derive(Component)]
 pub struct MinigameProgressBg;
+
+fn update_fishing_proximity_hint(
+    mut commands: Commands,
+    time: Res<Time>,
+    fishing_atlas: Res<FishingAtlas>,
+    fishing_state: Res<FishingState>,
+    player_state: Res<PlayerState>,
+    world_map: Res<crate::world::WorldMap>,
+    player_query: Query<(&GridPosition, &PlayerMovement), With<Player>>,
+    mut hint_query: Query<(Entity, &mut Sprite, &mut Transform), With<FishingProximityHint>>,
+) {
+    let hint_tile = nearest_fishing_hint_tile(
+        &player_query,
+        &player_state,
+        &fishing_state,
+        world_map.map_def.as_ref(),
+    );
+
+    if let Some((tile_x, tile_y)) = hint_tile {
+        let phase = time.elapsed_secs() * 2.4;
+        let alpha = 0.14 + 0.08 * ((phase.sin() + 1.0) * 0.5);
+        let scale = 0.9 + 0.08 * (((phase * 1.3).sin() + 1.0) * 0.5);
+        let bob = 1.5 * (phase * 0.75).sin();
+        let translation = Vec3::new(
+            tile_x as f32 * TILE_SIZE,
+            tile_y as f32 * TILE_SIZE + bob,
+            Z_EFFECTS - 0.05,
+        );
+        let tint = Color::srgba(0.82, 0.96, 1.0, alpha);
+
+        let mut hints = hint_query.iter_mut();
+        if let Some((_, mut sprite, mut transform)) = hints.next() {
+            sprite.color = tint;
+            transform.translation = translation;
+            transform.scale = Vec3::splat(scale);
+        } else if fishing_atlas.loaded {
+            let mut sprite = Sprite::from_atlas_image(
+                fishing_atlas.image.clone(),
+                TextureAtlas {
+                    layout: fishing_atlas.layout.clone(),
+                    index: 6, // ripple
+                },
+            );
+            sprite.color = tint;
+            sprite.custom_size = Some(Vec2::splat(TILE_SIZE * 0.75));
+
+            commands.spawn((
+                sprite,
+                Transform {
+                    translation,
+                    scale: Vec3::splat(scale),
+                    ..default()
+                },
+                FishingProximityHint,
+            ));
+        }
+
+        for (entity, _, _) in hints {
+            commands.entity(entity).despawn();
+        }
+    } else {
+        for (entity, _, _) in hint_query.iter_mut() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn nearest_fishing_hint_tile(
+    player_query: &Query<(&GridPosition, &PlayerMovement), With<Player>>,
+    player_state: &PlayerState,
+    fishing_state: &FishingState,
+    map_def: Option<&MapDef>,
+) -> Option<(i32, i32)> {
+    if player_state.equipped_tool != ToolKind::FishingRod
+        || fishing_state.phase != FishingPhase::Idle
+    {
+        return None;
+    }
+
+    let Ok((grid_pos, movement)) = player_query.get_single() else {
+        return None;
+    };
+    let Some(map_def) = map_def else {
+        return None;
+    };
+
+    let facing = crate::player::facing_offset(&movement.facing);
+    let candidates = match movement.facing {
+        Facing::Up => [facing, (-1, 0), (1, 0), (0, -1)],
+        Facing::Down => [facing, (1, 0), (-1, 0), (0, 1)],
+        Facing::Left => [facing, (0, -1), (0, 1), (1, 0)],
+        Facing::Right => [facing, (0, 1), (0, -1), (-1, 0)],
+    };
+
+    candidates.into_iter().find_map(|(dx, dy)| {
+        let tile_x = grid_pos.x + dx;
+        let tile_y = grid_pos.y + dy;
+        (map_def.get_tile(tile_x, tile_y) == TileKind::Water).then_some((tile_x, tile_y))
+    })
+}
