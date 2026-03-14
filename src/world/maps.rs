@@ -696,7 +696,7 @@ fn generate_beach() -> MapDef {
         },
     ];
 
-    let forage_points = vec![(4, 5), (8, 4), (13, 5), (6, 7)];
+    let forage_points = vec![(4, 5), (8, 4), (13, 5), (6, 7), (3, 8), (10, 7), (15, 8)];
 
     MapDef {
         id: MapId::Beach,
@@ -1851,14 +1851,20 @@ fn generate_coral_island() -> MapDef {
     let driftwood_spots = [
         (4, 5),
         (5, 6),
+        (6, 7),
         (4, 9),
         (5, 10),
+        (6, 11),
         (4, 13),
         (5, 14),
+        (6, 15),
         (4, 17),
         (6, 18),
+        (8, 18),
         (9, 19),
+        (12, 18),
         (14, 19),
+        (17, 18),
     ];
     for (dx, dy) in &driftwood_spots {
         objects.push(ObjectPlacement {
@@ -1869,7 +1875,7 @@ fn generate_coral_island() -> MapDef {
     }
 
     // Larger washed-up timber mixed into the drift lines
-    let beach_logs = [(6, 8), (5, 16), (11, 19), (18, 19)];
+    let beach_logs = [(6, 8), (7, 12), (5, 16), (10, 18), (11, 19), (16, 18), (18, 19)];
     for (lx, ly) in &beach_logs {
         objects.push(ObjectPlacement {
             x: *lx,
