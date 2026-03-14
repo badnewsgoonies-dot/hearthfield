@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::shared::*;
+use crate::world::maps::MapDef;
 
 // ─── Sub-modules ────────────────────────────────────────────────────────────
 mod bite;

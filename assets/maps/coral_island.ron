@@ -776,7 +776,17 @@
             kind: PalmTree,
         ),
         (
+            x: 19,
+            y: 13,
+            kind: Coral,
+        ),
+        (
             x: 21,
+            y: 14,
+            kind: Coral,
+        ),
+        (
+            x: 22,
             y: 14,
             kind: Coral,
         ),
@@ -801,6 +811,11 @@
             kind: Coral,
         ),
         (
+            x: 21,
+            y: 16,
+            kind: Coral,
+        ),
+        (
             x: 22,
             y: 16,
             kind: Coral,
@@ -816,12 +831,32 @@
             kind: Coral,
         ),
         (
+            x: 27,
+            y: 16,
+            kind: Coral,
+        ),
+        (
+            x: 20,
+            y: 17,
+            kind: Coral,
+        ),
+        (
             x: 21,
             y: 18,
             kind: Coral,
         ),
         (
+            x: 23,
+            y: 18,
+            kind: Coral,
+        ),
+        (
             x: 24,
+            y: 18,
+            kind: Coral,
+        ),
+        (
+            x: 26,
             y: 18,
             kind: Coral,
         ),
@@ -841,8 +876,28 @@
             kind: Rock,
         ),
         (
+            x: 22,
+            y: 15,
+            kind: Rock,
+        ),
+        (
+            x: 24,
+            y: 15,
+            kind: Rock,
+        ),
+        (
             x: 26,
             y: 15,
+            kind: Rock,
+        ),
+        (
+            x: 19,
+            y: 17,
+            kind: Rock,
+        ),
+        (
+            x: 25,
+            y: 17,
             kind: Rock,
         ),
         (
@@ -851,13 +906,43 @@
             kind: Driftwood,
         ),
         (
+            x: 5,
+            y: 6,
+            kind: Driftwood,
+        ),
+        (
+            x: 6,
+            y: 7,
+            kind: Driftwood,
+        ),
+        (
             x: 4,
             y: 9,
             kind: Driftwood,
         ),
         (
+            x: 5,
+            y: 10,
+            kind: Driftwood,
+        ),
+        (
+            x: 6,
+            y: 11,
+            kind: Driftwood,
+        ),
+        (
             x: 4,
             y: 13,
+            kind: Driftwood,
+        ),
+        (
+            x: 5,
+            y: 14,
+            kind: Driftwood,
+        ),
+        (
+            x: 6,
+            y: 15,
             kind: Driftwood,
         ),
         (
@@ -867,8 +952,68 @@
         ),
         (
             x: 6,
+            y: 18,
+            kind: Driftwood,
+        ),
+        (
+            x: 8,
+            y: 18,
+            kind: Driftwood,
+        ),
+        (
+            x: 9,
             y: 19,
             kind: Driftwood,
+        ),
+        (
+            x: 12,
+            y: 18,
+            kind: Driftwood,
+        ),
+        (
+            x: 14,
+            y: 19,
+            kind: Driftwood,
+        ),
+        (
+            x: 17,
+            y: 18,
+            kind: Driftwood,
+        ),
+        (
+            x: 6,
+            y: 8,
+            kind: Log,
+        ),
+        (
+            x: 7,
+            y: 12,
+            kind: Log,
+        ),
+        (
+            x: 5,
+            y: 16,
+            kind: Log,
+        ),
+        (
+            x: 10,
+            y: 18,
+            kind: Log,
+        ),
+        (
+            x: 11,
+            y: 19,
+            kind: Log,
+        ),
+        (
+            x: 16,
+            y: 18,
+            kind: Log,
+        ),
+        (
+            x: 18,
+            y: 19,
+            kind: Log,
         ),
     ],
     forage_points: [

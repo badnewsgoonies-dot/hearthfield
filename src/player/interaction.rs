@@ -252,13 +252,15 @@ mod tests {
     #[test]
     fn farmhouse_path_tile_does_not_immediately_reenter_house() {
         let reg = test_registry();
+        // The door at (7-8, 19) should enter the house
         assert_eq!(
-            edge_transition_from_registry(&MapId::Farm, 16, 3, &reg),
-            None
-        );
-        assert_eq!(
-            edge_transition_from_registry(&MapId::Farm, 16, 2, &reg),
+            edge_transition_from_registry(&MapId::Farm, 8, 19, &reg),
             Some((MapId::PlayerHouse, 8, 14))
+        );
+        // One tile below the door should NOT re-enter
+        assert_eq!(
+            edge_transition_from_registry(&MapId::Farm, 8, 20, &reg),
+            None
         );
     }
 
@@ -267,7 +269,7 @@ mod tests {
         let reg = test_registry();
         assert_eq!(
             edge_transition_from_registry(&MapId::Farm, 0, 10, &reg),
-            Some((MapId::MineEntrance, 12, 6))
+            Some((MapId::MineEntrance, 12, 10))
         );
     }
 
@@ -331,7 +333,7 @@ mod tests {
         let reg = test_registry();
         assert_eq!(
             edge_transition_from_registry(&MapId::MineEntrance, 13, 5, &reg),
-            Some((MapId::Farm, 1, 9))
+            Some((MapId::Farm, 1, 10))
         );
     }
 

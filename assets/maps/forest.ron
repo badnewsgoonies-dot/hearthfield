@@ -527,61 +527,6 @@
             kind: Tree,
         ),
         (
-            x: 0,
-            y: 2,
-            kind: Tree,
-        ),
-        (
-            x: 0,
-            y: 12,
-            kind: Tree,
-        ),
-        (
-            x: 2,
-            y: 16,
-            kind: Tree,
-        ),
-        (
-            x: 4,
-            y: 17,
-            kind: Tree,
-        ),
-        (
-            x: 8,
-            y: 17,
-            kind: Tree,
-        ),
-        (
-            x: 10,
-            y: 16,
-            kind: Tree,
-        ),
-        (
-            x: 16,
-            y: 16,
-            kind: Tree,
-        ),
-        (
-            x: 18,
-            y: 17,
-            kind: Tree,
-        ),
-        (
-            x: 21,
-            y: 4,
-            kind: Tree,
-        ),
-        (
-            x: 21,
-            y: 10,
-            kind: Tree,
-        ),
-        (
-            x: 21,
-            y: 14,
-            kind: Tree,
-        ),
-        (
             x: 3,
             y: 5,
             kind: Pine,
@@ -607,26 +552,6 @@
             kind: Pine,
         ),
         (
-            x: 2,
-            y: 2,
-            kind: Pine,
-        ),
-        (
-            x: 6,
-            y: 2,
-            kind: Pine,
-        ),
-        (
-            x: 15,
-            y: 2,
-            kind: Pine,
-        ),
-        (
-            x: 19,
-            y: 15,
-            kind: Pine,
-        ),
-        (
             x: 16,
             y: 3,
             kind: Rock,
@@ -647,16 +572,6 @@
             kind: Stump,
         ),
         (
-            x: 7,
-            y: 15,
-            kind: Stump,
-        ),
-        (
-            x: 17,
-            y: 15,
-            kind: Stump,
-        ),
-        (
             x: 1,
             y: 12,
             kind: Bush,
@@ -665,41 +580,6 @@
             x: 9,
             y: 12,
             kind: Bush,
-        ),
-        (
-            x: 2,
-            y: 5,
-            kind: Bush,
-        ),
-        (
-            x: 5,
-            y: 15,
-            kind: Bush,
-        ),
-        (
-            x: 12,
-            y: 15,
-            kind: Bush,
-        ),
-        (
-            x: 18,
-            y: 4,
-            kind: Bush,
-        ),
-        (
-            x: 19,
-            y: 13,
-            kind: Bush,
-        ),
-        (
-            x: 4,
-            y: 6,
-            kind: Log,
-        ),
-        (
-            x: 14,
-            y: 12,
-            kind: Log,
         ),
     ],
     forage_points: [
@@ -727,7 +607,7 @@
         north: Some((MineEntrance, Fixed(7, 1))),
         south: None,
         east: Some((DeepForest, ClampY(1))),
-        west: Some((Farm, ClampY(30))),
+        west: Some((Farm, Fixed(30, 10))),
     ),
     buildings: [],
 )

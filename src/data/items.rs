@@ -1981,6 +1981,11 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         ItemDef { id: "ice_pip".into(), name: "Ice Pip".into(), description: "A tiny fish from the deepest frozen cavern pools.".into(), category: ItemCategory::Fish, sell_price: 300, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 133 },
         ItemDef { id: "lava_eel".into(), name: "Lava Eel".into(), description: "An eel that thrives in volcanic heat. Extremely difficult to catch.".into(), category: ItemCategory::Fish, sell_price: 700, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 134 },
 
+        // Snow Mountain fish
+        ItemDef { id: "ice_perch".into(), name: "Ice Perch".into(), description: "A crisp mountain perch at home in thin winter light.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 135 },
+        ItemDef { id: "frost_trout".into(), name: "Frost Trout".into(), description: "A cold-stream trout with a silver-blue back.".into(), category: ItemCategory::Fish, sell_price: 250, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 136 },
+        ItemDef { id: "glacial_pike".into(), name: "Glacial Pike".into(), description: "An alpine predator that arrives with snow.".into(), category: ItemCategory::Fish, sell_price: 350, buy_price: None, stack_size: 99, edible: false, energy_restore: 0.0, sprite_index: 137 },
+
         // ═══════════════════════════════════════════════════════════════
         // SPECIAL — Romance & relationship items
         // ═══════════════════════════════════════════════════════════════

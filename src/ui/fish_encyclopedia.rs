@@ -55,7 +55,7 @@ pub fn spawn_fish_encyclopedia_screen(
                     },
                 ))
                 .with_children(|grid| {
-                    for fish in fish_registry.iter() {
+                    for fish in fish_registry.fish.values() {
                         spawn_fish_card(grid, fish, &fishing_atlas, sprite_size);
                     }
                 });
@@ -75,13 +75,12 @@ pub fn update_fish_encyclopedia_visuals() {}
 
 pub fn fish_encyclopedia_navigation(
     keyboard: Res<ButtonInput<KeyCode>>,
-    gamepads: Query<Entity, With<Gamepad>>,
-    gamepad_buttons: Res<ButtonInput<GamepadButton>>,
+    gamepads: Query<&Gamepad>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     let escape_pressed = keyboard.just_pressed(KeyCode::Escape);
-    let gamepad_back_pressed = gamepads.iter().any(|gamepad| {
-        gamepad_buttons.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::East))
+    let gamepad_back_pressed = gamepads.iter().any(|gp| {
+        gp.just_pressed(GamepadButton::East)
     });
 
     if escape_pressed || gamepad_back_pressed {
@@ -115,7 +114,7 @@ fn spawn_fish_card(
                     fishing_atlas.image.clone(),
                     TextureAtlas {
                         layout: fishing_atlas.layout.clone(),
-                        index: fish.sprite_index,
+                        index: fish.sprite_index as usize,
                     },
                 ),
                 Node {
@@ -144,7 +143,7 @@ fn spawn_fish_card(
                 ));
 
                 text_column.spawn((
-                    Text::new(fish_description(fish)),
+                    Text::new(fish_description(&fish.id)),
                     TextFont {
                         font_size: 14.0,
                         ..default()

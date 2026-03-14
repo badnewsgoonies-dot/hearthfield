@@ -277,7 +277,7 @@ pub fn spawn_inventory_screen(
                                 ..default()
                             },
                         ));
-                    ));
+                    });
                 });
         });
 }

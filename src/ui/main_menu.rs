@@ -249,6 +249,39 @@ fn current_option_count(mode: MainMenuMode) -> usize {
     }
 }
 
+fn format_play_time(seconds: u64) -> String {
+    let h = seconds / 3600;
+    let m = (seconds % 3600) / 60;
+    if h > 0 {
+        format!("{}h {}m", h, m)
+    } else {
+        format!("{}m", m)
+    }
+}
+
+fn format_last_saved(timestamp: u64) -> String {
+    if timestamp == 0 {
+        return "Never".to_string();
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    if now <= timestamp {
+        return "Just now".to_string();
+    }
+    let diff = now - timestamp;
+    if diff < 60 {
+        "Just now".to_string()
+    } else if diff < 3600 {
+        format!("{}m ago", diff / 60)
+    } else if diff < 86400 {
+        format!("{}h ago", diff / 3600)
+    } else {
+        format!("{}d ago", diff / 86400)
+    }
+}
+
 fn load_slot_label(slot_info: Option<&crate::save::SaveSlotInfo>) -> String {
     if let Some(info) = slot_info {
         if info.exists {
@@ -336,7 +369,7 @@ pub fn update_main_menu_visuals(
     let title_bob = (time.elapsed_secs() * TITLE_BOB_SPEED).sin();
     let option_count = current_option_count(state.mode);
 
-    if let Ok((mut title_node, mut title_color, mut title_font)) = title_query.single_mut() {
+    if let Ok((mut title_node, mut title_color, mut title_font)) = title_query.get_single_mut() {
         title_node.margin.top = Val::Px(title_bob * TITLE_BOB_AMOUNT);
         title_font.font_size = 50.0 + (title_bob * 0.5 + 0.5) * 2.0;
         title_color.0 = Color::srgb(

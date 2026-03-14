@@ -248,7 +248,7 @@ mod tests {
         // Duplicate IDs in populate_* would overwrite previous entries in the HashMap.
         // These expected counts lock in that no such overwrites occurred.
         const EXPECTED_CROP_COUNT: usize = 16;
-        const EXPECTED_FISH_COUNT: usize = 28;
+        const EXPECTED_FISH_COUNT: usize = 31;
 
         assert_eq!(
             crop_registry.crops.len(),

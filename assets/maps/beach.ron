@@ -291,19 +291,14 @@
             kind: Rock,
         ),
         (
-            x: 9,
-            y: 5,
-            kind: Stump,
+            x: 18,
+            y: 2,
+            kind: Rock,
         ),
         (
-            x: 3,
-            y: 6,
-            kind: Log,
-        ),
-        (
-            x: 5,
-            y: 6,
-            kind: Stump,
+            x: 6,
+            y: 7,
+            kind: Driftwood,
         ),
         (
             x: 7,
@@ -311,9 +306,9 @@
             kind: Log,
         ),
         (
-            x: 14,
-            y: 7,
-            kind: Log,
+            x: 8,
+            y: 8,
+            kind: Driftwood,
         ),
         (
             x: 12,
@@ -321,28 +316,43 @@
             kind: Log,
         ),
         (
+            x: 13,
+            y: 7,
+            kind: Driftwood,
+        ),
+        (
+            x: 4,
+            y: 7,
+            kind: Coral,
+        ),
+        (
             x: 5,
             y: 8,
-            kind: Rock,
+            kind: Coral,
         ),
         (
-            x: 8,
+            x: 9,
+            y: 7,
+            kind: Coral,
+        ),
+        (
+            x: 10,
+            y: 8,
+            kind: Coral,
+        ),
+        (
+            x: 2,
             y: 8,
             kind: Rock,
         ),
         (
-            x: 13,
+            x: 11,
             y: 8,
-            kind: Rock,
+            kind: Driftwood,
         ),
         (
             x: 18,
             y: 8,
-            kind: Rock,
-        ),
-        (
-            x: 18,
-            y: 9,
             kind: Rock,
         ),
     ],
@@ -351,6 +361,9 @@
         (8, 4),
         (13, 5),
         (6, 7),
+        (3, 8),
+        (10, 7),
+        (15, 8),
     ],
     spawn_pos: (10, 6),
     transitions: [

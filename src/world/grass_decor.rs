@@ -147,8 +147,11 @@ pub fn spawn_grass_decorations(
         return;
     }
 
-    // Legacy grass decor disabled — just update tracking state.
+    // Legacy grass decor disabled — clean up any existing entities and update tracking state.
     if !LEGACY_GRASS_DECOR_ENABLED {
+        for entity in existing.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
         state.spawned_for_map = Some(map_id);
         state.spawned_for_season = Some(season);
         return;

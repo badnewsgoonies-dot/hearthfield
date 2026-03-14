@@ -175,41 +175,21 @@
     objects: [
         (
             x: 1,
-            y: 1,
-            kind: LargeRock,
-        ),
-        (
-            x: 3,
             y: 2,
-            kind: LargeRock,
-        ),
-        (
-            x: 10,
-            y: 2,
-            kind: LargeRock,
-        ),
-        (
-            x: 12,
-            y: 1,
-            kind: LargeRock,
-        ),
-        (
-            x: 2,
-            y: 4,
             kind: LargeRock,
         ),
         (
             x: 11,
-            y: 4,
+            y: 2,
             kind: LargeRock,
         ),
         (
-            x: 1,
+            x: 3,
             y: 6,
             kind: LargeRock,
         ),
         (
-            x: 12,
+            x: 10,
             y: 6,
             kind: LargeRock,
         ),
@@ -225,63 +205,13 @@
         ),
         (
             x: 1,
-            y: 3,
-            kind: Rock,
-        ),
-        (
-            x: 4,
-            y: 1,
-            kind: Rock,
-        ),
-        (
-            x: 9,
-            y: 1,
-            kind: Rock,
+            y: 8,
+            kind: Pine,
         ),
         (
             x: 12,
-            y: 3,
-            kind: Rock,
-        ),
-        (
-            x: 3,
-            y: 7,
-            kind: Rock,
-        ),
-        (
-            x: 10,
-            y: 7,
-            kind: Rock,
-        ),
-        (
-            x: 2,
-            y: 9,
-            kind: Stump,
-        ),
-        (
-            x: 3,
             y: 8,
-            kind: Log,
-        ),
-        (
-            x: 4,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 10,
-            y: 9,
-            kind: Stump,
-        ),
-        (
-            x: 11,
-            y: 8,
-            kind: Log,
-        ),
-        (
-            x: 12,
-            y: 9,
-            kind: Stump,
+            kind: Pine,
         ),
     ],
     forage_points: [
@@ -316,7 +246,7 @@
     edges: (
         north: Some((SnowMountain, Fixed(5, 12))),
         south: Some((Forest, Fixed(11, 16))),
-        east: Some((Farm, Fixed(1, 9))),
+        east: Some((Farm, Fixed(1, 10))),
         west: None,
     ),
     buildings: [],

@@ -671,126 +671,6 @@
             y: 17,
             kind: Tree,
         ),
-        (
-            x: 3,
-            y: 7,
-            kind: Bush,
-        ),
-        (
-            x: 8,
-            y: 7,
-            kind: Bush,
-        ),
-        (
-            x: 2,
-            y: 8,
-            kind: Log,
-        ),
-        (
-            x: 9,
-            y: 8,
-            kind: Log,
-        ),
-        (
-            x: 4,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 7,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 19,
-            y: 7,
-            kind: Bush,
-        ),
-        (
-            x: 24,
-            y: 7,
-            kind: Bush,
-        ),
-        (
-            x: 18,
-            y: 8,
-            kind: Log,
-        ),
-        (
-            x: 25,
-            y: 8,
-            kind: Log,
-        ),
-        (
-            x: 20,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 23,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 12,
-            y: 7,
-            kind: Log,
-        ),
-        (
-            x: 15,
-            y: 7,
-            kind: Log,
-        ),
-        (
-            x: 12,
-            y: 12,
-            kind: Log,
-        ),
-        (
-            x: 15,
-            y: 12,
-            kind: Log,
-        ),
-        (
-            x: 11,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 16,
-            y: 8,
-            kind: Stump,
-        ),
-        (
-            x: 11,
-            y: 11,
-            kind: Stump,
-        ),
-        (
-            x: 16,
-            y: 11,
-            kind: Stump,
-        ),
-        (
-            x: 2,
-            y: 19,
-            kind: Bush,
-        ),
-        (
-            x: 9,
-            y: 19,
-            kind: Bush,
-        ),
-        (
-            x: 2,
-            y: 20,
-            kind: Log,
-        ),
-        (
-            x: 8,
-            y: 20,
-            kind: Log,
-        ),
     ],
     forage_points: [
         (1, 19),
@@ -879,7 +759,7 @@
         ),
     ],
     edges: (
-        north: Some((Farm, ClampX(1))),
+        north: Some((Farm, Fixed(15, 20))),
         south: Some((Beach, ClampX(7))),
         east: Some((Forest, ClampY(1))),
         west: Some((TownWest, ClampY(14))),
