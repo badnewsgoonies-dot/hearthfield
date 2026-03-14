@@ -1219,6 +1219,7 @@ fn handle_new_game(
 /// Listen for DayEndEvent and autosave to the active slot.
 fn autosave_on_day_end(
     mut day_end_events: EventReader<DayEndEvent>,
+    mut toast_writer: EventWriter<ToastEvent>,
     mut save_writer: EventWriter<SaveRequestEvent>,
     active_slot: Res<ActiveSaveSlot>,
 ) {
@@ -1227,6 +1228,10 @@ fn autosave_on_day_end(
             "Autosaving at end of day {} {:?} year {}",
             ev.day, ev.season, ev.year
         );
+        toast_writer.send(ToastEvent {
+            message: "Autosaving. Your day is tucked in.".to_string(),
+            duration_secs: 2.4,
+        });
         save_writer.send(SaveRequestEvent {
             slot: active_slot.slot,
         });
@@ -1237,11 +1242,16 @@ fn autosave_on_day_end(
 fn quicksave_keybind(
     player_input: Res<PlayerInput>,
     active_slot: Res<ActiveSaveSlot>,
+    mut toast_writer: EventWriter<ToastEvent>,
     mut save_writer: EventWriter<SaveRequestEvent>,
     mut load_writer: EventWriter<LoadRequestEvent>,
 ) {
     if player_input.quicksave {
         info!("F5 quicksave to slot {}", active_slot.slot);
+        toast_writer.send(ToastEvent {
+            message: format!("Saving to Slot {}...", active_slot.slot + 1),
+            duration_secs: 1.8,
+        });
         save_writer.send(SaveRequestEvent {
             slot: active_slot.slot,
         });
