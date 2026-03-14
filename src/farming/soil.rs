@@ -249,13 +249,12 @@ mod tests {
         let toasts = drain_toasts(&mut app);
         assert_eq!(toasts.len(), 1);
         assert_eq!(toasts[0].message, "Tilled!");
-        assert!(
-            app.world()
-                .resource::<TutorialState>()
-                .hints_shown
-                .iter()
-                .any(|shown| shown == FIRST_HOE_USE_HINT_ID)
-        );
+        assert!(app
+            .world()
+            .resource::<TutorialState>()
+            .hints_shown
+            .iter()
+            .any(|shown| shown == FIRST_HOE_USE_HINT_ID));
 
         app.world_mut().send_event(hoe_event(4, 5));
         app.update();
@@ -287,12 +286,11 @@ mod tests {
         let toasts = drain_toasts(&mut app);
         assert_eq!(toasts.len(), 1);
         assert_eq!(toasts[0].message, "Already tilled!");
-        assert!(
-            !app.world()
-                .resource::<TutorialState>()
-                .hints_shown
-                .iter()
-                .any(|shown| shown == FIRST_HOE_USE_HINT_ID)
-        );
+        assert!(!app
+            .world()
+            .resource::<TutorialState>()
+            .hints_shown
+            .iter()
+            .any(|shown| shown == FIRST_HOE_USE_HINT_ID));
     }
 }
