@@ -91,28 +91,28 @@ fn spawn_calendar_screen(
             parent
                 .spawn((
                     Node {
-                        width: Val::Px(520.0),
-                        height: Val::Px(460.0),
+                        width: Val::Px(560.0),
+                        height: Val::Px(500.0),
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
-                        padding: UiRect::all(Val::Px(16.0)),
-                        row_gap: Val::Px(8.0),
+                        padding: UiRect::all(Val::Px(20.0)),
+                        row_gap: Val::Px(10.0),
                         border: UiRect::all(Val::Px(3.0)),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.1, 0.12, 0.08, 0.97)),
-                    BorderColor(Color::srgb(0.4, 0.55, 0.3)),
+                    BackgroundColor(Color::srgba(0.23, 0.18, 0.13, 0.97)),
+                    BorderColor(Color::srgb(0.73, 0.60, 0.42)),
                 ))
                 .with_children(|panel| {
                     // Title
                     panel.spawn((
-                        Text::new("CALENDAR"),
+                        Text::new("Town Planner"),
                         TextFont {
                             font: font.clone(),
-                            font_size: 22.0,
+                            font_size: 20.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.9, 1.0, 0.7)),
+                        TextColor(Color::srgb(0.98, 0.90, 0.74)),
                     ));
 
                     // Season + Year
@@ -123,7 +123,7 @@ fn spawn_calendar_screen(
                             font_size: 16.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.8, 0.9, 0.6)),
+                        TextColor(Color::srgb(0.86, 0.78, 0.64)),
                     ));
 
                     // Hint
@@ -195,19 +195,19 @@ fn spawn_calendar_screen(
                                     // Pick colors
                                     let (bg_color, text_color, border_color) = if is_today {
                                         (
-                                            Color::srgba(0.4, 0.5, 0.2, 0.95),
+                                            Color::srgba(0.56, 0.43, 0.30, 0.95),
                                             Color::srgb(1.0, 1.0, 0.8),
-                                            Color::srgb(0.9, 1.0, 0.3),
+                                            Color::srgb(0.90, 0.82, 0.62),
                                         )
                                     } else if is_festival {
                                         (
-                                            Color::srgba(0.5, 0.3, 0.1, 0.9),
-                                            Color::srgb(1.0, 0.8, 0.4),
+                                            Color::srgba(0.74, 0.42, 0.24, 0.9),
+                                            Color::srgb(1.0, 0.93, 0.82),
                                             Color::srgba(0.6, 0.4, 0.2, 0.7),
                                         )
                                     } else {
                                         (
-                                            Color::srgba(0.15, 0.17, 0.12, 0.85),
+                                            Color::srgba(0.24, 0.20, 0.16, 0.85),
                                             Color::srgb(0.8, 0.8, 0.8),
                                             Color::srgba(0.3, 0.35, 0.25, 0.5),
                                         )
