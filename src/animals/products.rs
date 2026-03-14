@@ -106,14 +106,14 @@ pub fn handle_product_collection(
         // Quality toast — shown for every quality level so players learn the
         // system, but worded differently for Normal vs. premium qualities.
         let quality_label = match quality {
-            ItemQuality::Normal => format!("Collected {}!", product_display),
-            ItemQuality::Silver => format!("Silver {} collected!", product_display),
-            ItemQuality::Gold => format!("Gold {} collected!", product_display),
-            ItemQuality::Iridium => format!("Iridium {}! Incredible!", product_display),
+            ItemQuality::Normal => format!("Fresh {} collected!", product_display),
+            ItemQuality::Silver => format!("Well cared for: Silver {}!", product_display),
+            ItemQuality::Gold => format!("Beautiful Gold {}!", product_display),
+            ItemQuality::Iridium => format!("Prize {}! Iridium quality!", product_display),
         };
         toast_writer.send(ToastEvent {
             message: quality_label,
-            duration_secs: 2.5,
+            duration_secs: 3.25,
         });
 
         // ── Consume the pending quality component ─────────────────────────────
@@ -125,21 +125,21 @@ pub fn handle_product_collection(
         // ── Floating text above the animal ────────────────────────────────────
         // The color reflects quality so players get instant visual feedback.
         let floating_label = match animal.kind {
-            AnimalKind::Chicken => "Got Egg!",
-            AnimalKind::Cow => "Got Milk!",
-            AnimalKind::Sheep => "Got Wool!",
-            AnimalKind::Goat => "Got Goat Milk!",
-            AnimalKind::Duck => "Got Duck Egg!",
-            AnimalKind::Rabbit => "Got Rabbit's Foot!",
-            AnimalKind::Pig => "Found Truffle!",
+            AnimalKind::Chicken => "Fresh Egg!",
+            AnimalKind::Cow => "Warm Milk!",
+            AnimalKind::Sheep => "Soft Wool!",
+            AnimalKind::Goat => "Creamy Goat Milk!",
+            AnimalKind::Duck => "Still-Warm Duck Egg!",
+            AnimalKind::Rabbit => "Lucky Rabbit's Foot!",
+            AnimalKind::Pig => "Earthy Truffle!",
             _ => "Collected!",
         };
 
         let text_color = match quality {
-            ItemQuality::Normal => Color::srgb(0.9, 0.8, 0.2),
-            ItemQuality::Silver => Color::srgb(0.75, 0.85, 1.0),
-            ItemQuality::Gold => Color::srgb(1.0, 0.82, 0.1),
-            ItemQuality::Iridium => Color::srgb(0.8, 0.4, 1.0),
+            ItemQuality::Normal => Color::srgb(1.0, 0.86, 0.35),
+            ItemQuality::Silver => Color::srgb(0.84, 0.92, 1.0),
+            ItemQuality::Gold => Color::srgb(1.0, 0.78, 0.18),
+            ItemQuality::Iridium => Color::srgb(0.9, 0.48, 1.0),
         };
 
         spawn_floating_text(
