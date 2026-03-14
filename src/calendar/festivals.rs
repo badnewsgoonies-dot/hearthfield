@@ -43,6 +43,26 @@ pub struct FestivalState {
     pub announced_day: Option<(Season, u8, u32)>,
 }
 
+impl FestivalState {
+    /// Rebuild runtime-only festival state after deserializing a save file.
+    pub fn restore_runtime_state(&mut self) {
+        match self.active {
+            Some(FestivalKind::EggFestival) if self.started => {
+                // Egg Hunt entities and timer are runtime-only, so reloaded
+                // saves must return to the pre-hunt state instead of staying
+                // stuck in a started-but-unrunnable softlock.
+                self.started = false;
+                self.timer = None;
+                self.score = 0;
+                self.items_collected = 0;
+            }
+            _ => {
+                self.timer = None;
+            }
+        }
+    }
+}
+
 /// Marker component for egg entities spawned during the Egg Festival.
 #[derive(Component, Debug, Clone)]
 pub struct FestivalEgg;
