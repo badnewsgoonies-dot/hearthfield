@@ -1431,7 +1431,7 @@ pub fn update_tree_sprites_on_season_change(
 // INTERACTABLE OBJECT SPAWNING
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Spawns the shipping bin on the Farm map at grid (14, 6).
+/// Spawns the shipping bin on the Farm map at grid (24, 20).
 /// Only spawns if the player is on the Farm map and the bin hasn't been spawned yet.
 pub fn spawn_shipping_bin(
     mut commands: Commands,
@@ -1442,7 +1442,7 @@ pub fn spawn_shipping_bin(
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let wc = grid_to_world_center(14, 6);
+    let wc = grid_to_world_center(24, 20);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_image(furniture.shipping_bin_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
@@ -1468,7 +1468,7 @@ pub fn spawn_shipping_bin(
     ));
 }
 
-/// Spawns the crafting bench on the Farm map at grid (12, 6).
+/// Spawns the crafting bench on the Farm map at grid (4, 20).
 /// Only spawns if the player is on the Farm map and the bench hasn't been spawned yet.
 pub fn spawn_crafting_bench(
     mut commands: Commands,
@@ -1479,7 +1479,7 @@ pub fn spawn_crafting_bench(
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let wc = grid_to_world_center(12, 6);
+    let wc = grid_to_world_center(4, 20);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_image(furniture.crafting_bench_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
@@ -1704,36 +1704,36 @@ fn town_buildings() -> Vec<BuildingDef> {
 
 fn farm_buildings() -> Vec<BuildingDef> {
     vec![
-        // Player house (top center of farm) — composite farmhouse sprite (128x160)
+        // Player house (lower-left area) — composite farmhouse sprite (128x160)
         BuildingDef {
-            x: 13,
-            y: 0,
+            x: 2,
+            y: 17,
             w: 6,
             h: 3,
-            door_x: 15,
-            door_y: 0,
+            door_x: 7,
+            door_y: 19,
             roof_tint: Color::srgb(0.75, 0.5, 0.4),
             composite: Some(BuildingImage::Farmhouse),
         },
-        // Chicken coop (bottom-left area) — composite chicken house sprite (48x48)
+        // Chicken coop (upper-right area) — composite chicken house sprite (48x48)
         BuildingDef {
-            x: 9,
-            y: 17,
+            x: 24,
+            y: 1,
             w: 3,
             h: 2,
-            door_x: 10,
-            door_y: 17,
+            door_x: 25,
+            door_y: 2,
             roof_tint: Color::srgb(0.9, 0.8, 0.5),
             composite: Some(BuildingImage::ChickenHouse),
         },
-        // Barn (bottom-left area) — composite barn sprite (128x160)
+        // Barn (upper-left area) — composite barn sprite (128x160)
         BuildingDef {
-            x: 3,
-            y: 16,
+            x: 2,
+            y: 1,
             w: 5,
             h: 3,
-            door_x: 5,
-            door_y: 16,
+            door_x: 4,
+            door_y: 3,
             roof_tint: Color::srgb(0.7, 0.3, 0.3),
             composite: Some(BuildingImage::Barn),
         },
