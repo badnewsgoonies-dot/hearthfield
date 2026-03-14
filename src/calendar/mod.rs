@@ -201,19 +201,28 @@ pub fn trigger_sleep(
     // Build sleep transition cutscene.
     let day_label = format!("Day {} - {:?}, Year {}", next_day, next_season, next_year);
     let mut steps = std::collections::VecDeque::new();
-    steps.push_back(CutsceneStep::FadeOut(1.0));
-    steps.push_back(CutsceneStep::Wait(0.5));
+    steps.push_back(CutsceneStep::FadeOut(1.4));
+    steps.push_back(CutsceneStep::Wait(0.9));
 
     // Season change announcement.
     if calendar.day >= DAYS_PER_SEASON {
+        steps.push_back(CutsceneStep::PlayBgm(
+            match next_season {
+                Season::Spring => "spring",
+                Season::Summer => "summer",
+                Season::Fall => "fall",
+                Season::Winter => "winter",
+            }
+            .to_string(),
+        ));
         steps.push_back(CutsceneStep::ShowText(
-            format!("{:?} has arrived!", next_season),
-            3.0,
+            format!("The first morning of {:?}.", next_season),
+            4.0,
         ));
     }
 
-    steps.push_back(CutsceneStep::ShowText(day_label, 2.5));
-    steps.push_back(CutsceneStep::FadeIn(1.5));
+    steps.push_back(CutsceneStep::ShowText(day_label, 3.0));
+    steps.push_back(CutsceneStep::FadeIn(2.0));
 
     cutscene_queue.steps = steps;
     // NOTE: Don't set active or change state here. The DayEndEvent must
@@ -269,18 +278,27 @@ fn tick_time(
             calendar.day, calendar.season, calendar.year
         );
         let mut steps = std::collections::VecDeque::new();
-        steps.push_back(CutsceneStep::FadeOut(1.0));
-        steps.push_back(CutsceneStep::Wait(0.5));
+        steps.push_back(CutsceneStep::FadeOut(1.4));
+        steps.push_back(CutsceneStep::Wait(0.9));
 
         if calendar.season != season_before {
+            steps.push_back(CutsceneStep::PlayBgm(
+                match calendar.season {
+                    Season::Spring => "spring",
+                    Season::Summer => "summer",
+                    Season::Fall => "fall",
+                    Season::Winter => "winter",
+                }
+                .to_string(),
+            ));
             steps.push_back(CutsceneStep::ShowText(
-                format!("{:?} has arrived!", calendar.season),
-                3.0,
+                format!("The first morning of {:?}.", calendar.season),
+                4.0,
             ));
         }
 
-        steps.push_back(CutsceneStep::ShowText(day_label, 2.5));
-        steps.push_back(CutsceneStep::FadeIn(1.5));
+        steps.push_back(CutsceneStep::ShowText(day_label, 3.0));
+        steps.push_back(CutsceneStep::FadeIn(2.0));
 
         cutscene_queue.steps = steps;
         // Don't activate or change state here — same rationale as
