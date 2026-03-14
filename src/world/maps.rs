@@ -147,9 +147,9 @@ fn generate_farm() -> MapDef {
     // Player house footprint (south-west)
     fill_rect(&mut tiles, 2, 17, 6, 3, TileKind::Stone);
     // Path from house up to fields
-    fill_rect(&mut tiles, 6, 5, 2, 13, TileKind::Path);
+    fill_rect(&mut tiles, 5, 5, 3, 13, TileKind::Path);
     // Shipping bin area (right of house)
-    fill_rect(&mut tiles, 20, 1, 2, 2, TileKind::WoodFloor);
+    fill_rect(&mut tiles, 19, 1, 4, 3, TileKind::WoodFloor);
 
     // Central farming area (the tillable field)
     fill_rect(&mut tiles, 4, 5, 24, 12, TileKind::Dirt);
@@ -163,7 +163,7 @@ fn generate_farm() -> MapDef {
     // Path east to forest
     fill_rect(&mut tiles, 26, 10, 6, 2, TileKind::Path);
     // Path south to town
-    fill_rect(&mut tiles, 14, 21, 3, 3, TileKind::Path);
+    fill_rect(&mut tiles, 13, 20, 5, 4, TileKind::Path);
 
     let transitions = vec![
         // South exit -> Town
@@ -216,12 +216,18 @@ fn generate_farm() -> MapDef {
 
     // Rocks in the dirt (player clears to farm)
     let rock_positions = [
+        (6, 8),
         (8, 7),
+        (9, 6),
         (12, 8),
+        (15, 9),
         (18, 7),
         (22, 9),
+        (23, 12),
+        (26, 9),
         (10, 12),
         (16, 11),
+        (19, 15),
         (20, 13),
         (14, 14),
         (24, 8),
@@ -236,6 +242,11 @@ fn generate_farm() -> MapDef {
 
     // Stumps
     objects.push(ObjectPlacement {
+        x: 4,
+        y: 19,
+        kind: WorldObjectKind::Stump,
+    });
+    objects.push(ObjectPlacement {
         x: 7,
         y: 14,
         kind: WorldObjectKind::Stump,
@@ -245,15 +256,49 @@ fn generate_farm() -> MapDef {
         y: 14,
         kind: WorldObjectKind::Stump,
     });
+    objects.push(ObjectPlacement {
+        x: 27,
+        y: 17,
+        kind: WorldObjectKind::Stump,
+    });
 
     // Bushes near pond
+    objects.push(ObjectPlacement {
+        x: 5,
+        y: 18,
+        kind: WorldObjectKind::Bush,
+    });
+    objects.push(ObjectPlacement {
+        x: 9,
+        y: 18,
+        kind: WorldObjectKind::Bush,
+    });
+    objects.push(ObjectPlacement {
+        x: 20,
+        y: 18,
+        kind: WorldObjectKind::Bush,
+    });
     objects.push(ObjectPlacement {
         x: 23,
         y: 17,
         kind: WorldObjectKind::Bush,
     });
+    objects.push(ObjectPlacement {
+        x: 24,
+        y: 17,
+        kind: WorldObjectKind::Bush,
+    });
 
-    let forage_points = vec![(2, 4), (29, 3), (2, 20), (29, 20), (5, 22)];
+    let forage_points = vec![
+        (2, 4),
+        (29, 3),
+        (4, 18),
+        (8, 19),
+        (15, 22),
+        (23, 18),
+        (29, 20),
+        (5, 22),
+    ];
 
     MapDef {
         id: MapId::Farm,
