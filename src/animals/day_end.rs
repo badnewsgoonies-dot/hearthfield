@@ -9,20 +9,20 @@ use bevy::prelude::*;
 //
 //   1. Track consecutive unfed days (UnfedDays component).
 //   2. Adjust happiness:
-//        - Fed today:   +5 (capped at u8::MAX = 255)
-//        - Not fed:     -12 (floors at 0)
-//        - Petted today: +5 on top of the above
-//        - Outside on farm tiles: +5 on top of the above
+//        - Fed today:   +8 (capped at u8::MAX = 255)
+//        - Not fed:     -18 (floors at 0)
+//        - Petted today: +7 on top of the above
+//        - Outside on farm tiles: +6 on top of the above
 //   3. Reset daily flags (fed_today, petted_today).
 //   4. Age babies → adults after 7 days.
 //   5. Generate product_ready (+ PendingProductQuality) for adult animals
 //      that were fed and are not blocked by a starvation streak.
 //
 // Happiness quality thresholds (deterministic — no RNG):
-//   happiness 230-255 → Iridium (2.0x)
-//   happiness 200-229 → Gold    (1.5x)
-//   happiness 128-199 → Silver  (1.25x)
-//   happiness   0-127 → Normal  (1.0x)
+//   happiness 220-255 → Iridium (2.0x)
+//   happiness 180-219 → Gold    (1.5x)
+//   happiness 110-179 → Silver  (1.25x)
+//   happiness   0-109 → Normal  (1.0x)
 //
 // Starvation block: if an animal goes 3+ consecutive days without food it
 // will not produce anything until the day it is fed again (that very day it
@@ -43,10 +43,10 @@ pub struct PendingProductQuality {
     pub quality: ItemQuality,
 }
 
-const HAPPINESS_FED_BONUS: u8 = 5;
-const HAPPINESS_PETTED_BONUS: u8 = 5;
-const HAPPINESS_UNFED_PENALTY: u8 = 12;
-const HAPPINESS_OUTDOOR_SUNNY: u8 = 5;
+const HAPPINESS_FED_BONUS: u8 = 8;
+const HAPPINESS_PETTED_BONUS: u8 = 7;
+const HAPPINESS_UNFED_PENALTY: u8 = 18;
+const HAPPINESS_OUTDOOR_SUNNY: u8 = 6;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: derive quality tier from happiness (deterministic, no RNG)
@@ -55,16 +55,16 @@ const HAPPINESS_OUTDOOR_SUNNY: u8 = 5;
 /// Returns the `ItemQuality` corresponding to an animal's happiness value.
 ///
 /// Thresholds:
-/// - 230-255 → Iridium (2.0x)
-/// - 200-229 → Gold    (1.5x)
-/// - 128-199 → Silver  (1.25x)
-/// -   0-127 → Normal  (1.0x)
+/// - 220-255 → Iridium (2.0x)
+/// - 180-219 → Gold    (1.5x)
+/// - 110-179 → Silver  (1.25x)
+/// -   0-109 → Normal  (1.0x)
 pub fn quality_from_happiness(happiness: u8) -> ItemQuality {
-    if happiness >= 230 {
+    if happiness >= 220 {
         ItemQuality::Iridium
-    } else if happiness >= 200 {
+    } else if happiness >= 180 {
         ItemQuality::Gold
-    } else if happiness >= 128 {
+    } else if happiness >= 110 {
         ItemQuality::Silver
     } else {
         ItemQuality::Normal
@@ -126,20 +126,20 @@ pub fn handle_day_end_for_animals(
             // All adjustments use saturating arithmetic so happiness stays
             // in [0, 255] — the valid range of a u8.
             if animal.fed_today {
-                // Fed today: +10 happiness.
+                // Fed today: +8 happiness.
                 animal.happiness = animal.happiness.saturating_add(HAPPINESS_FED_BONUS);
             } else {
-                // Not fed: -20 happiness.
+                // Not fed: -18 happiness.
                 animal.happiness = animal.happiness.saturating_sub(HAPPINESS_UNFED_PENALTY);
             }
 
             if animal.petted_today {
-                // Petting gives an additional +5.
+                // Petting gives an additional +7.
                 animal.happiness = animal.happiness.saturating_add(HAPPINESS_PETTED_BONUS);
             }
 
             if is_outside_on_farm_tile(logical_pos) {
-                // Sunny outdoor bonus: +5.
+                // Sunny outdoor bonus: +6.
                 animal.happiness = animal.happiness.saturating_add(HAPPINESS_OUTDOOR_SUNNY);
             }
 
@@ -153,7 +153,7 @@ pub fn handle_day_end_for_animals(
                         ),
                         duration_secs: 4.0,
                     });
-                } else if new_unfed_count == 1 && animal.happiness < 50 {
+                } else if new_unfed_count == 1 && animal.happiness < 90 {
                     toast_writer.send(ToastEvent {
                         message: format!("{} is hungry and unhappy...", animal.name),
                         duration_secs: 3.0,
