@@ -1431,7 +1431,7 @@ pub fn update_tree_sprites_on_season_change(
 // INTERACTABLE OBJECT SPAWNING
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Spawns the shipping bin on the Farm map at grid (14, 6).
+/// Spawns the shipping bin on the Farm map at grid (24, 20).
 /// Only spawns if the player is on the Farm map and the bin hasn't been spawned yet.
 pub fn spawn_shipping_bin(
     mut commands: Commands,
@@ -1442,7 +1442,7 @@ pub fn spawn_shipping_bin(
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let wc = grid_to_world_center(14, 6);
+    let wc = grid_to_world_center(24, 20);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_image(furniture.shipping_bin_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
@@ -1468,7 +1468,7 @@ pub fn spawn_shipping_bin(
     ));
 }
 
-/// Spawns the crafting bench on the Farm map at grid (12, 6).
+/// Spawns the crafting bench on the Farm map at grid (4, 20).
 /// Only spawns if the player is on the Farm map and the bench hasn't been spawned yet.
 pub fn spawn_crafting_bench(
     mut commands: Commands,
@@ -1479,7 +1479,7 @@ pub fn spawn_crafting_bench(
     if player_state.current_map != MapId::Farm || !query.is_empty() {
         return;
     }
-    let wc = grid_to_world_center(12, 6);
+    let wc = grid_to_world_center(4, 20);
     let sprite = if furniture.loaded {
         let mut s = Sprite::from_image(furniture.crafting_bench_image.clone());
         s.custom_size = Some(Vec2::splat(TILE_SIZE));
