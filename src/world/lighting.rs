@@ -251,6 +251,23 @@ pub fn update_day_night_tint(
     mut overlay_query: Query<&mut BackgroundColor, With<DayNightOverlay>>,
     lightning: Option<Res<LightningFlash>>,
 ) {
+    if player_state.current_map == MapId::Mine {
+        let mine_tint = (0.6, 0.65, 0.8);
+        let mine_intensity = 0.35;
+        let mine_overlay = (mine_tint.0 * 0.15, mine_tint.1 * 0.15, mine_tint.2 * 0.15, mine_intensity);
+        day_night_tint.intensity = mine_intensity;
+        day_night_tint.tint = mine_tint;
+        for mut bg in &mut overlay_query {
+            *bg = BackgroundColor(Color::srgba(
+                mine_overlay.0,
+                mine_overlay.1,
+                mine_overlay.2,
+                mine_overlay.3,
+            ));
+        }
+        return;
+    }
+
     // Indoor maps: consistent warm ambient lighting instead of day/night cycle.
     // Subtle warm tint: Color::srgb(1.0, 0.97, 0.92) at very low intensity.
     if is_indoor_map(player_state.current_map) {
