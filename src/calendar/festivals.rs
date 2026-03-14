@@ -90,6 +90,22 @@ fn festival_display_name(kind: FestivalKind) -> &'static str {
     }
 }
 
+fn festival_preview_for_date(season: Season, day: u8) -> Option<(FestivalKind, u8)> {
+    if let Some(kind) = festival_for_date(season, day) {
+        return Some((kind, 0));
+    }
+
+    for days_until in 1..=3 {
+        if let Some(lookahead_day) = day.checked_add(days_until) {
+            if let Some(kind) = festival_for_date(season, lookahead_day) {
+                return Some((kind, days_until));
+            }
+        }
+    }
+
+    None
+}
+
 fn recover_egg_hunt_after_load(festival: &mut FestivalState) {
     // Egg Hunt progress depends on a runtime-only timer. If a save/load round-trip
     // restores `started = true` but drops the timer, the player is soft-locked:
@@ -155,6 +171,31 @@ pub fn check_festival_day(
             festival.timer = None;
             festival.winter_star_recipient = None;
             festival.winter_star_giver = None;
+        }
+
+        if festival.announced_day != Some(today) {
+            if let Some((kind, days_until)) =
+                festival_preview_for_date(calendar.season, calendar.day)
+            {
+                festival.announced_day = Some(today);
+                let name = festival_display_name(kind);
+                let (message, duration_secs) = match days_until {
+                    3 => (format!("3 days until the {}.", name), 4.0),
+                    2 => (format!("2 days until the {}.", name), 4.0),
+                    1 => (format!("Tomorrow: {}.", name), 4.0),
+                    0 => unreachable!("same-day festivals are handled above"),
+                    _ => unreachable!("festival previews only allow 1-3 day countdowns"),
+                };
+
+                toast_writer.send(ToastEvent {
+                    message,
+                    duration_secs,
+                });
+                info!(
+                    "[Festivals] Previewed {} in {} day(s) on Day {} {:?}",
+                    name, days_until, calendar.day, calendar.season
+                );
+            }
         }
     }
 }
