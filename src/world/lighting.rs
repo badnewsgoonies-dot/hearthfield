@@ -63,58 +63,58 @@ fn tint_keyframes() -> &'static [TintKeyframe] {
     static KEYFRAMES: &[TintKeyframe] = &[
         TintKeyframe {
             hour: 0.0,
-            tint: (0.3, 0.3, 0.5),
-            intensity: 0.45,
-        }, // midnight — slightly less oppressive
+            tint: (0.16, 0.18, 0.30),
+            intensity: 0.58,
+        }, // midnight — deep blue, clearly dark
         TintKeyframe {
             hour: 5.0,
-            tint: (0.3, 0.3, 0.5),
-            intensity: 0.45,
-        }, // late night
+            tint: (0.20, 0.22, 0.34),
+            intensity: 0.50,
+        }, // late night — still quiet, hinting at dawn
         TintKeyframe {
             hour: 6.0,
-            tint: (1.0, 0.85, 0.55),
-            intensity: 0.15,
-        }, // sunrise — warmer, more golden
+            tint: (1.0, 0.80, 0.72),
+            intensity: 0.22,
+        }, // sunrise — hopeful golden pink
         TintKeyframe {
             hour: 8.0,
-            tint: (1.0, 1.0, 0.95),
+            tint: (1.0, 0.96, 0.90),
             intensity: 0.05,
-        }, // morning
+        }, // morning — soft warmth before neutral daylight
         TintKeyframe {
             hour: 10.0,
-            tint: (1.0, 1.0, 1.0),
+            tint: (1.0, 0.995, 0.98),
             intensity: 0.0,
-        }, // full daylight
+        }, // full daylight — bright and nearly neutral
         TintKeyframe {
             hour: 16.0,
-            tint: (1.0, 1.0, 1.0),
+            tint: (1.0, 0.99, 0.97),
             intensity: 0.0,
-        }, // full daylight
+        }, // afternoon daylight — still clear and neutral
         TintKeyframe {
             hour: 17.0,
-            tint: (1.0, 0.92, 0.70),
-            intensity: 0.08,
+            tint: (1.0, 0.86, 0.66),
+            intensity: 0.10,
         }, // golden hour — warm amber
         TintKeyframe {
             hour: 18.0,
-            tint: (1.0, 0.75, 0.45),
-            intensity: 0.18,
-        }, // sunset — more dramatic
+            tint: (1.0, 0.68, 0.38),
+            intensity: 0.24,
+        }, // sunset — warm orange
         TintKeyframe {
             hour: 20.0,
-            tint: (0.6, 0.6, 0.9),
-            intensity: 0.3,
-        }, // twilight
+            tint: (0.42, 0.46, 0.68),
+            intensity: 0.38,
+        }, // twilight — cooling into blue-violet
         TintKeyframe {
             hour: 22.0,
-            tint: (0.3, 0.3, 0.5),
-            intensity: 0.45,
-        }, // night
+            tint: (0.18, 0.20, 0.32),
+            intensity: 0.54,
+        }, // night — quiet and properly dark
         TintKeyframe {
             hour: 24.0,
-            tint: (0.3, 0.3, 0.5),
-            intensity: 0.45,
+            tint: (0.16, 0.18, 0.30),
+            intensity: 0.58,
         }, // midnight (wrap)
     ];
     KEYFRAMES

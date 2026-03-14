@@ -175,21 +175,41 @@
     objects: [
         (
             x: 1,
-            y: 2,
-            kind: LargeRock,
-        ),
-        (
-            x: 11,
-            y: 2,
+            y: 1,
             kind: LargeRock,
         ),
         (
             x: 3,
-            y: 6,
+            y: 2,
             kind: LargeRock,
         ),
         (
             x: 10,
+            y: 2,
+            kind: LargeRock,
+        ),
+        (
+            x: 12,
+            y: 1,
+            kind: LargeRock,
+        ),
+        (
+            x: 2,
+            y: 4,
+            kind: LargeRock,
+        ),
+        (
+            x: 11,
+            y: 4,
+            kind: LargeRock,
+        ),
+        (
+            x: 1,
+            y: 6,
+            kind: LargeRock,
+        ),
+        (
+            x: 12,
             y: 6,
             kind: LargeRock,
         ),
@@ -205,13 +225,63 @@
         ),
         (
             x: 1,
-            y: 8,
-            kind: Pine,
+            y: 3,
+            kind: Rock,
+        ),
+        (
+            x: 4,
+            y: 1,
+            kind: Rock,
+        ),
+        (
+            x: 9,
+            y: 1,
+            kind: Rock,
         ),
         (
             x: 12,
+            y: 3,
+            kind: Rock,
+        ),
+        (
+            x: 3,
+            y: 7,
+            kind: Rock,
+        ),
+        (
+            x: 10,
+            y: 7,
+            kind: Rock,
+        ),
+        (
+            x: 2,
+            y: 9,
+            kind: Stump,
+        ),
+        (
+            x: 3,
             y: 8,
-            kind: Pine,
+            kind: Log,
+        ),
+        (
+            x: 4,
+            y: 8,
+            kind: Stump,
+        ),
+        (
+            x: 10,
+            y: 9,
+            kind: Stump,
+        ),
+        (
+            x: 11,
+            y: 8,
+            kind: Log,
+        ),
+        (
+            x: 12,
+            y: 9,
+            kind: Stump,
         ),
     ],
     forage_points: [
