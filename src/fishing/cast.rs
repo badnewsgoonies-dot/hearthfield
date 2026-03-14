@@ -12,11 +12,11 @@ use crate::shared::*;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-/// Base bite wait time in seconds (spec: 3.0 + random(0.0, 7.0) - 0.5 per level).
-const BITE_TIMER_BASE: f32 = 3.0;
+/// Base bite wait time in seconds (spec: 4.0 + random(0.0, 6.0) - 0.5 per level).
+const BITE_TIMER_BASE: f32 = 4.0;
 /// Random range added to base bite wait.
-const BITE_TIMER_RANDOM_MAX: f32 = 7.0;
-const REACTION_WINDOW: f32 = 1.0; // seconds to press Space after bite
+const BITE_TIMER_RANDOM_MAX: f32 = 6.0;
+const REACTION_WINDOW: f32 = 1.5; // seconds to press Space after bite
 
 // ─── Bait helpers ─────────────────────────────────────────────────────────────
 
@@ -126,7 +126,7 @@ pub fn handle_tool_use_for_fishing(
             .unwrap_or(ToolTier::Basic);
 
         // Compute bite timer:
-        //  Spec formula: 3.0 + random(0.0, 7.0) - 0.5 per level
+        //  Spec formula: 4.0 + random(0.0, 6.0) - 0.5 per level
         //  Then apply bait multiplier.
         let mut rng = rand::thread_rng();
         let random_component: f32 = rng.gen_range(0.0..BITE_TIMER_RANDOM_MAX);
@@ -137,8 +137,8 @@ pub fn handle_tool_use_for_fishing(
             Some(id) => bait_bite_multiplier(id),
             None => 1.0,
         };
-        // Clamp to a minimum of 0.5s so max bait+skill never yields an instant bite.
-        let wait = (base_wait * bait_mult).max(0.5);
+        // Clamp to a minimum of 1.0s so max bait+skill never yields an instant bite.
+        let wait = (base_wait * bait_mult).max(1.0);
 
         // Update fishing state
         fishing_state.phase = FishingPhase::WaitingForBite;
