@@ -253,15 +253,18 @@ fn load_slot_label(slot_info: Option<&crate::save::SaveSlotInfo>) -> String {
     if let Some(info) = slot_info {
         if info.exists {
             format!(
-                "Slot {}  Day {} {:?} Y{}  {}g",
+                "Slot {}  {}\nDay {} {:?} Y{}  {}g\nPlayed {}  Saved {}",
                 info.slot + 1,
+                info.farm_name,
                 info.day,
                 info.season,
                 info.year,
-                info.gold
+                info.gold,
+                format_play_time(info.play_time_seconds),
+                format_last_saved(info.save_timestamp)
             )
         } else {
-            format!("Slot {}  (Empty)", info.slot + 1)
+            format!("Slot {}  (Empty)\nStart a new farm here", info.slot + 1)
         }
     } else {
         "Slot ?  (Unavailable)".to_string()
@@ -379,7 +382,7 @@ pub fn update_main_menu_visuals(
         text.0 = label;
         let selected = btn_text.index == state.cursor;
         let alpha = 0.75 + fade_in * 0.25;
-        font.font_size = if selected { 19.0 + pulse * 1.5 } else { 17.0 };
+        font.font_size = if selected { 16.5 + pulse * 1.0 } else { 14.5 };
         color.0 = if selected {
             let glow = 0.85 + pulse * 0.15;
             Color::srgba(1.0, glow, 0.72, alpha)
