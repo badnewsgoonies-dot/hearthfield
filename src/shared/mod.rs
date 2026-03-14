@@ -34,6 +34,7 @@ pub enum GameState {
     BuildingUpgrade,
     RelationshipsView,
     MapView,
+    FishEncyclopedia,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
