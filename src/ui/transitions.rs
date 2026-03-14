@@ -1,9 +1,16 @@
 use crate::shared::*;
+use crate::save::{LoadCompleteEvent, LoadRequestEvent};
 use bevy::prelude::*;
 
 /// Marker for the screen fade overlay
 #[derive(Component)]
 pub struct ScreenFadeOverlay;
+
+#[derive(Clone, Copy)]
+pub enum ScreenFadeTint {
+    MapTransition,
+    SaveLoad,
+}
 
 /// Resource that drives fade in/out
 #[derive(Resource)]
@@ -18,19 +25,29 @@ pub struct ScreenFade {
     pub active: bool,
     /// Seconds to hold at full black before fading back in
     pub hold_timer: f32,
+    /// The color treatment for the current fade.
+    pub tint: ScreenFadeTint,
+    /// Marks that the next map transition came from a load handoff.
+    pub pending_save_load_handoff: bool,
 }
 
-/// Default fade speed: 1.0 / 0.42s = ~2.38 alpha/s for 0.42s transitions.
-const FADE_SPEED: f32 = 1.0 / 0.42;
+/// Fade speed for map transitions: 1.0 / 0.42s = ~2.38 alpha/s.
+const MAP_TRANSITION_FADE_SPEED: f32 = 1.0 / 0.42;
+/// Fade speed for save/load handoffs: 1.0 / 0.58s = ~1.72 alpha/s.
+const SAVE_LOAD_FADE_SPEED: f32 = 1.0 / 0.58;
+const MAP_TRANSITION_HOLD_TIME: f32 = 0.16;
+const SAVE_LOAD_HOLD_TIME: f32 = 0.28;
 
 impl Default for ScreenFade {
     fn default() -> Self {
         Self {
             alpha: 0.0,
             target_alpha: 0.0,
-            speed: FADE_SPEED,
+            speed: MAP_TRANSITION_FADE_SPEED,
             active: false,
             hold_timer: 0.0,
+            tint: ScreenFadeTint::MapTransition,
+            pending_save_load_handoff: false,
         }
     }
 }
@@ -55,13 +72,33 @@ pub fn spawn_fade_overlay(mut commands: Commands) {
 
 /// Listen for map transition events and trigger a fade
 pub fn trigger_fade_on_transition(
+    mut load_requests: EventReader<LoadRequestEvent>,
+    mut load_completions: EventReader<LoadCompleteEvent>,
     mut events: EventReader<MapTransitionEvent>,
     mut fade: ResMut<ScreenFade>,
 ) {
+    if load_requests.read().next().is_some() {
+        fade.pending_save_load_handoff = true;
+    }
+
+    for completion in load_completions.read() {
+        if !completion.success {
+            fade.pending_save_load_handoff = false;
+        }
+    }
+
     for _event in events.read() {
         fade.target_alpha = 1.0;
-        fade.speed = FADE_SPEED;
-        fade.hold_timer = 0.16;
+        if fade.pending_save_load_handoff {
+            fade.speed = SAVE_LOAD_FADE_SPEED;
+            fade.hold_timer = SAVE_LOAD_HOLD_TIME;
+            fade.tint = ScreenFadeTint::SaveLoad;
+            fade.pending_save_load_handoff = false;
+        } else {
+            fade.speed = MAP_TRANSITION_FADE_SPEED;
+            fade.hold_timer = MAP_TRANSITION_HOLD_TIME;
+            fade.tint = ScreenFadeTint::MapTransition;
+        }
         fade.active = true;
     }
 }
@@ -97,6 +134,10 @@ pub fn update_fade(
     }
 
     for mut bg in &mut query {
-        *bg = BackgroundColor(Color::srgba(0.0, 0.0, 0.0, fade.alpha));
+        let color = match fade.tint {
+            ScreenFadeTint::MapTransition => Color::srgba(0.0, 0.0, 0.0, fade.alpha),
+            ScreenFadeTint::SaveLoad => Color::srgba(0.16, 0.11, 0.06, fade.alpha),
+        };
+        *bg = BackgroundColor(color);
     }
 }
