@@ -618,13 +618,13 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
         ))
         .with_children(|parent| {
             parent.spawn((
-                Text::new("WASD: Move | Space: Use Tool | F: Interact | E: Inventory"),
+                Text::new("Step outside. Field ahead, shipping bin to the east, town path south."),
                 TextFont {
                     font: font.clone(),
                     font_size: 12.0,
                     ..default()
                 },
-                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.45)),
+                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.32)),
                 PickingBehavior::IGNORE,
             ));
         });
@@ -639,7 +639,7 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
 
     // Initialise the controls hint timer (60 real seconds).
     commands.insert_resource(ControlsHintTimer {
-        timer: Timer::from_seconds(60.0, TimerMode::Once),
+        timer: Timer::from_seconds(18.0, TimerMode::Once),
     });
     commands.insert_resource(InteractionPromptCache::default());
 }
@@ -1636,10 +1636,10 @@ pub fn update_controls_hint(
 
         // Fade out over the last 5 seconds.
         let remaining = timer.timer.remaining_secs();
-        let alpha = if remaining < 5.0 {
-            (remaining / 5.0).clamp(0.0, 1.0) * 0.45
+        let alpha = if remaining < 8.0 {
+            (remaining / 8.0).clamp(0.0, 1.0) * 0.32
         } else {
-            0.45
+            0.32
         };
 
         for &child in children.iter() {
