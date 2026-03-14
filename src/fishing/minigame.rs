@@ -9,8 +9,8 @@
 //!  └──────────────┘
 //!  [████░░░░░░░░░░]  ← progress bar: overlap ratio visualization
 //!
-//! Timer-based mechanic: 10-second minigame. Player must keep the catch bar
-//! overlapping the fish zone for at least 80% of the timer to succeed.
+//! Timer-based mechanic: 12-second minigame. Player must keep the catch bar
+//! overlapping the fish zone for at least 68% of the timer to succeed.
 //!
 //! # Perfect Catch
 //! If the catch bar was inside the fish zone for 90%+ of the minigame duration,
@@ -30,19 +30,19 @@ use crate::shared::*;
 // ─── Tuning constants ─────────────────────────────────────────────────────────
 
 /// How fast the catch bar rises when Space is held (units/second, 0-100 scale).
-const CATCH_RISE_SPEED: f32 = 60.0;
+const CATCH_RISE_SPEED: f32 = 68.0;
 /// How fast the catch bar falls when Space is released.
-const CATCH_FALL_SPEED: f32 = 45.0;
+const CATCH_FALL_SPEED: f32 = 32.0;
 
 /// Maximum speed of the fish zone (units/second at difficulty 1.0).
-const FISH_MAX_SPEED: f32 = 90.0;
+const FISH_MAX_SPEED: f32 = 72.0;
 /// Minimum speed (at difficulty 0.0).
 const FISH_MIN_SPEED: f32 = 20.0;
 
-/// Total minigame duration in seconds (spec: 10 seconds).
-const MINIGAME_DURATION: f32 = 10.0;
-/// Overlap ratio required to catch the fish (spec: 80%).
-const CATCH_OVERLAP_THRESHOLD: f32 = 0.80;
+/// Total minigame duration in seconds (spec: 12 seconds).
+const MINIGAME_DURATION: f32 = 12.0;
+/// Overlap ratio required to catch the fish (spec: 68%).
+const CATCH_OVERLAP_THRESHOLD: f32 = 0.68;
 
 // ─── Systems ─────────────────────────────────────────────────────────────────
 
@@ -143,8 +143,8 @@ pub fn update_catch_bar(
 
 /// Update overlap tracking and progress bar fill.
 ///
-/// Uses a 10-second timer. The progress bar shows current overlap ratio
-/// relative to elapsed time. Catch requires 80% overlap when the timer expires.
+/// Uses a 12-second timer. The progress bar shows current overlap ratio
+/// relative to elapsed time. Catch requires 68% overlap when the timer expires.
 pub fn update_progress(
     mut minigame_state: ResMut<FishingMinigameState>,
     time: Res<Time>,
@@ -153,15 +153,15 @@ pub fn update_progress(
 ) {
     let dt = time.delta_secs();
 
-    // Only accumulate timing after the first 0.5s grace period,
+    // Only accumulate timing after the first 0.75s grace period,
     // so the initial bar-placement isn't counted against the player.
-    if minigame_state.elapsed > 0.5 {
+    if minigame_state.elapsed > 0.75 {
         minigame_state.minigame_total_time += dt;
     }
 
     if minigame_state.is_overlapping() {
         // Track how long the bar was overlapping (for catch calculation).
-        if minigame_state.elapsed > 0.5 {
+        if minigame_state.elapsed > 0.75 {
             minigame_state.overlap_time_total += dt;
         }
 
@@ -220,7 +220,7 @@ pub fn check_minigame_result(
 
     if timer_expired {
         if overlap_ratio >= CATCH_OVERLAP_THRESHOLD {
-            // Win: overlap >= 80% — caught the fish!
+            // Win: overlap >= 68% — caught the fish!
             let is_perfect = minigame_state.is_perfect_catch();
             let bait_id = fishing_state.bait_id.clone();
             let selected_fish = fishing_state.selected_fish_id.clone();
@@ -268,16 +268,12 @@ pub fn check_minigame_result(
                 }
             }
         } else {
-            // Fail: timer expired but overlap < 80%
+            // Fail: timer expired but overlap < 68%
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "fish_escape".to_string(),
             });
             toast_events.send(ToastEvent {
-                message: format!(
-                    "The fish got away! ({:.0}% overlap, need {:.0}%)",
-                    overlap_ratio * 100.0,
-                    CATCH_OVERLAP_THRESHOLD * 100.0
-                ),
+                message: "The fish slipped away. Cast again and wait for the pull.".to_string(),
                 duration_secs: 2.5,
             });
             let bobber_entities: Vec<Entity> = bobber_query.iter().collect();
