@@ -23,43 +23,39 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     // Narrative text cards.
     steps.push_back(CutsceneStep::ShowText(
         "Your grandfather left you one last letter...".into(),
-        2.4,
+        1.6,
     ));
     steps.push_back(CutsceneStep::ShowText(
         "'Dear child,\nWelcome to your new life at Hearthfield Farm.\nTake this little patch of land and make it your own.'".into(),
-        3.6,
+        2.4,
     ));
 
     // Day card.
-    steps.push_back(CutsceneStep::ShowText("Spring 1, Year 1".into(), 2.0));
+    steps.push_back(CutsceneStep::ShowText("Spring 1, Year 1".into(), 1.2));
 
     // Controls reference card — kept brief so the intro stays moving.
     steps.push_back(CutsceneStep::ShowText(
-        "Move: WASD | Use tool: Space | Interact: F\n\
-         Inventory: E | Crafting: C | Cycle tools: [ ]"
-            .into(),
-        3.0,
+        "Step outside. Till, plant, and water your turnip seeds.".into(),
+        1.8,
     ));
 
     // Signal NPC spawning to place Mayor Rex on the farm for the intro greeting.
     steps.push_back(CutsceneStep::SetFlag("mayor_intro_visit".into(), true));
 
     // Reveal the farm.
-    steps.push_back(CutsceneStep::FadeIn(1.2));
+    steps.push_back(CutsceneStep::FadeIn(0.9));
 
     // Let the player see the farm for a moment.
-    steps.push_back(CutsceneStep::Wait(0.6));
+    steps.push_back(CutsceneStep::Wait(1.0));
 
     // Mayor Rex greets the player with intro-specific lines.
     steps.push_back(CutsceneStep::StartDialogueCustom {
         npc_id: "mayor_rex".into(),
         lines: vec![
-            "There you are. Welcome to Hearthfield, and welcome home.".into(),
-            "Your grandfather loved this farm, and I know he'd be happy to see someone bringing it back to life.".into(),
-            "We're a small town, but folks look after one another. Visit the general store after this if you need more seeds.".into(),
-            "First things first: till a patch by the house, plant those turnip seeds, and water them today.".into(),
-            "I've tucked a few turnip seeds into your pack so you can get your first crop started right away.".into(),
-            "Once those are in the ground, press F near your mailbox or head into town and introduce yourself at your own pace.".into(),
+            "There you are. Welcome home.".into(),
+            "Hearthfield's been waiting for someone to love it again.".into(),
+            "Your turnip seeds are already in your pack. Start with one patch by the house: till it, plant it, water it.".into(),
+            "After that, take the south path into town whenever you're ready.".into(),
         ],
         portrait_index: Some(7),
     });
