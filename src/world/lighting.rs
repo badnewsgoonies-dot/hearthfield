@@ -125,6 +125,35 @@ fn lerp_f32(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
+fn desaturate_tint(tint: (f32, f32, f32), amount: f32) -> (f32, f32, f32) {
+    let luminance = tint.0 * 0.299 + tint.1 * 0.587 + tint.2 * 0.114;
+    (
+        lerp_f32(tint.0, luminance, amount),
+        lerp_f32(tint.1, luminance, amount),
+        lerp_f32(tint.2, luminance, amount),
+    )
+}
+
+fn weather_adjusted_outdoor_tint(
+    weather: Weather,
+    tint: (f32, f32, f32),
+    intensity: f32,
+) -> ((f32, f32, f32), f32) {
+    match weather {
+        Weather::Rainy => {
+            let tint = desaturate_tint(tint, 0.35);
+            let tint = (tint.0 * 0.72, tint.1 * 0.74, tint.2 * 0.78);
+            (tint, (intensity + 0.12).min(0.58))
+        }
+        Weather::Stormy => {
+            let tint = desaturate_tint(tint, 0.45);
+            let tint = (tint.0 * 0.62, tint.1 * 0.65, tint.2 * 0.72);
+            (tint, (intensity + 0.18).min(0.68))
+        }
+        _ => (tint, intensity),
+    }
+}
+
 /// Sample the tint keyframes at a given time (0.0 - 24.0+).
 fn sample_tint(time: f32) -> ((f32, f32, f32), f32) {
     // Clamp time to 0..24 range. Calendar can go up to 25 (1 AM next day).
@@ -225,11 +254,16 @@ pub fn update_day_night_tint(
     // Indoor maps: consistent warm ambient lighting instead of day/night cycle.
     // Subtle warm tint: Color::srgb(1.0, 0.97, 0.92) at very low intensity.
     if is_indoor_map(player_state.current_map) {
-        day_night_tint.intensity = 0.04;
-        day_night_tint.tint = (1.0, 0.97, 0.92);
+        let (indoor_tint, indoor_intensity, overlay) = if calendar.weather == Weather::Snowy {
+            ((1.0, 0.95, 0.86), 0.06, (0.98, 0.86, 0.62, 0.06))
+        } else {
+            ((1.0, 0.97, 0.92), 0.04, (0.95, 0.85, 0.55, 0.04))
+        };
+        day_night_tint.intensity = indoor_intensity;
+        day_night_tint.tint = indoor_tint;
         for mut bg in &mut overlay_query {
-            // Very subtle warm overlay: slight amber at low alpha
-            *bg = BackgroundColor(Color::srgba(0.95, 0.85, 0.55, 0.04));
+            // During snow, interiors skew warmer so shelter reads a bit cozier.
+            *bg = BackgroundColor(Color::srgba(overlay.0, overlay.1, overlay.2, overlay.3));
         }
         return;
     }
@@ -239,6 +273,7 @@ pub fn update_day_night_tint(
 
     // Sample the keyframes
     let (tint, intensity) = sample_tint(time);
+    let (tint, intensity) = weather_adjusted_outdoor_tint(calendar.weather, tint, intensity);
 
     // Update the shared resource so other systems can read current tint values
     day_night_tint.intensity = intensity;

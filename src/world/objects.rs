@@ -985,7 +985,9 @@ pub fn seasonal_forageables(season: Season) -> Vec<(&'static str, Color)> {
 }
 
 fn forageable_icon_index(item_id: &str, item_registry: &ItemRegistry) -> Option<usize> {
-    item_registry.get(item_id).map(|def| def.sprite_index as usize)
+    item_registry
+        .get(item_id)
+        .map(|def| def.sprite_index as usize)
 }
 
 /// Spawn forageables for the current day on the active map.
@@ -2067,7 +2069,6 @@ fn player_house_furniture() -> Vec<FurniturePlacement> {
             index: 53,
             wide: false,
         },
-
         // ── Kitchen / pantry ──
         FurniturePlacement {
             x: 2,
@@ -2093,7 +2094,6 @@ fn player_house_furniture() -> Vec<FurniturePlacement> {
             index: 27,
             wide: false,
         },
-
         // ── Dining nook ──
         FurniturePlacement {
             x: 3,
@@ -2119,7 +2119,6 @@ fn player_house_furniture() -> Vec<FurniturePlacement> {
             index: 6,
             wide: false,
         },
-
         // ── Living room ──
         FurniturePlacement {
             x: 1,
@@ -2169,7 +2168,6 @@ fn player_house_furniture() -> Vec<FurniturePlacement> {
             index: 44,
             wide: false,
         },
-
         // ── Entry ──
         FurniturePlacement {
             x: 2,
@@ -3473,7 +3471,10 @@ mod forageable_icon_tests {
         app.update();
 
         let registry = app.world().resource::<ItemRegistry>();
-        assert_eq!(forageable_icon_index("wild_horseradish", &registry), Some(223));
+        assert_eq!(
+            forageable_icon_index("wild_horseradish", &registry),
+            Some(223)
+        );
         assert_eq!(forageable_icon_index("grape", &registry), Some(228));
         assert_eq!(forageable_icon_index("crocus", &registry), Some(240));
     }

@@ -253,11 +253,11 @@ pub fn spawn_weather_particles(
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                let speed = rng.gen_range(200.0..400.0);
+                let speed = rng.gen_range(170.0..310.0);
 
                 let mut sprite = Sprite::from_image(weather_sprites.rain_image.clone());
-                sprite.custom_size = Some(Vec2::new(2.0, 8.0));
-                sprite.color = Color::srgba(0.5, 0.6, 1.0, 0.75);
+                sprite.custom_size = Some(Vec2::new(2.5, 10.0));
+                sprite.color = Color::srgba(0.43, 0.5, 0.72, 0.82);
 
                 commands.spawn((
                     RainDrop { speed },
@@ -272,11 +272,11 @@ pub fn spawn_weather_particles(
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                let speed = rng.gen_range(250.0..450.0);
+                let speed = rng.gen_range(280.0..480.0);
 
                 let mut sprite = Sprite::from_image(weather_sprites.storm_image.clone());
-                sprite.custom_size = Some(Vec2::new(3.0, 8.0));
-                sprite.color = Color::srgba(0.4, 0.5, 0.9, 0.8);
+                sprite.custom_size = Some(Vec2::new(3.5, 10.0));
+                sprite.color = Color::srgba(0.38, 0.45, 0.72, 0.84);
 
                 commands.spawn((
                     RainDrop { speed },
@@ -291,17 +291,17 @@ pub fn spawn_weather_particles(
             for _ in 0..count {
                 let x = rng.gen_range(spawn_left..spawn_right);
                 let y = spawn_top + rng.gen_range(0.0..20.0);
-                let speed = rng.gen_range(20.0..45.0);
-                let drift_freq = rng.gen_range(0.8..2.5);
-                let drift_amp = rng.gen_range(5.0..15.0);
+                let speed = rng.gen_range(14.0..28.0);
+                let drift_freq = rng.gen_range(0.7..1.8);
+                let drift_amp = rng.gen_range(7.0..18.0);
                 let drift_phase = rng.gen_range(0.0..std::f32::consts::TAU);
 
-                let alpha = rng.gen_range(0.6_f32..0.85);
-                let brightness = rng.gen_range(0.92_f32..1.0);
+                let alpha = rng.gen_range(0.72_f32..0.92);
+                let brightness = rng.gen_range(0.94_f32..1.0);
 
                 let mut sprite = Sprite::from_image(weather_sprites.snow_image.clone());
-                sprite.custom_size = Some(Vec2::new(5.0, 5.0));
-                sprite.color = Color::srgba(brightness, brightness, 1.0, alpha);
+                sprite.custom_size = Some(Vec2::new(6.5, 6.5));
+                sprite.color = Color::srgba(brightness, brightness * 0.985, 0.97, alpha);
 
                 commands.spawn((
                     SnowFlake {
