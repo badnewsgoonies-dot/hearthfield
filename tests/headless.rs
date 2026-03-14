@@ -13,10 +13,11 @@ use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
 use hearthfield::animals::pen_bounds_for;
 use hearthfield::animals::{handle_day_end_for_animals, quality_from_happiness, UnfedDays};
-use hearthfield::calendar::{trigger_sleep, CalendarPlugin};
 use hearthfield::calendar::festivals::{
-    check_festival_day, cleanup_festival_on_day_end, FestivalKind, FestivalState,
+    check_festival_day, cleanup_festival_on_day_end, start_egg_hunt, FestivalEgg, FestivalKind,
+    FestivalState,
 };
+use hearthfield::calendar::{trigger_sleep, CalendarPlugin};
 use hearthfield::crafting::food_buff_for_item;
 use hearthfield::crafting::machines::{resolve_machine_output, MachineType};
 use hearthfield::data::DataPlugin;
@@ -71,6 +72,7 @@ use hearthfield::player::interaction::{
 };
 use hearthfield::player::movement::player_movement;
 use hearthfield::player::{facing_offset, stamina_cost, CameraSnap, CollisionMap};
+use hearthfield::save::{LoadRequestEvent, SavePlugin, SaveRequestEvent};
 use hearthfield::ui::cutscene_runner::activate_pending_cutscene;
 use hearthfield::ui::transitions::ScreenFade;
 use hearthfield::world::lighting::{update_day_night_tint, DayNightOverlay};
@@ -176,6 +178,15 @@ fn enter_playing_state(app: &mut App) {
 fn send_day_end(app: &mut App, day: u8, season: Season, year: u32) {
     app.world_mut()
         .send_event(DayEndEvent { day, season, year });
+}
+
+fn test_save_slot_path(slot: u8) -> std::path::PathBuf {
+    std::env::current_exe()
+        .expect("current exe path should resolve")
+        .parent()
+        .expect("test binary should have a parent directory")
+        .join("saves")
+        .join(format!("slot_{}.json", slot))
 }
 
 #[test]
@@ -3125,6 +3136,120 @@ fn test_festival_cleanup_on_day_end() {
     );
 }
 
+#[test]
+fn test_load_request_restores_egg_festival_runtime_state_and_allows_restart() {
+    let slot = 2;
+    let save_path = test_save_slot_path(slot);
+    if let Some(parent) = save_path.parent() {
+        std::fs::create_dir_all(parent).expect("save dir should be creatable");
+    }
+    let _ = std::fs::remove_file(&save_path);
+
+    let mut app = build_test_app();
+    app.add_plugins(AssetPlugin::default())
+        .add_plugins(SavePlugin)
+        .add_systems(Update, start_egg_hunt.run_if(in_state(GameState::Playing)));
+
+    app.init_resource::<hearthfield::economy::gold::EconomyStats>()
+        .init_resource::<ShippingLog>()
+        .init_resource::<TutorialState>()
+        .init_resource::<hearthfield::fishing::FishEncyclopedia>()
+        .init_resource::<FishingSkill>()
+        .init_resource::<HarvestStats>()
+        .init_resource::<AnimalProductStats>()
+        .init_resource::<ToolUpgradeQueue>()
+        .init_resource::<ShippingBinQuality>()
+        .init_resource::<FestivalState>()
+        .init_resource::<BuildingLevels>()
+        .init_resource::<hearthfield::npcs::dialogue::DailyTalkTracker>()
+        .init_resource::<hearthfield::npcs::map_events::GiftDecayTracker>()
+        .init_resource::<hearthfield::npcs::schedules::FarmVisitTracker>()
+        .init_resource::<hearthfield::world::CurrentMapId>()
+        .init_resource::<hearthfield::world::chests::ChestSpriteData>()
+        .init_resource::<hearthfield::crafting::machines::ProcessingMachineRegistry>()
+        .init_resource::<hearthfield::world::objects::FurnitureAtlases>()
+        .init_resource::<PlayerInput>();
+
+    enter_playing_state(&mut app);
+    app.update();
+
+    {
+        let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+        player_state.current_map = MapId::Farm;
+    }
+    {
+        let mut festival = app.world_mut().resource_mut::<FestivalState>();
+        festival.active = Some(FestivalKind::EggFestival);
+        festival.started = true;
+        festival.timer = Some(Timer::from_seconds(30.0, TimerMode::Once));
+        festival.score = 7;
+        festival.items_collected = 4;
+    }
+
+    app.world_mut().send_event(SaveRequestEvent { slot });
+    app.update();
+
+    {
+        let mut festival = app.world_mut().resource_mut::<FestivalState>();
+        festival.active = None;
+        festival.started = false;
+        festival.timer = None;
+        festival.score = 0;
+        festival.items_collected = 0;
+    }
+
+    app.world_mut().send_event(LoadRequestEvent { slot });
+    app.update();
+
+    {
+        let festival = app.world().resource::<FestivalState>();
+        assert_eq!(
+            festival.active,
+            Some(FestivalKind::EggFestival),
+            "Load should restore the active festival"
+        );
+        assert!(
+            !festival.started,
+            "Load should reset Egg Festival to the pre-hunt state"
+        );
+        assert!(
+            festival.timer.is_none(),
+            "Load should clear the runtime-only timer before restart"
+        );
+        assert_eq!(festival.score, 0, "Load should clear stale Egg Hunt score");
+        assert_eq!(
+            festival.items_collected, 0,
+            "Load should clear stale Egg Hunt progress"
+        );
+    }
+
+    {
+        let mut input = app.world_mut().resource_mut::<PlayerInput>();
+        input.interact = true;
+    }
+    app.update();
+
+    let festival = app.world().resource::<FestivalState>();
+    assert!(
+        festival.started,
+        "Egg Hunt should be startable again after loading"
+    );
+    assert!(
+        festival.timer.is_some(),
+        "Restarting after load should rebuild the Egg Hunt timer"
+    );
+    assert_eq!(
+        app.world()
+            .query::<&FestivalEgg>()
+            .iter(app.world())
+            .count(),
+        20,
+        "Restarting after load should spawn a fresh set of festival eggs"
+    );
+
+    let _ = std::fs::remove_file(save_path);
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // NEW TESTS: Crafting Machine Outputs (pure function)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -4378,11 +4503,8 @@ fn test_map_transition_primes_camera_snap_and_invalidates_collision_map() {
         .add_systems(Update, handle_player_map_transition);
 
     let start = grid_to_world_center(4, 7);
-    app.world_mut().spawn((
-        Player,
-        GridPosition::new(4, 7),
-        LogicalPosition(start),
-    ));
+    app.world_mut()
+        .spawn((Player, GridPosition::new(4, 7), LogicalPosition(start)));
 
     {
         let mut player_state = app.world_mut().resource_mut::<PlayerState>();
@@ -4523,11 +4645,8 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
     enter_playing_state(&mut app);
 
     let start = grid_to_world_center(11, 4);
-    app.world_mut().spawn((
-        Player,
-        GridPosition::new(11, 4),
-        LogicalPosition(start),
-    ));
+    app.world_mut()
+        .spawn((Player, GridPosition::new(11, 4), LogicalPosition(start)));
 
     {
         let mut player_state = app.world_mut().resource_mut::<PlayerState>();
@@ -4599,7 +4718,10 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
 
     {
         let queue = app.world().resource::<CutsceneQueue>();
-        assert!(queue.active, "Sleep should arm the queued overnight cutscene");
+        assert!(
+            queue.active,
+            "Sleep should arm the queued overnight cutscene"
+        );
         assert!(
             !queue.steps.is_empty(),
             "Sleep should populate the overnight cutscene steps"
