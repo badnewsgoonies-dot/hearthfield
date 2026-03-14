@@ -69,14 +69,20 @@ pub fn catch_fish(
     });
 
     // Toast for the catch
-    let catch_name = fish_registry
-        .fish
-        .get(&valid_id)
+    let catch_def = fish_registry.fish.get(&valid_id);
+    let catch_name = catch_def
         .map(|f| f.name.clone())
         .unwrap_or_else(|| valid_id.clone());
+    let (catch_message, catch_duration_secs) = match catch_def.map(|f| f.rarity) {
+        Some(Rarity::Rare) => (
+            format!("A rare {}! That one is going to stay with you.", catch_name),
+            4.5,
+        ),
+        _ => (format!("You reel in a {}.", catch_name), 3.0),
+    };
     toast_events.send(ToastEvent {
-        message: format!("Caught a {}!", catch_name),
-        duration_secs: 2.5,
+        message: catch_message,
+        duration_secs: catch_duration_secs,
     });
 
     // ── Fish Encyclopedia ──────────────────────────────────────────────────
@@ -91,8 +97,11 @@ pub fn catch_fish(
             .map(|f| f.name.as_str())
             .unwrap_or(&valid_id);
         toast_events.send(ToastEvent {
-            message: format!("New fish: {}!", fish_name),
-            duration_secs: 3.0,
+            message: format!(
+                "First {} caught. The coast feels a little more like yours now.",
+                fish_name
+            ),
+            duration_secs: 4.5,
         });
     }
 
@@ -104,8 +113,11 @@ pub fn catch_fish(
             .map(|f| f.name.as_str())
             .unwrap_or(&valid_id);
         toast_events.send(ToastEvent {
-            message: format!("LEGENDARY CATCH: {}! Incredible!", fish_name),
-            duration_secs: 5.0,
+            message: format!(
+                "Legendary catch: {}. Take a second and let that sink in.",
+                fish_name
+            ),
+            duration_secs: 6.0,
         });
         sfx_events.send(PlaySfxEvent {
             sfx_id: "legendary_catch".to_string(),
