@@ -214,12 +214,12 @@ pub fn spawn_grass_decorations(
                 );
                 sprite.custom_size = Some(Vec2::new(12.0, 12.0));
 
-                // Apply seasonal tint to decorations.
+                // Apply seasonal tint to grass decorations.
                 sprite.color = match season {
-                    Season::Spring => Color::WHITE,
-                    Season::Summer => Color::srgb(1.0, 0.95, 0.85),
-                    Season::Fall => Color::srgb(0.9, 0.75, 0.55),
-                    Season::Winter => Color::srgb(0.85, 0.90, 1.0),
+                    Season::Spring => Color::srgba(0.5, 0.9, 0.4, 1.0),
+                    Season::Summer => Color::srgba(0.3, 0.7, 0.2, 1.0),
+                    Season::Fall => Color::srgba(0.8, 0.65, 0.3, 1.0),
+                    Season::Winter => Color::srgba(0.7, 0.75, 0.85, 1.0),
                 };
 
                 // Grass sway: sinusoidal rotation ±4-8° at 0.8-1.2 Hz.
