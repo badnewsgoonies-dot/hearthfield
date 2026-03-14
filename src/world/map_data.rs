@@ -426,7 +426,7 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             west: Some((MapId::MineEntrance, EdgeTarget::Fixed(12, 6))),
         },
         MapId::Town => EdgeDefs {
-            north: Some((MapId::Farm, EdgeTarget::ClampX(1))),
+            north: Some((MapId::Farm, EdgeTarget::Fixed(15, 20))),
             south: Some((MapId::Beach, EdgeTarget::ClampX(7))),
             east: Some((MapId::Forest, EdgeTarget::ClampY(1))),
             west: Some((MapId::TownWest, EdgeTarget::ClampY(14))),
@@ -447,7 +447,7 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             north: Some((MapId::MineEntrance, EdgeTarget::Fixed(7, 1))),
             south: None,
             east: Some((MapId::DeepForest, EdgeTarget::ClampY(1))),
-            west: Some((MapId::Farm, EdgeTarget::ClampY(30))),
+            west: Some((MapId::Farm, EdgeTarget::Fixed(30, 10))),
         },
         MapId::DeepForest => EdgeDefs {
             north: None,
@@ -458,7 +458,7 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
         MapId::MineEntrance => EdgeDefs {
             north: Some((MapId::SnowMountain, EdgeTarget::Fixed(5, 12))),
             south: Some((MapId::Forest, EdgeTarget::Fixed(11, 16))),
-            east: Some((MapId::Farm, EdgeTarget::Fixed(1, 9))),
+            east: Some((MapId::Farm, EdgeTarget::Fixed(1, 10))),
             west: None,
         },
         MapId::PlayerHouse => EdgeDefs {
