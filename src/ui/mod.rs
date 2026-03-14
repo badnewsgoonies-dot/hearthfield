@@ -6,6 +6,7 @@ mod crafting_screen;
 pub mod cutscene_runner;
 mod debug_overlay;
 pub mod dialogue_box;
+mod fish_encyclopedia;
 mod hud;
 // (input.rs removed — all input routing via src/input/mod.rs + menu_input.rs)
 pub mod intro_sequence;
@@ -153,6 +154,22 @@ impl Plugin for UiPlugin {
                 .in_set(UpdatePhase::Presentation)
                 .run_if(in_state(GameState::MainMenu)),
         );
+        app.add_systems(
+            OnEnter(GameState::FishEncyclopedia),
+            fish_encyclopedia::spawn_fish_encyclopedia_screen,
+        );
+        app.add_systems(
+            OnExit(GameState::FishEncyclopedia),
+            fish_encyclopedia::despawn_fish_encyclopedia_screen,
+        );
+        app.add_systems(
+            Update,
+            (
+                fish_encyclopedia::update_fish_encyclopedia_visuals,
+                fish_encyclopedia::fish_encyclopedia_navigation,
+            )
+                .run_if(in_state(GameState::FishEncyclopedia)),
+        );
 
         // ─── HUD — visible during Playing state ───
         app.insert_resource(hud::FloatingGoldCooldown {
@@ -253,6 +270,7 @@ impl Plugin for UiPlugin {
                         .or(in_state(GameState::Shop))
                         .or(in_state(GameState::Crafting))
                         .or(in_state(GameState::Dialogue))
+                        .or(in_state(GameState::FishEncyclopedia))
                         .or(in_state(GameState::Journal))
                         .or(in_state(GameState::RelationshipsView))
                         .or(in_state(GameState::MapView)),
