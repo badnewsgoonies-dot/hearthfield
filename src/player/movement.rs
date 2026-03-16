@@ -2,6 +2,45 @@ use super::{CollisionMap, DistanceAnimator};
 use crate::shared::*;
 use crate::world::WorldMap;
 use bevy::prelude::*;
+use rand::Rng;
+
+#[derive(Component, Debug)]
+pub struct FootstepDust {
+    pub timer: Timer,
+    pub velocity: Vec2,
+}
+
+fn spawn_footstep_dust(commands: &mut Commands, world_pos: Vec2, facing: Facing) {
+    let mut rng = rand::thread_rng();
+    let backward = match facing {
+        Facing::Up => Vec2::NEG_Y,
+        Facing::Down => Vec2::Y,
+        Facing::Left => Vec2::X,
+        Facing::Right => Vec2::NEG_X,
+    };
+    let sideways = Vec2::new(-backward.y, backward.x);
+    let color = Color::srgb(0.76, 0.68, 0.56);
+
+    for side in [-1.0_f32, 1.0] {
+        let spawn_pos = world_pos + backward * 5.0 + sideways * side * 2.5;
+        let velocity = backward * rng.gen_range(8.0_f32..16.0)
+            + sideways * side * rng.gen_range(4.0_f32..10.0)
+            + Vec2::new(0.0, rng.gen_range(6.0_f32..14.0));
+
+        commands.spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(2.5)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(spawn_pos.x, spawn_pos.y, Z_EFFECTS)),
+            FootstepDust {
+                timer: Timer::from_seconds(rng.gen_range(0.22_f32..0.34), TimerMode::Once),
+                velocity,
+            },
+        ));
+    }
+}
 
 /// Core movement system — reads input, applies velocity to LogicalPosition,
 /// updates facing direction, snaps grid position, and checks collisions.
@@ -162,6 +201,7 @@ pub fn animate_player_sprite(
 /// Emit a footstep SFX every 32 pixels of distance traveled while walking.
 pub fn footstep_sfx(
     query: Query<(&LogicalPosition, &PlayerMovement), With<Player>>,
+    mut commands: Commands,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
     mut distance_acc: Local<f32>,
     mut last_pos: Local<Vec2>,
@@ -179,6 +219,7 @@ pub fn footstep_sfx(
             sfx_writer.send(PlaySfxEvent {
                 sfx_id: "footstep".to_string(),
             });
+            spawn_footstep_dust(&mut commands, pos.0, movement.facing);
             *distance_acc = 0.0;
         }
     } else {
@@ -186,6 +227,30 @@ pub fn footstep_sfx(
     }
 
     *last_pos = pos.0;
+}
+
+pub fn update_footstep_dust(
+    mut commands: Commands,
+    mut particles: Query<(Entity, &mut Transform, &mut Sprite, &mut FootstepDust)>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut transform, mut sprite, mut dust) in particles.iter_mut() {
+        dust.timer.tick(time.delta());
+        if dust.timer.finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        dust.velocity *= 1.0 - (4.0 * dt).min(0.9);
+        transform.translation.x += dust.velocity.x * dt;
+        transform.translation.y += dust.velocity.y * dt;
+
+        let remaining = 1.0 - dust.timer.fraction();
+        sprite.color = sprite.color.with_alpha(remaining);
+        sprite.custom_size = Some(Vec2::splat(2.5 * remaining.max(0.2)));
+    }
 }
 
 /// Check whether a world position is blocked.
