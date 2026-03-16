@@ -214,21 +214,31 @@ fn generate_farm() -> MapDef {
         });
     }
 
-    // Bushes and stumps around the animal buildings to make the corners feel lived-in.
-    for (x, y) in [(1, 4), (2, 4), (7, 4), (23, 3), (27, 3), (28, 3)] {
+    // Farm building surroundings
+    for (x, y) in [(1, 19), (8, 19), (1, 4), (7, 4), (23, 3), (28, 3)] {
         objects.push(ObjectPlacement {
             x,
             y,
             kind: WorldObjectKind::Bush,
         });
     }
-    for (x, y) in [(3, 4), (25, 3)] {
+    for (x, y) in [(1, 17), (7, 1), (27, 1)] {
         objects.push(ObjectPlacement {
             x,
             y,
             kind: WorldObjectKind::Stump,
         });
     }
+    objects.push(ObjectPlacement {
+        x: 9,
+        y: 17,
+        kind: WorldObjectKind::Log,
+    });
+    objects.push(ObjectPlacement {
+        x: 8,
+        y: 2,
+        kind: WorldObjectKind::Rock,
+    });
 
     // Rocks in the dirt (player clears to farm)
     let rock_positions = [
@@ -309,7 +319,7 @@ fn generate_farm() -> MapDef {
         (2, 4),
         (29, 3),
         (4, 18),
-        (8, 19),
+        (10, 19),
         (15, 22),
         (23, 18),
         (29, 20),
