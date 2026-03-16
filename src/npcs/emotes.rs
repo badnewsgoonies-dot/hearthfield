@@ -1,7 +1,11 @@
-//! Floating emote bubbles above NPCs — procedural colored sprites.
+//! Floating emote bubbles above NPCs — atlas-based hand-drawn sprites.
 //!
 //! When an NPC reacts (gift, dialogue, etc.), a small emote sprite
 //! appears above their head, floats upward, and fades out.
+//!
+//! Sprites are sourced from `assets/ui/emoji_spritesheet.png`
+//! (160×608, 10 columns × 38 rows, each tile 16×16).
+//! The procedural `make_emote_image()` is retained as a compile-time fallback.
 
 use crate::shared::*;
 use bevy::image::{Image, ImageSampler};
@@ -12,10 +16,21 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 // EMOTE SPRITE CACHE
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Cached procedural emote sprite handles (generated once, reused).
+/// Path to the hand-drawn emote spritesheet (10 cols × 38 rows, 16×16 tiles).
+const EMOTE_SHEET_PATH: &str = "ui/emoji_spritesheet.png";
+/// Number of columns in the emote spritesheet.
+const EMOTE_COLS: u32 = 10;
+/// Number of rows in the emote spritesheet.
+const EMOTE_ROWS: u32 = 38;
+
+/// Atlas-backed emote sprite cache (loaded once, reused per emote event).
 #[derive(Resource, Default)]
 pub struct EmoteSprites {
-    pub sprites: Vec<(EmoteKind, Handle<Image>)>,
+    /// Handle to the emoji spritesheet image.
+    pub image: Handle<Image>,
+    /// Handle to the shared TextureAtlasLayout for the spritesheet.
+    pub layout: Handle<TextureAtlasLayout>,
+    /// Whether the atlas handles have been registered.
     pub loaded: bool,
 }
 
@@ -35,7 +50,34 @@ pub enum EmoteKind {
     Question,    // confused
 }
 
+impl EmoteKind {
+    /// Returns the atlas index into `emoji_spritesheet.png` for this emote kind.
+    ///
+    /// The sheet is 10 columns wide, so index = row * 10 + col.
+    /// These are initial guesses pending runtime visual verification (Harden phase).
+    /// [Assumed] — actual visual content at each index has not been verified at runtime.
+    pub fn atlas_index(self) -> usize {
+        match self {
+            // row 0, col 0 — hearts are typically first in emoji conventions
+            EmoteKind::Heart => 0,
+            // row 1, col 0 — smiley faces
+            EmoteKind::Happy => 10,
+            // row 1, col 2 — neutral face
+            EmoteKind::Neutral => 12,
+            // row 2, col 0 — sad face
+            EmoteKind::Sad => 20,
+            // row 2, col 2 — angry face
+            EmoteKind::Angry => 22,
+            // row 3, col 0 — surprised/exclamation
+            EmoteKind::Exclamation => 30,
+            // row 3, col 2 — question/sweat
+            EmoteKind::Question => 32,
+        }
+    }
+}
+
 /// Helper: write an RGBA pixel into the data buffer at (x, y) for a 16-wide image.
+#[allow(dead_code)]
 fn put_pixel(data: &mut [u8], x: usize, y: usize, r: u8, g: u8, b: u8, a: u8) {
     let i = (y * 16 + x) * 4;
     if i + 3 < data.len() {
@@ -50,6 +92,9 @@ fn put_pixel(data: &mut [u8], x: usize, y: usize, r: u8, g: u8, b: u8, a: u8) {
 ///
 /// Each emote uses a palette of 2-3 colors (fill, outline/detail, highlight)
 /// for recognizable, expressive icons at small scale.
+///
+/// Retained as a fallback — used only if the atlas fails to load.
+#[allow(dead_code)]
 fn make_emote_image(kind: EmoteKind) -> Image {
     let w = 16usize;
     let h = 16usize;
@@ -322,29 +367,27 @@ pub struct EmoteBubble {
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Spawn emote bubble sprites in response to NpcEmoteEvent.
-/// Uses procedural pixel-art sprites — no atlas dependency.
+///
+/// Loads `emoji_spritesheet.png` as a TextureAtlas on first call.
+/// Each EmoteKind maps to an atlas index (see `EmoteKind::atlas_index()`).
 pub fn spawn_emote_bubbles(
     mut commands: Commands,
     mut events: EventReader<NpcEmoteEvent>,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut emote_sprites: ResMut<EmoteSprites>,
     npc_query: Query<(&Npc, &Transform)>,
 ) {
-    // Generate emote images once
+    // Register atlas handles once on first call.
     if !emote_sprites.loaded {
-        let kinds = [
-            EmoteKind::Heart,
-            EmoteKind::Happy,
-            EmoteKind::Neutral,
-            EmoteKind::Sad,
-            EmoteKind::Angry,
-            EmoteKind::Exclamation,
-            EmoteKind::Question,
-        ];
-        for kind in kinds {
-            let handle = images.add(make_emote_image(kind));
-            emote_sprites.sprites.push((kind, handle));
-        }
+        emote_sprites.image = asset_server.load(EMOTE_SHEET_PATH);
+        emote_sprites.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            EMOTE_COLS,
+            EMOTE_ROWS,
+            None,
+            None,
+        ));
         emote_sprites.loaded = true;
     }
 
@@ -358,14 +401,15 @@ pub fn spawn_emote_bubbles(
         let npc_pos = transform.translation;
         let emote_y = npc_pos.y + 20.0; // above head
 
-        let image_handle = emote_sprites
-            .sprites
-            .iter()
-            .find(|(k, _)| *k == event.emote)
-            .map(|(_, h)| h.clone())
-            .unwrap_or_default();
+        let atlas_index = event.emote.atlas_index();
 
-        let mut sprite = Sprite::from_image(image_handle);
+        let mut sprite = Sprite::from_atlas_image(
+            emote_sprites.image.clone(),
+            TextureAtlas {
+                layout: emote_sprites.layout.clone(),
+                index: atlas_index,
+            },
+        );
         sprite.custom_size = Some(Vec2::splat(16.0));
 
         commands.spawn((
