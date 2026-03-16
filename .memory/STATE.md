@@ -1,15 +1,15 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-16T19:30Z
-**HEAD:** 037d50d1 (sprite wiring campaign — P3 quick wins)
+**Updated:** 2026-03-16T20:30Z
+**HEAD:** 44250a70 (sprite wiring campaign — complete)
 **Branch:** master
 **Working tree:** clean
 
 ## Phase
 
-- Macro phase: `finish breadth` (post-Wave-10, asset wiring + polish)
-- Wave phase: `Feature` (sprite wiring campaign in progress)
-- Tier: `C` (campaign — 7 domains touched, parallel workers)
+- Macro phase: `finish breadth` (post-campaign, polish + verification)
+- Wave phase: `Graduate` (sprite wiring campaign exhausted actionable items)
+- Tier: `C` → returning to `M` (campaign complete)
 
 ## P0 Debt (blocks shipping)
 
