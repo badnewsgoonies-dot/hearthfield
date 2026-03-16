@@ -3,6 +3,21 @@ use crate::shared::*;
 use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
+// HEART ICON ATLAS — inventory_hearts.png (7 cols × 21 rows, 16×16)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// [Assumed] atlas indices — visual verification needed in Harden phase.
+const HEART_FULL_INDEX: usize = 6;  // row 0, col 6 — rightmost = fully filled
+const HEART_EMPTY_INDEX: usize = 0; // row 0, col 0 — leftmost = empty
+
+#[derive(Resource, Default)]
+pub struct HeartIconAtlas {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // MARKER COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -40,9 +55,25 @@ pub struct RelationshipsUiState {
 pub fn spawn_relationships_screen(
     mut commands: Commands,
     font_handle: Res<UiFontHandle>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut heart_atlas: ResMut<HeartIconAtlas>,
     npc_registry: Res<NpcRegistry>,
     relationships: Res<Relationships>,
 ) {
+    // Ensure heart icon atlas is loaded
+    if !heart_atlas.loaded {
+        heart_atlas.image = asset_server.load("ui/inventory_hearts.png");
+        heart_atlas.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(16, 16),
+            7,
+            21,
+            None,
+            None,
+        ));
+        heart_atlas.loaded = true;
+    }
+
     let font = font_handle.0.clone();
 
     // Collect NPCs sorted by name for stable ordering
@@ -197,6 +228,7 @@ pub fn spawn_relationships_screen(
                                 &npc_registry,
                                 &relationships,
                                 &font,
+                                &heart_atlas,
                             );
                         });
                 });
@@ -224,6 +256,7 @@ pub fn relationships_navigation(
     npc_registry: Res<NpcRegistry>,
     relationships: Res<Relationships>,
     font_handle: Res<UiFontHandle>,
+    heart_atlas: Res<HeartIconAtlas>,
     detail_query: Query<Entity, With<RelDetailPanel>>,
 ) {
     let Some(ref mut ui_state) = ui_state else {
@@ -250,7 +283,7 @@ pub fn relationships_navigation(
         for entity in &detail_query {
             commands.entity(entity).despawn_descendants();
             commands.entity(entity).with_children(|detail| {
-                spawn_detail_children(detail, selected_id, &npc_registry, &relationships, &font);
+                spawn_detail_children(detail, selected_id, &npc_registry, &relationships, &font, &heart_atlas);
             });
         }
     }
@@ -288,6 +321,7 @@ fn spawn_detail_children(
     npc_registry: &NpcRegistry,
     relationships: &Relationships,
     font: &Handle<Font>,
+    heart_atlas: &HeartIconAtlas,
 ) {
     let Some(id) = npc_id else {
         parent.spawn((
@@ -334,9 +368,9 @@ fn spawn_detail_children(
         TextColor(Color::srgb(0.85, 0.85, 0.85)),
     ));
 
-    // Friendship
+    // Friendship — sprite hearts row + text
     parent.spawn((
-        Text::new(format!("Friendship: {} pts ({}/10 hearts)", points, hearts)),
+        Text::new(format!("Friendship: {} pts", points)),
         TextFont {
             font: font.clone(),
             font_size: 12.0,
@@ -344,6 +378,38 @@ fn spawn_detail_children(
         },
         TextColor(Color::srgb(1.0, 0.7, 0.7)),
     ));
+    if heart_atlas.loaded {
+        parent
+            .spawn(Node {
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(2.0),
+                ..default()
+            })
+            .with_children(|row| {
+                for i in 0..MAX_HEARTS as u8 {
+                    let idx = if i < hearts {
+                        HEART_FULL_INDEX
+                    } else {
+                        HEART_EMPTY_INDEX
+                    };
+                    row.spawn((
+                        ImageNode {
+                            image: heart_atlas.image.clone(),
+                            texture_atlas: Some(TextureAtlas {
+                                layout: heart_atlas.layout.clone(),
+                                index: idx,
+                            }),
+                            ..default()
+                        },
+                        Node {
+                            width: Val::Px(16.0),
+                            height: Val::Px(16.0),
+                            ..default()
+                        },
+                    ));
+                }
+            });
+    }
 
     // Loved gifts
     let loved: Vec<String> = def

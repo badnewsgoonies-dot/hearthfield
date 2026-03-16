@@ -369,6 +369,7 @@ impl Plugin for UiPlugin {
         );
 
         // ─── RELATIONSHIPS SCREEN ───
+        app.init_resource::<relationships_screen::HeartIconAtlas>();
         app.add_systems(
             OnEnter(GameState::RelationshipsView),
             relationships_screen::spawn_relationships_screen,
