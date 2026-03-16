@@ -121,13 +121,13 @@ pub fn handle_toast_events(
         // Determine category accent colour from message content.
         let accent_color = toast_accent_color(&message);
 
-        // Use hand-drawn dialog box sprite as background (medium for normal,
+        // Use pre-rendered dialog sprites as background (medium for normal,
         // small for short pickup messages).
         let is_short = message.len() < 20;
         let dialog_bg: Handle<Image> = if is_short {
-            asset_server.load("ui/dialog_box_small.png")
+            asset_server.load("ui/premade_dialog_small.png")
         } else {
-            asset_server.load("ui/dialog_box_medium.png")
+            asset_server.load("ui/premade_dialog_medium.png")
         };
 
         // Spawn the toast as a child of the container.
