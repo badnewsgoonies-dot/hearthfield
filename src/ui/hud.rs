@@ -211,7 +211,7 @@ pub fn preload_weather_icon_atlas(
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_server: Res<AssetServer>, mut layouts: ResMut<Assets<TextureAtlasLayout>>) {
+pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_server: Res<AssetServer>, mut layouts: ResMut<Assets<TextureAtlasLayout>>, ui_icons: Res<super::UiIconAtlases>) {
     let font = font_handle.0.clone();
 
     // Root container — full screen overlay, no interaction blocking
@@ -465,8 +465,18 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
                                         PickingBehavior::IGNORE,
                                     ))
                                     .with_children(|row| {
+                                        // Red heart icon (icons_special row 1, col 2 = index 9)
                                         row.spawn((
-                                            Text::new("Health"),
+                                            super::special_icon_node(&ui_icons, 9),
+                                            Node {
+                                                width: Val::Px(12.0),
+                                                height: Val::Px(12.0),
+                                                ..default()
+                                            },
+                                            PickingBehavior::IGNORE,
+                                        ));
+                                        row.spawn((
+                                            Text::new("HP"),
                                             TextFont {
                                                 font: font.clone(),
                                                 font_size: 11.0,
@@ -474,7 +484,7 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
                                             },
                                             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
                                             Node {
-                                                width: Val::Px(42.0),
+                                                width: Val::Px(22.0),
                                                 ..default()
                                             },
                                             PickingBehavior::IGNORE,
@@ -519,8 +529,18 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
                                         PickingBehavior::IGNORE,
                                     ))
                                     .with_children(|row| {
+                                        // Gold star icon (icons_special row 0, col 0 = index 0)
                                         row.spawn((
-                                            Text::new("Stamina"),
+                                            super::special_icon_node(&ui_icons, 0),
+                                            Node {
+                                                width: Val::Px(12.0),
+                                                height: Val::Px(12.0),
+                                                ..default()
+                                            },
+                                            PickingBehavior::IGNORE,
+                                        ));
+                                        row.spawn((
+                                            Text::new("SP"),
                                             TextFont {
                                                 font: font.clone(),
                                                 font_size: 11.0,
@@ -528,7 +548,7 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
                                             },
                                             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
                                             Node {
-                                                width: Val::Px(42.0),
+                                                width: Val::Px(22.0),
                                                 ..default()
                                             },
                                             PickingBehavior::IGNORE,
