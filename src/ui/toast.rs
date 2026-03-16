@@ -96,6 +96,7 @@ pub fn handle_toast_events(
     mut commands: Commands,
     mut events: EventReader<ToastEvent>,
     font_handle: Res<UiFontHandle>,
+    asset_server: Res<AssetServer>,
     container_query: Query<Entity, With<ToastContainer>>,
     existing_toasts: Query<Entity, With<ToastItem>>,
 ) {
@@ -120,6 +121,15 @@ pub fn handle_toast_events(
         // Determine category accent colour from message content.
         let accent_color = toast_accent_color(&message);
 
+        // Use hand-drawn dialog box sprite as background (medium for normal,
+        // small for short pickup messages).
+        let is_short = message.len() < 20;
+        let dialog_bg: Handle<Image> = if is_short {
+            asset_server.load("ui/dialog_box_small.png")
+        } else {
+            asset_server.load("ui/dialog_box_medium.png")
+        };
+
         // Spawn the toast as a child of the container.
         let toast_entity = commands
             .spawn((
@@ -130,11 +140,13 @@ pub fn handle_toast_events(
                 Node {
                     flex_direction: FlexDirection::Row,
                     align_items: AlignItems::Stretch,
-                    border: UiRect::all(Val::Px(1.0)),
+                    min_height: Val::Px(36.0),
                     ..default()
                 },
-                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.82)),
-                BorderColor(Color::srgba(0.5, 0.5, 0.5, 0.68)),
+                ImageNode {
+                    image: dialog_bg,
+                    ..default()
+                },
                 PickingBehavior::IGNORE,
             ))
             .with_children(|parent| {
@@ -183,11 +195,11 @@ pub fn handle_toast_events(
 pub fn update_toasts(
     mut commands: Commands,
     time: Res<Time>,
-    mut toast_query: Query<(Entity, &mut ToastItem, &mut BackgroundColor, &Children)>,
+    mut toast_query: Query<(Entity, &mut ToastItem, &mut ImageNode, &Children)>,
     mut text_color_query: Query<&mut TextColor>,
     mut accent_bg_query: Query<&mut BackgroundColor, (With<ToastAccent>, Without<ToastItem>)>,
 ) {
-    for (entity, mut toast, mut bg_color, children) in &mut toast_query {
+    for (entity, mut toast, mut img, children) in &mut toast_query {
         // If not yet in fade mode, tick main timer.
         if toast.fade_timer.is_none() {
             toast.timer.tick(time.delta());
@@ -211,14 +223,8 @@ pub fn update_toasts(
                 let progress = (elapsed / duration).clamp(0.0, 1.0);
                 let alpha = 1.0 - progress;
 
-                // Fade the background.
-                let current = bg_color.0;
-                bg_color.0 = Color::srgba(
-                    current.to_srgba().red,
-                    current.to_srgba().green,
-                    current.to_srgba().blue,
-                    0.82 * alpha,
-                );
+                // Fade the dialog box sprite via ImageNode color tint.
+                img.color = Color::srgba(1.0, 1.0, 1.0, alpha);
 
                 // Fade the text children and accent bar.
                 for &child in children.iter() {
