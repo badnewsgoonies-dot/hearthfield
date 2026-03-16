@@ -14,6 +14,7 @@ use std::collections::HashSet;
 use crate::shared::*;
 
 pub mod chests;
+pub mod fireflies;
 pub mod grass_decor;
 pub mod lighting;
 pub mod map_data;
@@ -24,6 +25,9 @@ pub mod tree_fx;
 pub mod weather_fx;
 pub mod ysort;
 
+use fireflies::{
+    cleanup_all_fireflies, cleanup_fireflies, spawn_fireflies, update_fireflies, FireflySwarmState,
+};
 use grass_decor::{spawn_grass_decorations, GrassDecorState};
 use lighting::{
     despawn_day_night_overlay, spawn_day_night_overlay, update_day_night_tint,
@@ -80,6 +84,7 @@ impl Plugin for WorldPlugin {
             .init_resource::<PreviousWeather>()
             .init_resource::<WeatherParticleCounts>()
             .init_resource::<WeatherSprites>()
+            .init_resource::<FireflySwarmState>()
             .init_resource::<GrassDecorState>()
             .init_resource::<ChimneySmokeTimer>()
             .init_resource::<BoatMode>()
@@ -95,7 +100,11 @@ impl Plugin for WorldPlugin {
             // Despawn overlay + weather particles when leaving Playing state
             .add_systems(
                 OnExit(GameState::Playing),
-                (despawn_day_night_overlay, cleanup_all_weather_particles),
+                (
+                    despawn_day_night_overlay,
+                    cleanup_all_weather_particles,
+                    cleanup_all_fireflies,
+                ),
             )
             // Gameplay systems: tool interactions, transitions, forageables
             .add_systems(
@@ -126,6 +135,10 @@ impl Plugin for WorldPlugin {
                     // Day/night ambient tint
                     update_day_night_tint,
                     update_lightning_flash,
+                    // Ambient dusk fireflies
+                    spawn_fireflies,
+                    update_fireflies,
+                    cleanup_fireflies,
                     // Weather particle effects
                     spawn_weather_particles,
                     update_weather_particles,

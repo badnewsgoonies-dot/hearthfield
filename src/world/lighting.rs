@@ -185,7 +185,7 @@ fn sample_tint(time: f32) -> ((f32, f32, f32), f32) {
 }
 
 /// Returns true if the given map is indoors (should have no day/night tint).
-fn is_indoor_map(map_id: MapId) -> bool {
+pub(crate) fn is_indoor_map(map_id: MapId) -> bool {
     matches!(
         map_id,
         MapId::PlayerHouse

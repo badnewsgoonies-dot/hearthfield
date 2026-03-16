@@ -73,6 +73,9 @@ use hearthfield::player::movement::player_movement;
 use hearthfield::player::{facing_offset, stamina_cost, CameraSnap, CollisionMap};
 use hearthfield::ui::cutscene_runner::activate_pending_cutscene;
 use hearthfield::ui::transitions::ScreenFade;
+use hearthfield::world::fireflies::{
+    cleanup_fireflies, spawn_fireflies, Firefly, FireflySwarmState,
+};
 use hearthfield::world::lighting::{update_day_night_tint, DayNightOverlay};
 use hearthfield::world::maps::MapDef;
 use hearthfield::world::weather_fx::{
@@ -6372,6 +6375,25 @@ fn build_weather_test_app(current_map: MapId) -> App {
     app
 }
 
+fn build_firefly_test_app(current_map: MapId, hour: u8, minute: u8) -> App {
+    let mut app = build_test_app();
+    app.init_resource::<FireflySwarmState>();
+
+    {
+        let mut calendar = app.world_mut().resource_mut::<Calendar>();
+        calendar.hour = hour;
+        calendar.minute = minute;
+    }
+    {
+        let mut player_state = app.world_mut().resource_mut::<PlayerState>();
+        player_state.current_map = current_map;
+    }
+
+    app.world_mut()
+        .spawn((Camera2d, Transform::from_scale(Vec3::ONE)));
+    app
+}
+
 #[test]
 fn test_library_and_tavern_use_indoor_lighting_tint() {
     for map in [MapId::Library, MapId::Tavern] {
@@ -6463,6 +6485,107 @@ fn test_library_and_tavern_suppress_and_cleanup_weather_particles() {
             map
         );
     }
+}
+
+#[test]
+fn test_fireflies_spawn_only_outdoors_during_dusk_hours() {
+    let mut dusk_app = build_firefly_test_app(MapId::Farm, 19, 0);
+    dusk_app.add_systems(Update, spawn_fireflies);
+
+    dusk_app.update();
+
+    let dusk_count = dusk_app
+        .world()
+        .query::<&Firefly>()
+        .iter(dusk_app.world())
+        .count();
+    assert!(
+        (8..=12).contains(&dusk_count),
+        "outdoor dusk should spawn 8-12 fireflies, got {}",
+        dusk_count
+    );
+
+    let mut indoor_app = build_firefly_test_app(MapId::Library, 19, 0);
+    indoor_app.add_systems(Update, spawn_fireflies);
+    indoor_app.update();
+    let indoor_count = indoor_app
+        .world()
+        .query::<&Firefly>()
+        .iter(indoor_app.world())
+        .count();
+    assert_eq!(indoor_count, 0, "indoor maps should not spawn fireflies");
+
+    let mut midday_app = build_firefly_test_app(MapId::Farm, 12, 0);
+    midday_app.add_systems(Update, spawn_fireflies);
+    midday_app.update();
+    let midday_count = midday_app
+        .world()
+        .query::<&Firefly>()
+        .iter(midday_app.world())
+        .count();
+    assert_eq!(midday_count, 0, "non-dusk hours should not spawn fireflies");
+}
+
+#[test]
+fn test_fireflies_cleanup_when_dusk_ends_or_player_goes_indoors() {
+    let mut hour_cleanup_app = build_firefly_test_app(MapId::Farm, 19, 0);
+    hour_cleanup_app.add_systems(Update, spawn_fireflies);
+    hour_cleanup_app.update();
+    assert!(
+        hour_cleanup_app
+            .world()
+            .query::<&Firefly>()
+            .iter(hour_cleanup_app.world())
+            .count()
+            > 0,
+        "sanity check: dusk fireflies should exist before cleanup"
+    );
+
+    hour_cleanup_app.add_systems(Update, cleanup_fireflies);
+    {
+        let mut calendar = hour_cleanup_app.world_mut().resource_mut::<Calendar>();
+        calendar.hour = 22;
+        calendar.minute = 0;
+    }
+    hour_cleanup_app.update();
+    assert_eq!(
+        hour_cleanup_app
+            .world()
+            .query::<&Firefly>()
+            .iter(hour_cleanup_app.world())
+            .count(),
+        0,
+        "fireflies should clear once the dusk window ends"
+    );
+
+    let mut indoor_cleanup_app = build_firefly_test_app(MapId::Farm, 19, 0);
+    indoor_cleanup_app.add_systems(Update, spawn_fireflies);
+    indoor_cleanup_app.update();
+    assert!(
+        indoor_cleanup_app
+            .world()
+            .query::<&Firefly>()
+            .iter(indoor_cleanup_app.world())
+            .count()
+            > 0,
+        "sanity check: outdoor dusk fireflies should exist before indoor cleanup"
+    );
+
+    indoor_cleanup_app.add_systems(Update, cleanup_fireflies);
+    {
+        let mut player_state = indoor_cleanup_app.world_mut().resource_mut::<PlayerState>();
+        player_state.current_map = MapId::Tavern;
+    }
+    indoor_cleanup_app.update();
+    assert_eq!(
+        indoor_cleanup_app
+            .world()
+            .query::<&Firefly>()
+            .iter(indoor_cleanup_app.world())
+            .count(),
+        0,
+        "fireflies should clear when entering an indoor map"
+    );
 }
 
 #[test]
