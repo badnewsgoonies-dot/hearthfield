@@ -12,6 +12,7 @@ use super::{
 use crate::shared::*;
 use crate::world::objects::WindSway;
 use bevy::prelude::*;
+use rand::Rng;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sprinkler animation component
@@ -60,6 +61,14 @@ pub struct CropGrowthAnim {
     /// The base sprite size (before animation scaling) — stored when animation
     /// starts so we can multiply without frame-over-frame compounding.
     pub base_size: f32,
+}
+
+/// A tiny upward drifting sparkle spawned when a crop reaches a new growth stage.
+#[derive(Component, Debug, Clone)]
+pub struct CropGrowthSparkle {
+    pub timer: Timer,
+    pub velocity: Vec2,
+    pub initial_alpha: f32,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -251,6 +260,8 @@ pub fn sync_crop_sprites(
         Option<&mut CropGrowthAnim>,
     )>,
 ) {
+    let mut rng = rand::thread_rng();
+
     // Incremental short-circuit for unchanged state/defs/atlas handles.
     if !farm_state.is_changed() && !crop_registry.is_changed() && !atlases.is_changed() {
         return;
@@ -277,6 +288,42 @@ pub fn sync_crop_sprites(
                     } else {
                         TILE_SIZE * 0.8
                     };
+
+                    let sparkle_count = rng.gen_range(2..=3usize);
+                    let base = grid_to_world_center(pos.0, pos.1);
+                    for _ in 0..sparkle_count {
+                        let color = if rng.gen_bool(0.65) {
+                            Color::srgba(0.55, 1.0, 0.45, 0.85)
+                        } else {
+                            Color::srgba(0.95, 0.95, 0.45, 0.8)
+                        };
+                        let size = rng.gen_range(1.5f32..=2.5);
+                        let drift_x = rng.gen_range(-7.0f32..=7.0);
+                        let drift_y = rng.gen_range(18.0f32..=28.0);
+                        let offset_x = rng.gen_range(-5.0f32..=5.0);
+                        let offset_y = rng.gen_range(0.0f32..=4.0);
+
+                        commands.spawn((
+                            CropGrowthSparkle {
+                                timer: Timer::from_seconds(
+                                    rng.gen_range(0.22f32..=0.34),
+                                    TimerMode::Once,
+                                ),
+                                velocity: Vec2::new(drift_x, drift_y),
+                                initial_alpha: color.to_srgba().alpha,
+                            },
+                            Sprite {
+                                color,
+                                custom_size: Some(Vec2::splat(size)),
+                                ..default()
+                            },
+                            Transform::from_xyz(
+                                base.x + offset_x,
+                                base.y + offset_y,
+                                Z_FARM_OVERLAY + 3.0,
+                            ),
+                        ));
+                    }
                 }
             } else {
                 // First time seeing this entity — insert the anim component
@@ -528,6 +575,30 @@ pub fn animate_crop_growth(time: Res<Time>, mut query: Query<(&mut CropGrowthAni
             // Restore exact base size to avoid floating-point drift.
             sprite.custom_size = Some(Vec2::splat(anim.base_size));
         }
+    }
+}
+
+/// Move crop growth sparkles upward, slightly expand them, and fade them out.
+pub fn update_crop_growth_sparkles(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &mut Sprite, &mut CropGrowthSparkle)>,
+) {
+    for (entity, mut transform, mut sprite, mut sparkle) in query.iter_mut() {
+        sparkle.timer.tick(time.delta());
+
+        if sparkle.timer.finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        transform.translation.x += sparkle.velocity.x * time.delta_secs();
+        transform.translation.y += sparkle.velocity.y * time.delta_secs();
+
+        let t = sparkle.timer.fraction();
+        let scale = 0.85 + 0.5 * t;
+        transform.scale = Vec3::splat(scale);
+        sprite.color = sprite.color.with_alpha(sparkle.initial_alpha * (1.0 - t));
     }
 }
 

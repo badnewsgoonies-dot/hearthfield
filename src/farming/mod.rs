@@ -248,7 +248,10 @@ impl Plugin for FarmingPlugin {
             // ------------------------------------------------------------------
             .add_systems(
                 PostUpdate,
-                render::animate_crop_growth
+                (
+                    render::animate_crop_growth,
+                    render::update_crop_growth_sparkles,
+                )
                     .after(render::sync_crop_sprites)
                     .run_if(in_state(GameState::Playing)),
             )
