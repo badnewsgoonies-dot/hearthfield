@@ -98,8 +98,8 @@ pub fn update_cursor_sprite(
     state: Res<State<GameState>>,
     cursor_assets: Res<CursorAssets>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-    npc_query: Query<&Transform, With<Npc>>,
-    interactable_query: Query<&Transform, With<Interactable>>,
+    npc_query: Query<&Transform, (With<Npc>, Without<GameCursorSprite>)>,
+    interactable_query: Query<&Transform, (With<Interactable>, Without<GameCursorSprite>)>,
     mut cursor_query: Query<(&mut Transform, &mut Visibility, &mut Sprite), With<GameCursorSprite>>,
 ) {
     let Ok(window) = windows.get_single() else {
@@ -172,8 +172,8 @@ pub fn update_cursor_sprite(
 /// of any NPC or Interactable entity.
 fn is_hovering_entity(
     cursor_world: Vec2,
-    npc_query: &Query<&Transform, With<Npc>>,
-    interactable_query: &Query<&Transform, With<Interactable>>,
+    npc_query: &Query<&Transform, (With<Npc>, Without<GameCursorSprite>)>,
+    interactable_query: &Query<&Transform, (With<Interactable>, Without<GameCursorSprite>)>,
 ) -> bool {
     for tf in npc_query.iter() {
         let entity_pos = tf.translation.truncate();
