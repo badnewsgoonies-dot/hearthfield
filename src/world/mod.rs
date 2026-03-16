@@ -143,6 +143,13 @@ impl Plugin for WorldPlugin {
                     spawn_weather_particles,
                     update_weather_particles,
                     cleanup_weather_on_change,
+                )
+                    .in_set(UpdatePhase::Presentation)
+                    .run_if(in_state(GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
                     weather_change_notification,
                     // Forageable sparkle particles
                     update_forage_sparkles,
@@ -918,6 +925,7 @@ fn load_map(
         world_map,
         object_atlases,
         season,
+        map_id,
     );
 
     // Spawn forageables for today

@@ -119,6 +119,11 @@ pub struct ObjectAtlases {
     pub barn_image: Handle<Image>,
     pub chicken_house_image: Handle<Image>,
     pub well_image: Handle<Image>,
+    // Individual biome-specific tree PNGs (no atlas — full-image sprites)
+    pub tree_oak_green_image: Handle<Image>,   // 80×96 — Farm/Town spring+summer
+    pub tree_oak_brown_image: Handle<Image>,   // 80×96 — Farm/Town fall
+    pub tree_birch_green_image: Handle<Image>, // 48×80 — Forest/DeepForest
+    pub tree_pine_blue_image: Handle<Image>,   // 64×96 — SnowMountain
 }
 
 /// Loads object atlas assets on first use. Subsequent calls are no-ops.
@@ -252,6 +257,12 @@ pub fn ensure_object_atlases_loaded(
     // well.png: 48x32 — well structure
     atlases.well_image = asset_server.load("sprites/well.png");
 
+    // Individual biome-specific tree PNGs (full-image, no atlas)
+    atlases.tree_oak_green_image = asset_server.load("sprites/tree_oak_green.png");
+    atlases.tree_oak_brown_image = asset_server.load("sprites/tree_oak_brown.png");
+    atlases.tree_birch_green_image = asset_server.load("sprites/tree_birch_green.png");
+    atlases.tree_pine_blue_image = asset_server.load("sprites/tree_pine_blue.png");
+
     atlases.loaded = true;
 }
 
@@ -328,6 +339,13 @@ pub fn ensure_furniture_atlases_loaded(
 /// Marker for all world object entities (for bulk despawn on map change).
 #[derive(Component, Debug)]
 pub struct WorldObject;
+
+/// Marker for tree entities that use a full-image biome PNG instead of the
+/// tree_sprites.png atlas. The season-change system skips these so they keep
+/// their biome-appropriate look year-round (oak_brown is swapped in/out on
+/// the Farm/Town maps for fall only).
+#[derive(Component, Debug, Clone, Copy)]
+pub struct BiomeTreeSprite;
 
 /// Marker for static outdoor props added to the farm scene.
 #[derive(Component, Debug)]
@@ -656,6 +674,56 @@ pub fn animate_doors(time: Res<Time>, mut query: Query<(&mut DoorAnimTimer, &mut
 // SPAWNING
 // ═══════════════════════════════════════════════════════════════════════
 
+/// Returns true if this map+kind combination should use a biome-specific
+/// individual tree PNG instead of the shared tree_sprites.png atlas.
+fn uses_biome_tree_png(map_id: MapId, kind: WorldObjectKind) -> bool {
+    match kind {
+        WorldObjectKind::Tree => matches!(
+            map_id,
+            MapId::Farm | MapId::Town | MapId::TownWest | MapId::Forest | MapId::DeepForest
+        ),
+        WorldObjectKind::Pine => matches!(map_id, MapId::SnowMountain),
+        _ => false,
+    }
+}
+
+/// Selects the correct individual-PNG handle for a biome tree.
+/// Assumes `uses_biome_tree_png` returned true.
+fn biome_tree_image(
+    map_id: MapId,
+    kind: WorldObjectKind,
+    season: Season,
+    atlases: &ObjectAtlases,
+) -> Handle<Image> {
+    match kind {
+        WorldObjectKind::Pine => atlases.tree_pine_blue_image.clone(),
+        WorldObjectKind::Tree => match map_id {
+            MapId::Forest | MapId::DeepForest => atlases.tree_birch_green_image.clone(),
+            _ => {
+                // Farm / Town / TownWest — oak brown in fall, green otherwise
+                if season == Season::Fall {
+                    atlases.tree_oak_brown_image.clone()
+                } else {
+                    atlases.tree_oak_green_image.clone()
+                }
+            }
+        },
+        _ => atlases.tree_oak_green_image.clone(), // unreachable guard
+    }
+}
+
+/// Sprite size for individual biome tree PNGs (pixels, pre-scale).
+fn biome_tree_png_size(map_id: MapId, kind: WorldObjectKind) -> Vec2 {
+    match kind {
+        WorldObjectKind::Pine => Vec2::new(64.0, 96.0),
+        WorldObjectKind::Tree => match map_id {
+            MapId::Forest | MapId::DeepForest => Vec2::new(48.0, 80.0),
+            _ => Vec2::new(80.0, 96.0), // oak green/brown
+        },
+        _ => Vec2::new(32.0, 48.0),
+    }
+}
+
 /// Spawn world objects from a list of placements, using texture atlas sprites.
 pub fn spawn_world_objects(
     commands: &mut Commands,
@@ -663,6 +731,7 @@ pub fn spawn_world_objects(
     world_map: &mut WorldMap,
     object_atlases: &ObjectAtlases,
     season: Season,
+    map_id: MapId,
 ) {
     for placement in placements {
         let kind = placement.kind;
@@ -683,10 +752,30 @@ pub fn spawn_world_objects(
         };
 
         if object_atlases.loaded {
-            // Trees and pines use dedicated tree_sprites atlas (32×48 cells, seasonal)
             let is_tree = matches!(kind, WorldObjectKind::Tree | WorldObjectKind::Pine);
-            let (image, layout, index) = if is_tree {
-                // tree_sprites.png: row 0 = deciduous, row 1 = pine
+            // Check whether this tree should use a biome-specific individual PNG.
+            let use_biome_png = is_tree && uses_biome_tree_png(map_id, kind);
+
+            // Determine effective sprite size: biome PNGs differ from atlas cell size.
+            let effective_size = if use_biome_png {
+                biome_tree_png_size(map_id, kind)
+            } else {
+                size
+            };
+            let effective_y_offset = if effective_size.y > TILE_SIZE {
+                (effective_size.y - TILE_SIZE) / 2.0
+            } else {
+                0.0
+            };
+
+            let mut sprite = if use_biome_png {
+                // Full-image sprite — no atlas, just the raw PNG.
+                let img = biome_tree_image(map_id, kind, season, object_atlases);
+                let mut s = Sprite::from_image(img);
+                s.custom_size = Some(effective_size);
+                s
+            } else if is_tree {
+                // Atlas sprite: tree_sprites.png (row 0 deciduous, row 1 pine)
                 // Columns: 0=spring, 1=summer, 2=fall, 3=winter
                 let season_col = match season {
                     Season::Spring => 0,
@@ -699,22 +788,27 @@ pub fn spawn_world_objects(
                 } else {
                     0
                 };
-                (
+                let mut s = Sprite::from_atlas_image(
                     object_atlases.tree_sprites_image.clone(),
-                    object_atlases.tree_sprites_layout.clone(),
-                    row_offset + season_col,
-                )
+                    TextureAtlas {
+                        layout: object_atlases.tree_sprites_layout.clone(),
+                        index: row_offset + season_col,
+                    },
+                );
+                s.custom_size = Some(size);
+                s
             } else {
                 // All other objects use grass_biome.png
-                (
+                let mut s = Sprite::from_atlas_image(
                     object_atlases.grass_biome_image.clone(),
-                    object_atlases.grass_biome_layout.clone(),
-                    kind.atlas_index(),
-                )
+                    TextureAtlas {
+                        layout: object_atlases.grass_biome_layout.clone(),
+                        index: kind.atlas_index(),
+                    },
+                );
+                s.custom_size = Some(size);
+                s
             };
-
-            let mut sprite = Sprite::from_atlas_image(image, TextureAtlas { layout, index });
-            sprite.custom_size = Some(size);
 
             // Apply bush variant tinting based on position hash
             if matches!(kind, WorldObjectKind::Bush) {
@@ -730,11 +824,20 @@ pub fn spawn_world_objects(
             let wc = grid_to_world_center(placement.x, placement.y);
             let mut entity_cmds = commands.spawn((
                 sprite,
-                Transform::from_translation(Vec3::new(wc.x, wc.y + y_offset, Z_ENTITY_BASE)),
+                Transform::from_translation(Vec3::new(
+                    wc.x,
+                    wc.y + effective_y_offset,
+                    Z_ENTITY_BASE,
+                )),
                 WorldObject,
                 YSorted,
                 data,
             ));
+
+            // Tag biome-PNG trees so the season-change system knows to swap them.
+            if use_biome_png {
+                entity_cmds.insert(BiomeTreeSprite);
+            }
 
             // Wind sway with per-type parameters
             let phase_seed = (placement.x.wrapping_mul(2654435761_u32 as i32))
@@ -1393,11 +1496,23 @@ pub fn regrow_trees_on_season_change(
 }
 
 /// System: update tree/pine sprites to match the current season.
-/// Changes atlas index within tree_sprites.png (row 0 deciduous, row 1 pine).
+///
+/// - Atlas trees (no `BiomeTreeSprite`): update the index within tree_sprites.png.
+/// - Biome-PNG `Tree` objects on Farm/Town maps: swap oak_green ↔ oak_brown for fall.
+/// - Forest/DeepForest birch and SnowMountain pine-blue: season-invariant, skip.
 pub fn update_tree_sprites_on_season_change(
     mut season_events: EventReader<SeasonChangeEvent>,
     object_atlases: Res<ObjectAtlases>,
-    mut tree_query: Query<(&WorldObjectData, &mut Sprite), With<WorldObject>>,
+    // Atlas trees: entities WITHOUT BiomeTreeSprite
+    mut atlas_tree_query: Query<
+        (&WorldObjectData, &mut Sprite),
+        (With<WorldObject>, Without<BiomeTreeSprite>),
+    >,
+    // Biome-PNG trees: only Tree kind (not Pine/birch — those don't change with season)
+    mut biome_tree_query: Query<
+        (&WorldObjectData, &mut Sprite),
+        (With<WorldObject>, With<BiomeTreeSprite>),
+    >,
 ) {
     for event in season_events.read() {
         if !object_atlases.loaded {
@@ -1409,7 +1524,9 @@ pub fn update_tree_sprites_on_season_change(
             Season::Fall => 2,
             Season::Winter => 3,
         };
-        for (obj_data, mut sprite) in tree_query.iter_mut() {
+
+        // Update atlas-based trees (all maps that use tree_sprites.png)
+        for (obj_data, mut sprite) in atlas_tree_query.iter_mut() {
             if matches!(obj_data.kind, WorldObjectKind::Tree | WorldObjectKind::Pine) {
                 let row_offset = if matches!(obj_data.kind, WorldObjectKind::Pine) {
                     4
@@ -1424,6 +1541,28 @@ pub fn update_tree_sprites_on_season_change(
                     },
                 );
                 sprite.custom_size = Some(obj_data.kind.sprite_size());
+            }
+        }
+
+        // Update biome-PNG oak trees on Farm/Town: green ↔ brown based on fall
+        // Forest birch and SnowMountain pine are season-invariant — skip them.
+        for (obj_data, mut sprite) in biome_tree_query.iter_mut() {
+            // Only deciduous oaks swap; birch and pine stay fixed year-round.
+            // We detect oak by checking that the stored sprite_size matches oak dims
+            // (80×96). Birch is 48×80, pine-blue is 64×96.
+            if obj_data.kind == WorldObjectKind::Tree {
+                let new_img = if event.new_season == Season::Fall {
+                    object_atlases.tree_oak_brown_image.clone()
+                } else {
+                    object_atlases.tree_oak_green_image.clone()
+                };
+                let oak_size = Vec2::new(80.0, 96.0);
+                // Only update if current custom_size matches oak dimensions —
+                // this guards against accidentally swapping birch trees.
+                if sprite.custom_size == Some(oak_size) {
+                    *sprite = Sprite::from_image(new_img);
+                    sprite.custom_size = Some(oak_size);
+                }
             }
         }
     }
