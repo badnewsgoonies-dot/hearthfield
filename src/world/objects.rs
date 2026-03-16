@@ -1713,15 +1713,35 @@ fn town_buildings() -> Vec<BuildingDef> {
 
 fn town_decorations() -> Vec<(Vec2, WorldObjectKind)> {
     vec![
-        // Bench stand-ins along the main north-south path.
-        (Vec2::new(224.0, -100.0), WorldObjectKind::Log),
-        (Vec2::new(224.0, 0.0), WorldObjectKind::Log),
-        (Vec2::new(224.0, 100.0), WorldObjectKind::Log),
-        // Flower pot stand-ins near the General Store and Animal Shop entrances.
-        (grid_to_world_center(4, 3), WorldObjectKind::Bush),
-        (grid_to_world_center(23, 3), WorldObjectKind::Bush),
-        // Signpost stand-in near the town square.
-        (grid_to_world_center(10, 11), WorldObjectKind::Dock),
+        // General Store frontage: barrel stand-ins, crate, and flower pot.
+        (grid_to_world_center(4, 1), WorldObjectKind::Log),
+        (grid_to_world_center(6, 1), WorldObjectKind::Log),
+        (grid_to_world_center(5, 0), WorldObjectKind::Rock),
+        (grid_to_world_center(8, 1), WorldObjectKind::Bush),
+        // Animal Shop frontage: hay bale and feed props.
+        (grid_to_world_center(20, 1), WorldObjectKind::Bush),
+        (grid_to_world_center(24, 1), WorldObjectKind::Bush),
+        (grid_to_world_center(22, 0), WorldObjectKind::Stump),
+        // Blacksmith frontage: ore piles and anvil stand-in.
+        (grid_to_world_center(21, 12), WorldObjectKind::Rock),
+        (grid_to_world_center(24, 12), WorldObjectKind::Rock),
+        (grid_to_world_center(22, 11), WorldObjectKind::LargeRock),
+        // NPC House 1 frontage: herb garden and bench.
+        (grid_to_world_center(5, 12), WorldObjectKind::Bush),
+        (grid_to_world_center(3, 11), WorldObjectKind::Stump),
+        // NPC House 2 frontage: flower garden and bench.
+        (grid_to_world_center(10, 12), WorldObjectKind::Bush),
+        (grid_to_world_center(11, 12), WorldObjectKind::Bush),
+        (grid_to_world_center(9, 11), WorldObjectKind::Log),
+        // Library frontage: reading benches and hedge.
+        (grid_to_world_center(8, 16), WorldObjectKind::Stump),
+        (grid_to_world_center(10, 16), WorldObjectKind::Stump),
+        (grid_to_world_center(12, 15), WorldObjectKind::Bush),
+        // Tavern frontage: outdoor seating and a barrel stand-in.
+        (grid_to_world_center(15, 16), WorldObjectKind::Log),
+        (grid_to_world_center(17, 16), WorldObjectKind::Log),
+        (grid_to_world_center(19, 16), WorldObjectKind::Log),
+        (grid_to_world_center(16, 15), WorldObjectKind::Stump),
     ]
 }
 
