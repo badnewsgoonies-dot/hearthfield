@@ -211,7 +211,7 @@ pub fn preload_weather_icon_atlas(
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_server: Res<AssetServer>) {
+pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_server: Res<AssetServer>, mut layouts: ResMut<Assets<TextureAtlasLayout>>) {
     let font = font_handle.0.clone();
 
     // Root container — full screen overlay, no interaction blocking
@@ -392,6 +392,32 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
                                     PickingBehavior::IGNORE,
                                 ))
                                 .with_children(|gold| {
+                                    // Gold coin icon from icons_special.png
+                                    // [Observed] row 2, col 0 = index 14 (gold coin)
+                                    gold.spawn((
+                                        ImageNode {
+                                            image: asset_server.load("ui/icons_special.png"),
+                                            texture_atlas: Some(TextureAtlas {
+                                                layout: layouts.add(
+                                                    TextureAtlasLayout::from_grid(
+                                                        UVec2::new(16, 16),
+                                                        7,
+                                                        4,
+                                                        None,
+                                                        None,
+                                                    ),
+                                                ),
+                                                index: 14,
+                                            }),
+                                            ..default()
+                                        },
+                                        Node {
+                                            width: Val::Px(14.0),
+                                            height: Val::Px(14.0),
+                                            ..default()
+                                        },
+                                        PickingBehavior::IGNORE,
+                                    ));
                                     gold.spawn((
                                         Text::new("Gold"),
                                         TextFont {
