@@ -53,12 +53,13 @@ pub fn update_settings_lifecycle(
     font_handle: Res<UiFontHandle>,
     volume: Res<AudioVolume>,
     bindings: Res<KeyBindings>,
+    asset_server: Res<AssetServer>,
     existing: Query<Entity, With<SettingsScreenRoot>>,
 ) {
     let ui_exists = !existing.is_empty();
 
     if overlay.visible && !ui_exists {
-        spawn_settings_screen(&mut commands, &font_handle, &volume, &bindings);
+        spawn_settings_screen(&mut commands, &font_handle, &volume, &bindings, &asset_server);
     } else if !overlay.visible && ui_exists {
         for entity in &existing {
             commands.entity(entity).despawn_recursive();
@@ -75,8 +76,11 @@ fn spawn_settings_screen(
     font_handle: &UiFontHandle,
     volume: &AudioVolume,
     bindings: &KeyBindings,
+    asset_server: &AssetServer,
 ) {
     let font = font_handle.0.clone();
+    let panel_bg: Handle<Image> = asset_server.load("ui/settings_menu.png");
+    let buttons_bg: Handle<Image> = asset_server.load("ui/settings_buttons.png");
 
     let keybind_rows: Vec<(&str, String)> = vec![
         ("Move Up", format!("{:?}", bindings.move_up)),
@@ -123,7 +127,12 @@ fn spawn_settings_screen(
                         overflow: Overflow::clip_y(),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.12, 0.1, 0.1, 0.97)),
+                    ImageNode {
+                        image: panel_bg,
+                        // Tint slightly dark so text stays readable over the parchment background
+                        color: Color::srgba(0.85, 0.80, 0.75, 0.97),
+                        ..default()
+                    },
                     BorderColor(Color::srgb(0.5, 0.4, 0.4)),
                 ))
                 .with_children(|panel| {
@@ -171,14 +180,22 @@ fn spawn_settings_screen(
                     ));
 
                     panel
-                        .spawn(Node {
-                            width: Val::Percent(100.0),
-                            flex_direction: FlexDirection::Row,
-                            justify_content: JustifyContent::SpaceBetween,
-                            align_items: AlignItems::Center,
-                            padding: UiRect::axes(Val::Px(12.0), Val::Px(4.0)),
-                            ..default()
-                        })
+                        .spawn((
+                            Node {
+                                width: Val::Percent(100.0),
+                                flex_direction: FlexDirection::Row,
+                                justify_content: JustifyContent::SpaceBetween,
+                                align_items: AlignItems::Center,
+                                padding: UiRect::axes(Val::Px(12.0), Val::Px(4.0)),
+                                ..default()
+                            },
+                            ImageNode {
+                                image: buttons_bg,
+                                // Use a subtle tint so text inside stays readable
+                                color: Color::srgba(1.0, 1.0, 1.0, 0.18),
+                                ..default()
+                            },
+                        ))
                         .with_children(|row| {
                             row.spawn((
                                 Text::new("Volume"),
