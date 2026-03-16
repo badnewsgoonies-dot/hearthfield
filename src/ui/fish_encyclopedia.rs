@@ -10,6 +10,7 @@ pub fn spawn_fish_encyclopedia_screen(
     mut commands: Commands,
     fish_registry: Res<FishRegistry>,
     fishing_atlas: Res<FishingAtlas>,
+    ui_icons: Res<super::UiIconAtlases>,
 ) {
     let sprite_size = TILE_SIZE as f32;
 
@@ -28,6 +29,15 @@ pub fn spawn_fish_encyclopedia_screen(
             BackgroundColor(Color::srgb(0.95, 0.90, 0.80)),
         ))
         .with_children(|parent| {
+            // Star icon for encyclopedia title (icons_special row 0, col 1 = index 1)
+            parent.spawn((
+                super::special_icon_node(&ui_icons, 1),
+                Node {
+                    width: Val::Px(24.0),
+                    height: Val::Px(24.0),
+                    ..default()
+                },
+            ));
             parent.spawn((
                 Text::new("Fishing Encyclopedia"),
                 TextFont {

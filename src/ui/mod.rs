@@ -88,6 +88,79 @@ pub fn apply_item_icon(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ICON HELPERS — build ImageNodes from shared icon atlases
+// ═══════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════
+// UI ICON ATLASES — preloaded at startup, available to all screens
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Preloaded icon atlas handles — avoids needing layouts parameter in screens.
+/// [Observed] layouts verified via image inspection.
+#[derive(Resource, Default)]
+pub struct UiIconAtlases {
+    /// icons.png: 18 cols × 3 rows general UI icons
+    pub icons_image: Handle<Image>,
+    pub icons_layout: Handle<TextureAtlasLayout>,
+    /// icons_special.png: 7 cols × 4 rows (stars, hearts, coins, gems)
+    pub special_image: Handle<Image>,
+    pub special_layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+fn preload_ui_icons(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut atlases: ResMut<UiIconAtlases>,
+) {
+    if atlases.loaded {
+        return;
+    }
+    atlases.icons_image = asset_server.load("ui/icons.png");
+    atlases.icons_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16), 18, 3, None, None,
+    ));
+    atlases.special_image = asset_server.load("ui/icons_special.png");
+    atlases.special_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16), 7, 4, None, None,
+    ));
+    atlases.loaded = true;
+}
+
+/// Build an ImageNode from icons.png by atlas index.
+pub fn icon_node(atlases: &UiIconAtlases, index: usize) -> ImageNode {
+    ImageNode {
+        image: atlases.icons_image.clone(),
+        texture_atlas: Some(TextureAtlas {
+            layout: atlases.icons_layout.clone(),
+            index,
+        }),
+        ..default()
+    }
+}
+
+/// Build an ImageNode from icons_special.png by atlas index.
+pub fn special_icon_node(atlases: &UiIconAtlases, index: usize) -> ImageNode {
+    ImageNode {
+        image: atlases.special_image.clone(),
+        texture_atlas: Some(TextureAtlas {
+            layout: atlases.special_layout.clone(),
+            index,
+        }),
+        ..default()
+    }
+}
+
+/// Standard 20×20 Node for screen title icons.
+pub fn icon_size_node() -> Node {
+    Node {
+        width: Val::Px(20.0),
+        height: Val::Px(20.0),
+        ..Default::default()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // SHARED FONT HANDLE — used by all UI text across every screen
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -110,8 +183,9 @@ impl Plugin for UiPlugin {
             cursor::update_cursor_sprite.in_set(UpdatePhase::Presentation),
         );
 
-        // ─── FONT LOADING + MENU ASSETS — runs at Startup ───
-        app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets));
+        // ─── FONT LOADING + MENU ASSETS + ICON ATLASES — runs at Startup ───
+        app.init_resource::<UiIconAtlases>();
+        app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets, preload_ui_icons));
 
         // ─── AUDIO — music state resource + event handlers ───
         app.init_resource::<audio::MusicState>();

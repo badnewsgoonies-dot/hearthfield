@@ -54,12 +54,13 @@ pub fn update_settings_lifecycle(
     volume: Res<AudioVolume>,
     bindings: Res<KeyBindings>,
     asset_server: Res<AssetServer>,
+    ui_icons: Res<super::UiIconAtlases>,
     existing: Query<Entity, With<SettingsScreenRoot>>,
 ) {
     let ui_exists = !existing.is_empty();
 
     if overlay.visible && !ui_exists {
-        spawn_settings_screen(&mut commands, &font_handle, &volume, &bindings, &asset_server);
+        spawn_settings_screen(&mut commands, &font_handle, &volume, &bindings, &asset_server, &ui_icons);
     } else if !overlay.visible && ui_exists {
         for entity in &existing {
             commands.entity(entity).despawn_recursive();
@@ -77,6 +78,7 @@ fn spawn_settings_screen(
     volume: &AudioVolume,
     bindings: &KeyBindings,
     asset_server: &AssetServer,
+    ui_icons: &super::UiIconAtlases,
 ) {
     let font = font_handle.0.clone();
     let panel_bg: Handle<Image> = asset_server.load("ui/settings_menu.png");
@@ -136,7 +138,11 @@ fn spawn_settings_screen(
                     BorderColor(Color::srgb(0.5, 0.4, 0.4)),
                 ))
                 .with_children(|panel| {
-                    // Title
+                    // Title with gear icon (icons.png row 0, col 3 = index 3)
+                    panel.spawn((
+                        super::icon_node(ui_icons, 3),
+                        super::icon_size_node(),
+                    ));
                     panel.spawn((
                         Text::new("SETTINGS"),
                         TextFont {

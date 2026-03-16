@@ -69,6 +69,7 @@ pub fn spawn_crafting_screen(
     item_registry: Res<ItemRegistry>,
     atlas_data: Res<ItemAtlasData>,
     font_handle: Res<UiFontHandle>,
+    ui_icons: Res<super::UiIconAtlases>,
 ) {
     // Gather visible recipes: show all unlocked (or all if unlocked list is empty for development)
     let visible: Vec<String> = if unlocked_recipes.ids.is_empty() {
@@ -119,7 +120,11 @@ pub fn spawn_crafting_screen(
                     BorderColor(Color::srgb(0.5, 0.4, 0.25)),
                 ))
                 .with_children(|panel| {
-                    // Title
+                    // Title with gold star icon (icons_special row 0, col 0 = index 0)
+                    panel.spawn((
+                        super::special_icon_node(&ui_icons, 0),
+                        super::icon_size_node(),
+                    ));
                     panel.spawn((
                         Text::new("CRAFTING"),
                         TextFont {

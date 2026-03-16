@@ -32,6 +32,7 @@ pub fn spawn_pause_menu(
     font_handle: Res<UiFontHandle>,
     assets: Res<MenuAssets>,
     theme: Res<MenuTheme>,
+    ui_icons: Res<super::UiIconAtlases>,
 ) {
     commands.insert_resource(PauseMenuState {
         cursor: 0,
@@ -70,7 +71,11 @@ pub fn spawn_pause_menu(
                     BorderColor(theme.panel_border),
                 ))
                 .with_children(|panel| {
-                    // Title
+                    // Title with gear icon (icons.png row 0, col 3 = index 3)
+                    panel.spawn((
+                        super::icon_node(&ui_icons, 3),
+                        super::icon_size_node(),
+                    ));
                     menu_kit::spawn_menu_title(panel, "PAUSED", &theme, &font);
 
                     // Menu items — atlas-backed buttons matching main menu

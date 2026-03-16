@@ -59,6 +59,7 @@ pub fn spawn_relationships_screen(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut heart_atlas: ResMut<HeartIconAtlas>,
+    ui_icons: Res<super::UiIconAtlases>,
     npc_registry: Res<NpcRegistry>,
     relationships: Res<Relationships>,
 ) {
@@ -115,7 +116,11 @@ pub fn spawn_relationships_screen(
                     BorderColor(Color::srgb(0.55, 0.35, 0.7)),
                 ))
                 .with_children(|panel| {
-                    // Title
+                    // Title with heart icon
+                    panel.spawn((
+                        super::special_icon_node(&ui_icons, 9),
+                        super::icon_size_node(),
+                    ));
                     panel.spawn((
                         Text::new("RELATIONSHIPS"),
                         TextFont {

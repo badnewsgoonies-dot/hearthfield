@@ -42,6 +42,7 @@ pub fn spawn_journal_screen(
     mut commands: Commands,
     font_handle: Res<UiFontHandle>,
     quest_log: Res<QuestLog>,
+    ui_icons: Res<super::UiIconAtlases>,
 ) {
     let font = font_handle.0.clone();
 
@@ -80,7 +81,11 @@ pub fn spawn_journal_screen(
                     BorderColor(Color::srgb(0.5, 0.4, 0.25)),
                 ))
                 .with_children(|panel| {
-                    // Title
+                    // Title with star icon (icons.png row 0, col 6 = index 6)
+                    panel.spawn((
+                        super::icon_node(&ui_icons, 6),
+                        super::icon_size_node(),
+                    ));
                     panel.spawn((
                         Text::new("QUEST LOG"),
                         TextFont {

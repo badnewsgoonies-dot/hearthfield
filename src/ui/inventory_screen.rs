@@ -61,6 +61,7 @@ pub fn spawn_inventory_screen(
     font_handle: Res<UiFontHandle>,
     asset_server: Res<AssetServer>,
     atlas_data: Res<ItemAtlasData>,
+    ui_icons: Res<super::UiIconAtlases>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
 ) {
@@ -98,7 +99,11 @@ pub fn spawn_inventory_screen(
                     BorderColor(Color::srgb(0.5, 0.4, 0.25)),
                 ))
                 .with_children(|panel| {
-                    // Title
+                    // Title with money bag icon (icons.png row 1, col 4 = index 22)
+                    panel.spawn((
+                        super::icon_node(&ui_icons, 22),
+                        super::icon_size_node(),
+                    ));
                     panel.spawn((
                         Text::new("INVENTORY"),
                         TextFont {

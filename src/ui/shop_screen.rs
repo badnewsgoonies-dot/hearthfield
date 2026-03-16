@@ -92,6 +92,7 @@ pub fn spawn_shop_screen(
     upgrade_queue: Res<crate::economy::blacksmith::ToolUpgradeQueue>,
     atlas_data: Res<ItemAtlasData>,
     font_handle: Res<UiFontHandle>,
+    ui_icons: Res<super::UiIconAtlases>,
 ) {
     // Use the shop_id set by the economy system when opening the shop.
     let shop_id = active_shop.shop_id.unwrap_or(ShopId::GeneralStore);
@@ -168,6 +169,11 @@ pub fn spawn_shop_screen(
                             ..default()
                         },))
                         .with_children(|title_row| {
+                            // Dollar icon (icons.png row 1, col 2 = index 20)
+                            title_row.spawn((
+                                super::icon_node(&ui_icons, 20),
+                                super::icon_size_node(),
+                            ));
                             title_row.spawn((
                                 ShopTitle,
                                 Text::new("GENERAL STORE"),
