@@ -211,7 +211,7 @@ pub fn preload_weather_icon_atlas(
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
+pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_server: Res<AssetServer>) {
     let font = font_handle.0.clone();
 
     // Root container — full screen overlay, no interaction blocking
@@ -285,6 +285,11 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>) {
                                     flex_direction: FlexDirection::Row,
                                     align_items: AlignItems::Center,
                                     column_gap: Val::Px(6.0),
+                                    padding: UiRect::axes(Val::Px(4.0), Val::Px(2.0)),
+                                    ..default()
+                                },
+                                ImageNode {
+                                    image: asset_server.load("ui/weather_ui.png"),
                                     ..default()
                                 },
                                 PickingBehavior::IGNORE,

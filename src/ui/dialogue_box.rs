@@ -208,7 +208,20 @@ pub fn spawn_dialogue_box(
                                 TextColor(Color::WHITE),
                             ));
 
-                            // Continue prompt
+                            // Continue indicator sprite (arrow/bounce icon)
+                            text_area.spawn((
+                                ImageNode {
+                                    image: asset_server
+                                        .load("ui/dialog_continue_indicator.png"),
+                                    ..default()
+                                },
+                                Node {
+                                    width: Val::Px(16.0),
+                                    height: Val::Px(16.0),
+                                    ..default()
+                                },
+                            ));
+                            // Continue prompt text (dynamically updated by typewriter)
                             text_area.spawn((
                                 DialoguePrompt,
                                 Text::new("[F / Space] Continue"),
