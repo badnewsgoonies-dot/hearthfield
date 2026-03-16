@@ -42,7 +42,7 @@ use objects::{
     spawn_crafting_bench, spawn_daily_weeds, spawn_farm_decorations, spawn_forageables,
     spawn_interior_decorations, spawn_shipping_bin, spawn_world_objects, update_candle_flicker,
     update_chimney_smoke, update_forage_sparkles, update_tree_sprites_on_season_change,
-    ChimneySmokeTimer, WorldObject,
+    update_window_glow, ChimneySmokeTimer, WorldObject,
 };
 use seasonal::{
     apply_seasonal_tint, spawn_falling_leaves, update_falling_leaves, LeafSpawnAccumulator,
@@ -148,6 +148,7 @@ impl Plugin for WorldPlugin {
                     update_forage_sparkles,
                     // Indoor candle flicker animation
                     update_candle_flicker,
+                    update_window_glow,
                     // Grass decorations (flowers, tufts, etc.)
                     spawn_grass_decorations,
                     // Water tile animation

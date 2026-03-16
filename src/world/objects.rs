@@ -1593,6 +1593,13 @@ pub fn spawn_building_signs(
 #[derive(Component)]
 pub struct BuildingOverlay;
 
+/// Small pulsing exterior light used for nighttime building windows.
+#[derive(Component)]
+pub struct WindowGlow {
+    /// Phase offset so each window pulses independently.
+    pub phase_offset: f32,
+}
+
 /// Identifies which composite building sprite to use (if any).
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[allow(dead_code)]
@@ -1776,6 +1783,22 @@ fn building_image_source_size(img: BuildingImage) -> Vec2 {
     }
 }
 
+/// Approximate front-facing window locations for an exterior building sprite.
+fn building_window_positions(bld: &BuildingDef) -> Vec<Vec2> {
+    let window_row = (bld.door_y + 1).clamp(bld.y + 1, bld.y + bld.h.saturating_sub(1));
+    let base_y = grid_to_world_center(bld.x, window_row).y;
+    let center_x = bld.x as f32 * TILE_SIZE + (bld.w as f32 * TILE_SIZE * 0.5) - TILE_SIZE * 0.5;
+
+    if bld.w >= 6 {
+        vec![
+            Vec2::new(center_x - TILE_SIZE * 0.9, base_y),
+            Vec2::new(center_x + TILE_SIZE * 0.9, base_y),
+        ]
+    } else {
+        vec![Vec2::new(center_x, base_y)]
+    }
+}
+
 /// Spawn building overlays. Buildings with a `composite` image are rendered as
 /// a single sprite scaled to match the footprint width; others fall back to
 /// the legacy tile-by-tile wall+roof+door construction from Sprout Lands.
@@ -1954,6 +1977,29 @@ pub fn spawn_building_sprites(
                 },
             ));
         }
+
+        let mut rng = rand::thread_rng();
+        for (index, window_pos) in building_window_positions(bld).into_iter().enumerate() {
+            let phase_offset = rng.gen_range(0.0_f32..std::f32::consts::TAU) + index as f32 * 0.7;
+            let size = if index % 2 == 0 {
+                Vec2::new(5.0, 5.0)
+            } else {
+                Vec2::new(4.0, 4.0)
+            };
+
+            commands.spawn((
+                BuildingOverlay,
+                WorldObject,
+                WindowGlow { phase_offset },
+                Sprite {
+                    color: Color::srgba(1.0, 0.9, 0.55, 0.0),
+                    custom_size: Some(size),
+                    ..default()
+                },
+                Transform::from_xyz(window_pos.x, window_pos.y, Z_GROUND + 2.6),
+                Visibility::Hidden,
+            ));
+        }
     }
 
     if player_state.current_map == MapId::Town {
@@ -1997,6 +2043,33 @@ pub struct CandleFlicker {
     pub phase: f32,
     /// Base alpha intensity for this candle.
     pub base_intensity: f32,
+}
+
+/// Animate exterior window glows so occupied buildings read warmly at night.
+pub fn update_window_glow(
+    time: Res<Time>,
+    calendar: Res<Calendar>,
+    mut windows: Query<(&WindowGlow, &mut Sprite, &mut Visibility)>,
+) {
+    let t = time.elapsed_secs();
+    let hour = calendar.time_float();
+    let is_night = hour >= 18.0 || hour < 6.0;
+
+    for (window, mut sprite, mut visibility) in windows.iter_mut() {
+        if !is_night {
+            sprite.color = Color::srgba(1.0, 0.9, 0.55, 0.0);
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        let slow = (t * 0.45 * std::f32::consts::TAU + window.phase_offset).sin();
+        let fast = (t * 1.15 * std::f32::consts::TAU + window.phase_offset * 1.6).sin();
+        let pulse = (slow * 0.7 + fast * 0.3 + 1.0) * 0.5;
+        let alpha = 0.18 + pulse * 0.16;
+
+        sprite.color = Color::srgba(1.0, 0.9, 0.55, alpha.clamp(0.14, 0.36));
+        *visibility = Visibility::Inherited;
+    }
 }
 
 /// Candle positions for each indoor map. Returns (grid_x, grid_y) pairs.
@@ -3516,5 +3589,62 @@ mod forageable_icon_tests {
         );
         assert_eq!(forageable_icon_index("grape", &registry), Some(228));
         assert_eq!(forageable_icon_index("crocus", &registry), Some(240));
+    }
+}
+
+#[cfg(test)]
+mod window_glow_tests {
+    use super::*;
+
+    fn spawn_test_window(app: &mut App) -> Entity {
+        app.world_mut()
+            .spawn((
+                WindowGlow { phase_offset: 0.0 },
+                Sprite {
+                    color: Color::srgba(1.0, 0.9, 0.55, 0.0),
+                    custom_size: Some(Vec2::splat(5.0)),
+                    ..default()
+                },
+                Visibility::Hidden,
+            ))
+            .id()
+    }
+
+    #[test]
+    fn window_glow_hides_during_day() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.insert_resource(Calendar {
+            hour: 12,
+            minute: 0,
+            ..Calendar::default()
+        });
+        app.add_systems(Update, update_window_glow);
+
+        let entity = spawn_test_window(&mut app);
+        app.update();
+
+        let (sprite, visibility) = app.world().entity(entity).get::<(Sprite, Visibility)>().unwrap();
+        assert_eq!(*visibility, Visibility::Hidden);
+        assert_eq!(sprite.color.to_srgba().alpha, 0.0);
+    }
+
+    #[test]
+    fn window_glow_appears_at_night() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.insert_resource(Calendar {
+            hour: 21,
+            minute: 0,
+            ..Calendar::default()
+        });
+        app.add_systems(Update, update_window_glow);
+
+        let entity = spawn_test_window(&mut app);
+        app.update();
+
+        let (sprite, visibility) = app.world().entity(entity).get::<(Sprite, Visibility)>().unwrap();
+        assert_eq!(*visibility, Visibility::Inherited);
+        assert!(sprite.color.to_srgba().alpha > 0.0);
     }
 }
