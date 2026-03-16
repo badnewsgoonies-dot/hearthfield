@@ -1854,6 +1854,73 @@ fn town_buildings() -> Vec<BuildingDef> {
     ]
 }
 
+/// Compute autotile bitmask (0-15) for a fence post at `(x, y)` given the
+/// full set of fence grid positions. Uses the same bit convention as
+/// `farming::render::fence_autotile_index`:
+///   bit 0 = north neighbor  (x, y-1)
+///   bit 1 = east neighbor   (x+1, y)
+///   bit 2 = south neighbor  (x, y+1)
+///   bit 3 = west neighbor   (x-1, y)
+fn decorative_fence_mask(positions: &[(i32, i32)], x: i32, y: i32) -> usize {
+    let has = |tx: i32, ty: i32| positions.iter().any(|&(px, py)| px == tx && py == ty);
+    let mut mask: u8 = 0;
+    if has(x, y - 1) {
+        mask |= 1;
+    }
+    if has(x + 1, y) {
+        mask |= 2;
+    }
+    if has(x, y + 1) {
+        mask |= 4;
+    }
+    if has(x - 1, y) {
+        mask |= 8;
+    }
+    mask as usize
+}
+
+/// Decorative fence segments around the two NPC house yards in Town.
+/// Returns (world_position, atlas_index_in_fences_png) pairs.
+///
+/// NPC House 1 (west, x:2-6, y:13-15) — east-side + south L-fence:
+///   East fence post column x=6 from y=11 to y=12, south corner, west run.
+/// NPC House 2 (center-west, x:8-12, y:13-15) — west-side + south L-fence:
+///   West fence post column x=7 from y=11 to y=12, south corner, east run.
+fn town_fence_decorations() -> Vec<(Vec2, usize)> {
+    // House 1: east boundary column + south-east corner + partial south run.
+    // (5,12) is occupied by an existing Bush decoration, so the south run
+    // stops at (6,12) and picks up again at (4,12) as a standalone post,
+    // leaving a natural gap at the dooryard.
+    let house1_posts: &[(i32, i32)] = &[
+        (6, 11), // north end cap of east column
+        (6, 12), // SE corner of House 1 yard
+        (4, 12), // south run — west end standalone post (gap at 5,12 for bush)
+    ];
+
+    // House 2: west boundary column + south-west corner + partial south run
+    // Grid posts: column at x=7 (y=11, y=12), then east run at y=12: (8,12), (9,12)
+    let house2_posts: &[(i32, i32)] = &[
+        (7, 11), // north end cap of west column
+        (7, 12), // SW corner of House 2 yard
+        (8, 12), // south run middle
+        (9, 12), // south run east end cap
+    ];
+
+    let mut result = Vec::new();
+
+    for &(x, y) in house1_posts {
+        let mask = decorative_fence_mask(house1_posts, x, y);
+        result.push((grid_to_world_center(x, y), mask));
+    }
+
+    for &(x, y) in house2_posts {
+        let mask = decorative_fence_mask(house2_posts, x, y);
+        result.push((grid_to_world_center(x, y), mask));
+    }
+
+    result
+}
+
 fn town_decorations() -> Vec<(Vec2, WorldObjectKind)> {
     vec![
         // General Store frontage: barrel stand-ins, crate, and flower pot.
@@ -2178,6 +2245,28 @@ pub fn spawn_building_sprites(
             if let Some(tint) = kind.object_tint_color() {
                 sprite.color = tint;
             }
+
+            commands.spawn((
+                BuildingOverlay,
+                WorldObject,
+                sprite,
+                Transform::from_xyz(world_pos.x, world_pos.y, Z_ENTITY_BASE),
+                YSorted,
+                Visibility::default(),
+            ));
+        }
+
+        // Decorative fence segments around NPC house yards.
+        // Uses fences.png (already in GPU memory) with autotile indices.
+        for (world_pos, atlas_index) in town_fence_decorations() {
+            let mut sprite = Sprite::from_atlas_image(
+                object_atlases.fences_image.clone(),
+                TextureAtlas {
+                    layout: object_atlases.fences_layout.clone(),
+                    index: atlas_index,
+                },
+            );
+            sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
 
             commands.spawn((
                 BuildingOverlay,
