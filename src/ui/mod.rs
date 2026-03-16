@@ -3,6 +3,7 @@ pub mod building_upgrade_menu;
 pub mod calendar_screen;
 mod chest_screen;
 mod crafting_screen;
+pub mod cursor;
 pub mod cutscene_runner;
 mod debug_overlay;
 pub mod dialogue_box;
@@ -102,6 +103,13 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
+        // ─── CUSTOM CURSOR — load images + hide OS cursor at Startup ───
+        app.add_systems(Startup, cursor::setup_cursor);
+        app.add_systems(
+            Update,
+            cursor::update_cursor_sprite.in_set(UpdatePhase::Presentation),
+        );
+
         // ─── FONT LOADING + MENU ASSETS — runs at Startup ───
         app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets));
 
