@@ -101,7 +101,7 @@ pub fn spawn_dialogue_box(
         .unwrap_or_else(|| "???".to_string());
 
     let font = font_handle.0.clone();
-    let dialog_bg = asset_server.load("ui/dialog_box_big.png");
+    let dialog_bg = asset_server.load("ui/premade_dialog_big.png");
 
     commands
         .spawn((

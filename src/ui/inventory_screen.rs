@@ -59,6 +59,7 @@ pub struct InventoryUiState {
 pub fn spawn_inventory_screen(
     mut commands: Commands,
     font_handle: Res<UiFontHandle>,
+    asset_server: Res<AssetServer>,
     atlas_data: Res<ItemAtlasData>,
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
@@ -147,7 +148,10 @@ pub fn spawn_inventory_screen(
                                                 row_gap: Val::Px(2.0),
                                                 ..default()
                                             },
-                                            BackgroundColor(Color::srgba(0.2, 0.17, 0.14, 0.9)),
+                                            ImageNode {
+                                                image: asset_server.load("ui/inventory_blocks.png"),
+                                                ..default()
+                                            },
                                             BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.7)),
                                         ))
                                         .with_children(|slot| {
