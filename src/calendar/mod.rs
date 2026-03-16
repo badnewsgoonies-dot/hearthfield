@@ -587,8 +587,7 @@ fn time_warnings(
     if calendar.hour >= 22 && !*warned_10pm {
         *warned_10pm = true;
         toast_events.send(ToastEvent {
-            message: "It's getting late. Head home. The farmhouse is waiting for you."
-                .into(),
+            message: "It's getting late. Head home. The farmhouse is waiting for you.".into(),
             duration_secs: 4.0,
         });
     }

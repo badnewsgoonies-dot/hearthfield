@@ -2,6 +2,85 @@ use super::CollisionMap;
 use crate::shared::*;
 use crate::world::map_data::{EdgeTarget, MapRegistry};
 use bevy::prelude::*;
+use rand::Rng;
+
+/// A short sparkle burst played when an item is added to the player's inventory.
+#[derive(Component, Debug)]
+pub struct PickupSparkle {
+    pub velocity: Vec2,
+    pub timer: Timer,
+    pub initial_alpha: f32,
+}
+
+/// Spawn a small white/gold twinkle burst centered on the pickup position.
+pub fn spawn_pickup_sparkles(commands: &mut Commands, world_pos: Vec2) {
+    let mut rng = rand::thread_rng();
+    let count = rng.gen_range(4..=6);
+    let colors = [
+        Color::srgba(1.0, 0.98, 0.92, 0.95),
+        Color::srgba(1.0, 0.92, 0.55, 0.90),
+        Color::srgba(1.0, 0.84, 0.32, 0.85),
+    ];
+
+    for _ in 0..count {
+        let angle = rng.gen_range(0.0f32..std::f32::consts::TAU);
+        let speed = rng.gen_range(18.0f32..36.0);
+        let offset = Vec2::new(rng.gen_range(-3.0f32..3.0), rng.gen_range(-2.0f32..4.0));
+        let velocity = Vec2::new(angle.cos(), angle.sin()) * speed;
+        let color = colors[rng.gen_range(0..colors.len())];
+
+        commands.spawn((
+            PickupSparkle {
+                velocity,
+                timer: Timer::from_seconds(0.5, TimerMode::Once),
+                initial_alpha: color.to_srgba().alpha,
+            },
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(rng.gen_range(2.0f32..3.5))),
+                ..default()
+            },
+            Transform::from_xyz(
+                world_pos.x + offset.x,
+                world_pos.y + 8.0 + offset.y,
+                Z_EFFECTS,
+            ),
+            Visibility::default(),
+        ));
+    }
+}
+
+/// Animate pickup sparkles outward while scaling and fading them out.
+pub fn update_pickup_sparkles(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut sparkles: Query<(Entity, &mut Transform, &mut Sprite, &mut PickupSparkle)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut transform, mut sprite, mut sparkle) in sparkles.iter_mut() {
+        sparkle.timer.tick(time.delta());
+
+        if sparkle.timer.finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        transform.translation.x += sparkle.velocity.x * dt;
+        transform.translation.y += sparkle.velocity.y * dt;
+        sparkle.velocity *= 0.92;
+
+        let t = sparkle.timer.fraction();
+        transform.scale = Vec3::splat(0.7 + t * 0.9);
+
+        let base = sprite.color.to_srgba();
+        sprite.color = Color::srgba(
+            base.red,
+            base.green,
+            base.blue,
+            sparkle.initial_alpha * (1.0 - t),
+        );
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Map Transition Detection (data-driven via MapRegistry)
@@ -480,12 +559,16 @@ pub fn item_pickup_check(
 /// Reads ItemPickupEvent (fired by farming harvest, world object drops, etc.)
 /// and adds items to the player's inventory.
 pub fn add_items_to_inventory(
+    mut commands: Commands,
     mut pickup_events: EventReader<ItemPickupEvent>,
     mut inventory: ResMut<Inventory>,
     item_registry: Res<ItemRegistry>,
     mut sfx_events: EventWriter<PlaySfxEvent>,
     mut toast_events: EventWriter<ToastEvent>,
+    player_query: Query<&LogicalPosition, With<Player>>,
 ) {
+    let player_pos = player_query.get_single().ok().map(|pos| pos.0);
+
     for ev in pickup_events.read() {
         let max_stack = item_registry
             .get(&ev.item_id)
@@ -496,6 +579,9 @@ pub fn add_items_to_inventory(
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "item_pickup".to_string(),
             });
+            if let Some(world_pos) = player_pos {
+                spawn_pickup_sparkles(&mut commands, world_pos);
+            }
             info!("[Player] Picked up {} × '{}'", ev.quantity, ev.item_id);
         } else {
             let name = item_registry

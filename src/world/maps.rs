@@ -1891,7 +1891,15 @@ fn generate_coral_island() -> MapDef {
     }
 
     // Larger washed-up timber mixed into the drift lines
-    let beach_logs = [(6, 8), (7, 12), (5, 16), (10, 18), (11, 19), (16, 18), (18, 19)];
+    let beach_logs = [
+        (6, 8),
+        (7, 12),
+        (5, 16),
+        (10, 18),
+        (11, 19),
+        (16, 18),
+        (18, 19),
+    ];
     for (lx, ly) in &beach_logs {
         objects.push(ObjectPlacement {
             x: *lx,

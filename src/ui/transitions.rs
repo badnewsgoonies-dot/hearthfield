@@ -1,5 +1,5 @@
-use crate::shared::*;
 use crate::save::{LoadCompleteEvent, LoadRequestEvent};
+use crate::shared::*;
 use bevy::prelude::*;
 
 /// Marker for the screen fade overlay

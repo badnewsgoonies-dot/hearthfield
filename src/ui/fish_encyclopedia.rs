@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use crate::shared::{GameState, FishRegistry, FishDef, TILE_SIZE};
-use crate::fishing::FishingAtlas;
 use crate::data::fish::fish_description;
+use crate::fishing::FishingAtlas;
+use crate::shared::{FishDef, FishRegistry, GameState, TILE_SIZE};
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct FishEncyclopediaRoot;
@@ -38,22 +38,20 @@ pub fn spawn_fish_encyclopedia_screen(
             ));
 
             parent
-                .spawn((
-                    Node {
-                        width: Val::Percent(100.0),
-                        height: Val::Percent(100.0),
-                        flex_wrap: FlexWrap::Wrap,
-                        align_content: AlignContent::FlexStart,
-                        column_gap: Val::Px(16.0),
-                        row_gap: Val::Px(16.0),
-                        padding: UiRect::right(Val::Px(8.0)),
-                        overflow: Overflow {
-                            x: OverflowAxis::Clip,
-                            y: OverflowAxis::Scroll,
-                        },
-                        ..default()
+                .spawn((Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    flex_wrap: FlexWrap::Wrap,
+                    align_content: AlignContent::FlexStart,
+                    column_gap: Val::Px(16.0),
+                    row_gap: Val::Px(16.0),
+                    padding: UiRect::right(Val::Px(8.0)),
+                    overflow: Overflow {
+                        x: OverflowAxis::Clip,
+                        y: OverflowAxis::Scroll,
                     },
-                ))
+                    ..default()
+                },))
                 .with_children(|grid| {
                     for fish in fish_registry.fish.values() {
                         spawn_fish_card(grid, fish, &fishing_atlas, sprite_size);
@@ -79,9 +77,9 @@ pub fn fish_encyclopedia_navigation(
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     let escape_pressed = keyboard.just_pressed(KeyCode::Escape);
-    let gamepad_back_pressed = gamepads.iter().any(|gp| {
-        gp.just_pressed(GamepadButton::East)
-    });
+    let gamepad_back_pressed = gamepads
+        .iter()
+        .any(|gp| gp.just_pressed(GamepadButton::East));
 
     if escape_pressed || gamepad_back_pressed {
         next_state.set(GameState::MainMenu);
@@ -124,32 +122,30 @@ fn spawn_fish_card(
                 },
             ));
 
-            card.spawn((
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(6.0),
-                    flex_grow: 1.0,
-                    ..default()
-                },
-            ))
-            .with_children(|text_column| {
-                text_column.spawn((
-                    Text::new(fish.name.clone()),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.22, 0.15, 0.10)),
-                ));
+            card.spawn((Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(6.0),
+                flex_grow: 1.0,
+                ..default()
+            },))
+                .with_children(|text_column| {
+                    text_column.spawn((
+                        Text::new(fish.name.clone()),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.22, 0.15, 0.10)),
+                    ));
 
-                text_column.spawn((
-                    Text::new(fish_description(&fish.id)),
-                    TextFont {
-                        font_size: 14.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.42, 0.40, 0.38)),
-                ));
-            });
+                    text_column.spawn((
+                        Text::new(fish_description(&fish.id)),
+                        TextFont {
+                            font_size: 14.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.42, 0.40, 0.38)),
+                    ));
+                });
         });
 }

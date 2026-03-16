@@ -369,7 +369,10 @@ fn summarize_relative_day(season: Season, day: Option<u8>, birthdays: &[(u8, Str
     let weekday = weekday_name(day);
     if let Some(festival) = festival_name(season, day) {
         format!("{weekday} {day} • {festival}")
-    } else if birthdays.iter().any(|(birthday_day, _)| *birthday_day == day) {
+    } else if birthdays
+        .iter()
+        .any(|(birthday_day, _)| *birthday_day == day)
+    {
         format!("{weekday} {day} • Birthday")
     } else {
         format!("{weekday} {day}")

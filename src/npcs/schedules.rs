@@ -1147,7 +1147,7 @@ fn sam_schedule(season: Season) -> NpcSchedule {
     // Sam visits Coral Island in summer afternoons and busks in town during spring
     let (afternoon_map, aft_x, aft_y) = match season {
         Season::Summer => (MapId::CoralIsland, 10, 8), // exploring the island
-        Season::Spring => (MapId::Town, 18, 14),        // busking in the plaza
+        Season::Spring => (MapId::Town, 18, 14),       // busking in the plaza
         _ => (MapId::MineEntrance, 6, 10),             // stays near mine
     };
 
@@ -1584,7 +1584,7 @@ fn lily_schedule(season: Season) -> NpcSchedule {
         Season::Summer => (MapId::Beach, 10, 7),     // sand castles
         Season::Fall => (MapId::DeepForest, 10, 12), // deeper into the deep forest
         Season::Winter => (MapId::Town, 18, 17),     // south park (brief outdoor time)
-        Season::Spring => (MapId::Town, 23, 18),     // spring energy near the blacksmith edge of town
+        Season::Spring => (MapId::Town, 23, 18), // spring energy near the blacksmith edge of town
     };
 
     NpcSchedule {

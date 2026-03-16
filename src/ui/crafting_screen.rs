@@ -328,11 +328,23 @@ pub fn update_crafting_display(
     atlas_data: Res<ItemAtlasData>,
     mut name_query: Query<
         (&CraftingRecipeName, &mut Text, &mut TextColor),
-        (Without<CraftingRecipeMaterials>, Without<CraftingStatusText>, Without<CraftingFeaturedName>, Without<CraftingFeaturedDescription>, Without<CraftingFeaturedMaterials>),
+        (
+            Without<CraftingRecipeMaterials>,
+            Without<CraftingStatusText>,
+            Without<CraftingFeaturedName>,
+            Without<CraftingFeaturedDescription>,
+            Without<CraftingFeaturedMaterials>,
+        ),
     >,
     mut mat_query: Query<
         (&CraftingRecipeMaterials, &mut Text, &mut TextColor),
-        (Without<CraftingRecipeName>, Without<CraftingStatusText>, Without<CraftingFeaturedName>, Without<CraftingFeaturedDescription>, Without<CraftingFeaturedMaterials>),
+        (
+            Without<CraftingRecipeName>,
+            Without<CraftingStatusText>,
+            Without<CraftingFeaturedName>,
+            Without<CraftingFeaturedDescription>,
+            Without<CraftingFeaturedMaterials>,
+        ),
     >,
     mut row_query: Query<(&CraftingRecipeRow, &mut BackgroundColor)>,
     mut status_query: Query<

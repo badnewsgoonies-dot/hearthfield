@@ -25,10 +25,7 @@ fn spawn_gift_hearts(commands: &mut Commands, world_pos: Vec2) {
 
     for i in 0..3 {
         let start_alpha = rng.gen_range(0.80_f32..1.0);
-        let velocity = Vec2::new(
-            rng.gen_range(-8.0_f32..8.0),
-            rng.gen_range(24.0_f32..38.0),
-        );
+        let velocity = Vec2::new(rng.gen_range(-8.0_f32..8.0), rng.gen_range(24.0_f32..38.0));
 
         commands.spawn((
             Sprite {

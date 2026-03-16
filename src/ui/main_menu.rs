@@ -342,8 +342,14 @@ pub fn update_main_menu_visuals(
     state: Option<Res<MainMenuState>>,
     mut visual_state: Option<ResMut<MainMenuVisualState>>,
     cache: Option<Res<SaveSlotInfoCache>>,
-    mut item_query: Query<(&MenuItem, &mut ImageNode, &mut Node, &mut Visibility), Without<MainMenuTitle>>,
-    mut title_query: Query<(&mut Node, &mut TextColor, &mut TextFont), (With<MainMenuTitle>, Without<MenuItem>)>,
+    mut item_query: Query<
+        (&MenuItem, &mut ImageNode, &mut Node, &mut Visibility),
+        Without<MainMenuTitle>,
+    >,
+    mut title_query: Query<
+        (&mut Node, &mut TextColor, &mut TextFont),
+        (With<MainMenuTitle>, Without<MenuItem>),
+    >,
     mut text_query: Query<
         (&MenuButtonText, &mut Text, &mut TextColor, &mut TextFont),
         (Without<MainMenuStatusText>, Without<MainMenuTitle>),

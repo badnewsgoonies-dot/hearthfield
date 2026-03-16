@@ -143,10 +143,7 @@ pub fn spawn_inventory_screen(
                                                 justify_content: JustifyContent::FlexStart,
                                                 align_items: AlignItems::Center,
                                                 border: UiRect::all(Val::Px(2.0)),
-                                                padding: UiRect::axes(
-                                                    Val::Px(3.0),
-                                                    Val::Px(4.0),
-                                                ),
+                                                padding: UiRect::axes(Val::Px(3.0), Val::Px(4.0)),
                                                 row_gap: Val::Px(2.0),
                                                 ..default()
                                             },
@@ -241,43 +238,44 @@ pub fn spawn_inventory_screen(
                             });
                     }
                     // Hovered item details
-                    panel.spawn((
-                        Node {
-                            width: Val::Percent(100.0),
-                            min_height: Val::Px(92.0),
-                            padding: UiRect::all(Val::Px(10.0)),
-                            border: UiRect::all(Val::Px(2.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgba(0.16, 0.13, 0.1, 0.98)),
-                        BorderColor(Color::srgb(0.58, 0.48, 0.28)),
-                    ))
-                    .with_children(|desc_panel| {
-                        desc_panel.spawn((
-                            Text::new("Selected Item"),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 12.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(1.0, 0.9, 0.65)),
-                        ));
-                        desc_panel.spawn((
-                            InventoryDescText,
-                            Text::new("Move the cursor over an item to inspect it."),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 11.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.85, 0.82, 0.72)),
+                    panel
+                        .spawn((
                             Node {
                                 width: Val::Percent(100.0),
-                                margin: UiRect::top(Val::Px(4.0)),
+                                min_height: Val::Px(92.0),
+                                padding: UiRect::all(Val::Px(10.0)),
+                                border: UiRect::all(Val::Px(2.0)),
                                 ..default()
                             },
-                        ));
-                    });
+                            BackgroundColor(Color::srgba(0.16, 0.13, 0.1, 0.98)),
+                            BorderColor(Color::srgb(0.58, 0.48, 0.28)),
+                        ))
+                        .with_children(|desc_panel| {
+                            desc_panel.spawn((
+                                Text::new("Selected Item"),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 12.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(1.0, 0.9, 0.65)),
+                            ));
+                            desc_panel.spawn((
+                                InventoryDescText,
+                                Text::new("Move the cursor over an item to inspect it."),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 11.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.85, 0.82, 0.72)),
+                                Node {
+                                    width: Val::Percent(100.0),
+                                    margin: UiRect::top(Val::Px(4.0)),
+                                    ..default()
+                                },
+                            ));
+                        });
                 });
         });
 }

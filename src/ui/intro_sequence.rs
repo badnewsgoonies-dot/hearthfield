@@ -26,10 +26,7 @@ pub fn build_intro_sequence() -> VecDeque<CutsceneStep> {
     steps.push_back(CutsceneStep::SetFlag("mayor_intro_visit".into(), true));
 
     // Narrative text cards.
-    steps.push_back(CutsceneStep::ShowText(
-        "Spring 1, Year 1".into(),
-        0.6,
-    ));
+    steps.push_back(CutsceneStep::ShowText("Spring 1, Year 1".into(), 0.6));
     steps.push_back(CutsceneStep::ShowText(
         "Mayor Rex is waiting outside the farmhouse door.".into(),
         0.7,
