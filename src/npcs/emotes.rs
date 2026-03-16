@@ -54,24 +54,26 @@ impl EmoteKind {
     /// Returns the atlas index into `emoji_spritesheet.png` for this emote kind.
     ///
     /// The sheet is 10 columns wide, so index = row * 10 + col.
-    /// These are initial guesses pending runtime visual verification (Harden phase).
-    /// [Assumed] — actual visual content at each index has not been verified at runtime.
+    /// [Observed] — verified against actual sprite content via image inspection.
+    ///
+    /// Row 0: green face emojis (happy, love-eyes, neutral, x-dead, sad, ...)
+    /// Row 18: symbol icons (checkmark, exclamation, music, question, star, ...)
     pub fn atlas_index(self) -> usize {
         match self {
-            // row 0, col 0 — hearts are typically first in emoji conventions
-            EmoteKind::Heart => 0,
-            // row 1, col 0 — smiley faces
-            EmoteKind::Happy => 10,
-            // row 1, col 2 — neutral face
-            EmoteKind::Neutral => 12,
-            // row 2, col 0 — sad face
-            EmoteKind::Sad => 20,
-            // row 2, col 2 — angry face
-            EmoteKind::Angry => 22,
-            // row 3, col 0 — surprised/exclamation
-            EmoteKind::Exclamation => 30,
-            // row 3, col 2 — question/sweat
-            EmoteKind::Question => 32,
+            // row 0, col 1 — love-eyes / heart-eyes green face
+            EmoteKind::Heart => 1,
+            // row 0, col 0 — happy smiling green face
+            EmoteKind::Happy => 0,
+            // row 0, col 2 — neutral flat-mouth green face
+            EmoteKind::Neutral => 2,
+            // row 0, col 4 — sad/crying green face
+            EmoteKind::Sad => 4,
+            // row 0, col 3 — x-eyes / angry green face
+            EmoteKind::Angry => 3,
+            // row 18, col 1 — orange exclamation mark symbol
+            EmoteKind::Exclamation => 181,
+            // row 18, col 3 — pink question mark symbol
+            EmoteKind::Question => 183,
         }
     }
 }

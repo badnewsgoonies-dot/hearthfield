@@ -6,9 +6,10 @@ use bevy::prelude::*;
 // HEART ICON ATLAS — inventory_hearts.png (7 cols × 21 rows, 16×16)
 // ═══════════════════════════════════════════════════════════════════════
 
-/// [Assumed] atlas indices — visual verification needed in Harden phase.
-const HEART_FULL_INDEX: usize = 6;  // row 0, col 6 — rightmost = fully filled
-const HEART_EMPTY_INDEX: usize = 0; // row 0, col 0 — leftmost = empty
+/// [Observed] atlas indices — verified via image inspection.
+/// Row 0 shows heart fill progression: col 0 = empty outline, col 6 = fully filled.
+const HEART_FULL_INDEX: usize = 6;  // row 0, col 6 — fully filled red heart
+const HEART_EMPTY_INDEX: usize = 0; // row 0, col 0 — empty heart outline
 
 #[derive(Resource, Default)]
 pub struct HeartIconAtlas {
