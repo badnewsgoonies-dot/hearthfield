@@ -1554,9 +1554,13 @@ pub struct BuildingSign;
 
 /// Building entrance definitions: (grid_x, grid_y, label).
 const BUILDING_SIGNS: &[(i32, i32, &str)] = &[
-    (9, 5, "General Store"),
-    (39, 5, "Animal Shop"),
-    (42, 31, "Blacksmith"),
+    (5, 2, "General Store"),
+    (22, 2, "Animal Shop"),
+    (22, 13, "Blacksmith"),
+    (3, 13, "Doc & Mira"),
+    (9, 13, "Old Tom & Sam"),
+    (8, 17, "Library"),
+    (15, 17, "Tavern"),
 ];
 
 /// Spawn floating text labels above building entrances on the town map.
@@ -3461,10 +3465,22 @@ fn chimney_positions(map_id: MapId) -> Vec<Vec2> {
             let as_pos = grid_to_world_center(21, 7);
             // Blacksmith chimney
             let bs = grid_to_world_center(22, 17);
+            // NPC House 1 chimney
+            let house_1 = grid_to_world_center(4, 16);
+            // NPC House 2 chimney
+            let house_2 = grid_to_world_center(10, 16);
+            // Library chimney
+            let library = grid_to_world_center(9, 21);
+            // Tavern chimney
+            let tavern = grid_to_world_center(16, 21);
             vec![
                 Vec2::new(gs.x, gs.y + TILE_SIZE * 2.0),
                 Vec2::new(as_pos.x, as_pos.y + TILE_SIZE * 2.0),
                 Vec2::new(bs.x, bs.y + TILE_SIZE * 1.5),
+                Vec2::new(house_1.x, house_1.y + TILE_SIZE * 2.0),
+                Vec2::new(house_2.x, house_2.y + TILE_SIZE * 2.0),
+                Vec2::new(library.x, library.y + TILE_SIZE * 2.0),
+                Vec2::new(tavern.x, tavern.y + TILE_SIZE * 1.5),
             ]
         }
         _ => vec![],
