@@ -79,7 +79,7 @@ Run after EVERY worker. Let the worker edit anything. Revert everything outside 
 
 ## 5. WHAT TO TELL THE AGENT
 
-### 5.1 Briefing format matters more than content volume
+### Briefing format matters more than content volume
 
 | Format | Output | Ship? |
 |--------|--------|-------|
@@ -91,7 +91,7 @@ Run after EVERY worker. Let the worker edit anything. Revert everything outside 
 
 Telling the agent what NOT to do and what drift looks like produces more output than telling it what TO do.
 
-### 5.2 Specificity determines ship rate
+### Specificity determines ship rate
 
 | Specificity | Ship rate |
 |------------|-----------|
@@ -101,7 +101,7 @@ Telling the agent what NOT to do and what drift looks like produces more output 
 
 If you can't name the file and the value, the prompt isn't ready.
 
-### 5.3 Model selection
+### Model selection
 
 | Model | Role | Critical note |
 |-------|------|--------------|
@@ -113,7 +113,156 @@ If you can't name the file and the value, the prompt isn't ready.
 
 The model is the first-order throughput variable. Same architecture, 9.8× output gap between best and worst worker models.
 
-## 6. PROMPT TEMPLATES
+## 6. TRUST ORDER
+
+When the agent encounters conflicting information, this precedence governs what it believes:
+
+1. **Fresh code, tests, runtime output** — what the files actually say right now
+2. **[Observed] artifacts** with concrete source_refs — verified claims on disk
+3. **Current STATE.md** — the last committed snapshot of project truth
+4. **Project docs, contracts, specs** — design intent
+5. **Research findings** with certainty labels — methodology guidance
+6. **Conversation history** — the LOWEST trust tier
+
+An agent that trusts its own prior conversation over the current code will propagate stale claims as truth. The trust order prevents this.
+
+## 7. EVIDENCE LEVELS
+
+Every claim an agent persists should carry one of:
+
+- **[Observed]** — directly verified against code, tests, or runtime. Can be frozen into gates.
+- **[Inferred]** — logically derived but not directly verified. Cannot be frozen into gates.
+- **[Assumed]** — stated without verification. Must be verified before any critical decision depends on it.
+
+This is the mechanism behind the core finding: typed provenance changes model behavior from 13% → 54% calibrated abstention on ambiguous decisions. Without evidence levels, untyped memory is **worse than no memory** (0% vs 83% correct on resolvable decisions).
+
+### Artifact schema for persistent memory
+
+```yaml
+id: DEC-2026-03-10-001
+type: decision | observation | debt | principle
+evidence: Observed | Inferred | Assumed
+domain: player | world | save | ui | api | infra
+summary: "One sentence."
+source_refs:
+  - "file:repo@src/path/file.rs:10-40"
+status: active | resolved | superseded
+supersedes: []
+```
+
+One artifact per file. Supersede, don't silently mutate. [Observed] claims must have source_refs.
+
+## 8. WAVE CADENCE
+
+Every wave follows this exact sequence. No skips.
+
+```
+Feature → Gate → Document → Harden → Graduate
+```
+
+- **Feature**: Build or change the targeted surface.
+- **Gate**: Mechanical checks (compile, test, lint, scope clamp). Green = ready to examine, NOT ready to ship.
+- **Document**: Emit artifacts ONLY when triggered: non-obvious decision, direct verification, reusable principle, open debt, contradiction, correction, or graduation test. If nothing triggers, write nothing.
+- **Harden**: Inspect the actual result. Reachable? Visible feedback? Responsive? Edge behavior sane? Diagnosable when it fails?
+- **Graduate**: For each [Observed] truth, encode it as a test or gate. Track remaining work as P0/P1/P2.
+
+Do not start the next wave until Document, Harden, and Graduate are complete.
+
+## 9. SESSION PROTOCOL
+
+### Start (every session)
+
+1. Read this toolkit + STATE.md
+2. Mount the current objective
+3. Pre-touch retrieval: `git log --oneline -15 -- <path>`, read active debt
+4. State BEFORE acting: tier (S/M/C), surface being touched, current phase, any [Assumed] claims on the critical path
+
+### Tiering
+
+- **S** — single-surface fix or bounded hotfix
+- **M** — module or subsystem, 1-3 domains, workers useful
+- **C** — campaign, multiple domains, orchestration required
+
+Start at S if ambiguous. Escalate when touching shared contracts, persistence, trust boundaries, or multiple interacting surfaces.
+
+### End (every session)
+
+1. Update STATE.md — phase, debts, decisions, gate status, uncertainties
+2. Write triggered artifacts only
+3. Commit memory changes
+4. Do NOT rely on conversation to preserve what was learned
+
+## 10. STOP CONDITIONS
+
+Cease work and reassess when any of these appear:
+
+1. **Contract drift** — checksum fails → restore contract, re-validate
+2. **Clamp breaks the fix** — the domain boundary is wrong or the task is integration work → re-scope
+3. **False green** — tests pass but the contract is unused, bypassed, or visually broken
+4. **Abstraction reflex** — redesigning architecture to avoid debugging the real issue
+5. **Delegation compression** — asked for 80 items, got 8 (worker read a summary, not the spec)
+6. **Self-model error** — agent claims it cannot do things it can
+7. **Identity paradox** — one agent playing both architect and worker loses role separation
+8. **Beautiful dead product** — gates green but the surface is unreachable or unhelpful
+9. **Ghost progress** — nothing newly reachable exists after the wave
+10. **Cadence break** — documenting while still coding, or coding while still diagnosing
+
+When a stop condition fires: stop. Don't push through. Diagnose. Restart the wave.
+
+## 11. DISCOVERY TAXONOMY
+
+When a worker finds something unexpected during a fix:
+
+| Discovery | Action |
+|-----------|--------|
+| Reproducible bug (in scope) | Fix it |
+| Fragile seam (missing coverage) | Write regression test FIRST, then fix |
+| Fidelity gap (cross-domain) | Escalate to orchestrator — don't widen scope |
+| Out of scope | Record as debt, don't touch |
+
+## 12. STATE RECOVERY
+
+### dispatch-state.yaml (the process table)
+
+```yaml
+lanes:
+  - id: farming-fix
+    status: in-progress  # pending | in-progress | gated | merged | failed
+    goal: "Fix crop save/load roundtrip"
+    owned_paths:
+      - src/farming/
+    next_action: "Run cargo test after worker completes"
+```
+
+Every active work lane tracked. Survives session death. Any new session reads it and knows what's in flight.
+
+### Three core transactions
+
+**Checkpoint** — preserves conversation + filesystem + ledger state. All three required.
+
+**Restore** — recovers from a named checkpoint when a wave goes wrong.
+
+**Launch** — creates an isolated work lane: new worktree + branch, copies contract, registers in dispatch-state.yaml.
+
+### Mechanical verification
+
+**verify-state-claims** — checks STATE.md claims against actual repo.
+
+**hook-contract-integrity** — pre-commit hook rejecting contract modifications without override.
+
+**hook-agent-guard** — prevents orchestrator from directly editing source files.
+
+### Recovery prompt
+
+```
+Continuing [project]. Read before acting:
+- STATE.md, MANIFEST.md, docs/spec.md, src/shared/mod.rs
+
+Recent: [1 sentence]. Task: [what to do now].
+State tier (S/M/C) and [Assumed] claims on critical path before acting.
+```
+
+## 13. PROMPT TEMPLATES
 
 ### Worker (single task)
 ```
@@ -149,8 +298,6 @@ Wave 2: ...
 Start now. Read the manifest, begin Wave 1.
 ```
 
-The "DO NOT stop between waves" line is what sustains multi-wave campaigns. Without it, every agent completes Wave 1 and waits.
-
 ### Audit
 ```
 Audit every [asset/system type]. For each:
@@ -163,36 +310,25 @@ Write as manifest with per-item wiring instructions.
 Priority: P0 broken → P1 ready to wire → P2 needs data → P3 needs systems.
 ```
 
-### Recovery (after session death)
-```
-Continuing [project]. Read before acting:
-- MANIFEST.md, STATE.md, docs/spec.md, src/shared/mod.rs
+## 14. FINDINGS
 
-Recent: [1 sentence]. Task: [what to do now].
-State tier (S/M/C) and any [Assumed] claims on critical path before acting.
-```
-
-## 7. FINDINGS
-
-### 7.1 Untyped memory is worse than no memory
+### Untyped memory is worse than no memory
 
 | Condition | Correct on resolvable decisions |
 |-----------|-------------------------------|
 | **No memory** | **83%** |
-| Untyped notes (same claims, plain text) | **0%** |
-| Typed provenance (YAML + evidence levels) | 14% |
+| Untyped notes | **0%** |
+| Typed provenance | 14% |
 
-Untyped notes introduce conflicting claims that make agents second-guess correct decisions.
+### Typed provenance rescues calibration on ambiguous decisions
 
-### 7.2 Typed provenance rescues calibration on ambiguous decisions
-
-| Condition | Calibrated abstention ("I need to verify") |
-|-----------|------------------------------------------|
+| Condition | Calibrated abstention |
+|-----------|-----------------------|
 | No memory | 18% |
 | Untyped | 13% |
 | **Typed provenance** | **54%** |
 
-Same claims, different encoding. 4× improvement. The 2×2 interaction:
+The interaction with model capability:
 
 |  | Simple claims | Complex ambiguity |
 |---|---|---|
@@ -200,67 +336,53 @@ Same claims, different encoding. 4× improvement. The 2×2 interaction:
 | Cheap models | **✓ 33%→100%** | no effect |
 | gpt-4.1 | no effect | no effect |
 
-Evidence tags have both a model capability threshold and a task complexity threshold. Validated on non-game Rust API (multi-repo replication): 33%→100% on gpt-5-mini.
+### Conversations are scaffolding, not substrate
 
-### 7.3 Conversations are scaffolding, not substrate
+Blackout Test: 7 packets, stateless workers, blind integrator. Build lands. Five network faults all recovered. Contamination radius: 0.
 
-Blackout Test: 7 task packets, stateless workers, quarantined conversations. Blind integrator gets only repo + diffs. Build lands. Five network faults (reorder, drop, corrupt, duplicate, delay) all recovered. Contamination radius: 0.
+### Contract freeze prevents parallel integration failure
 
-Don't maintain long conversations. Put state in files. Start fresh sessions. The dispatch document is the cognitive substrate.
+Without: 10 workers → 6 incompatible interfaces. With: 50+ builds → zero type errors.
 
-### 7.4 Contract freeze prevents parallel integration failure
+### Wave-based dispatch, not one-shot
 
-Without frozen type contract: 10 workers → 6 incompatible interfaces.
-With frozen contract: 50+ domain builds → zero integration type errors.
+One-shot for large builds: anti-pattern. Wave-based: 100% foreman ship rate across 15+ sessions.
 
-Freeze shapes (types, enums, events). Leave values in config. Contract changes are integration-phase only.
-
-### 7.5 Wave-based dispatch, not one-shot
-
-One-shot dispatch for large builds: explicit anti-pattern. Wave-based: 15+ sessions, 100% foreman ship rate. Commit after each wave. Clamp after each worker.
-
-## 8. AGENT FAILURE MODES
+## 15. AGENT FAILURE MODES
 
 **Defaults to solo execution.** Fix: "You have [tool] available. Dispatch workers."
 
-**Stops after one wave.** Fix: "DO NOT stop between waves." If it still stops: type "continue."
+**Stops after one wave.** Fix: "DO NOT stop between waves." Still stops: "continue."
 
-**Builds frameworks instead of features.** Fix: "Do NOT create orchestration infrastructure. Implement deliverables only."
+**Builds frameworks instead of features.** Fix: "Implement deliverables only."
 
-**Reads summaries, ignores source files.** Symptom: asked for 80 items, got 8. Fix: specs on disk, quantities in worker prompt, "read the file at [path]."
+**Reads summaries, ignores files.** Fix: specs on disk, quantities in prompt, "read [path]."
 
-**Edits frozen contract during parallel build.** Fix: mechanical clamp. `disallowedTools` in settings.
+**Edits frozen contract.** Fix: mechanical clamp. `disallowedTools`.
 
-**Makes better architectural decision than your spec.** Not a failure. The HashMap override instead of contract modification was better than the spec. Let the agent find the cleanest route; the gate/harden cycle catches bad decisions.
+**Makes better decision than spec.** Not a failure. Gate/harden catches bad decisions.
 
-**Claims it can't do things it can.** "I don't have bash access" / "I can't read files." Fix: "You have bash access. You can read and write files."
+**Claims it can't do things it can.** Fix: "You have bash access."
 
-**New file creation fails (~50%).** Fix: prefer edits. When new files required, specify module registration in prompt.
+**New file creation fails (~50%).** Fix: prefer edits. Specify registration.
 
-**Session dies mid-campaign.** Fix: manifest on disk is the state. New session: "Resume from Wave N."
+**Session dies mid-campaign.** Fix: "Resume from Wave N."
 
-## 9. MEASUREMENTS
+## 16. MEASUREMENTS
 
 | Metric | Value |
 |--------|-------|
-| Tokens consumed (full program) | 295M+ |
-| Commits | 739 |
-| LOC | 64K, 0 handwritten |
 | Manual dispatch ship rate | 67% (10/15) |
 | Foreman dispatch ship rate | 100% (5/5) |
-| 4-layer stack ship rate | 100% (5/5) |
 | Scope: prompt-only | 0/20 |
 | Scope: mechanical clamp | 20/20 |
 | Evidence tags on ambiguous decisions | 13%→54% |
 | Poisoning defense (multi-repo) | 33%→100% |
-| Blackout test fault recovery | 5/5, contamination 0 |
+| Blackout fault recovery | 5/5, contamination 0 |
 | Briefing winner | Decision Fields (1514 vs 9 lines) |
 | Exact-value ship rate | 100% |
 | Vague-goal ship rate | 0% |
-| New file first-try success | ~50% |
-| Edit first-try success | ~90% |
-| Parallel workers stable | 2-3 |
-| Parallel workers crash | 5+ |
-| Model output gap (same task) | 9.8× |
+| New file success | ~50% (edits ~90%) |
+| Parallel workers stable | 2-3 (5+ crashes) |
+| Model output gap | 9.8× same task |
 | Opus 1M campaign | 18 commits, 45 sprites, 1 session |
-| Campaign context utilization | 168K of 1M (17%) |
