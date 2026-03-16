@@ -193,8 +193,9 @@ impl Plugin for WorldPlugin {
                     spawn_building_sprites,
                     spawn_farm_decorations,
                     spawn_interior_decorations,
-                    // Sync solid tiles from WorldMap into CollisionMap after map loads
-                    sync_collision_map,
+                    // Sync solid tiles from WorldMap into CollisionMap after map loads.
+                    // Must run AFTER handle_map_transition so it sees the new WorldMap.
+                    sync_collision_map.after(handle_map_transition),
                 )
                     .in_set(UpdatePhase::Simulation)
                     .run_if(in_state(GameState::Playing)),

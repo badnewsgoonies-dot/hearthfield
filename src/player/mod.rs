@@ -69,8 +69,10 @@ impl Plugin for PlayerPlugin {
                 tools::stamina_low_warning,
                 interaction::item_pickup_check,
                 interaction::add_items_to_inventory,
-                interaction::map_transition_check,
-                interaction::handle_map_transition,
+                interaction::map_transition_check
+                    .before(interaction::handle_map_transition),
+                interaction::handle_map_transition
+                    .before(movement::player_movement),
                 interaction::check_stamina_consequences,
             )
                 .in_set(UpdatePhase::Simulation)
