@@ -18,6 +18,7 @@ pub mod romance;
 mod schedule;
 pub mod schedules;
 pub mod spawning;
+pub mod speech_bubbles;
 
 use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
@@ -42,6 +43,7 @@ use schedules::{
 use spawning::{
     preload_npc_sprites, spawn_initial_npcs, spawn_mayor_for_intro, NpcSpriteData, SpawnedNpcs,
 };
+use speech_bubbles::{show_npc_interaction_bubbles, SpeechBubbleAtlas};
 
 pub struct NpcPlugin;
 
@@ -58,6 +60,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<FarmVisitTracker>()
             .init_resource::<EmoteSprites>()
             .init_resource::<ShadowSpriteCache>()
+            .init_resource::<SpeechBubbleAtlas>()
             .add_event::<NpcEmoteEvent>();
 
         // NPC data is populated by DataPlugin during OnEnter(Loading).
@@ -117,6 +120,7 @@ impl Plugin for NpcPlugin {
                 npc_idle_behavior_system,
                 attach_npc_shadows,
                 reset_daily_talks,
+                show_npc_interaction_bubbles,
             )
                 .in_set(UpdatePhase::Simulation)
                 .run_if(in_state(GameState::Playing)),
