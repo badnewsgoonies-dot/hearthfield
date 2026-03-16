@@ -37,6 +37,16 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 100,
             season_available: Some(Season::Spring),
         },
+        ShopListing {
+            item_id: "carrot_seeds".into(),
+            price: 25,
+            season_available: Some(Season::Spring),
+        },
+        ShopListing {
+            item_id: "radish_seeds".into(),
+            price: 30,
+            season_available: Some(Season::Spring),
+        },
         // ── Summer Seeds ──────────────────────────────────────────
         ShopListing {
             item_id: "melon_seeds".into(),
@@ -79,6 +89,11 @@ pub fn populate_shops(shop_data: &mut ShopData) {
             price: 60,
             season_available: Some(Season::Fall),
         },
+        ShopListing {
+            item_id: "grape_seeds".into(),
+            price: 50,
+            season_available: Some(Season::Fall),
+        },
         // ── Ancient Seeds (rare, spring only) ─────────────────────
         ShopListing {
             item_id: "ancient_seeds".into(),
@@ -88,6 +103,21 @@ pub fn populate_shops(shop_data: &mut ShopData) {
         // ── Hops Seeds (summer crop) ────────────────────────────
         ShopListing {
             item_id: "hops_seeds".into(),
+            price: 60,
+            season_available: Some(Season::Summer),
+        },
+        ShopListing {
+            item_id: "onion_seeds".into(),
+            price: 30,
+            season_available: Some(Season::Summer),
+        },
+        ShopListing {
+            item_id: "pepper_seeds".into(),
+            price: 40,
+            season_available: Some(Season::Summer),
+        },
+        ShopListing {
+            item_id: "pineapple_seeds".into(),
             price: 60,
             season_available: Some(Season::Summer),
         },

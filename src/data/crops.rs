@@ -238,6 +238,93 @@ pub fn populate_crops(registry: &mut CropRegistry) {
             sell_price: 750,
             sprite_stages: vec![140, 141, 142, 143, 144, 145],
         },
+        // ── New Spring Crops ─────────────────────────────────────────────────────
+        CropDef {
+            id: "carrot".into(),
+            name: "Carrot".into(),
+            seed_id: "carrot_seeds".into(),
+            harvest_id: "carrot".into(),
+            seasons: vec![Season::Spring],
+            // 4 total days, 4 stages (1 day each)
+            growth_days: vec![1, 1, 1, 1],
+            regrows: false,
+            regrow_days: 0,
+            sell_price: 35,
+            // Per-crop atlas: crop_carrot.png (7×2), sequential column indices
+            sprite_stages: vec![0, 1, 2, 3],
+        },
+        CropDef {
+            id: "radish".into(),
+            name: "Radish".into(),
+            seed_id: "radish_seeds".into(),
+            harvest_id: "radish".into(),
+            seasons: vec![Season::Spring],
+            // 5 total days, 4 stages
+            growth_days: vec![1, 1, 1, 2],
+            regrows: false,
+            regrow_days: 0,
+            sell_price: 40,
+            // Per-crop atlas: crop_radish.png (7×2), sequential column indices
+            sprite_stages: vec![0, 1, 2, 3],
+        },
+        // ── New Summer Crops ─────────────────────────────────────────────────────
+        CropDef {
+            id: "onion".into(),
+            name: "Onion".into(),
+            seed_id: "onion_seeds".into(),
+            harvest_id: "onion".into(),
+            seasons: vec![Season::Summer],
+            // 5 total days, 4 stages
+            growth_days: vec![1, 1, 1, 2],
+            regrows: false,
+            regrow_days: 0,
+            sell_price: 40,
+            // Per-crop atlas: crop_onion.png (7×4), sequential column indices
+            sprite_stages: vec![0, 1, 2, 3],
+        },
+        CropDef {
+            id: "pepper".into(),
+            name: "Pepper".into(),
+            seed_id: "pepper_seeds".into(),
+            harvest_id: "pepper".into(),
+            seasons: vec![Season::Summer],
+            // 6 days to first harvest, 4 stages; regrows every 3 days
+            growth_days: vec![1, 2, 2, 1],
+            regrows: true,
+            regrow_days: 3,
+            sell_price: 55,
+            // Per-crop atlas: crop_pepper.png (7×2), sequential column indices
+            sprite_stages: vec![0, 1, 2, 3],
+        },
+        CropDef {
+            id: "pineapple".into(),
+            name: "Pineapple".into(),
+            seed_id: "pineapple_seeds".into(),
+            harvest_id: "pineapple".into(),
+            seasons: vec![Season::Summer],
+            // 8 days to first harvest, 4 stages; regrows every 4 days
+            growth_days: vec![1, 2, 2, 3],
+            regrows: true,
+            regrow_days: 4,
+            sell_price: 100,
+            // Per-crop atlas: crop_pineapple.png (7×4), sequential column indices
+            sprite_stages: vec![0, 1, 2, 3],
+        },
+        // ── New Fall Crops ───────────────────────────────────────────────────────
+        CropDef {
+            id: "grape".into(),
+            name: "Grape".into(),
+            seed_id: "grape_seeds".into(),
+            harvest_id: "grape".into(),
+            seasons: vec![Season::Fall],
+            // 7 days to first harvest, 4 stages; regrows every 3 days
+            growth_days: vec![1, 2, 2, 2],
+            regrows: true,
+            regrow_days: 3,
+            sell_price: 70,
+            // Per-crop atlas: crop_grape.png (7×6), sequential column indices
+            sprite_stages: vec![0, 1, 2, 3],
+        },
     ];
 
     for crop in crops {

@@ -323,6 +323,13 @@ fn load_farming_atlases(
         ("wheat", "sprites/crop_wheat.png", 7, 2),
         ("coffee", "sprites/crop_coffee.png", 7, 4),
         ("watermelon", "sprites/crop_watermelon.png", 7, 4),
+        // New crop sheets added Wave 6
+        ("carrot", "sprites/crop_carrot.png", 7, 2),
+        ("radish", "sprites/crop_radish.png", 7, 2),
+        ("onion", "sprites/crop_onion.png", 7, 4),
+        ("pepper", "sprites/crop_pepper.png", 7, 2),
+        ("pineapple", "sprites/crop_pineapple.png", 7, 4),
+        ("grape", "sprites/crop_grape.png", 7, 6),
     ];
 
     for &(crop_id, path, cols, rows) in crop_sheets {
