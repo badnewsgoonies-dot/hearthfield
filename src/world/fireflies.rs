@@ -54,9 +54,8 @@ pub fn spawn_fireflies(
         return;
     }
 
-    let Ok(cam_tf) = camera_query.single() else {
-        return;
-    };
+    let cam_tf = camera_query.single();
+
 
     let target_count = *swarm_state
         .target_count

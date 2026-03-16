@@ -58,7 +58,7 @@ pub fn update_gift_hearts(
     for (entity, mut particle, mut transform, mut sprite) in &mut query {
         particle.timer.tick(time.delta());
 
-        if particle.timer.is_finished() {
+        if particle.timer.finished() {
             commands.entity(entity).despawn();
             continue;
         }
