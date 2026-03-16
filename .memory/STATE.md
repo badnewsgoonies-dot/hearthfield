@@ -1,15 +1,15 @@
 # STATE — Hearthfield
 
-**Updated:** 2026-03-14T21:00Z
-**HEAD:** c7477fd7 (stack-1773520523: task 5 — first-day feel pass)
+**Updated:** 2026-03-16T19:30Z
+**HEAD:** 037d50d1 (sprite wiring campaign — P3 quick wins)
 **Branch:** master
 **Working tree:** clean
 
 ## Phase
 
-- Macro phase: `finish breadth` (post-Wave-10, late-stage polish + verification)
-- Wave phase: `Graduate`
-- Tier: `M` (multiple interacting surfaces)
+- Macro phase: `finish breadth` (post-Wave-10, asset wiring + polish)
+- Wave phase: `Feature` (sprite wiring campaign in progress)
+- Tier: `C` (campaign — 7 domains touched, parallel workers)
 
 ## P0 Debt (blocks shipping)
 
@@ -48,6 +48,15 @@
 
 ## Last Decisions
 
+- [Observed] Sprite Wiring Campaign (2026-03-16): 10 commits, ~35 assets wired, 5 parallel workers in isolated worktrees (commits 3d7ee51c..037d50d1)
+- [Observed] NPC sprites: Margaret→mage, Bjorn→guard, zero duplicates (commit 3d7ee51c)
+- [Observed] Per-crop Pickup icons: 8 harvest items use individual PNGs via CropIconOverrides in ItemAtlasData (commit e29d9129)
+- [Observed] Biome trees: 4 individual tree PNGs render per-map (commit d1e0ae23)
+- [Observed] 6 new crops registered: carrot, radish, onion, pepper, grape, pineapple — full CropDef+ItemDef+shop+spritesheet (commit 41ac6593)
+- [Observed] Custom cursors: 3 PNGs wired — default/pointing/holding with world-space sprite tracking (commit 589f762f)
+- [Observed] Emote sprites: emoji_spritesheet.png (380 icons) replaces procedural generation, [Assumed] atlas indices (commit aec92206)
+- [Observed] Dialog box sprites: medium/small for toasts, continue indicator for dialogue, weather_ui for HUD (commits 18874923, 037d50d1)
+- [Observed] Decorative fences: 7 fence segments around town NPC houses using autotile bitmask (commit 6b0a3d1b)
 - [Observed] Player sprite loads from character_spritesheet.png (src/player/spawn.rs)
 - [Observed] Tool feedback: held sprites + swing arcs + impact particles + till dust (commit 8bf943e3)
 - [Observed] NPC-driven tool tutorial with visual overlay (commit 10b8b888)
