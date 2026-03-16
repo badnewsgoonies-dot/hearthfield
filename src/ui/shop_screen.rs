@@ -1,5 +1,5 @@
 use super::hud::ItemAtlasData;
-use super::item_icon_index;
+use super::apply_item_icon;
 use super::UiFontHandle;
 use crate::economy::blacksmith::ToolUpgradeRequestEvent;
 use crate::shared::*;
@@ -404,6 +404,7 @@ pub fn update_shop_display(
     >,
     mut row_query: Query<(&ShopListItem, &mut BackgroundColor)>,
     mut icon_query: Query<(&ShopItemIcon, &mut ImageNode, &mut Visibility)>,
+    atlas_data: Res<ItemAtlasData>,
 ) {
     let Some(ui_state) = ui_state else { return };
 
@@ -527,9 +528,7 @@ pub fn update_shop_display(
         };
         if let Some(id) = item_id {
             if let Some(def) = item_registry.get(id) {
-                if let Some(ref mut atlas) = img.texture_atlas {
-                    atlas.index = item_icon_index(def.sprite_index);
-                }
+                apply_item_icon(&mut img, &atlas_data, id, def.sprite_index);
                 *vis = Visibility::Inherited;
                 continue;
             }

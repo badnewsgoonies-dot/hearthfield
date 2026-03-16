@@ -1,5 +1,5 @@
 use super::hud::ItemAtlasData;
-use super::item_icon_index;
+use super::{apply_item_icon, item_image_node};
 use super::UiFontHandle;
 use crate::shared::*;
 use bevy::prelude::*;
@@ -151,29 +151,22 @@ pub fn spawn_inventory_screen(
                                             BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.7)),
                                         ))
                                         .with_children(|slot| {
-                                            // Item icon
-                                            let atlas_index = if index < inventory.slots.len() {
-                                                inventory.slots[index]
-                                                    .as_ref()
-                                                    .and_then(|s| item_registry.get(&s.item_id))
-                                                    .map(|def| item_icon_index(def.sprite_index))
-                                                    .unwrap_or(0)
+                                            // Item icon — use per-crop Pickup PNG when available
+                                            let slot_ref = if index < inventory.slots.len() {
+                                                inventory.slots[index].as_ref()
                                             } else {
-                                                0
+                                                None
                                             };
-                                            let has_item = index < inventory.slots.len()
-                                                && inventory.slots[index].is_some();
+                                            let item_id = slot_ref.map(|s| s.item_id.as_str());
+                                            let sprite_idx = slot_ref
+                                                .and_then(|s| item_registry.get(&s.item_id))
+                                                .map(|def| def.sprite_index)
+                                                .unwrap_or(0);
+                                            let has_item = slot_ref.is_some();
                                             if atlas_data.loaded {
                                                 slot.spawn((
                                                     InventorySlotIcon { index },
-                                                    ImageNode {
-                                                        image: atlas_data.image.clone(),
-                                                        texture_atlas: Some(TextureAtlas {
-                                                            layout: atlas_data.layout.clone(),
-                                                            index: atlas_index,
-                                                        }),
-                                                        ..default()
-                                                    },
+                                                    item_image_node(&atlas_data, item_id, sprite_idx),
                                                     Node {
                                                         width: Val::Px(28.0),
                                                         height: Val::Px(28.0),
@@ -300,7 +293,7 @@ pub fn update_inventory_slots(
     item_registry: Res<ItemRegistry>,
     player_state: Res<PlayerState>,
     ui_state: Option<Res<InventoryUiState>>,
-    _atlas_data: Res<ItemAtlasData>,
+    atlas_data: Res<ItemAtlasData>,
     mut item_text_query: Query<
         (&InventorySlotItemName, &mut Text),
         (
@@ -334,9 +327,7 @@ pub fn update_inventory_slots(
         if idx < inventory.slots.len() {
             if let Some(ref slot_data) = inventory.slots[idx] {
                 if let Some(def) = item_registry.get(&slot_data.item_id) {
-                    if let Some(ref mut atlas) = img.texture_atlas {
-                        atlas.index = item_icon_index(def.sprite_index);
-                    }
+                    apply_item_icon(&mut img, &atlas_data, &slot_data.item_id, def.sprite_index);
                     *vis = Visibility::Inherited;
                     continue;
                 }

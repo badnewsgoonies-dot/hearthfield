@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use super::UiFontHandle;
-use super::{item_icon_index, ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
+use super::{ITEM_ATLAS_COLUMNS, ITEM_ATLAS_ROWS};
 use crate::economy::shipping::ShippingBinPreview;
 use crate::input::{TouchZone, TouchZoneState};
 use crate::shared::*;
@@ -82,11 +84,13 @@ pub struct HotbarItemIcon {
 }
 
 /// Lazily loaded atlas for item icons in the hotbar.
+/// `crop_overrides` maps harvest item_id → individual Pickup_Crop PNG handle.
 #[derive(Resource, Default)]
 pub struct ItemAtlasData {
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
     pub loaded: bool,
+    pub crop_overrides: HashMap<String, Handle<Image>>,
 }
 
 /// Lazily-loaded atlas for weather icons (weather_icons.png: 4×6 grid, 16×16).
@@ -165,6 +169,21 @@ pub fn preload_item_atlas(
         None,
         None,
     ));
+    // Load per-crop Pickup icon overrides (higher quality than atlas)
+    for (crop_id, path) in [
+        ("turnip", "sprites/items/Pickup_Crop_Turnip_16x16.png"),
+        ("cauliflower", "sprites/items/Pickup_Crop_Cauliflower_16x16.png"),
+        ("strawberry", "sprites/items/Pickup_Crop_Strawberry_16x16.png"),
+        ("tomato", "sprites/items/Pickup_Crop_Tomato_16x16.png"),
+        ("corn", "sprites/items/Pickup_Crop_Corn_16x16.png"),
+        ("pumpkin", "sprites/items/Pickup_Crop_Pumpkin_16x16.png"),
+        ("melon", "sprites/items/Pickup_Crop_Watermelon_16x16.png"),
+        ("coffee", "sprites/items/Pickup_Crop_Coffee_16x16.png"),
+    ] {
+        atlas_data
+            .crop_overrides
+            .insert(crop_id.to_string(), asset_server.load(path));
+    }
     atlas_data.loaded = true;
 }
 
@@ -1141,24 +1160,20 @@ pub fn hydrate_hotbar_icons(
 
     for (entity, icon) in &icon_query {
         let idx = icon.index;
-        let atlas_index = if idx < inventory.slots.len() {
-            inventory.slots[idx]
-                .as_ref()
-                .and_then(|s| item_registry.get(&s.item_id))
-                .map(|def| item_icon_index(def.sprite_index))
-                .unwrap_or(0)
+        let slot_ref = if idx < inventory.slots.len() {
+            inventory.slots[idx].as_ref()
         } else {
-            0
+            None
         };
+        let item_id = slot_ref.map(|s| s.item_id.as_str());
+        let sprite_idx = slot_ref
+            .and_then(|s| item_registry.get(&s.item_id))
+            .map(|def| def.sprite_index)
+            .unwrap_or(0);
 
-        commands.entity(entity).insert(ImageNode {
-            image: atlas_data.image.clone(),
-            texture_atlas: Some(TextureAtlas {
-                layout: atlas_data.layout.clone(),
-                index: atlas_index,
-            }),
-            ..default()
-        });
+        commands
+            .entity(entity)
+            .insert(super::item_image_node(&atlas_data, item_id, sprite_idx));
     }
 }
 
@@ -1177,9 +1192,7 @@ pub fn update_hotbar_icons(
         if idx < inventory.slots.len() {
             if let Some(ref slot_data) = inventory.slots[idx] {
                 if let Some(def) = item_registry.get(&slot_data.item_id) {
-                    if let Some(ref mut atlas) = img.texture_atlas {
-                        atlas.index = item_icon_index(def.sprite_index);
-                    }
+                    super::apply_item_icon(&mut img, &atlas_data, &slot_data.item_id, def.sprite_index);
                 }
             }
         }

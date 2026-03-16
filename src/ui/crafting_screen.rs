@@ -1,5 +1,5 @@
 use super::hud::ItemAtlasData;
-use super::item_icon_index;
+use super::item_image_node;
 use super::UiFontHandle;
 use crate::shared::*;
 use bevy::prelude::*;
@@ -251,16 +251,11 @@ pub fn spawn_crafting_screen(
                                                 if let Some(item_def) =
                                                     item_registry.get(&recipe.result)
                                                 {
-                                                    icon_cmd.insert(ImageNode {
-                                                        image: atlas_data.image.clone(),
-                                                        texture_atlas: Some(TextureAtlas {
-                                                            layout: atlas_data.layout.clone(),
-                                                            index: item_icon_index(
-                                                                item_def.sprite_index,
-                                                            ),
-                                                        }),
-                                                        ..default()
-                                                    });
+                                                    icon_cmd.insert(item_image_node(
+                                                        &atlas_data,
+                                                        Some(recipe.result.as_str()),
+                                                        item_def.sprite_index,
+                                                    ));
                                                 }
                                             }
                                         }
@@ -449,14 +444,11 @@ pub fn update_crafting_display(
         if atlas_data.loaded {
             if let Some(recipe) = selected_recipe {
                 if let Some(item_def) = item_registry.get(&recipe.result) {
-                    entity_commands.insert(ImageNode {
-                        image: atlas_data.image.clone(),
-                        texture_atlas: Some(TextureAtlas {
-                            layout: atlas_data.layout.clone(),
-                            index: item_icon_index(item_def.sprite_index),
-                        }),
-                        ..default()
-                    });
+                    entity_commands.insert(item_image_node(
+                        &atlas_data,
+                        Some(recipe.result.as_str()),
+                        item_def.sprite_index,
+                    ));
                 }
             }
         }
@@ -525,14 +517,11 @@ pub fn update_crafting_display(
             if let Some(recipe_id) = ui_state.visible_recipes.get(idx) {
                 if let Some(recipe) = recipe_registry.recipes.get(recipe_id.as_str()) {
                     if let Some(item_def) = item_registry.get(&recipe.result) {
-                        entity_commands.insert(ImageNode {
-                            image: atlas_data.image.clone(),
-                            texture_atlas: Some(TextureAtlas {
-                                layout: atlas_data.layout.clone(),
-                                index: item_icon_index(item_def.sprite_index),
-                            }),
-                            ..default()
-                        });
+                        entity_commands.insert(item_image_node(
+                            &atlas_data,
+                            Some(recipe.result.as_str()),
+                            item_def.sprite_index,
+                        ));
                     }
                 }
             }

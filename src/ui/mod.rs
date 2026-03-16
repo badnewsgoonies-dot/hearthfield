@@ -43,6 +43,49 @@ pub fn item_icon_index(sprite_index: u32) -> usize {
     }
 }
 
+/// Build an ImageNode for an item, using per-crop Pickup icons when available.
+pub fn item_image_node(
+    atlas_data: &hud::ItemAtlasData,
+    item_id: Option<&str>,
+    sprite_index: u32,
+) -> ImageNode {
+    if let Some(id) = item_id {
+        if let Some(icon) = atlas_data.crop_overrides.get(id) {
+            return ImageNode {
+                image: icon.clone(),
+                ..default()
+            };
+        }
+    }
+    ImageNode {
+        image: atlas_data.image.clone(),
+        texture_atlas: Some(TextureAtlas {
+            layout: atlas_data.layout.clone(),
+            index: item_icon_index(sprite_index),
+        }),
+        ..default()
+    }
+}
+
+/// Update an existing ImageNode for an item, swapping to per-crop icon if available.
+pub fn apply_item_icon(
+    img: &mut ImageNode,
+    atlas_data: &hud::ItemAtlasData,
+    item_id: &str,
+    sprite_index: u32,
+) {
+    if let Some(icon) = atlas_data.crop_overrides.get(item_id) {
+        img.image = icon.clone();
+        img.texture_atlas = None;
+    } else {
+        img.image = atlas_data.image.clone();
+        img.texture_atlas = Some(TextureAtlas {
+            layout: atlas_data.layout.clone(),
+            index: item_icon_index(sprite_index),
+        });
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // SHARED FONT HANDLE — used by all UI text across every screen
 // ═══════════════════════════════════════════════════════════════════════
