@@ -22,7 +22,7 @@ pub mod spawning;
 use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
 use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, NpcEmoteEvent};
-use gifts::{handle_gift_input, handle_gifts};
+use gifts::{handle_gift_input, handle_gifts, update_gift_hearts};
 use idle_behavior::{attach_npc_shadows, npc_idle_behavior_system, ShadowSpriteCache};
 use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
 use quests::{
@@ -107,6 +107,7 @@ impl Plugin for NpcPlugin {
                 animate_npc_sprites,
                 handle_gift_input,
                 handle_gifts,
+                update_gift_hearts,
                 handle_map_transition,
                 handle_day_end,
                 refresh_schedules_on_season_change,

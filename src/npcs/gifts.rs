@@ -4,11 +4,83 @@ use super::dialogue::build_gift_response_lines;
 use super::emotes::{EmoteKind, NpcEmoteEvent};
 use crate::shared::*;
 use bevy::prelude::*;
+use rand::Rng;
+
+/// A floating heart particle that appears above an NPC after receiving a gift.
+#[derive(Component, Debug)]
+pub struct GiftHeartParticle {
+    pub timer: Timer,
+    pub velocity: Vec2,
+    pub start_alpha: f32,
+}
+
+/// Spawn three small pink heart particles above the given NPC position.
+fn spawn_gift_hearts(commands: &mut Commands, world_pos: Vec2) {
+    let mut rng = rand::thread_rng();
+    let colors = [
+        Color::srgba(1.0, 0.45, 0.70, 1.0),
+        Color::srgba(1.0, 0.60, 0.78, 1.0),
+        Color::srgba(1.0, 0.74, 0.86, 1.0),
+    ];
+
+    for i in 0..3 {
+        let start_alpha = rng.gen_range(0.80_f32..1.0);
+        let velocity = Vec2::new(
+            rng.gen_range(-8.0_f32..8.0),
+            rng.gen_range(24.0_f32..38.0),
+        );
+
+        commands.spawn((
+            Sprite {
+                color: colors[i % colors.len()].with_alpha(start_alpha),
+                custom_size: Some(Vec2::splat(6.0)),
+                ..default()
+            },
+            Transform::from_xyz(
+                world_pos.x + rng.gen_range(-10.0_f32..10.0),
+                world_pos.y + rng.gen_range(10.0_f32..18.0),
+                Z_ENTITY_BASE + 45.0,
+            ),
+            GiftHeartParticle {
+                timer: Timer::from_seconds(rng.gen_range(0.8_f32..1.1), TimerMode::Once),
+                velocity,
+                start_alpha,
+            },
+        ));
+    }
+}
+
+/// Animate gift heart particles so they drift upward, fade, and despawn.
+pub fn update_gift_hearts(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut GiftHeartParticle, &mut Transform, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut particle, mut transform, mut sprite) in &mut query {
+        particle.timer.tick(time.delta());
+
+        if particle.timer.is_finished() {
+            commands.entity(entity).despawn();
+            continue;
+        }
+
+        transform.translation.x += particle.velocity.x * dt;
+        transform.translation.y += particle.velocity.y * dt;
+        particle.velocity.y += 10.0 * dt;
+
+        let alpha = particle.start_alpha * (1.0 - particle.timer.fraction());
+        sprite.color = sprite.color.with_alpha(alpha);
+    }
+}
 
 /// System: process gift-given events, apply friendship changes, send response dialogue.
 #[allow(clippy::too_many_arguments)]
 pub fn handle_gifts(
     mut gift_reader: EventReader<GiftGivenEvent>,
+    mut commands: Commands,
+    npc_query: Query<(&Npc, &Transform)>,
     mut relationships: ResMut<Relationships>,
     npc_registry: Res<NpcRegistry>,
     item_registry: Res<ItemRegistry>,
@@ -67,6 +139,10 @@ pub fn handle_gifts(
 
         // Apply friendship change
         relationships.add_friendship(npc_id, total_points);
+
+        if let Some((_npc, transform)) = npc_query.iter().find(|(npc, _)| npc.id == *npc_id) {
+            spawn_gift_hearts(&mut commands, transform.translation.truncate());
+        }
 
         // Send preference-based toast notification
         let toast_msg = preference_toast_message(&npc_def.name, preference, total_points);
