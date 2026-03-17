@@ -1,4 +1,6 @@
 use crate::shared::*;
+use crate::world::map_data::is_outdoor_map;
+use bevy::audio::{AudioSink, AudioSinkPlayback, Volume};
 use bevy::prelude::*;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -9,6 +11,35 @@ use bevy::prelude::*;
 pub struct MusicState {
     pub current_track: Option<Entity>,
     pub current_track_id: String,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MUSIC FADE — state machine for crossfade between outdoor tracks
+// ═══════════════════════════════════════════════════════════════════════
+
+const FADE_DURATION: f32 = 0.5;
+
+#[derive(Debug, Clone, PartialEq)]
+enum FadePhase {
+    /// Not fading — instant switch mode.
+    Idle,
+    /// Fading out the current track. `timer` counts up from 0 to FADE_DURATION.
+    FadingOut { timer: f32, pending_track: String },
+    /// Fading in the new track. `timer` counts up from 0 to FADE_DURATION.
+    FadingIn { timer: f32 },
+}
+
+#[derive(Resource)]
+pub struct MusicFade {
+    phase: FadePhase,
+}
+
+impl Default for MusicFade {
+    fn default() -> Self {
+        Self {
+            phase: FadePhase::Idle,
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -139,6 +170,86 @@ pub fn handle_play_music(
     }
 }
 
+/// Spawn a new music track starting at volume 0, for use during fade-in.
+fn spawn_music_silent(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    music_state: &mut MusicState,
+    track_id: &str,
+) {
+    if let Some(path) = music_path(track_id) {
+        let entity = commands
+            .spawn((
+                AudioPlayer::new(asset_server.load(path)),
+                PlaybackSettings::LOOP.with_volume(Volume::new(0.0)),
+            ))
+            .id();
+        music_state.current_track = Some(entity);
+        music_state.current_track_id = track_id.to_string();
+    } else {
+        music_state.current_track = None;
+        music_state.current_track_id.clear();
+    }
+}
+
+/// Advance the crossfade state machine each frame.
+pub fn tick_music_fade(
+    mut music_fade: ResMut<MusicFade>,
+    mut music_state: ResMut<MusicState>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    sinks: Query<&AudioSink>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    match music_fade.phase.clone() {
+        FadePhase::Idle => {}
+        FadePhase::FadingOut { mut timer, pending_track } => {
+            timer += dt;
+            let progress = (timer / FADE_DURATION).min(1.0);
+            let vol = 1.0 - progress;
+            // Adjust volume of current track
+            if let Some(entity) = music_state.current_track {
+                if let Ok(sink) = sinks.get(entity) {
+                    sink.set_volume(vol);
+                }
+            }
+            if timer >= FADE_DURATION {
+                // Fade-out complete: despawn old track, spawn new one at 0 volume
+                if let Some(entity) = music_state.current_track {
+                    commands.entity(entity).despawn_recursive();
+                    music_state.current_track = None;
+                }
+                spawn_music_silent(&mut commands, &asset_server, &mut music_state, &pending_track);
+                music_fade.phase = FadePhase::FadingIn { timer: 0.0 };
+            } else {
+                music_fade.phase = FadePhase::FadingOut { timer, pending_track };
+            }
+        }
+        FadePhase::FadingIn { mut timer } => {
+            timer += dt;
+            let progress = (timer / FADE_DURATION).min(1.0);
+            // Adjust volume of new track
+            if let Some(entity) = music_state.current_track {
+                if let Ok(sink) = sinks.get(entity) {
+                    sink.set_volume(progress);
+                }
+            }
+            if timer >= FADE_DURATION {
+                // Fade-in complete: restore full volume and return to idle
+                if let Some(entity) = music_state.current_track {
+                    if let Ok(sink) = sinks.get(entity) {
+                        sink.set_volume(1.0);
+                    }
+                }
+                music_fade.phase = FadePhase::Idle;
+            } else {
+                music_fade.phase = FadePhase::FadingIn { timer };
+            }
+        }
+    }
+}
+
 /// Start background music when entering the Playing state, using the current season.
 pub fn start_game_music(
     mut music_events: EventWriter<PlayMusicEvent>,
@@ -185,9 +296,13 @@ pub fn switch_music_on_season_change(
 }
 
 /// Switch music when the player transitions to a new map.
+/// For outdoor→outdoor transitions, initiates a crossfade via `MusicFade`.
+/// For all other transitions (entering/leaving interiors), switches instantly.
 pub fn switch_music_on_map_change(
     mut map_events: EventReader<MapTransitionEvent>,
     mut music_events: EventWriter<PlayMusicEvent>,
+    mut music_fade: ResMut<MusicFade>,
+    player_state: Res<PlayerState>,
     calendar: Res<Calendar>,
 ) {
     for event in map_events.read() {
@@ -216,10 +331,23 @@ pub fn switch_music_on_map_change(
             MapId::CoralIsland => "beach",
             MapId::SnowMountain => "forest",
         };
-        music_events.send(PlayMusicEvent {
-            track_id: track.to_string(),
-            fade_in: true,
-        });
+
+        let from_outdoor = is_outdoor_map(player_state.current_map);
+        let to_outdoor = is_outdoor_map(event.to_map);
+
+        if from_outdoor && to_outdoor {
+            // Crossfade: begin fade-out, pending track will start during tick_music_fade
+            music_fade.phase = FadePhase::FadingOut {
+                timer: 0.0,
+                pending_track: track.to_string(),
+            };
+        } else {
+            // Instant switch for interior transitions
+            music_events.send(PlayMusicEvent {
+                track_id: track.to_string(),
+                fade_in: true,
+            });
+        }
     }
 }
 

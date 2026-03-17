@@ -189,6 +189,7 @@ impl Plugin for UiPlugin {
 
         // ─── AUDIO — music state resource + event handlers ───
         app.init_resource::<audio::MusicState>();
+        app.init_resource::<audio::MusicFade>();
         app.init_resource::<hud::ItemAtlasData>();
         app.init_resource::<hud::WeatherIconAtlas>();
         app.add_systems(
@@ -197,6 +198,7 @@ impl Plugin for UiPlugin {
                 audio::handle_play_sfx,
                 audio::handle_play_music,
                 audio::toast_sfx,
+                audio::tick_music_fade,
             )
                 .in_set(UpdatePhase::Reactions),
         );
