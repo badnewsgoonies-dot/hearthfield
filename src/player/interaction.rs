@@ -474,6 +474,9 @@ pub fn handle_map_transition(
         return;
     };
 
+    // Capture previous map before updating (for outdoor transition detection).
+    let old_map = player_state.current_map;
+
     // Update current map.
     player_state.current_map = ev.to_map;
 
@@ -484,8 +487,13 @@ pub fn handle_map_transition(
     grid_pos.x = ev.to_x;
     grid_pos.y = ev.to_y;
 
-    // Tell camera to snap instantly instead of lerping.
-    camera_snap.frames_remaining = 3;
+    // For outdoor→outdoor transitions, let the camera lerp smoothly (no snap).
+    // Interior transitions (doors) still snap for a clean cut.
+    let from_outdoor = crate::world::map_data::is_outdoor_map(old_map);
+    let to_outdoor = crate::world::map_data::is_outdoor_map(ev.to_map);
+    if !(from_outdoor && to_outdoor) {
+        camera_snap.frames_remaining = 3;
+    }
 
     // Invalidate the collision map — the world domain will re-populate it
     // for the new map via sync_collision_map when WorldMap updates.

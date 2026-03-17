@@ -1412,8 +1412,25 @@ fn handle_map_transition(
             continue;
         }
 
-        // Despawn current map
-        despawn_map(&mut commands, &tile_query, &object_query, &border_query);
+        let from_outdoor = map_data::is_outdoor_map(current_map_id.map_id);
+        let to_outdoor = map_data::is_outdoor_map(event.to_map);
+        let seamless = from_outdoor && to_outdoor;
+
+        // Despawn current map tiles and objects.
+        // For outdoor→outdoor: keep border tiles alive briefly (they show the
+        // destination map's terrain, covering the swap visually).
+        for entity in tile_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+        for entity in object_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+        if !seamless {
+            // Interior transitions: also despawn border tiles immediately.
+            for entity in border_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
 
         // Ensure atlases are loaded (in case they weren't yet)
         ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);
@@ -1428,7 +1445,7 @@ fn handle_map_transition(
             &mut furniture_atlases,
         );
 
-        // Load the new map
+        // Load the new map (also spawns new border tiles via adjacent_cache)
         load_map(
             &mut commands,
             event.to_map,
@@ -1442,6 +1459,15 @@ fn handle_map_transition(
             &registry,
             &mut adjacent_cache,
         );
+
+        // For seamless outdoor transitions: now despawn the OLD border tiles.
+        // The new map's primary tiles + new border tiles are already spawned,
+        // so the old border tiles are redundant (they overlap).
+        if seamless {
+            for entity in border_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
     }
 }
 
