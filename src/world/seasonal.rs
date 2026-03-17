@@ -124,6 +124,7 @@ fn object_tint(season: Season) -> Color {
 pub fn apply_seasonal_tint(
     calendar: Res<Calendar>,
     mut tint_applied: ResMut<SeasonalTintApplied>,
+    current_map: Res<super::CurrentMapId>,
     mut tile_query: Query<
         &mut Sprite,
         (
@@ -142,7 +143,14 @@ pub fn apply_seasonal_tint(
     }
 
     // ── Terrain tiles ─────────────────────────────────────────────────────────
-    let t = terrain_tint(current_season);
+    // Skip seasonal tinting for interior maps — prevents green/orange wash
+    // on wood floors and stone walls inside buildings.
+    let is_interior = !super::map_data::is_outdoor_map(current_map.map_id);
+    let t = if is_interior {
+        Color::WHITE
+    } else {
+        terrain_tint(current_season)
+    };
     for mut sprite in tile_query.iter_mut() {
         // Preserve the texture atlas but override the colour tint.
         sprite.color = t;
