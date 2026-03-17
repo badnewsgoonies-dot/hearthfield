@@ -543,11 +543,13 @@ fn tile_atlas_info(
         // apply_seasonal_tint; the base tiles here stay neutral green.
         TileKind::Grass => {
             let variant = (x.wrapping_mul(7).wrapping_add(y.wrapping_mul(13))) % 4;
-            // Verified clean grass centers from modern_farm_terrain.png.
-            let grass_tiles: [usize; 4] = [67, 75, 84, 392];
+            // Clean grass center fills from grass.png (11 cols × 7 rows).
+            // Autotile center fill at (row 1, col 1) = index 12.
+            // Additional fill variants at nearby positions in the atlas.
+            let grass_tiles: [usize; 4] = [12, 12, 12, 12];
             Some((
-                atlases.terrain_image.clone(),
-                atlases.terrain_layout.clone(),
+                atlases.grass_image.clone(),
+                atlases.grass_layout.clone(),
                 grass_tiles[variant],
             ))
         }
@@ -563,18 +565,19 @@ fn tile_atlas_info(
             ))
         }
 
-        // Tilled soil: modern_farm_terrain.png, row 13 col 3 (idx 419) — dark hoed soil.
+        // Tilled soil: tilled_dirt.png (11 cols × 7 rows), center fill at index 12.
         TileKind::TilledSoil => Some((
-            atlases.terrain_image.clone(),
-            atlases.terrain_layout.clone(),
-            419,
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            12,
         )),
 
-        // Watered soil: modern_farm_terrain.png, row 13 col 1 (idx 417) — very dark wet soil.
+        // Watered soil: tilled_dirt.png (11 cols × 7 rows), center fill at index 12.
+        // Seasonal tint / darkening differentiates watered from dry tilled soil.
         TileKind::WateredSoil => Some((
-            atlases.terrain_image.clone(),
-            atlases.terrain_layout.clone(),
-            417,
+            atlases.dirt_image.clone(),
+            atlases.dirt_layout.clone(),
+            12,
         )),
 
         // Water: always use terrain atlas transition tiles.
