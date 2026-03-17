@@ -195,8 +195,17 @@ impl Plugin for WorldPlugin {
                     spawn_farm_decorations,
                     spawn_interior_decorations,
                     // Sync solid tiles from WorldMap into CollisionMap after map loads.
-                    // Must run AFTER handle_map_transition so it sees the new WorldMap.
-                    sync_collision_map.after(handle_map_transition),
+                    // Full ordering chain to prevent the "stuck after transition" race:
+                    //   1. interaction::handle_map_transition clears collision (initialised=false)
+                    //   2. world::handle_map_transition loads new map (WorldMap mutated)
+                    //   3. sync_collision_map repopulates from new WorldMap
+                    //   4. player_movement reads correct collision data
+                    // Without constraints (3) and (4), the player can move through walls
+                    // for one frame and get trapped inside solid geometry.
+                    sync_collision_map
+                        .after(handle_map_transition)
+                        .after(crate::player::interaction::handle_map_transition)
+                        .before(crate::player::movement::player_movement),
                 )
                     .in_set(UpdatePhase::Simulation)
                     .run_if(in_state(GameState::Playing)),
