@@ -1,6 +1,6 @@
 use super::CameraSnap;
 use crate::shared::*;
-use crate::world::WorldMap;
+use crate::world::{AdjacentMapCache, WorldMap};
 use bevy::prelude::*;
 
 /// Smoothly follow the player with the camera using a lerp, clamped to map bounds.
@@ -15,6 +15,7 @@ pub fn camera_follow_player(
         (With<Camera2d>, Without<Player>),
     >,
     world_map: Res<WorldMap>,
+    adjacent_cache: Res<AdjacentMapCache>,
     mut snap: ResMut<CameraSnap>,
 ) {
     let Ok((logical_pos, movement)) = player_query.get_single() else {
@@ -59,11 +60,30 @@ pub fn camera_follow_player(
         )
     };
 
-    // Clamp camera to map bounds so the viewport never shows past the edge.
-    // Guard: if WorldMap hasn't loaded yet (width/height 0), skip clamping
-    // to avoid pinning the camera at (0, 0) during map transitions.
+    // Clamp camera to map bounds extended by border tile area from adjacent maps.
+    // Guard: if WorldMap hasn't loaded yet (width/height 0), skip clamping.
     let map_w = (world_map.width as f32) * TILE_SIZE;
     let map_h = (world_map.height as f32) * TILE_SIZE;
+
+    // Extend bounds for seamless border tiles (up to 12 tiles beyond each edge)
+    let mut extend_neg_x: f32 = 0.0;
+    let mut extend_pos_x: f32 = 0.0;
+    let mut extend_neg_y: f32 = 0.0;
+    let mut extend_pos_y: f32 = 0.0;
+    for entry in &adjacent_cache.entries {
+        let border_depth = 12.0_f32.min(match entry.direction {
+            crate::world::map_data::CardinalDir::North | crate::world::map_data::CardinalDir::South => entry.map_def.height as f32,
+            crate::world::map_data::CardinalDir::East | crate::world::map_data::CardinalDir::West => entry.map_def.width as f32,
+        }) * TILE_SIZE;
+        match entry.direction {
+            crate::world::map_data::CardinalDir::North => extend_pos_y = extend_pos_y.max(border_depth),
+            crate::world::map_data::CardinalDir::South => extend_neg_y = extend_neg_y.max(border_depth),
+            crate::world::map_data::CardinalDir::East => extend_pos_x = extend_pos_x.max(border_depth),
+            crate::world::map_data::CardinalDir::West => extend_neg_x = extend_neg_x.max(border_depth),
+        }
+    }
+    let map_w = map_w + extend_pos_x;
+    let map_h = map_h + extend_pos_y;
 
     if map_w <= 0.0 || map_h <= 0.0 {
         cam_tf.translation.x = smooth_x.round();
@@ -76,15 +96,15 @@ pub fn camera_follow_player(
 
     // When the map is smaller than the viewport, center the camera on the
     // map instead of clamping to an edge (avoids bottom-left anchoring).
-    cam_tf.translation.x = if map_w <= half_vw * 2.0 {
-        map_w / 2.0
+    cam_tf.translation.x = if map_w + extend_neg_x <= half_vw * 2.0 {
+        (map_w - extend_neg_x) / 2.0
     } else {
-        smooth_x.round().clamp(half_vw, map_w - half_vw)
+        smooth_x.round().clamp(half_vw - extend_neg_x, map_w - half_vw)
     };
 
-    cam_tf.translation.y = if map_h <= half_vh * 2.0 {
-        map_h / 2.0
+    cam_tf.translation.y = if map_h + extend_neg_y <= half_vh * 2.0 {
+        (map_h - extend_neg_y) / 2.0
     } else {
-        smooth_y.round().clamp(half_vh, map_h - half_vh)
+        smooth_y.round().clamp(half_vh - extend_neg_y, map_h - half_vh)
     };
 }

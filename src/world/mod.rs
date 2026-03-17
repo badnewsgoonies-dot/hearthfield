@@ -797,6 +797,10 @@ impl Default for CurrentMapId {
 #[derive(Component, Debug)]
 pub struct MapTile;
 
+/// Marker component for border tile sprites from adjacent maps (seamless transitions).
+#[derive(Component, Debug)]
+pub struct BorderTile;
+
 /// Marker component for water tile sprites (for animation cycling).
 #[derive(Component, Debug)]
 pub struct WaterTile;
@@ -1000,6 +1004,80 @@ fn load_map(
 
     // Pre-load adjacent outdoor maps for seamless border rendering
     adjacent_cache.populate(map_id, registry);
+
+    // Spawn border tile strips from adjacent outdoor maps
+    spawn_border_tiles(commands, adjacent_cache, season, atlases);
+}
+
+/// Maximum depth (in tiles) of the border strip rendered from adjacent maps.
+const BORDER_STRIP_DEPTH: usize = 12;
+
+/// Spawn border tile sprites from pre-loaded adjacent maps at offset positions.
+/// Only spawns a strip of tiles near the border, not the entire adjacent map.
+fn spawn_border_tiles(
+    commands: &mut Commands,
+    cache: &AdjacentMapCache,
+    season: Season,
+    atlases: &TerrainAtlases,
+) {
+    for entry in &cache.entries {
+        let map_def = &entry.map_def;
+        let ox = entry.offset_x;
+        let oy = entry.offset_y;
+
+        // Determine which tile range to spawn based on border direction
+        let (x_range, y_range) = match entry.direction {
+            map_data::CardinalDir::North => {
+                // Adjacent map is above: spawn bottom rows (nearest to border)
+                (0..map_def.width, 0..BORDER_STRIP_DEPTH.min(map_def.height))
+            }
+            map_data::CardinalDir::South => {
+                // Adjacent map is below: spawn top rows (nearest to border)
+                let start = map_def.height.saturating_sub(BORDER_STRIP_DEPTH);
+                (0..map_def.width, start..map_def.height)
+            }
+            map_data::CardinalDir::East => {
+                // Adjacent map is right: spawn left columns (nearest to border)
+                (0..BORDER_STRIP_DEPTH.min(map_def.width), 0..map_def.height)
+            }
+            map_data::CardinalDir::West => {
+                // Adjacent map is left: spawn right columns (nearest to border)
+                let start = map_def.width.saturating_sub(BORDER_STRIP_DEPTH);
+                (start..map_def.width, 0..map_def.height)
+            }
+        };
+
+        for y in y_range {
+            for x in x_range.clone() {
+                let tile = map_def.tiles[y * map_def.width + x];
+
+                if let Some((image, layout, index)) = tile_atlas_info(
+                    tile,
+                    season,
+                    atlases,
+                    map_def.id,
+                    x,
+                    y,
+                    &map_def.tiles,
+                    map_def.width,
+                    map_def.height,
+                ) {
+                    let world_x = (x as i32 + ox) as f32 * TILE_SIZE;
+                    let world_y = (y as i32 + oy) as f32 * TILE_SIZE;
+
+                    let mut sprite =
+                        Sprite::from_atlas_image(image, TextureAtlas { layout, index });
+                    sprite.custom_size = Some(Vec2::new(TILE_SIZE, TILE_SIZE));
+
+                    commands.spawn((
+                        sprite,
+                        Transform::from_translation(Vec3::new(world_x, world_y, Z_GROUND - 0.1)),
+                        BorderTile,
+                    ));
+                }
+            }
+        }
+    }
 }
 
 /// Spawn individual tile sprites for the map using texture atlases.
@@ -1202,16 +1280,20 @@ fn spawn_water_edge_overlays(
     }
 }
 
-/// Despawn all map tiles and world objects.
+/// Despawn all map tiles, border tiles, and world objects.
 fn despawn_map(
     commands: &mut Commands,
     tile_query: &Query<Entity, With<MapTile>>,
     object_query: &Query<Entity, With<WorldObject>>,
+    border_query: &Query<Entity, With<BorderTile>>,
 ) {
     for entity in tile_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
     for entity in object_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in border_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
@@ -1311,6 +1393,7 @@ fn handle_map_transition(
     mut events: EventReader<MapTransitionEvent>,
     tile_query: Query<Entity, With<MapTile>>,
     object_query: Query<Entity, With<WorldObject>>,
+    border_query: Query<Entity, With<BorderTile>>,
     mut world_map: ResMut<WorldMap>,
     mut current_map_id: ResMut<CurrentMapId>,
     calendar: Res<Calendar>,
@@ -1330,7 +1413,7 @@ fn handle_map_transition(
         }
 
         // Despawn current map
-        despawn_map(&mut commands, &tile_query, &object_query);
+        despawn_map(&mut commands, &tile_query, &object_query, &border_query);
 
         // Ensure atlases are loaded (in case they weren't yet)
         ensure_atlases_loaded(&asset_server, &mut atlas_layouts, &mut terrain_atlases);
