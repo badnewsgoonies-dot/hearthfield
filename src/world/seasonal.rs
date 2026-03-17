@@ -187,12 +187,13 @@ pub fn apply_seasonal_tint(
 pub fn spawn_falling_leaves(
     mut commands: Commands,
     calendar: Res<Calendar>,
+    current_map: Res<super::CurrentMapId>,
     mut accum: ResMut<LeafSpawnAccumulator>,
     time: Res<Time>,
     camera_query: Query<&Transform, With<Camera2d>>,
 ) {
-    // Only active in Fall.
-    if calendar.season != Season::Fall {
+    // Only active in Fall on outdoor maps — no leaves inside buildings.
+    if calendar.season != Season::Fall || !super::map_data::is_outdoor_map(current_map.map_id) {
         return;
     }
 
