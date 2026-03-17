@@ -750,7 +750,7 @@ pub struct AdjacentMapCache {
 }
 
 impl AdjacentMapCache {
-    fn populate(&mut self, map_id: MapId, registry: &map_data::MapRegistry) {
+    pub fn populate(&mut self, map_id: MapId, registry: &map_data::MapRegistry) {
         self.entries.clear();
         self.loaded_for = Some(map_id);
 

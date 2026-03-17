@@ -6753,3 +6753,104 @@ fn test_tutorial_later_day_objectives_initialize_after_day1_completion() {
         "Day 3 guidance should still initialize after Day 2 completion"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// SEAMLESS MAP TRANSITIONS — border tile infrastructure tests
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_is_outdoor_map_classification() {
+    use hearthfield::world::map_data::is_outdoor_map;
+
+    // Outdoor maps
+    assert!(is_outdoor_map(MapId::Farm));
+    assert!(is_outdoor_map(MapId::Town));
+    assert!(is_outdoor_map(MapId::Beach));
+    assert!(is_outdoor_map(MapId::Forest));
+    assert!(is_outdoor_map(MapId::DeepForest));
+    assert!(is_outdoor_map(MapId::SnowMountain));
+
+    // Interior maps
+    assert!(!is_outdoor_map(MapId::PlayerHouse));
+    assert!(!is_outdoor_map(MapId::GeneralStore));
+    assert!(!is_outdoor_map(MapId::Blacksmith));
+    assert!(!is_outdoor_map(MapId::Mine));
+}
+
+#[test]
+fn test_adjacent_outdoor_maps_farm_has_neighbors() {
+    use hearthfield::world::map_data::{adjacent_outdoor_maps, CardinalDir};
+
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let neighbors = adjacent_outdoor_maps(MapId::Farm, &registry);
+
+    // Farm should have at least 2 outdoor neighbors (varies by edge config)
+    assert!(
+        !neighbors.is_empty(),
+        "Farm must have at least one outdoor neighbor"
+    );
+
+    // Each neighbor should have a valid direction and non-zero offset
+    for (map_id, dir, ox, oy) in &neighbors {
+        match dir {
+            CardinalDir::North => assert!(*oy > 0, "North neighbor offset_y should be positive"),
+            CardinalDir::South => assert!(*oy < 0, "South neighbor offset_y should be negative"),
+            CardinalDir::East => assert!(*ox > 0, "East neighbor offset_x should be positive"),
+            CardinalDir::West => assert!(*ox < 0, "West neighbor offset_x should be negative"),
+        }
+        assert!(
+            hearthfield::world::map_data::is_outdoor_map(*map_id),
+            "Adjacent map {:?} should be outdoor",
+            map_id
+        );
+    }
+}
+
+#[test]
+fn test_adjacent_outdoor_maps_interior_returns_empty() {
+    use hearthfield::world::map_data::adjacent_outdoor_maps;
+
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let neighbors = adjacent_outdoor_maps(MapId::PlayerHouse, &registry);
+    assert!(
+        neighbors.is_empty(),
+        "Interior maps should have no outdoor neighbors"
+    );
+}
+
+#[test]
+fn test_adjacent_map_cache_populates_for_outdoor() {
+    use hearthfield::world::AdjacentMapCache;
+
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let mut cache = AdjacentMapCache::default();
+    cache.populate(MapId::Farm, &registry);
+
+    assert_eq!(cache.loaded_for, Some(MapId::Farm));
+    assert!(
+        !cache.entries.is_empty(),
+        "Cache should have entries for Farm's outdoor neighbors"
+    );
+
+    // Each entry should have a valid MapDef with non-zero dimensions
+    for entry in &cache.entries {
+        assert!(entry.map_def.width > 0);
+        assert!(entry.map_def.height > 0);
+        assert!(!entry.map_def.tiles.is_empty());
+    }
+}
+
+#[test]
+fn test_adjacent_map_cache_empty_for_interior() {
+    use hearthfield::world::AdjacentMapCache;
+
+    let registry = hearthfield::world::map_data::build_map_registry();
+    let mut cache = AdjacentMapCache::default();
+    cache.populate(MapId::GeneralStore, &registry);
+
+    assert_eq!(cache.loaded_for, Some(MapId::GeneralStore));
+    assert!(
+        cache.entries.is_empty(),
+        "Cache should be empty for interior maps"
+    );
+}
