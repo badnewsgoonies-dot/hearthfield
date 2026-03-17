@@ -17,7 +17,7 @@ use crate::shared::*;
 
 use super::maps::WorldObjectKind;
 use super::objects::{WorldObject, WorldObjectData};
-use super::{MapTile, WaterEdgeOverlay, WaterTile};
+use super::{BorderTile, MapTile, WaterEdgeOverlay, WaterTile};
 
 // ═══════════════════════════════════════════════════════════════════════
 // RESOURCES
@@ -132,14 +132,26 @@ pub fn apply_seasonal_tint(
             Without<WorldObject>,
             Without<WaterEdgeOverlay>,
             Without<WaterTile>,
+            Without<BorderTile>,
+        ),
+    >,
+    mut border_query: Query<
+        &mut Sprite,
+        (
+            With<BorderTile>,
+            Without<MapTile>,
+            Without<WorldObject>,
+            Without<WaterEdgeOverlay>,
         ),
     >,
     mut object_query: Query<(&mut Sprite, &WorldObjectData), (With<WorldObject>, Without<MapTile>)>,
 ) {
     let current_season = calendar.season;
 
-    // Only do work when the season has changed (or on first run when it's None).
-    if tint_applied.season == Some(current_season) {
+    // Re-tint when the season changes, map changes (new tiles need tinting),
+    // or on first run (season is None).
+    let map_changed = current_map.is_changed();
+    if tint_applied.season == Some(current_season) && !map_changed {
         return;
     }
 
@@ -153,8 +165,22 @@ pub fn apply_seasonal_tint(
         terrain_tint(current_season)
     };
     for mut sprite in tile_query.iter_mut() {
-        // Preserve the texture atlas but override the colour tint.
-        sprite.color = t;
+        // Only tint atlas sprites — plain-color sprites (Void fallback) use
+        // sprite.color AS their visual, not as a multiplicative tint.
+        // Replacing it would turn dark Void tiles bright green/orange.
+        if sprite.texture_atlas.is_some() {
+            sprite.color = t;
+        }
+    }
+
+    // ── Border tiles (adjacent map strips for seamless transitions) ───────────
+    // Apply the same seasonal tint so they match the primary map's appearance.
+    if !is_interior {
+        for mut sprite in border_query.iter_mut() {
+            if sprite.texture_atlas.is_some() {
+                sprite.color = t;
+            }
+        }
     }
 
     // ── World objects (trees, rocks, bushes, stumps, logs) ────────────────────
