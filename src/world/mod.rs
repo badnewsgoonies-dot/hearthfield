@@ -69,6 +69,7 @@ impl Plugin for WorldPlugin {
         app.insert_resource(map_data::build_map_registry())
             .init_resource::<WorldMap>()
             .init_resource::<CurrentMapId>()
+            .init_resource::<AdjacentMapCache>()
             .init_resource::<TerrainAtlases>()
             .init_resource::<objects::ObjectAtlases>()
             .init_resource::<objects::FurnitureAtlases>()
@@ -722,6 +723,58 @@ impl WorldMap {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// ADJACENT MAP CACHE — pre-loaded map data for seamless border rendering
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Pre-loaded MapDef + offset for an adjacent outdoor map.
+/// Used to render border tiles beyond the current map's edge.
+#[derive(Debug, Clone)]
+pub struct AdjacentMapEntry {
+    pub map_id: MapId,
+    pub direction: map_data::CardinalDir,
+    /// Tile offset: where this map's (0,0) sits relative to current map's origin.
+    pub offset_x: i32,
+    pub offset_y: i32,
+    /// The pre-loaded map definition.
+    pub map_def: MapDef,
+}
+
+/// Cache of pre-loaded adjacent outdoor maps for seamless border rendering.
+/// Populated after every `load_map` call. Empty for interior maps.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct AdjacentMapCache {
+    pub entries: Vec<AdjacentMapEntry>,
+    /// Which map this cache was built for (invalidation check).
+    pub loaded_for: Option<MapId>,
+}
+
+impl AdjacentMapCache {
+    fn populate(&mut self, map_id: MapId, registry: &map_data::MapRegistry) {
+        self.entries.clear();
+        self.loaded_for = Some(map_id);
+
+        if !map_data::is_outdoor_map(map_id) {
+            return; // No border tiles for interiors
+        }
+
+        for (neighbor_id, dir, ox, oy) in map_data::adjacent_outdoor_maps(map_id, registry) {
+            let map_def = if let Some(data) = registry.maps.get(&neighbor_id) {
+                map_data::map_data_to_map_def(data)
+            } else {
+                generate_map(neighbor_id)
+            };
+            self.entries.push(AdjacentMapEntry {
+                map_id: neighbor_id,
+                direction: dir,
+                offset_x: ox,
+                offset_y: oy,
+                map_def,
+            });
+        }
+    }
+}
+
 /// Simple resource to track the currently loaded map ID.
 #[derive(Resource, Debug, Clone)]
 pub struct CurrentMapId {
@@ -837,6 +890,7 @@ fn load_map(
     item_registry: &ItemRegistry,
     object_atlases: &objects::ObjectAtlases,
     registry: &MapRegistry,
+    adjacent_cache: &mut AdjacentMapCache,
 ) {
     // Prefer data-driven map from registry; fall back to hardcoded generator.
     let map_def = if let Some(data) = registry.maps.get(&map_id) {
@@ -943,6 +997,9 @@ fn load_map(
 
     // Store the map definition
     world_map.map_def = Some(map_def);
+
+    // Pre-load adjacent outdoor maps for seamless border rendering
+    adjacent_cache.populate(map_id, registry);
 }
 
 /// Spawn individual tile sprites for the map using texture atlases.
@@ -1214,6 +1271,7 @@ fn spawn_initial_map(
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
     existing_tiles: Query<Entity, With<MapTile>>,
     registry: Res<MapRegistry>,
+    mut adjacent_cache: ResMut<AdjacentMapCache>,
 ) {
     // Guard against re-entry (e.g. Playing → Cutscene → Playing).
     if !existing_tiles.is_empty() {
@@ -1242,6 +1300,7 @@ fn spawn_initial_map(
         &item_registry,
         &object_atlases,
         &registry,
+        &mut adjacent_cache,
     );
 }
 
@@ -1262,6 +1321,7 @@ fn handle_map_transition(
     mut object_atlases: ResMut<objects::ObjectAtlases>,
     mut furniture_atlases: ResMut<objects::FurnitureAtlases>,
     registry: Res<MapRegistry>,
+    mut adjacent_cache: ResMut<AdjacentMapCache>,
 ) {
     for event in events.read() {
         // Don't transition to the same map
@@ -1297,6 +1357,7 @@ fn handle_map_transition(
             &item_registry,
             &object_atlases,
             &registry,
+            &mut adjacent_cache,
         );
     }
 }

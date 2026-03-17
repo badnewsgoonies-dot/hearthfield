@@ -109,6 +109,85 @@ pub struct MapRegistry {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ADJACENT MAP LOOKUP — used for seamless border tile rendering
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Cardinal direction of an adjacent map relative to the current one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CardinalDir {
+    North,
+    South,
+    East,
+    West,
+}
+
+/// Returns true if a map is an outdoor area (not an interior building or mine).
+pub fn is_outdoor_map(map: MapId) -> bool {
+    matches!(
+        map,
+        MapId::Farm
+            | MapId::Town
+            | MapId::TownWest
+            | MapId::Beach
+            | MapId::Forest
+            | MapId::DeepForest
+            | MapId::CoralIsland
+            | MapId::MineEntrance
+            | MapId::SnowMountain
+    )
+}
+
+/// Derive the list of outdoor maps adjacent to the given map from its EdgeDefs.
+/// Returns (neighbor MapId, direction from current map, tile offset from current origin).
+///
+/// The offset is where the adjacent map's (0,0) tile should be placed relative to the
+/// current map's origin. For example, if Farm(32×24) has Town to the north:
+///   Town's tiles start at (0, current_height) in the current map's coordinate space.
+pub fn adjacent_outdoor_maps(
+    map_id: MapId,
+    registry: &MapRegistry,
+) -> Vec<(MapId, CardinalDir, i32, i32)> {
+    let Some(data) = registry.maps.get(&map_id) else {
+        return Vec::new();
+    };
+    let w = data.width as i32;
+    let h = data.height as i32;
+
+    let mut result = Vec::new();
+
+    // North edge: adjacent map's tiles go ABOVE current map (y >= h)
+    if let Some((neighbor, _)) = &data.edges.north {
+        if is_outdoor_map(*neighbor) {
+            result.push((*neighbor, CardinalDir::North, 0, h));
+        }
+    }
+    // South edge: adjacent map's tiles go BELOW current map (y < 0 → offset = -neighbor_height)
+    if let Some((neighbor, _)) = &data.edges.south {
+        if is_outdoor_map(*neighbor) {
+            if let Some(nd) = registry.maps.get(neighbor) {
+                result.push((*neighbor, CardinalDir::South, 0, -(nd.height as i32)));
+            }
+        }
+    }
+    // East edge: adjacent map's tiles go RIGHT of current map (x >= w)
+    if let Some((neighbor, _)) = &data.edges.east {
+        if is_outdoor_map(*neighbor) {
+            result.push((*neighbor, CardinalDir::East, w, 0));
+        }
+    }
+    // West edge: adjacent map's tiles go LEFT of current map (x < 0 → offset = -neighbor_width)
+    if let Some((neighbor, _)) = &data.edges.west {
+        if is_outdoor_map(*neighbor) {
+            if let Some(nd) = registry.maps.get(neighbor) {
+                result.push((*neighbor, CardinalDir::West, -(nd.width as i32), 0));
+            }
+        }
+    }
+
+    result
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // CONVERSION: MapData → MapDef
 // ═══════════════════════════════════════════════════════════════════════
 
