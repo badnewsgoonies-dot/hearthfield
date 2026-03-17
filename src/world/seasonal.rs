@@ -17,7 +17,7 @@ use crate::shared::*;
 
 use super::maps::WorldObjectKind;
 use super::objects::{WorldObject, WorldObjectData};
-use super::{MapTile, WaterEdgeOverlay};
+use super::{MapTile, WaterEdgeOverlay, WaterTile};
 
 // ═══════════════════════════════════════════════════════════════════════
 // RESOURCES
@@ -131,6 +131,7 @@ pub fn apply_seasonal_tint(
             With<MapTile>,
             Without<WorldObject>,
             Without<WaterEdgeOverlay>,
+            Without<WaterTile>,
         ),
     >,
     mut object_query: Query<(&mut Sprite, &WorldObjectData), (With<WorldObject>, Without<MapTile>)>,

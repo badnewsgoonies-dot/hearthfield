@@ -1161,12 +1161,14 @@ fn spawn_tile_sprites(
 
 /// Compute the water edge bitmask for the tile at (x, y).
 /// bit 0 = north (y+1), bit 1 = east (x+1), bit 2 = south (y-1), bit 3 = west (x-1).
-/// A bit is set when the neighbor in that direction is non-water (or out of bounds).
+/// A bit is set when the neighbor in that direction is non-water.
+/// Out-of-bounds is treated as water (no edge) to match the atlas transition
+/// tiles from `water_grass_transition_index`, which also treats OOB as water.
 fn water_edge_mask(x: usize, y: usize, tiles: &[TileKind], width: usize, height: usize) -> u8 {
     let mut mask: u8 = 0;
     let is_non_water = |nx: i32, ny: i32| -> bool {
         if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
-            return true;
+            return false; // OOB = water (matches atlas transition convention)
         }
         tiles[ny as usize * width + nx as usize] != TileKind::Water
     };
