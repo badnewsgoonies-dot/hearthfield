@@ -1157,6 +1157,24 @@ fn spawn_tile_sprites(
             }
         }
     }
+
+    // For indoor maps, spawn a large dark background to prevent terrain
+    // bleed-through when the camera sees past the map boundary.
+    let is_indoor = !crate::world::map_data::is_outdoor_map(map_def.id);
+    if is_indoor {
+        let bg_size = 2048.0; // Large enough to cover any camera position
+        let center_x = (map_def.width as f32 * TILE_SIZE) / 2.0;
+        let center_y = (map_def.height as f32 * TILE_SIZE) / 2.0;
+        commands.spawn((
+            Sprite {
+                color: Color::srgb(0.05, 0.05, 0.07),
+                custom_size: Some(Vec2::new(bg_size, bg_size)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(center_x, center_y, Z_GROUND - 1.0)),
+            MapTile, // So it gets despawned with the rest of the map
+        ));
+    }
 }
 
 /// Compute the water edge bitmask for the tile at (x, y).
