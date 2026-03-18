@@ -5,6 +5,121 @@ Compiled 2026-03-18.
 
 ---
 
+## ERA 0: "The Model Is the Orchestrator" Engineering Trials (Jan-Feb 2026)
+
+Multi-agent orchestration experiments from the primary campaign.
+10 autonomous TypeScript game builds + 1 Rust/Bevy build.
+Corpus: 295M tokens, 98 agent sessions, 6.1M lines worker output.
+
+### Contract Ablation (4 scales)
+
+| # | Scale | Cross-deps | Condition A (contract) | Condition B (no contract) | Trials |
+|---|-------|-----------|----------------------|-------------------------|--------|
+| CA-6 | 6 modules | ~10 | PASS (0 fix) | PASS (0 fix) | 1+1 |
+| CA-12 | 12 modules | ~20 | PASS (0 fix) | PASS (0 fix) | 1+1 |
+| CA-18 | 18 modules | ~40 | PASS (0 fix) | PASS (0 fix) | 1+1 |
+| CA-36 | 36 modules | ~120 | FAIL→PASS (1 fix) | PASS (0 fix) | 1+1 |
+| CA-36R | 36 modules (replication) | ~120 | 3/3 PASS | 3/3 PASS | 3+3 |
+| CA-36RO | 36 modules (read-only integration) | ~120 | — | 3/3 PASS (0 errors) | 3 |
+
+**Total: 18 trials.** Finding: Contracts not required at any scale tested. Integration worker reconciles divergent types via adapters. Read-only integration: 3/3, invented bridge_types.ts spontaneously.
+
+### Scope Enforcement
+
+| # | Condition | n | Result |
+|---|-----------|---|--------|
+| SE-P | Prompt-only (compiler pressure) | 20 | 0/20 stayed in scope |
+| SE-M | Mechanical (post-hoc revert) | 20 | 20/20 clean |
+| SE-AB | Filtered vs unfiltered tsc | 1+1 | Superseded by SE-P/SE-M |
+
+**Total: 42 trials.** Finding: Prompt-only scope enforcement is categorically ineffective under compiler pressure.
+
+### Context Priming (3 conditions, N=10 each)
+
+| # | Condition | n | Formula transfer |
+|---|-----------|---|-----------------|
+| CP-Cold | Implementation prompt only | 10 | 0% (0/9 target values) |
+| CP-Warm | Boot dialogue prepended | 10 | 100% (9/9 target values) |
+| CP-Static | Reference document prepended | 10 | 100% (9/9 target values) |
+| CP-Pilot | Cross-model pilot (Claude N=1, Codex N=3) | 4 | Mixed |
+
+**Total: 34 trials.** Finding: Context presence is the mechanism, not self-generation. Cold→0%, Warm=Static=100%.
+
+### Scaling Test (worker count variation)
+
+| # | Workers | Spec | Contract | Integration errors | Wall time |
+|---|---------|------|----------|-------------------|-----------|
+| SC-1 | 1 | Shattered Throne | 1,205L | 0 | baseline |
+| SC-3 | 3 | same | same | 0 | — |
+| SC-5 | 5 | same | same | 0 | — |
+| SC-10 | 10 | same | same | 0 | 2.05x speedup |
+| SC-20 | 20 | same | same | 0 | — |
+
+**Total: 5 configs, 50 domain builds.** Finding: Type contract eliminates integration errors. Sweet spot at 10 workers.
+
+### Crossover Experiment (solo vs pyramid, 4 scales)
+
+| # | Scale | Solo Opus | Pyramid (Codex) | Validated |
+|---|-------|-----------|----------------|-----------|
+| XO-S | Small (5 domains, ~10K) | ✓ | ✓ | tsc + runtime |
+| XO-M | Medium (10 domains, ~30K) | ✓ | ✓ | tsc + 27 tests |
+| XO-M-Gem | Medium (Gemini workers) | — | ✓ (1,818 LOC) | tsc |
+| XO-M-Med | Medium (Codex med reasoning) | — | ✓ (6,001 LOC) | tsc |
+| XO-M-Solo | Medium (Codex-only solo) | ✓ | — | tsc |
+| XO-L | Large (15 domains, ~60K) | ✓ (60,094 LOC) | ✓ (16,007 LOC) | tsc |
+| XO-XL | XL (20 domains, ~100K) | ✓ | ✓ | tsc + 34 tests |
+
+**Total: 11 builds, 107 runtime tests across 4 builds.** Finding: Solo throughput constant ~325 LOC/min. Worker model is first-order variable (9.8× gap). Pyramid wins on breadth, solo wins on core quality.
+
+### Depth Decomposition
+
+| # | Condition | Hierarchy | Domains | Result |
+|---|-----------|-----------|---------|--------|
+| DD-1 | Flat (orchestrator→workers) | 1 level | 10 | ✓ |
+| DD-2 | Flat (orchestrator→workers) | 1 level | 15 | ✓ |
+| DD-3 | Leads (orchestrator→leads→workers) | 2 levels | 10 | ✓ |
+| DD-4 | Leads (orchestrator→leads→workers) | 2 levels | 15 | ✓ |
+| DD-5 | Leads (orchestrator→leads→workers) | 2 levels | 20 | ✓ |
+| DD-6 | Deep (3 levels) | 3 levels | 20 | ✓ (4-deep practical limit) |
+
+**Total: 6 conditions.** Finding: Each handoff layer is lossy. Depth-1 stable default. Depth-2 at >20 domains.
+
+### Bare-Prompt Ablation
+
+| # | Condition | Result |
+|---|-----------|--------|
+| BP-1 | Frontier model + tools + goal, no coordination template | Model chose solo execution |
+
+**Total: 1 trial.** Finding: Falsifies strong claim that models independently discover coordination. Model defaulted to solo developer.
+
+### No-Contract Ablation at Crossover Scale
+
+| # | Condition | Result |
+|---|-----------|--------|
+| NCA-1 | 10 parallel workers, no shared contract | 6 incompatible Unit interfaces, type-incompatible WeaponType |
+
+**Total: 1 trial.** Finding: Without contract, workers produce compatible code only because no domain references another. Latent integration debt.
+
+### 10 Autonomous Game Builds (Production Campaign)
+
+| # | Game | LOC | Tests | tsc Errors | Human Code |
+|---|------|-----|-------|------------|------------|
+| G1-G10 | 10 TypeScript browser games | ~50K total | Varies | 0 | 0 |
+| G11 | Rust/Bevy (Hearthfield base) | 26,200 | 394 | 0 | 0 |
+
+**Total: 11 builds.** Finding: Prompt-as-scaffold works for complete software delivery.
+
+### Worker Decisiveness Search
+
+| # | Corpus | Matches |
+|---|--------|---------|
+| WD-1 | 6.1M lines worker stdout | 0 uncertainty markers |
+| WD-2 | 4,050 orchestrator messages | 2 (both analytical, not task-uncertain) |
+
+**ERA 0 Total: ~170+ trials/configs/builds**
+
+---
+
 ## ERA 1: Hearthfield Discovery Experiments (March 8-9, 2026)
 
 Single codebase (Hearthfield, Rust/Bevy, ~60K LOC). n=1 per condition unless noted.
@@ -172,8 +287,9 @@ New codebase: vale-village-v3 (Rust/Bevy RPG, 10.7K LOC, 227 tests).
 
 ## GRAND TOTALS
 
-| Category | Trials |
-|----------|--------|
+| Category | Trials/Configs |
+|----------|---------------|
+| ERA 0: Engineering trials (contract, scope, scaling, crossover, priming) | ~170 |
 | ERA 1-2: Discovery + Factorial (Hearthfield) | ~45 |
 | ERA 3: N=5 Cross-Model Replication | 75 |
 | ERA 4: Counter-Experiments (Hearthfield) | 19 |
@@ -183,6 +299,6 @@ New codebase: vale-village-v3 (Rust/Bevy RPG, 10.7K LOC, 227 tests).
 | ERA 9: Advanced (Vale Village) | 50 |
 | ERA 10: Inline Tags + Capability Floor | 39 |
 | ERA 11: Implication Experiments | 85 |
-| **TOTAL** | **~405 trials** |
+| **TOTAL** | **~575 trials** |
 
-Across 2 codebases, 6 model families (Claude Opus/Sonnet/Haiku, GPT-5.4, GPT-4.1, gpt-5-mini, Gemini 3 Pro), 23 transcript sessions, 11+ experimental eras.
+Across 2 codebases + 10 game builds, 6 model families (Claude Opus/Sonnet/Haiku, GPT-5.4, GPT-4.1, gpt-5-mini, Gemini 3 Pro), 23+ transcript sessions, 12 experimental eras, 295M tokens of orchestration data.
