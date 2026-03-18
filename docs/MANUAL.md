@@ -23,7 +23,7 @@ When sources conflict — and they will — use this hierarchy.
 5. **Research findings** — patterns across projects. Strong signal, not law.
 6. **Conversation history** — the LOWEST tier. Compressed, lossy, drifts with length.
 
-**Why conversation is last:** Long conversations degrade. Agreement increases, earlier decisions get treated as settled even when wrong, and recent statements dominate regardless of truth. Workers — agents given a spec and no conversation history — were the most productive sessions in the entire corpus. `Replicated finding`
+**Why conversation is last:** Long conversations degrade. Agreement increases, earlier decisions get treated as settled even when wrong, and recent statements dominate regardless of truth. Bounded workers with disk-backed specs were the highest-throughput configuration in this corpus — zero conversation history, zero degradation. `Replicated finding`
 
 ---
 
@@ -35,7 +35,9 @@ Every persisted claim carries one of these. This is the cheapest defense against
 - **[Inferred]** — Logically derived, not directly verified. Cannot be frozen.
 - **[Assumed]** — Stated without verification. Must verify before critical decisions depend on it.
 
-Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 codebases, including Opus). With ~200 characters of evidence metadata: 97% rejection (49/50). Inline text tags alone: 94% on frontier models, 0% on cheap models. Structured YAML with source_refs: works on ALL models including the cheapest tested. `Replicated finding, n=5 × 5+ models, 2 codebases`
+Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 codebases, including Opus). With ~200 characters of evidence metadata: 97% rejection (49/50). Minimum portable defense: structured artifacts with source_refs — works on ALL models including the cheapest tested. Inline text tags are a frontier-only convenience layer: strong on capable models (94%), unreliable on cheap ones (0/5). `Replicated finding, n=5 × 5+ models, 2 codebases`
+
+**Critical limitation:** Evidence metadata sharply reduces poisoning when conflicting or competing artifacts are present. It does not eliminate the single-false-artifact problem. A lone [Observed] artifact with fabricated source_refs was adopted 24/24 across all models tested. Singleton claims still require source verification.
 
 ---
 
@@ -48,6 +50,8 @@ Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 cod
 **INV-002 — Fresh context is reconstruction, not blankness.** A new session mounts: STATE, active debt, relevant artifacts, recent git history, current traces. Informed from authoritative sources, not conversational carry-forward. `Derived recommendation`
 
 **INV-003 — Provenance is the minimum viable defense.** When you write a claim, say where it came from and how confident you are. When you read a claim, check. `Replicated finding`
+
+**INV-003A — Singleton memory is dangerous.** A single unopposed artifact, even if neatly written with [Observed] and source_refs, can become working truth unchallenged. Before promoting singleton claims into decisions or summaries, require source verification or competing primary evidence. Evidence tags defend against *competing* false claims, not *lone* false claims. `Replicated finding (24/24 adopted singleton, 49/50 rejected when competing)`
 
 **INV-004 — Compaction is routing, not authority.** Summaries help you find sources. They don't settle truth. `Derived recommendation`
 
@@ -81,7 +85,7 @@ Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 cod
 
 **INV-016 — The model is the first-order throughput variable.** Same task, same spec, same tools: 9.8× output gap between models. Process helps but can't compensate for weak implementation. `Corpus result`
 
-**INV-017 — You will default to solo execution.** For tasks >500 lines across multiple files, dispatched workers with scope enforcement outperform solo execution. `Corpus result`
+**INV-017 — You will default to solo execution.** For bounded multi-file tasks, models default to solo execution, but dispatched workers usually outperform that default on throughput and surface coverage. Solo can still win on core quality at scales where the project fits in one context window (~30K LOC). `Corpus result`
 
 ---
 
@@ -108,7 +112,8 @@ Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 cod
 | Evidence tags prevent memory poisoning | **Replicated finding** (75/75 → 49/50, 7 models, 2 codebases) |
 | Mechanical scope beats prompt-only | **Replicated finding** (0/20 vs 20/20) |
 | Context presence > conversational warmth | **Replicated finding** (N=30 context priming) |
-| Inline evidence tags = minimum viable defense | **Replicated finding** (frontier models only; codex-mini: 0/5) |
+| Inline evidence tags = frontier-only convenience | **Replicated finding** (94% frontier; 0/5 codex-mini) |
+| Structured source_refs = minimum portable defense | **Replicated finding** (works on all models incl. cheapest) |
 | Source_refs alone defend (without evidence labels) | **Replicated finding** (14/14, 4 models) |
 | Fresh context beats accumulated conversation | **Replicated finding** |
 | Double-poisoning defended | **Replicated finding** (64/64, 5+ models, 2 codebases) |
@@ -405,7 +410,8 @@ git add -A && git commit -m '[type]([domain]): [description]'
 | New file creation | ~50% success |
 | Editing existing files | ~90% success |
 | Model output gap (same task) | 9.8× |
-| Parallel workers stable | 2-3 (5+ crashes) |
+| Parallel workers: architectural sweet spot | ~10 (scaling test, zero integration errors) |
+| Parallel workers: local CLI stability | 2-3 concurrent (5+ crashes dispatch stack) |
 | Foreman dispatch ship rate | 100% (5/5) |
 | Manual dispatch ship rate | 67% (10/15) |
 | GPT-4.1 verification fabrication | 5/5 fabricated |
