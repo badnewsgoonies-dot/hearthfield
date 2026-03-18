@@ -45,6 +45,65 @@ Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 cod
 
 ---
 
+## Artifact Schema
+
+This is the format for persisting claims. Every decision, observation, debt item, and principle gets written as one artifact per file.
+
+### Minimum required fields
+
+```yaml
+id: DEC-2026-03-18-001
+type: decision | observation | debt | principle
+evidence: Observed | Inferred | Assumed
+domain: [domain name]
+summary: "One sentence. Never nested."
+source_refs:
+  - "file:repo@src/path/file.rs:10-40"
+status: active | resolved | superseded
+supersedes: []
+```
+
+### Useful optional fields
+
+```yaml
+runtime_surface: ""          # Which player/user-facing loop this affects
+why_it_matters: ""           # One sentence — why anyone should care
+drift_cue: ""                # "If [condition], this artifact may be stale"
+contradicts: []              # IDs of artifacts this conflicts with
+alternatives_considered:
+  - option: ""
+    rejected_because: ""
+recovery: ""                 # How to get back if this turns out wrong
+retrieve_when: []            # Keywords/conditions that should surface this artifact
+observed_at: ""              # ISO timestamp of verification
+reverify_after: ""           # Duration after which this should be re-checked
+```
+
+### Source reference grammar
+
+```
+file:repo@path:start-end     — file:hearthfield@src/combat.rs:40-55
+commit:repo@sha               — commit:hearthfield@abc1234
+test:repo@command#test_name   — test:vale-v3@cargo test -- test_crit
+runtime:capture_type@hash     — runtime:screenshot@fe0b9d3
+doc:repo@path#section         — doc:vale-v3@docs/spec.md#mana-system
+```
+
+Single-repo shorthand (omit repo@) is acceptable when ambiguity is impossible.
+
+### Governance rules
+
+1. **One artifact per file.** Never pack multiple decisions into one artifact.
+2. **Supersede, don't mutate.** When a decision changes, create a new artifact that supersedes the old one. Don't silently edit history.
+3. **[Observed] requires non-empty source_refs.** If you can't point to what you verified, it's not [Observed].
+4. **[Assumed] on the critical path triggers a stop condition.** No P0 decision should depend on an unverified claim.
+5. **Evidence level is for the READER, not the writer.** The consuming agent evaluates evidence quality. The producing agent labels honestly. If you're unsure, label [Inferred] not [Observed].
+6. **Write-side integrity is model-dependent.** Claude complies with adversarial over-tag instructions (9/9). GPT-5.4 refuses (3/3). When write-side integrity matters, use mechanical validation: reject [Observed] artifacts with empty source_refs at the CI/schema level.
+7. **Structured YAML > inline tags for cheap models.** Inline `[Assumed]` annotations work on frontier models (94%) but fail on cheap ones (0/5). The full YAML schema with explicit `evidence:` and `source_refs:` fields works on ALL models tested, including the cheapest. When model capability is uncertain, use the full schema.
+8. **Artifacts trigger on events, not on schedules.** Write an artifact when: a non-obvious decision was made, a direct verification happened, a reusable principle emerged, open debt appeared, a contradiction surfaced, a correction invalidated prior belief, or a graduation test was created. If nothing triggered, write nothing.
+
+---
+
 ## Core Invariants
 
 ### Memory and truth
