@@ -2,7 +2,7 @@
 
 One document. Load at session start. First half: how to think. Second half: how to execute.
 
-Derived from 739 commits, 64K LOC, 295M tokens, 98 agent sessions, 172 controlled trials across 5 frontier models. Zero handwritten lines of code.
+Derived from 739 commits, 64K LOC, 295M tokens, 98 agent sessions, ~790 controlled trials across 7 model families. Zero handwritten lines of code.
 
 ---
 
@@ -35,7 +35,7 @@ Every persisted claim carries one of these. This is the cheapest defense against
 - **[Inferred]** — Logically derived, not directly verified. Cannot be frozen.
 - **[Assumed]** — Stated without verification. Must verify before critical decisions depend on it.
 
-Without labels: 100% false-claim adoption (50/50 trials, 5 models, including Opus). With ~200 characters of evidence metadata: 96% rejection (24/25). The labels change the information format so you activate a different reasoning pathway — you treat `[Assumed, no source_refs]` like a human treats an unsourced rumor. `Replicated finding, n=5 × 5 models`
+Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 codebases, including Opus). With ~200 characters of evidence metadata: 97% rejection (49/50). Inline text tags alone: 94% on frontier models, 0% on cheap models. Structured YAML with source_refs: works on ALL models including the cheapest tested. `Replicated finding, n=5 × 5+ models, 2 codebases`
 
 ---
 
@@ -93,7 +93,7 @@ Without labels: 100% false-claim adoption (50/50 trials, 5 models, including Opu
 
 **Delegation compression.** Spec passes through layers, numbers compress. "80 weapons with stat curves" becomes "some weapons." Read the spec from disk.
 
-**False verification.** Asserting you checked something without checking. gpt-4.1 fabricated verification in 5/5 trials. If you're about to write "verified" — actually verify. `Replicated finding`
+**False verification.** Asserting you checked something without checking. gpt-4.1 fabricated verification in 5/5 trials with typed artifacts AND 5/5 with verification policy — claiming files exist that don't. If you're about to write "verified" — actually verify. `Replicated finding`
 
 **Sycophantic drift.** Longer conversations → more agreement, less pushback, recent statements dominate. Countermeasure: fresh sessions and typed artifacts.
 
@@ -105,15 +105,19 @@ Without labels: 100% false-claim adoption (50/50 trials, 5 models, including Opu
 
 | Claim | Label |
 |-------|-------|
-| Evidence tags prevent memory poisoning | **Replicated finding** (50/50 → 24/25, 5 models) |
+| Evidence tags prevent memory poisoning | **Replicated finding** (75/75 → 49/50, 7 models, 2 codebases) |
 | Mechanical scope beats prompt-only | **Replicated finding** (0/20 vs 20/20) |
-| Context presence > conversational warmth | **Replicated finding** |
-| Inline evidence tags = minimum viable defense | **Replicated finding** |
+| Context presence > conversational warmth | **Replicated finding** (N=30 context priming) |
+| Inline evidence tags = minimum viable defense | **Replicated finding** (frontier models only; codex-mini: 0/5) |
+| Source_refs alone defend (without evidence labels) | **Replicated finding** (14/14, 4 models) |
 | Fresh context beats accumulated conversation | **Replicated finding** |
+| Double-poisoning defended | **Replicated finding** (64/64, 5+ models, 2 codebases) |
 | Type contracts improve parallel reliability | **Replicated finding** (value) / **Local finding** (strict necessity) |
 | Model = first-order throughput variable | **Corpus result** (9.8×) |
 | Green gates miss experiential failures | **Corpus result** (15K LOC, 6 breaks) |
-| DEBT/PRINCIPLE artifacts solve sycophancy | **Open question** |
+| Write-side self-calibration holds | **Partially falsified** — holds unsolicited, fails under instruction (9/9 Claude comply) |
+| GPT-4.1 fabricates verification | **Replicated finding** (5/5 + 3/3 across sessions) |
+| DEBT/PRINCIPLE artifacts solve sycophancy | **Open question** (devil's advocate instruction: 17/17 at lower cost) |
 
 ---
 
@@ -172,8 +176,8 @@ Copilot CLI:
 |------|------|------|
 | Orchestrator | Opus-class (1M context) | Sustains 20+ wave campaigns |
 | Worker | Sonnet-class / GPT-5.4 | Resourceful, finds paths |
-| Cheap tasks | Mini-class | Evidence tags still work |
-| **Avoid** | **Models that fabricate verification** | **gpt-4.1: asserts files exist without checking** |
+| Cheap tasks | Mini-class | Full YAML evidence works; inline tags DO NOT (0/5) |
+| **Avoid** | **Models that fabricate verification** | **gpt-4.1: asserts files exist without checking (10/10)** |
 
 ---
 
@@ -388,8 +392,14 @@ git add -A && git commit -m '[type]([domain]): [description]'
 |--------|-------|
 | Scope: prompt-only | 0/20 |
 | Scope: mechanical clamp | 20/20 |
-| Poisoning: no tags | 0% defense (50/50 adopted) |
-| Poisoning: with tags | 96% defense (24/25 rejected) |
+| Poisoning: no tags | 0% defense (75/75 adopted, 2 codebases) |
+| Poisoning: with tags (YAML) | 97% defense (49/50 rejected, 2 codebases) |
+| Poisoning: inline tags (frontier) | 94% defense (16/17) |
+| Poisoning: inline tags (cheap models) | 0% defense (codex-mini: 0/5) |
+| Double-poisoning | 100% defense (64/64, 2 codebases) |
+| Single false artifact (no competing) | 0% defense (24/24 adopted) |
+| Counter-experiments (disclaimers etc.) | 0% defense (12/12) |
+| Source_refs alone (no evidence labels) | 100% defense (14/14) |
 | Exact-value prompts | 100% ship |
 | Vague-goal prompts | 0% ship |
 | New file creation | ~50% success |
@@ -398,3 +408,5 @@ git add -A && git commit -m '[type]([domain]): [description]'
 | Parallel workers stable | 2-3 (5+ crashes) |
 | Foreman dispatch ship rate | 100% (5/5) |
 | Manual dispatch ship rate | 67% (10/15) |
+| GPT-4.1 verification fabrication | 5/5 fabricated |
+| Total controlled trials | ~790 across 7 model families |
