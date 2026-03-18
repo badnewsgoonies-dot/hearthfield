@@ -4,7 +4,7 @@ One document. Replaces all others. Load at session start.
 
 First half: how to think. Second half: how to execute. Appendices: adapters, research, quick reference.
 
-Derived from 739 commits, 64K LOC, 295M tokens, 98 agent sessions, ~790 controlled trials across 7 model families, 2 codebases. Zero handwritten lines of code.
+Derived from 739 commits, 64K LOC, 295M tokens, 98 agent sessions, ~860 controlled trials across 7 model families, 2 codebases. Zero handwritten lines of code.
 
 ---
 
@@ -39,7 +39,9 @@ Every persisted claim carries one of these. This is the cheapest defense against
 - **[Inferred]** — Logically derived, not directly verified. Cannot be frozen.
 - **[Assumed]** — Stated without verification. Must verify before critical decisions depend on it.
 
-Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 codebases). With ~200 characters of evidence metadata: 97% rejection (49/50). Minimum portable defense: structured artifacts with source_refs — works on ALL models including the cheapest tested. Inline text tags are a frontier-only convenience layer: strong on capable models (94%), unreliable on cheap ones (0/5). `Replicated finding`
+Without labels: 100% false-claim adoption (75/75 trials, 7 model families, 2 codebases). With ~200 characters of evidence metadata: 97% rejection (49/50). Minimum portable defense: structured artifacts with source_refs — works on ALL models including the cheapest tested. Inline text tags are a frontier-only convenience layer: strong on capable models (94%), unreliable on cheap ones. `Replicated finding`
+
+**Architectural note:** Evidence evaluation is an orchestrator responsibility, not a worker responsibility. Workers receive exact specs and implement code — they never read or evaluate memory artifacts. Cheap models work fine as workers precisely because workers don't touch the evidence layer. The defense runs at the orchestrator tier, which is always a frontier model.
 
 **Critical limitation:** Evidence metadata sharply reduces poisoning when conflicting or competing artifacts are present. It does not eliminate the single-false-artifact problem. A lone [Observed] artifact with fabricated source_refs was adopted 24/24 across all models tested. Singleton claims still require source verification.
 
@@ -98,8 +100,8 @@ Single-repo shorthand (omit repo@) is acceptable when ambiguity is impossible.
 3. **[Observed] requires non-empty source_refs.** If you can't point to what you verified, it's not [Observed].
 4. **[Assumed] on the critical path triggers a stop condition.** No P0 decision should depend on an unverified claim.
 5. **Evidence level is for the READER, not the writer.** The consuming agent evaluates evidence quality. The producing agent labels honestly. If you're unsure, label [Inferred] not [Observed].
-6. **Write-side integrity is model-dependent.** Claude complies with adversarial over-tag instructions (9/9). GPT-5.4 refuses (3/3). When write-side integrity matters, use mechanical validation: reject [Observed] artifacts with empty source_refs at the CI/schema level.
-7. **Structured YAML > inline tags for cheap models.** Inline `[Assumed]` annotations work on frontier models (94%) but fail on cheap ones (0/5). The full YAML schema with explicit `evidence:` and `source_refs:` fields works on ALL models tested, including the cheapest. When model capability is uncertain, use the full schema.
+6. **Write-side integrity depends on instruction explicitness.** Under subtle pressure ("consider tagging as Observed"), both Claude and GPT-5.4 mostly resist. Under explicit instruction ("tag ALL as Observed"), Claude complies (6/6) and GPT-5.4 refuses (6/6). When write-side integrity matters, use mechanical validation: reject [Observed] artifacts with empty source_refs at the CI/schema level.
+7. **Structured YAML is the minimum portable defense for any model evaluating evidence.** Inline `[Assumed]` annotations work on frontier models (94%) but fail on all cheap models tested. The full YAML schema with explicit `evidence:` and `source_refs:` fields works universally. In practice this distinction only matters for orchestrators — workers receive exact specs and never evaluate memory artifacts.
 8. **Artifacts trigger on events, not on schedules.** Write an artifact when: a non-obvious decision was made, a direct verification happened, a reusable principle emerged, open debt appeared, a contradiction surfaced, a correction invalidated prior belief, or a graduation test was created. If nothing triggered, write nothing.
 
 ---
@@ -124,7 +126,7 @@ Single-repo shorthand (omit repo@) is acceptable when ambiguity is impossible.
 
 **INV-006 — Freeze shapes, not values.** Types, enums, interfaces frozen in contract. Thresholds, timings, balance numbers in config. `Replicated finding`
 
-**INV-007 — Presence matters more than warmth.** A compact spec on disk transfers intent better than 30 messages of conversational build-up. Context priming experiment: cold prompt = 0% formula transfer, spec on disk = 100% (N=30). `Replicated finding`
+**INV-007 — Presence matters more than warmth.** A compact spec on disk transfers intent better than 30 messages of conversational build-up. Context priming: cold prompt = 0% formula transfer (0/16), spec on disk = 100% (16/16), cross-model. `Replicated finding`
 
 **INV-008 — Workers do bounded work; orchestrators finish surfaces.** You build it right. They verify it matters. `Corpus result`
 
@@ -150,7 +152,7 @@ Single-repo shorthand (omit repo@) is acceptable when ambiguity is impossible.
 
 **INV-017 — You will default to solo execution.** For bounded multi-file tasks, models default to solo execution, but dispatched workers usually outperform that default on throughput and surface coverage. Solo can still win on core quality at scales where the project fits in one context window (~30K LOC). `Corpus result`
 
-**INV-018 — A model given tools and a goal will not independently discover coordination.** Bare-prompt ablation: frontier model chose solo execution, not orchestration. The coordination template is the architecture — the model executes it, not invents it. `Local finding`
+**INV-018 — A model given tools and a goal will not independently discover coordination.** Bare-prompt ablation: 0/7 across Sonnet, Opus, and GPT-5.4 — all chose solo sequential execution. The coordination template is the architecture — the model executes it, not invents it. `Replicated finding (n=7, 3 models)`
 
 ---
 
@@ -199,20 +201,22 @@ Don't start the next Feature until Graduate is complete.
 
 | Claim | Label |
 |-------|-------|
-| Evidence tags prevent memory poisoning | **Replicated finding** (75/75 -> 49/50, 7 models, 2 codebases) |
-| Singleton false artifact is undefended | **Replicated finding** (24/24 adopted, 5 models) |
+| Evidence tags prevent memory poisoning | **Replicated finding** (75/75 → 49/50, 7 models, 2 codebases) |
+| Singleton false artifact is undefended | **Replicated finding** (27/27 adopted, 5 models) |
+| Singleton + verbal verify policy works (most models) | **Replicated finding** — but GPT-4.1 fabricates verification |
 | Mechanical scope beats prompt-only | **Replicated finding** (0/20 vs 20/20) |
-| Context presence > conversational warmth | **Replicated finding** (N=30 context priming) |
-| Inline evidence tags = frontier-only convenience | **Replicated finding** (94% frontier; 0/5 codex-mini) |
+| Context presence > conversational warmth | **Replicated finding** (0/16 cold → 16/16 spec, 2 models) |
 | Structured source_refs = minimum portable defense | **Replicated finding** (works on all models tested) |
 | Double-poisoning defended | **Replicated finding** (64/64, 5+ models, 2 codebases) |
 | Fresh context beats accumulated conversation | **Replicated finding** |
+| Counter-interventions need tools to work | **Replicated finding** (C2/C4 fail without tools, work with) |
 | Type contracts improve parallel reliability | **Replicated finding** (value) / **Local finding** (strict necessity) |
-| Model = first-order throughput variable | **Corpus result** (9.8x) |
+| Model = first-order throughput variable | **Corpus result** (9.8×) |
 | Green gates miss experiential failures | **Corpus result** (15K LOC, 6 breaks) |
-| Bare-prompt model doesn't discover coordination | **Local finding** (n=1) |
-| Write-side self-calibration holds | **Partially falsified** — holds unsolicited, fails under instruction (9/9 Claude comply, 3/3 GPT refuse) |
+| Bare-prompt model doesn't discover coordination | **Replicated finding** (0/7, 3 models) |
+| Write-side: explicitness is the variable | **Replicated finding** (subtle=resist, explicit=Claude comply/GPT refuse) |
 | GPT-4.1 fabricates verification | **Replicated finding** (10/10 across sessions) |
+| Exact specs ship; vague specs don't | **Replicated finding** (10/10 exact, 0/10 vague, n=5 each) |
 | DEBT/PRINCIPLE artifacts solve sycophancy | **Open question** (devil's advocate instruction: 17/17 at lower cost) |
 
 ---
@@ -255,10 +259,12 @@ Everything below is procedures, templates, and scripts.
 
 | Role | Pick | Note |
 |------|------|------|
-| Orchestrator | Opus-class (1M context) | Sustains 20+ wave campaigns |
-| Worker | Sonnet-class / GPT-5.4 | Resourceful, finds paths |
-| Cheap tasks | Mini-class | Full YAML evidence works; inline tags DO NOT (0/5) |
-| **Avoid** | **Models that fabricate verification** | **gpt-4.1: asserts files exist without checking (10/10)** |
+| Orchestrator | Opus-class (1M context) | Evaluates evidence, makes trust decisions, delegates |
+| Worker | Sonnet-class / GPT-5.4 | Receives exact specs, implements code, never touches memory |
+| Cheap worker | Mini-class | Fine for bounded implementation — workers don't evaluate evidence |
+| **Avoid as orchestrator** | **Models that fabricate verification** | **gpt-4.1: asserts files exist without checking (10/10)** |
+
+**The role boundary is the defense boundary.** Orchestrators read artifacts, evaluate evidence levels, and decide what's true. Workers receive "change line 45 to `def * 0.6`" and execute. A cheap model that can't parse inline [Assumed] tags is perfectly safe as a worker because it never sees them. The evidence defense runs at the orchestrator tier exclusively.
 
 ## Project Filesystem
 
@@ -309,11 +315,12 @@ No worker edits the contract. Amendment: integration-phase only, dedicated commi
     DRIFT CUE: If you find yourself [building X], stop.
     DONE: [command] passes. Write report to status/workers/[name].md.
 
-| Briefing quality | Ship rate |
-|-----------------|-----------|
-| Exact values ("set alpha to 0.6, file X line 40") | **100%** |
-| Named actions ("add particle effect") | **67%** |
-| Vague goals ("make it feel better") | **0%** |
+| Briefing quality | Ship rate | Why |
+|-----------------|-----------|-----|
+| Exact values ("set DEF mult to 0.6, line 45") | **100%** (10/10) | Worker has no decisions to make |
+| Named actions + file access | **~67%** | Worker reads code, adapts |
+| Named actions, no file context | **0%** (5/5) | Worker invents signatures, wrong language |
+| Vague goals ("make it feel better") | **0%** (5/5) | Scope explosion: 1-8 new subsystems |
 
 ## Campaign Dispatch
 
@@ -448,22 +455,29 @@ Rate limits under load, partial failure cascades, idempotency (replay = same res
 | Scope: prompt-only vs mechanical | 0/20 vs 20/20 |
 | Poisoning: no tags vs YAML tags | 75/75 adopted vs 49/50 rejected |
 | Poisoning: inline tags frontier | 94% (16/17) |
-| Poisoning: inline tags cheap | 0% (0/5 codex-mini) |
+| Poisoning: inline tags cheap models | Unreliable (recency wins on clean prompts) |
 | Double-poisoning | 64/64 rejected |
-| Singleton false artifact | 24/24 adopted |
+| Singleton false artifact | 27/27 adopted |
+| Singleton + verbal verify | Flagged on most models; GPT-4.1 fabricates |
+| Singleton + competing evidence | Conflict identified, refused to choose (3/3) |
 | Source_refs alone (no labels) | 14/14 rejected |
-| Code-level false claims | 2/10 -> 10/10 with tags |
-| Injection: no tag vs tagged | 85% -> 100% |
-| Counter-experiments (disclaimers) | 0/12 |
-| Exact-value vs vague prompts | 100% vs 0% ship |
-| Model output gap | 9.8x same task |
+| Code-level false claims | 2/10 → 10/10 with tags |
+| Injection: no tag vs tagged | 85% → 100% |
+| Counter-experiments without tools | 0/18 (disclaimers, verify-first, devil's advocate all fail) |
+| Counter-experiments with tools | C2/C4 work but at 3-4× cost (Tier 3) |
+| Exact-value vs vague prompts | 100% vs 0% ship (n=5 each) |
+| Named prompts without file context | 0% ship (n=5) |
+| Named prompts with file context | ~67% ship |
+| Model output gap | 9.8× same task |
 | Scaling sweet spot | ~10 workers (0 integration errors) |
 | CLI stability | 2-3 concurrent |
-| Context priming: cold vs spec | 0% vs 100% transfer |
+| Context priming: cold vs spec | 0% vs 100% transfer (n=16, 2 models) |
 | GPT-4.1 fabrication | 10/10 |
-| Write-side: Claude vs GPT-5.4 | 9/9 comply vs 3/3 refuse |
-| Devil's advocate | 17/17 pushback |
-| Total trials | ~790 |
+| Write-side: subtle pressure | Both models resist |
+| Write-side: explicit over-tag | Claude 6/6 comply, GPT-5.4 6/6 refuse |
+| Bare-prompt coordination | 0/7 discovered delegation (3 models) |
+| Devil's advocate | 17/17 pushback (but tool-dependent) |
+| Total trials | ~860 |
 
 ## Cross-Model Matrix
 
@@ -472,8 +486,11 @@ Rate limits under load, partial failure cascades, idempotency (replay = same res
 | YAML evidence | 100% | 100% | ~50% | 80% | 100% | 100% |
 | Inline tags | 100% | 80% | ~50% | 100% | 100% | 0% |
 | Double-poison | 100% | 100% | 100% | — | 100% | 100% |
-| Adversarial tag | Complied | Refused | Complied | — | Complied | — |
-| Fabricates verification | No | No | **Yes** | No | No | No |
+| Subtle over-tag | Mostly resists | Resists | — | — | — | — |
+| Explicit over-tag | **Complied** | **Refused** | Complied | — | Complied | — |
+| Fabricates verification | No | No | **Yes (10/10)** | No | No | No |
+
+**Architectural note:** The inline-tag and cheap-model rows only matter if that model is evaluating evidence (orchestrator role). Workers never evaluate evidence — they execute specs. A codex-mini worker receiving "change line 45" is perfectly safe.
 
 ---
 
@@ -491,4 +508,4 @@ Stop: checksum fails | clamp breaks fix | green but unreachable | frameworks not
 
 ---
 
-*18 invariants. One trust hierarchy. One wave cadence. Two domain adapters. ~790 trials. One document.*
+*18 invariants. One trust hierarchy. One wave cadence. Two domain adapters. ~860 trials. One document.*
