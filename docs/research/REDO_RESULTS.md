@@ -120,3 +120,70 @@ But on YAML: 3/3 correct. The structured format triggers the right evaluation.
 Possible explanation: the earlier VV-CF-IL trials used a slightly different prompt with more explicit "explain which source you trust and why" framing, which may have scaffolded the reasoning. This cleaner prompt ("answer from notes only") reveals the actual inline-tag capability.
 
 **Updated claim:** Inline tags are unreliable on ALL cheap models tested. Structured YAML is the minimum portable defense. The earlier gpt-5-mini 5/5 result may have been prompt-scaffolded rather than format-driven.
+
+---
+
+## REDO 6: Bare-Prompt Coordination Discovery (INV-018)
+
+Previous: n=1, one model, chose solo. Now: n=7, 3 models.
+
+| Model | n | Delegation signals | Behavior |
+|-------|---|-------------------|----------|
+| Sonnet | 3 | 0 | "I'll build..." — started coding immediately |
+| Opus | 2 | 0 | "I'll help you build..." — solo execution |
+| GPT-5.4 | 3 | 0 | Created todo list, scaffolded solo |
+| **Total** | **7** (1 Sonnet errored) | **0** | **Zero coordination discovery** |
+
+**INV-018 strengthened to n=7 across 3 model families.** No model, given tools + goal + a multi-module task, chose to delegate or coordinate. All defaulted to solo sequential implementation. The coordination template is the architecture; the model executes it, never invents it.
+
+---
+
+## REDO 9: Specificity Ship-Rate (Sonnet n=5 each)
+
+| Specificity | Ship-ready? | n | Notes |
+|-------------|------------|---|-------|
+| **Exact** ("change DEF mult to 0.6 at line 45") | **5/5** | 5 | Correct value, focused change, 13-17 lines |
+| **Named** ("adjust defense reduction, make it more effective") | **0/5** | 5 | Correct intent but wrong language (Python not Rust), invented function signatures |
+| **Vague** ("defense doesn't matter enough, make it feel better") | **0/5** | 5 | Scope explosion: 1-8 new subsystems, 20-108 lines, new architectures |
+
+**Original claim was exact=100%, named=67%, vague=0%.** 
+
+Updated with n=5: exact=100%, named=0% (without file context), vague=0%.
+
+**Key nuance:** Named prompts produced correct *intent* in all 5 trials (increased the defense multiplier) but none were shippable against a real codebase without human intervention — wrong language, invented functions rather than editing existing ones. With file context (Copilot CLI with repo access), named prompts likely recover to ~60-70% as in original data. Without context, they're as unshippable as vague.
+
+**The real rule:** Exact specs are the only prompts that produce shippable output without file context. Named specs need file context to succeed. Vague specs fail regardless.
+
+---
+
+## REDO 7: Context Priming — Cold vs Spec (2 models)
+
+Target values: DEF multiplier = 0.5, floor = 1, deterministic.
+
+| Condition | Used 0.5? | Had floor? | n | Models |
+|-----------|----------|-----------|---|--------|
+| Cold (no spec) | **0/8** | 8/8 (varied) | 8 | Sonnet 5 + Haiku 3 |
+| With spec | **8/8** | 8/8 | 8 | Sonnet 5 + Haiku 3 |
+
+**0% → 100% formula transfer replicated.** Matches original N=30 finding.
+
+Cold versions all included a floor (good instinct) but NONE used 0.5 as the DEF multiplier — each invented its own formula. The spec versions used exactly the specified values in every trial.
+
+**INV-007 confirmed at n=16 across 2 models:** Presence of the spec on disk, not conversational warmth or model capability, is the mechanism for value transfer.
+
+---
+
+## Redo Session Summary
+
+| Redo | Trials | Key outcome |
+|------|--------|-------------|
+| Write-side adversarial | 12 | Explicitness is the variable, not model family |
+| Counter-interventions (tools confound) | 6 | C2/C4 fail without tools — tools are the ingredient |
+| Singleton false artifact | 9 | 3 clean levels: adopted / flagged / conflict identified |
+| Inline tag floor | 6 | gpt-5-mini fails inline too — YAML is universal floor |
+| Bare-prompt coordination | 7 | 0/7 discovered delegation (3 models) |
+| Specificity ship-rate | 15 | exact=100%, named=0% (no context), vague=0% |
+| Context priming | 16 | 0% → 100% formula transfer (2 models) |
+| **Total redos** | **71** | |
+
+**Grand total all trials: ~860**
