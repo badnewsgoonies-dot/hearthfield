@@ -6,24 +6,33 @@
       "task": "Wire remaining bare Gold callsites to bounded types",
       "status": "complete",
       "commit": "e45aea4",
-      "files_changed": [
-        "src/economy/shop.rs",
-        "src/economy/tool_upgrades.rs"
-      ],
-      "changes": {
-        "shop.rs": "3 assert_eq!(player.gold, N) → assert_eq!(player.gold.get(), N) at lines 402, 423, 464",
-        "tool_upgrades.rs": "4 player.gold = N → player.gold = Gold::new_unchecked(N) at lines 173, 188, 202, 215"
-      },
-      "verification": "grep sweep confirms zero bare primitive access to PlayerState.{health, stamina, gold} remaining in src/",
-      "notes": "All 3 bounded types (Health, Stamina, Gold) now fully wired. 42/42 callsites converted. Priority 1-3 from bounded-wiring-plan.md complete.",
-      "next": "Move to next task queue item: broader bounded type wiring (Happiness, Friendship, StackSize, MineFloor, BuildingLevel) or sprite generation for 55 unwired gaps"
+      "files_changed": ["src/economy/shop.rs", "src/economy/tool_upgrades.rs"],
+      "summary": "3 assert_eq + 4 raw assignments in test code. All Gold callsites now use .get() or Gold::new_unchecked()."
+    },
+    {
+      "wave": 2,
+      "timestamp": "2026-03-19T12:15:00Z",
+      "task": "Wire remaining bare Happiness assertions + audit all 8 bounded types",
+      "status": "complete",
+      "commit": "43a0a3d",
+      "files_changed": ["src/animals/day_end.rs"],
+      "summary": "2 assert_eq!(happiness, N) → .get(). Full audit: all 8 bounded types complete across entire codebase.",
+      "audit_results": {
+        "Health": "2/2 wired",
+        "Stamina": "11/11 wired",
+        "Gold": "42/42 wired (7 fixed wave 1)",
+        "Happiness": "12/12 wired (2 fixed wave 2)",
+        "Friendship": "10/10 already wired",
+        "StackSize": "transparent via Deref",
+        "MineFloor": "4/4 already wired",
+        "BuildingLevel": "6/6 already wired"
+      }
     }
   ],
   "queue_status": {
-    "health_wiring": "complete",
-    "stamina_wiring": "complete", 
-    "gold_wiring": "complete",
-    "remaining_bounded_wiring": "pending — Happiness, Friendship, StackSize, MineFloor, BuildingLevel defined but callsites not yet audited",
-    "sprite_generation": "pending — 55 unwired gaps per asset manifest"
-  }
+    "bounded_type_wiring": "COMPLETE",
+    "sprite_generation": "NEXT — 55 unwired gaps per asset manifest",
+    "bevy_render_pipeline": "pending"
+  },
+  "next_action": "Read asset-manifest.toml, identify sprite gaps, generate missing sprites"
 }
