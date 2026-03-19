@@ -124,23 +124,43 @@ pub fn handle_day_end_for_animals(
             // ── 2. Happiness adjustments ─────────────────────────────────────
             //
             // All adjustments use saturating arithmetic so happiness stays
-            // in [0, 255] — the valid range of a u8.
+            // in [0, 255] — the valid range of `Happiness`.
             if animal.fed_today {
                 // Fed today: +8 happiness.
-                animal.happiness = animal.happiness.saturating_add(HAPPINESS_FED_BONUS);
+                animal.happiness = Happiness::new_unchecked(
+                    animal
+                        .happiness
+                        .get()
+                        .saturating_add(HAPPINESS_FED_BONUS),
+                );
             } else {
                 // Not fed: -18 happiness.
-                animal.happiness = animal.happiness.saturating_sub(HAPPINESS_UNFED_PENALTY);
+                animal.happiness = Happiness::new_unchecked(
+                    animal
+                        .happiness
+                        .get()
+                        .saturating_sub(HAPPINESS_UNFED_PENALTY),
+                );
             }
 
             if animal.petted_today {
                 // Petting gives an additional +7.
-                animal.happiness = animal.happiness.saturating_add(HAPPINESS_PETTED_BONUS);
+                animal.happiness = Happiness::new_unchecked(
+                    animal
+                        .happiness
+                        .get()
+                        .saturating_add(HAPPINESS_PETTED_BONUS),
+                );
             }
 
             if is_outside_on_farm_tile(logical_pos) {
                 // Sunny outdoor bonus: +6.
-                animal.happiness = animal.happiness.saturating_add(HAPPINESS_OUTDOOR_SUNNY);
+                animal.happiness = Happiness::new_unchecked(
+                    animal
+                        .happiness
+                        .get()
+                        .saturating_add(HAPPINESS_OUTDOOR_SUNNY),
+                );
             }
 
             // Warn via toast when an animal's happiness drops into danger zones.
@@ -153,7 +173,7 @@ pub fn handle_day_end_for_animals(
                         ),
                         duration_secs: 4.0,
                     });
-                } else if new_unfed_count == 1 && animal.happiness < 90 {
+                } else if new_unfed_count == 1 && animal.happiness.get() < 90 {
                     toast_writer.send(ToastEvent {
                         message: format!("{} is hungry and unhappy...", animal.name),
                         duration_secs: 3.0,
@@ -203,11 +223,11 @@ pub fn handle_day_end_for_animals(
             if animal.age == AnimalAge::Adult
                 && fed_today_this_cycle
                 && !production_blocked
-                && animal.happiness > 0
+                && *animal.happiness > 0
             {
                 // Quality is based on post-adjustment happiness: the animal's
                 // happiness after today's feeding/petting bonuses are applied.
-                let quality = quality_from_happiness(animal.happiness);
+                let quality = quality_from_happiness(animal.happiness.get());
 
                 match animal.kind {
                     AnimalKind::Chicken => {
@@ -298,7 +318,7 @@ pub fn handle_day_end_for_animals(
                         // Pigs find truffles daily when outdoors and happy.
                         // Must be outside on a farm tile — pigs cannot find
                         // truffles while confined indoors.
-                        if animal.happiness >= 50 && is_outside_on_farm_tile(logical_pos) {
+                        if *animal.happiness >= 50 && is_outside_on_farm_tile(logical_pos) {
                             animal.product_ready = true;
                             commands
                                 .entity(entity)
@@ -329,7 +349,7 @@ mod tests {
             name: "Testy".to_string(),
             age: AnimalAge::Baby,
             days_old,
-            happiness,
+            happiness: Happiness::new_unchecked(happiness),
             fed_today: false,
             petted_today: false,
             product_ready: false,

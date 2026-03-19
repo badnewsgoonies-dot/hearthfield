@@ -647,7 +647,7 @@ fn test_animal_happiness_increases_when_fed() {
             name: "Clucky".to_string(),
             age: AnimalAge::Adult,
             days_old: 10,
-            happiness: 100,
+            happiness: Happiness::new_unchecked(100),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -660,7 +660,11 @@ fn test_animal_happiness_increases_when_fed() {
     let animal = app.world().entity(chicken_id).get::<Animal>().unwrap();
 
     // Fed: +5 happiness
-    assert_eq!(animal.happiness, 105, "Fed chicken should gain 5 happiness");
+    assert_eq!(
+        animal.happiness.get(),
+        105,
+        "Fed chicken should gain 5 happiness"
+    );
     assert!(
         animal.product_ready,
         "Fed adult chicken should produce an egg"
@@ -686,7 +690,7 @@ fn test_animal_happiness_decreases_when_not_fed() {
             name: "Bessie".to_string(),
             age: AnimalAge::Adult,
             days_old: 20,
-            happiness: 100,
+            happiness: Happiness::new_unchecked(100),
             fed_today: false,
             petted_today: false,
             product_ready: false,
@@ -699,7 +703,11 @@ fn test_animal_happiness_decreases_when_not_fed() {
     let animal = app.world().entity(cow_id).get::<Animal>().unwrap();
 
     // Not fed: -12 happiness
-    assert_eq!(animal.happiness, 88, "Unfed cow should lose 12 happiness");
+    assert_eq!(
+        animal.happiness.get(),
+        88,
+        "Unfed cow should lose 12 happiness"
+    );
     assert!(!animal.product_ready, "Unfed cow should not produce");
 }
 
@@ -721,7 +729,7 @@ fn test_animal_fed_and_petted_bonus() {
             name: "Woolly".to_string(),
             age: AnimalAge::Adult,
             days_old: 15,
-            happiness: 200,
+            happiness: Happiness::new_unchecked(200),
             fed_today: true,
             petted_today: true,
             product_ready: false,
@@ -735,7 +743,8 @@ fn test_animal_fed_and_petted_bonus() {
 
     // Fed +5, petted +5 = 210
     assert_eq!(
-        animal.happiness, 210,
+        animal.happiness.get(),
+        210,
         "Fed + petted animal should gain 10 happiness"
     );
 }
@@ -758,7 +767,7 @@ fn test_baby_animal_grows_to_adult() {
             name: "Chick".to_string(),
             age: AnimalAge::Baby,
             days_old: 6, // will become 7 after day end → adult
-            happiness: 150,
+            happiness: Happiness::new_unchecked(150),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -1055,7 +1064,7 @@ fn test_animal_starvation_blocks_production() {
                 name: "Hungry".to_string(),
                 age: AnimalAge::Adult,
                 days_old: 10,
-                happiness: 200,
+                happiness: Happiness::new_unchecked(200),
                 fed_today: false,
                 petted_today: false,
                 product_ready: false,
@@ -2638,7 +2647,7 @@ fn test_evaluation_sets_candles() {
                 name: format!("Chick{}", i),
                 age: AnimalAge::Adult,
                 days_old: 30,
-                happiness: 200,
+                happiness: Happiness::new_unchecked(200),
                 fed_today: true,
                 petted_today: false,
                 product_ready: false,
@@ -3267,7 +3276,7 @@ fn test_animal_happiness_clamps_to_zero() {
             name: "Sad".to_string(),
             age: AnimalAge::Adult,
             days_old: 10,
-            happiness: 5, // will drop by 12 when unfed -> should clamp to 0
+            happiness: Happiness::new_unchecked(5), // will drop by 12 when unfed -> should clamp to 0
             fed_today: false,
             petted_today: false,
             product_ready: false,
@@ -3279,7 +3288,7 @@ fn test_animal_happiness_clamps_to_zero() {
 
     let animal = app.world().entity(animal_id).get::<Animal>().unwrap();
     assert_eq!(
-        animal.happiness, 0,
+        animal.happiness.get(), 0,
         "Happiness should clamp to 0, not underflow"
     );
 }
@@ -3300,7 +3309,7 @@ fn test_baby_animal_stays_baby_before_threshold() {
             name: "BabyCow".to_string(),
             age: AnimalAge::Baby,
             days_old: 3, // will become 4, still baby (needs 7+)
-            happiness: 100,
+            happiness: Happiness::new_unchecked(100),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -3808,7 +3817,7 @@ fn test_save_roundtrip_animal_state() {
         kind: AnimalKind::Cow,
         age: AnimalAge::Adult,
         days_old: 30,
-        happiness: 200,
+        happiness: Happiness::new_unchecked(200),
         fed_today: false,
         petted_today: false,
         product_ready: true,
@@ -3818,7 +3827,7 @@ fn test_save_roundtrip_animal_state() {
     assert_eq!(restored.animals.len(), 1);
     assert_eq!(restored.animals[0].name, "Bessie");
     assert_eq!(restored.animals[0].kind, AnimalKind::Cow);
-    assert_eq!(restored.animals[0].happiness, 200);
+    assert_eq!(restored.animals[0].happiness.get(), 200);
     assert_eq!(restored.animals[0].days_old, 30);
 }
 

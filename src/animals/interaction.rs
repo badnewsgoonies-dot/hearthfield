@@ -63,7 +63,7 @@ pub fn handle_animal_interact(
 
         // Pet the animal.
         if !animal.petted_today {
-            let prior_happiness = animal.happiness;
+            let prior_happiness = animal.happiness.get();
             animal.petted_today = true;
             // Lower-mood animals get a larger first pet boost.
             let happiness_bump = match prior_happiness {
@@ -72,7 +72,8 @@ pub fn handle_animal_interact(
                 160..=219 => 4,
                 220..=u8::MAX => 1,
             };
-            animal.happiness = animal.happiness.saturating_add(happiness_bump);
+            animal.happiness =
+                Happiness::new_unchecked(prior_happiness.saturating_add(happiness_bump));
 
             let pet_text = match (animal.kind, prior_happiness) {
                 (AnimalKind::Chicken, 0..=79) => "Bawk?",
@@ -120,7 +121,7 @@ pub fn handle_animal_interact(
             });
         } else {
             // Already petted today — give small feedback so player knows.
-            let repeat_text = match (animal.kind, animal.happiness) {
+            let repeat_text = match (animal.kind, animal.happiness.get()) {
                 (AnimalKind::Chicken, 0..=159) => "Another peck later?",
                 (AnimalKind::Chicken, 160..=u8::MAX) => "This hen feels adored.",
                 (AnimalKind::Cow, 0..=159) => "Come back for more moo time.",

@@ -179,7 +179,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Goldie".into(),
             age: AnimalAge::Adult,
             days_old: 14,
-            happiness: 180,
+            happiness: Happiness::new_unchecked(180),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -189,7 +189,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Puddle".into(),
             age: AnimalAge::Adult,
             days_old: 14,
-            happiness: 170,
+            happiness: Happiness::new_unchecked(170),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -199,7 +199,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Bessie".into(),
             age: AnimalAge::Adult,
             days_old: 21,
-            happiness: 185,
+            happiness: Happiness::new_unchecked(185),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -209,7 +209,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Woolie".into(),
             age: AnimalAge::Adult,
             days_old: 21,
-            happiness: 175,
+            happiness: Happiness::new_unchecked(175),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -410,13 +410,13 @@ pub fn spawn_animals_from_state(
     if animal_state.animals.is_empty()
         && !animal_state.has_coop
         && !animal_state.has_barn
-        && animal_state.coop_level == 0
-        && animal_state.barn_level == 0
+        && *animal_state.coop_level == 0
+        && *animal_state.barn_level == 0
     {
         animal_state.has_coop = true;
         animal_state.has_barn = true;
-        animal_state.coop_level = 1;
-        animal_state.barn_level = 1;
+        animal_state.coop_level = BuildingLevel::new_unchecked(1);
+        animal_state.barn_level = BuildingLevel::new_unchecked(1);
 
         for (slot, animal) in starter_herd().into_iter().enumerate() {
             let spawn_pos = pen_spawn_position(animal.kind, slot);
@@ -536,7 +536,7 @@ pub fn handle_animal_purchase(
                         )
                     })
                     .count();
-                let max = (animal_state.coop_level as usize) * 4;
+                let max = (animal_state.coop_level.get() as usize) * 4;
                 if count + spawned_this_frame as usize >= max {
                     toast_writer.send(ToastEvent {
                         message: "Your coop is full! Upgrade to house more animals.".to_string(),
@@ -558,7 +558,7 @@ pub fn handle_animal_purchase(
                         )
                     })
                     .count();
-                let max = (animal_state.barn_level as usize) * 4;
+                let max = (animal_state.barn_level.get() as usize) * 4;
                 if count + spawned_this_frame as usize >= max {
                     toast_writer.send(ToastEvent {
                         message: "Your barn is full! Upgrade to house more animals.".to_string(),
@@ -598,7 +598,7 @@ pub fn handle_animal_purchase(
             name: name.clone(),
             age: AnimalAge::Baby,
             days_old: 0,
-            happiness: 128,
+            happiness: Happiness::new_unchecked(128),
             fed_today: false,
             petted_today: false,
             product_ready: false,
@@ -703,8 +703,8 @@ mod tests {
             state.has_barn,
             "starter herd should mark the barn as present"
         );
-        assert_eq!(state.coop_level, 1);
-        assert_eq!(state.barn_level, 1);
+        assert_eq!(state.coop_level, BuildingLevel::new_unchecked(1));
+        assert_eq!(state.barn_level, BuildingLevel::new_unchecked(1));
     }
 
     #[test]
@@ -716,15 +716,15 @@ mod tests {
                 name: "Bessie".into(),
                 age: AnimalAge::Adult,
                 days_old: 20,
-                happiness: 180,
+                happiness: Happiness::new_unchecked(180),
                 fed_today: true,
                 petted_today: false,
                 product_ready: false,
             }],
             has_coop: false,
             has_barn: true,
-            coop_level: 0,
-            barn_level: 1,
+            coop_level: BuildingLevel::new_unchecked(0),
+            barn_level: BuildingLevel::new_unchecked(1),
         });
         app.init_resource::<AnimalSpriteData>();
         app.add_systems(Update, spawn_animals_from_state);
