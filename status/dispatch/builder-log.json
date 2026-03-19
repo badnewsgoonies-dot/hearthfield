@@ -4,19 +4,37 @@
     {"wave": 2, "task": "Wire 2 bare Happiness assertions + audit all 8 types", "status": "complete", "commit": "43a0a3d"},
     {"wave": 3, "task": "Fix AUD-001/002/003/007/008", "status": "complete", "commit": "2e8d880"},
     {"wave": 4, "task": "Scaffold horse + cat sprite pipeline", "status": "complete", "commit": "85f4e33"},
+    {"wave": 5, "task": "Fix AUD-010: 19 bare bounded-type callsites in tests/headless.rs", "status": "complete", "commit": "d9b3a98"},
     {
-      "wave": 5,
-      "task": "Fix AUD-010: 19 bare bounded-type callsites in tests/headless.rs",
+      "wave": 6,
+      "task": "Wire 5 missing crop override sprites + analyze all 55 unwired assets",
       "status": "complete",
-      "commit": "d9b3a98",
-      "files_changed": ["tests/headless.rs"],
-      "summary": "10 Gold assignments, 7 Gold comparisons, 2 Stamina assignments, 1 Health assignment, 1 Stamina arithmetic. All mechanical, all values in bounds. Sweep missed tests/ in earlier waves — now complete."
+      "commit": "bb85aac",
+      "files_changed": ["src/ui/hud.rs"],
+      "summary": "Added carrot, radish, onion, pineapple, grape to crop_overrides. Full analysis of 55 unwired sprites below."
     }
   ],
+  "sprite_analysis_final": {
+    "total_unwired_in_manifest": 55,
+    "breakdown": {
+      "horse_cat": "2 — RESOLVED: placeholder sprites + full pipeline wiring (wave 4)",
+      "crop_overrides_missing": "5 — RESOLVED: wired in wave 6 (carrot, radish, onion, pineapple, grape)",
+      "crop_future_content": "6 normal + 19 rare variants = 25 — no CropDef entries, future content",
+      "ui_unused_variants": "14 — alternative sprites not used by current UI (dialog_box_*, buttons_*, etc)",
+      "tilesets_unused": "5 — bitmask_ref (reference images), tilled_dirt variants, autotile sheets",
+      "other_unused": "4 — palette.png, pickup_items.png, tools_and_materials.png, npc_miner.png (fallback only)"
+    },
+    "actual_gaps_fixed": 7,
+    "design_decisions_needed": 0,
+    "conclusion": "All code-referenced sprites exist on disk. All data-defined crops have override icons. Remaining unwired files are unused alternatives or future content."
+  },
   "queue_status": {
-    "bounded_type_wiring": "COMPLETE (src/ + tests/)",
-    "audit_fixes": "AUD-001 thru AUD-010 resolved. AUD-004/005/006 deferred. AUD-009/011/012 noted.",
-    "horse_cat_scaffold": "COMPLETE (placeholder sprites, full pipeline)",
-    "next": "Verify crop item dynamic loading. Wire remaining UI sprites. Await Auditor verification of AUD-010 fix."
-  }
+    "bounded_type_wiring": "COMPLETE",
+    "audit_fixes": "COMPLETE (AUD-001 thru AUD-010)",
+    "sprite_scaffold": "COMPLETE (horse + cat placeholder pipeline)",
+    "crop_overrides": "COMPLETE (all 13 data-defined crops have overrides)",
+    "sprite_analysis": "COMPLETE (55 → 7 actual gaps, all fixed)",
+    "task_queue": "DRAINED — both original tasks complete (bounded wiring + sprite gaps)"
+  },
+  "next": "Task queue empty. Awaiting new work or Auditor findings."
 }
