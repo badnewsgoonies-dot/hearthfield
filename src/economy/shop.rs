@@ -399,7 +399,7 @@ mod tests {
             &registry,
         );
         assert_eq!(result, TransactionResult::Success { total: 180 });
-        assert_eq!(player.gold, 280);
+        assert_eq!(player.gold.get(), 280);
         assert_eq!(inv.count("turnip"), 7);
     }
 
@@ -420,7 +420,7 @@ mod tests {
             &registry,
         );
         assert_eq!(result, TransactionResult::Success { total: 150 });
-        assert_eq!(player.gold, 150);
+        assert_eq!(player.gold.get(), 150);
     }
 
     #[test]
@@ -461,7 +461,7 @@ mod tests {
             result,
             TransactionResult::InsufficientItems { need: 5, have: 2 }
         );
-        assert_eq!(player.gold, 100); // unchanged
+        assert_eq!(player.gold.get(), 100); // unchanged
     }
 
     #[test]

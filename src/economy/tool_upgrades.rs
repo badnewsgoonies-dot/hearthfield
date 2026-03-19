@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn test_can_afford_upgrade_success() {
         let mut player = PlayerState::default();
-        player.gold = 10_000;
+        player.gold = Gold::new_unchecked(10_000);
         player.tools.insert(ToolKind::Hoe, ToolTier::Basic);
 
         let mut inv = Inventory::default();
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn test_can_afford_upgrade_insufficient_gold() {
         let mut player = PlayerState::default();
-        player.gold = 100;
+        player.gold = Gold::new_unchecked(100);
         player.tools.insert(ToolKind::Hoe, ToolTier::Basic);
 
         let mut inv = Inventory::default();
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn test_can_afford_upgrade_insufficient_bars() {
         let mut player = PlayerState::default();
-        player.gold = 10_000;
+        player.gold = Gold::new_unchecked(10_000);
         player.tools.insert(ToolKind::Hoe, ToolTier::Basic);
 
         let inv = Inventory::default(); // no bars
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn test_can_afford_upgrade_max_tier() {
         let mut player = PlayerState::default();
-        player.gold = 999_999;
+        player.gold = Gold::new_unchecked(999_999);
         player.tools.insert(ToolKind::Hoe, ToolTier::Iridium);
 
         let inv = Inventory::default();
