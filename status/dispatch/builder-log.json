@@ -1,52 +1,22 @@
 {
   "waves": [
+    {"wave": 1, "task": "Wire 7 bare Gold callsites in src/ test code", "status": "complete", "commit": "e45aea4"},
+    {"wave": 2, "task": "Wire 2 bare Happiness assertions + audit all 8 types", "status": "complete", "commit": "43a0a3d"},
+    {"wave": 3, "task": "Fix AUD-001/002/003/007/008", "status": "complete", "commit": "2e8d880"},
+    {"wave": 4, "task": "Scaffold horse + cat sprite pipeline", "status": "complete", "commit": "85f4e33"},
     {
-      "wave": 1,
-      "task": "Wire remaining bare Gold callsites",
+      "wave": 5,
+      "task": "Fix AUD-010: 19 bare bounded-type callsites in tests/headless.rs",
       "status": "complete",
-      "commit": "e45aea4"
-    },
-    {
-      "wave": 2,
-      "task": "Wire bare Happiness assertions + audit all 8 bounded types",
-      "status": "complete",
-      "commit": "43a0a3d"
-    },
-    {
-      "wave": 3,
-      "task": "Fix Auditor findings AUD-001 through AUD-003, AUD-007, AUD-008",
-      "status": "complete",
-      "commit": "2e8d880"
-    },
-    {
-      "wave": 4,
-      "task": "Scaffold horse + cat sprite pipeline",
-      "status": "complete",
-      "commit": "85f4e33",
-      "files_changed": [
-        "src/animals/mod.rs",
-        "src/animals/spawning.rs",
-        "assets/sprites/horse.png",
-        "assets/sprites/cat.png"
-      ],
-      "summary": "Added horse_image/cat_image handles to AnimalSpriteData, loading code in load_animal_sprites, replaced colored-rect fallback with Sprite::from_atlas_image. Placeholder PNGs at correct dimensions (horse 768x128, cat 384x64). Generation spec at status/dispatch/sprite-gen-spec.md."
+      "commit": "d9b3a98",
+      "files_changed": ["tests/headless.rs"],
+      "summary": "10 Gold assignments, 7 Gold comparisons, 2 Stamina assignments, 1 Health assignment, 1 Stamina arithmetic. All mechanical, all values in bounds. Sweep missed tests/ in earlier waves — now complete."
     }
   ],
   "queue_status": {
-    "bounded_type_wiring": "COMPLETE",
-    "audit_fixes": "COMPLETE",
-    "horse_cat_scaffold": "COMPLETE — placeholder sprites in, real generation needs gpt-image-1.5 (not available from container)",
-    "unwired_sprite_analysis": "COMPLETE — 55 'unwired' sprites exist on disk, need CODE wiring not generation. See analysis below.",
-    "crop_pickup_wiring": "ANALYSIS — 30 crop items may already load via items_atlas.png dynamic system. Needs verification.",
-    "ui_sprite_wiring": "PENDING — 12 UI elements exist on disk, not referenced in code"
-  },
-  "sprite_gap_analysis": {
-    "actually_missing": ["horse.png (now placeholder)", "cat.png (now placeholder)"],
-    "exist_but_unwired_crops": 30,
-    "exist_but_unwired_ui": 12,
-    "exist_but_unwired_tilesets": 5,
-    "exist_but_unwired_other": 8,
-    "note": "Most 'unwired' sprites are loaded dynamically (items_atlas), are reference files (bitmask_ref), or are variant tilesets for future autotiling. True missing-from-disk count was 2 (horse, cat) — now resolved with placeholders."
-  },
-  "next_action": "Verify crop item sprites load via items_atlas dynamic system. Wire any that don't. Then verify UI sprite coverage."
+    "bounded_type_wiring": "COMPLETE (src/ + tests/)",
+    "audit_fixes": "AUD-001 thru AUD-010 resolved. AUD-004/005/006 deferred. AUD-009/011/012 noted.",
+    "horse_cat_scaffold": "COMPLETE (placeholder sprites, full pipeline)",
+    "next": "Verify crop item dynamic loading. Wire remaining UI sprites. Await Auditor verification of AUD-010 fix."
+  }
 }
