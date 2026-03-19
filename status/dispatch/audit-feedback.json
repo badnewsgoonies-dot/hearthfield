@@ -127,7 +127,7 @@
     }
   ],
   "summary": {
-    "errors": 3,
+    "errors": 0,
     "warnings": 3,
     "info": 2,
     "false_positives_caught": 7,
@@ -141,7 +141,10 @@
       "crafting/*",
       "data/*"
     ],
-    "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing \u2014 fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment."
+    "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing \u2014 fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment.",
+    "status": "CLEAN \u2014 all errors resolved as of round 4",
+    "open_warnings": 3,
+    "open_warnings_note": "AUD-004/005/006 deferred by Builder. Safe with current constants. Will re-audit when max_health/max_stamina become bounded."
   },
   "round_2": {
     "timestamp": "2026-03-19T17:20:00Z",
@@ -183,32 +186,29 @@
     "cost": "0 premium (manual analysis during Builder idle time)"
   },
   "round_4": {
-    "timestamp": "2026-03-19T17:40:00Z",
+    "timestamp": "2026-03-19T17:45:00Z",
     "commits_reviewed": [
       "2e8d880",
-      "43a0a3d",
       "f6f554b",
-      "448ef20",
       "10e5c19"
     ],
     "findings": [],
     "verification": {
-      "AUD-001": "FIXED \u2713 \u2014 gold.rs:24 now has .min(9_999_999) after saturating_add",
-      "AUD-002": "FIXED \u2713 \u2014 shop.rs:272 now has .min(9_999_999) after saturating_add",
-      "AUD-003": "FIXED \u2713 \u2014 shop_screen.rs:679 bare + replaced with saturating_add + .min(9_999_999)",
-      "AUD-007": "FIXED \u2713 \u2014 contract checksum amended (be9d346...). sha256sum verified: match.",
-      "AUD-008": "FIXED \u2713 \u2014 tutorial.rs:104 *stamina \u2192 stamina.get()",
-      "Happiness test wiring": "CLEAN \u2713 \u2014 day_end.rs assertions now use .get()",
-      "sweep": "CLEAN \u2713 \u2014 zero remaining Gold add sites without .min(9_999_999)"
+      "AUD-001": "FIXED. gold.rs:24 now has .saturating_add(gain).min(9_999_999). Verified.",
+      "AUD-002": "FIXED. shop.rs:272 now has .saturating_add(total_revenue).min(9_999_999). Verified.",
+      "AUD-003": "FIXED. shop_screen.rs:679 replaced bare + with .saturating_add(price).min(9_999_999). Verified.",
+      "AUD-007": "FIXED. .contract.sha256 updated to be9d346... \u2014 matches actual shared/mod.rs. Verified.",
+      "AUD-008": "FIXED. tutorial.rs:104 now uses .get() instead of *deref. Verified.",
+      "AUD-004": "DEFERRED by Builder. Acknowledged \u2014 safe with current game cap of 20.",
+      "AUD-005": "DEFERRED by Builder. Acknowledged \u2014 safe with MAX_HEALTH=100.0.",
+      "AUD-006": "DEFERRED by Builder. Acknowledged \u2014 safe with MAX_STAMINA=100.0."
     },
-    "open_items": {
-      "AUD-004": "warning \u2014 deferred by Builder, accepted (safe with current floor cap)",
-      "AUD-005": "warning \u2014 deferred by Builder, accepted (safe with MAX_HEALTH=100)",
-      "AUD-006": "warning \u2014 deferred by Builder, accepted (safe with MAX_STAMINA=100)",
-      "AUD-009": "info \u2014 systemic 0/336 new() usage. Acknowledged, not blocking."
+    "residual_check": {
+      "bare_gold_subtractions": "2 remaining (gold.rs:33, shop_screen.rs:640). Both pre-guarded by if gold >= cost. Safe \u2014 confirmed in round 1.",
+      "contract_integrity": "PASS \u2014 on-disk checksum matches actual file."
     },
-    "status": "ALL ERRORS RESOLVED. Bounded-type wiring wave audit complete. Ready for sprite generation phase.",
-    "cost": "0 premium (manual verification)"
+    "status": "ALL ERRORS RESOLVED. 0 open errors. 3 warnings deferred (accepted). Bounded-type wiring wave is clean.",
+    "cost": "0 premium (verification only)"
   },
   "final_summary": {
     "total_rounds": 4,
