@@ -9,6 +9,7 @@ pub mod entity_types;
 mod schedule;
 
 pub use schedule::*;
+pub use bounded_types::{Gold, Health, Stamina};
 
 use bevy::prelude::*;
 use ironclad::game_value;
@@ -283,13 +284,13 @@ impl Default for PlayerMovement {
 
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerState {
-    pub stamina: f32,
+    pub stamina: Stamina,
     pub max_stamina: f32,
-    pub health: f32,
+    pub health: Health,
     pub max_health: f32,
     pub equipped_tool: ToolKind,
     pub tools: HashMap<ToolKind, ToolTier>,
-    pub gold: u32,
+    pub gold: Gold,
     pub current_map: MapId,
     #[serde(default)]
     pub save_grid_x: i32,
@@ -308,13 +309,13 @@ impl Default for PlayerState {
         tools.insert(ToolKind::Scythe, ToolTier::Basic);
 
         Self {
-            stamina: MAX_STAMINA,
+            stamina: Stamina::new_unchecked(MAX_STAMINA),
             max_stamina: MAX_STAMINA,
-            health: MAX_HEALTH,
+            health: Health::new_unchecked(MAX_HEALTH),
             max_health: MAX_HEALTH,
             equipped_tool: ToolKind::Hoe,
             tools,
-            gold: 500,
+            gold: Gold::new_unchecked(500),
             current_map: MapId::PlayerHouse,
             save_grid_x: 8,
             save_grid_y: 8,

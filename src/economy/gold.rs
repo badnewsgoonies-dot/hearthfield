@@ -21,32 +21,32 @@ pub fn apply_gold_changes(
     for ev in gold_events.read() {
         if ev.amount >= 0 {
             let gain = ev.amount as u32;
-            player_state.gold = player_state.gold.saturating_add(gain);
+            player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(gain));
             stats.total_gold_earned = stats.total_gold_earned.saturating_add(gain as u64);
             info!(
                 "[Economy] Gold +{}: {}. New balance: {}g",
-                gain, ev.reason, player_state.gold
+                gain, ev.reason, player_state.gold.get()
             );
         } else {
             let cost = (-ev.amount) as u32;
-            if player_state.gold >= cost {
-                player_state.gold -= cost;
+            if player_state.gold.get() >= cost {
+                player_state.gold = Gold::new_unchecked(player_state.gold.get() - cost);
                 stats.total_gold_spent = stats.total_gold_spent.saturating_add(cost as u64);
                 info!(
                     "[Economy] Gold -{}: {}. New balance: {}g",
-                    cost, ev.reason, player_state.gold
+                    cost, ev.reason, player_state.gold.get()
                 );
             } else {
                 // Not enough gold — this should have been validated before sending the event.
                 // Log a warning but still clamp to 0 rather than panic.
                 warn!(
                     "[Economy] Tried to spend {}g but only have {}g (reason: {}). Clamping to 0.",
-                    cost, player_state.gold, ev.reason
+                    cost, player_state.gold.get(), ev.reason
                 );
                 stats.total_gold_spent = stats
                     .total_gold_spent
-                    .saturating_add(player_state.gold as u64);
-                player_state.gold = 0;
+                    .saturating_add(player_state.gold.get() as u64);
+                player_state.gold = Gold::new_unchecked(0);
             }
         }
         stats.total_transactions += 1;

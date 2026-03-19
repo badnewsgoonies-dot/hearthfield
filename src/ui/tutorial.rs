@@ -101,7 +101,7 @@ pub fn check_tutorial_hints(
                     && calendar.season != Season::Spring
                     && calendar.total_days_elapsed() > 0
             }
-            "low_stamina" => player_state.stamina < 20.0,
+            "low_stamina" => *player_state.stamina < 20.0,
             // Fix 4: Shipping bin hint — triggers when any crop is nearing maturity
             "shipping_bin" => farm_state.crops.values().any(|c| c.current_stage >= 3),
             // Fix 5: Inventory hint — triggers on Day 1 morning

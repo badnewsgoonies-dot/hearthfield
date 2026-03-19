@@ -6,7 +6,7 @@ pub struct Stamina(pub f32);
 #[game_value(min = 0, max = 100)]
 pub struct Health(pub f32);
 
-#[game_value(min = 0, max = 999999)]
+#[game_value(min = 0, max = 9999999)]
 pub struct Gold(pub u32);
 
 #[game_value(min = 0, max = 255)]

@@ -92,11 +92,11 @@ pub fn handle_building_upgrade_request(
         }
 
         // 2. Check if player has enough gold.
-        if player_state.gold < gold_cost {
+        if player_state.gold.get() < gold_cost {
             toast_writer.send(ToastEvent {
                 message: format!(
                     "Not enough gold! Need {}g, have {}g.",
-                    gold_cost, player_state.gold
+                    gold_cost, player_state.gold.get()
                 ),
                 duration_secs: 3.0,
             });

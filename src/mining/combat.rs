@@ -248,7 +248,7 @@ pub fn enemy_attack_player(
         if dist <= 1 {
             // Attack!
             let damage = monster.damage;
-            player_state.health = (player_state.health - damage).max(0.0);
+            player_state.health = Health::new_unchecked((*player_state.health - damage).max(0.0));
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "player_hurt".to_string(),
@@ -285,14 +285,14 @@ pub fn check_player_knockout(
         return;
     }
 
-    if player_state.health <= 0.0 {
+    if *player_state.health <= 0.0 {
         // Knockout! Player wakes up at home with reduced health/gold.
         sfx_events.send(PlaySfxEvent {
             sfx_id: "player_knockout".to_string(),
         });
 
         // Lose 10% of gold (min 0)
-        let gold_loss = (player_state.gold as f32 * 0.10) as i32;
+        let gold_loss = (player_state.gold.get() as f32 * 0.10) as i32;
         if gold_loss > 0 {
             gold_events.send(GoldChangeEvent {
                 amount: -gold_loss,
@@ -301,7 +301,7 @@ pub fn check_player_knockout(
         }
 
         // Restore partial health
-        player_state.health = player_state.max_health * 0.5;
+        player_state.health = Health::new_unchecked(player_state.max_health * 0.5);
         iframes.timer = Timer::from_seconds(0.0, TimerMode::Once);
 
         // Reset mine state

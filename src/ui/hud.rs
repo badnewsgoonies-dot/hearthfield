@@ -1008,7 +1008,7 @@ pub fn update_stamina_bar(
     time: Res<Time>,
     mut query: Query<(&mut Node, &mut BackgroundColor), With<HudStaminaFill>>,
 ) {
-    let ratio = (player.stamina / player.max_stamina).clamp(0.0, 1.0);
+    let ratio = (player.stamina.get() / player.max_stamina).clamp(0.0, 1.0);
     let is_critical = ratio < 0.25;
 
     // Skip update if player hasn't changed and we're not in critical pulse mode
@@ -1045,7 +1045,7 @@ pub fn update_health_bar(
     time: Res<Time>,
     mut query: Query<(&mut Node, &mut BackgroundColor), With<HudHealthFill>>,
 ) {
-    let ratio = (player.health / player.max_health).clamp(0.0, 1.0);
+    let ratio = (player.health.get() / player.max_health).clamp(0.0, 1.0);
     let is_critical = ratio < 0.25;
 
     if !player.is_changed() && !is_critical {

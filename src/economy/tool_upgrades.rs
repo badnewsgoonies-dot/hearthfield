@@ -56,7 +56,7 @@ pub fn can_afford_upgrade(
         None => return Err("Tool is already at maximum tier"),
     };
 
-    if player_state.gold < cost.gold_cost {
+    if player_state.gold.get() < cost.gold_cost {
         return Err("Not enough gold");
     }
 

@@ -191,10 +191,11 @@ pub fn handle_eat_food(
         inventory.try_remove(item_id, 1);
 
         // Restore stamina, capped at max_stamina.
-        let before = player_state.stamina;
+        let before = player_state.stamina.get();
         let restored = event.stamina_restore.max(0.0);
-        player_state.stamina = (player_state.stamina + restored).min(player_state.max_stamina);
-        let actual_restore = player_state.stamina - before;
+        player_state.stamina =
+            Stamina::new_unchecked((player_state.stamina.get() + restored).min(player_state.max_stamina));
+        let actual_restore = player_state.stamina.get() - before;
 
         info!(
             "Player ate '{}': stamina {:.0} -> {:.0} (+{:.0})",
@@ -346,7 +347,8 @@ pub fn apply_buff_effects(
         if let Some(original) = *original_max_stamina {
             if (player_state.max_stamina - original).abs() > 0.01 {
                 // Clamp current stamina so it doesn't exceed the restored max.
-                player_state.stamina = player_state.stamina.min(original);
+                player_state.stamina =
+                    Stamina::new_unchecked(player_state.stamina.get().min(original));
                 player_state.max_stamina = original;
             }
             *original_max_stamina = None;

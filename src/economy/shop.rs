@@ -84,7 +84,7 @@ pub fn on_enter_shop(
             shop_id,
             &shop_data,
             &item_registry,
-            player_state.gold,
+            player_state.gold.get(),
             calendar.season,
         );
 
@@ -104,7 +104,7 @@ pub fn refresh_shop_affordability(
     if active_shop.shop_id.is_none() {
         return;
     }
-    let gold = player_state.gold;
+    let gold = player_state.gold.get();
     for listing in active_shop.listings.iter_mut() {
         listing.can_afford = gold >= listing.price;
     }
@@ -205,10 +205,10 @@ pub fn try_buy(
     let max_cost = price_per_unit.saturating_mul(quantity as u32);
 
     // Check gold.
-    if player_state.gold < max_cost {
+    if player_state.gold.get() < max_cost {
         return TransactionResult::InsufficientGold {
             need: max_cost,
-            have: player_state.gold,
+            have: player_state.gold.get(),
         };
     }
 
@@ -223,7 +223,7 @@ pub fn try_buy(
     let total_cost = price_per_unit.saturating_mul(actually_added as u32);
 
     // Deduct gold.
-    player_state.gold = player_state.gold.saturating_sub(total_cost);
+    player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_sub(total_cost));
 
     TransactionResult::Success { total: total_cost }
 }
@@ -269,7 +269,7 @@ pub fn try_sell(
     inventory.try_remove(item_id, quantity);
 
     // Add gold.
-    player_state.gold = player_state.gold.saturating_add(total_revenue);
+    player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(total_revenue));
 
     TransactionResult::Success {
         total: total_revenue,
@@ -340,7 +340,7 @@ mod tests {
 
     fn default_player(gold: u32) -> PlayerState {
         let mut ps = PlayerState::default();
-        ps.gold = gold;
+        ps.gold = Gold::new_unchecked(gold);
         ps
     }
 
@@ -352,7 +352,7 @@ mod tests {
 
         let result = try_buy("seeds", 5, 20, &mut player, &mut inv, &registry);
         assert_eq!(result, TransactionResult::Success { total: 100 });
-        assert_eq!(player.gold, 400);
+        assert_eq!(player.gold.get(), 400);
         assert_eq!(inv.count("seeds"), 5);
     }
 
@@ -370,7 +370,7 @@ mod tests {
                 have: 50
             }
         );
-        assert_eq!(player.gold, 50); // unchanged
+        assert_eq!(player.gold.get(), 50); // unchanged
     }
 
     #[test]

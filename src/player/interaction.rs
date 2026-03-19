@@ -623,7 +623,7 @@ pub fn handle_day_end(
 ) {
     for _ev in events.read() {
         // Restore stamina fully.
-        player_state.stamina = player_state.max_stamina;
+        player_state.stamina = Stamina::new_unchecked(player_state.max_stamina);
 
         // If the player is in the mine, the mining domain handles the transition
         // (with gold penalty and partial health restore). Skip here.
@@ -633,7 +633,7 @@ pub fn handle_day_end(
         }
 
         // Restore health fully.
-        player_state.health = player_state.max_health;
+        player_state.health = Health::new_unchecked(player_state.max_health);
 
         let bed_gx = 12;
         let bed_gy = 4;
@@ -668,7 +668,7 @@ pub fn check_stamina_consequences(
     mut day_end_events: EventWriter<DayEndEvent>,
     mut has_passed_out: Local<bool>,
 ) {
-    if player_state.stamina <= 0.0 && calendar.hour >= 24 {
+    if *player_state.stamina <= 0.0 && calendar.hour >= 24 {
         // Only fire once per exhaustion episode; reset when stamina recovers.
         if !*has_passed_out {
             *has_passed_out = true;
@@ -682,7 +682,7 @@ pub fn check_stamina_consequences(
                 year: calendar.year,
             });
         }
-    } else if player_state.stamina > 0.0 {
+    } else if *player_state.stamina > 0.0 {
         // Reset the flag once stamina is restored (e.g. after sleep).
         *has_passed_out = false;
     }

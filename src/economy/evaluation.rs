@@ -199,7 +199,7 @@ pub fn handle_evaluation(
 
         // ── Extras (1 point) ──────────────────────────────────────────────────
         // Have 1,000,000 gold on hand right now
-        if player_state.gold >= 1_000_000 {
+        if player_state.gold.get() >= 1_000_000 {
             categories.insert("extras_1m_gold".to_string(), 1);
             total += 1;
         }

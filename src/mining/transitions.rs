@@ -82,7 +82,7 @@ pub fn handle_day_end_in_mine(
     for _event in day_events.read() {
         if in_mine.0 {
             // Player passed out in the mine — penalty
-            let gold_loss = (player_state.gold as f32 * 0.10) as i32;
+            let gold_loss = (player_state.gold.get() as f32 * 0.10) as i32;
             if gold_loss > 0 {
                 gold_events.send(GoldChangeEvent {
                     amount: -gold_loss,
@@ -91,8 +91,8 @@ pub fn handle_day_end_in_mine(
             }
 
             // Restore health partially, stamina fully
-            player_state.health = player_state.max_health * 0.5;
-            player_state.stamina = player_state.max_stamina;
+            player_state.health = Health::new_unchecked(player_state.max_health * 0.5);
+            player_state.stamina = Stamina::new_unchecked(player_state.max_stamina);
 
             // Exit mine
             mine_state.current_floor = 0;

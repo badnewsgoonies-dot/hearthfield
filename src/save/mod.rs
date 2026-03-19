@@ -464,7 +464,7 @@ impl FullSaveFile {
             day: self.calendar.day,
             season: self.calendar.season,
             year: self.calendar.year,
-            gold: self.player_state.gold,
+            gold: self.player_state.gold.get(),
             farm_name: self.farm_name.clone(),
             play_time_seconds: self.play_time_seconds,
             save_timestamp: self.save_timestamp,

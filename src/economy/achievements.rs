@@ -231,7 +231,7 @@ fn evaluate_condition(
         // ── Economy ──────────────────────────────────────────────────────
         "deep_pockets" => stats.total_gold_earned >= 100_000,
         "steady_income" => stats.total_gold_earned >= 10_000,
-        "millionaire" => player.gold >= 1_000_000,
+        "millionaire" => player.gold.get() >= 1_000_000,
         "shipping_mogul" => stats.items_shipped >= 500,
 
         // ── Mining ───────────────────────────────────────────────────────
@@ -611,7 +611,7 @@ mod tests {
         let house = HouseState::default();
         let farm = FarmState::default();
 
-        player.gold = 999_999;
+        player.gold = Gold::new_unchecked(999_999);
         assert!(!evaluate_condition(
             "millionaire",
             &stats,
@@ -626,7 +626,7 @@ mod tests {
             &farm,
         ));
 
-        player.gold = 1_000_000;
+        player.gold = Gold::new_unchecked(1_000_000);
         assert!(evaluate_condition(
             "millionaire",
             &stats,

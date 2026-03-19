@@ -126,10 +126,10 @@ pub fn handle_upgrade_request(
 
         // Gold cost is the upgrade_cost of the *target* tier.
         let gold_cost = target_tier.upgrade_cost();
-        if player_state.gold < gold_cost {
+        if player_state.gold.get() < gold_cost {
             info!(
                 "[Economy] Cannot upgrade {:?} to {:?}: need {}g, have {}g.",
-                ev.tool, target_tier, gold_cost, player_state.gold
+                ev.tool, target_tier, gold_cost, player_state.gold.get()
             );
             sfx_writer.send(PlaySfxEvent {
                 sfx_id: "ui_deny".to_string(),

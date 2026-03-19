@@ -348,7 +348,7 @@ fn build_upgrade_entries(
             let gold_cost = target_tier.upgrade_cost();
             let bar_qty = current_tier.upgrade_bars_needed();
             let bar_id = current_tier.upgrade_bar_item()?;
-            let can_afford = player.gold >= gold_cost;
+            let can_afford = player.gold.get() >= gold_cost;
             let has_bars = inventory.has(bar_id, bar_qty);
             let is_upgrading = queue.is_upgrading(tool);
             Some(ToolUpgradeDisplayEntry {
@@ -488,7 +488,7 @@ pub fn update_shop_display(
                 let listing = &ui_state.buy_items[idx];
                 **text = format!("{} G", listing.price);
                 // Red if can't afford, gold if can
-                if listing.price > player.gold {
+                if listing.price > player.gold.get() {
                     *color = TextColor(Color::srgb(0.8, 0.3, 0.3));
                 } else {
                     *color = TextColor(Color::srgb(1.0, 0.84, 0.0));
@@ -630,14 +630,14 @@ pub fn shop_navigation(
             // Buy
             if ui_state.cursor < ui_state.buy_items.len() {
                 let listing = ui_state.buy_items[ui_state.cursor].clone();
-                if player.gold >= listing.price {
+                if player.gold.get() >= listing.price {
                     let max_stack = item_registry
                         .get(&listing.item_id)
                         .map(|d| d.stack_size)
                         .unwrap_or(99);
                     let overflow = inventory.try_add(&listing.item_id, 1, max_stack);
                     if overflow == 0 {
-                        player.gold -= listing.price;
+                        player.gold = Gold::new_unchecked(player.gold.get() - listing.price);
                         tx_events.send(ShopTransactionEvent {
                             shop_id: ui_state.shop_id,
                             item_id: listing.item_id,
@@ -676,7 +676,7 @@ pub fn shop_navigation(
                 let (ref item_id, _, price, _) = ui_state.sell_items[ui_state.cursor];
                 let removed = inventory.try_remove(item_id, 1);
                 if removed > 0 {
-                    player.gold += price;
+                    player.gold = Gold::new_unchecked(player.gold.get() + price);
                     tx_events.send(ShopTransactionEvent {
                         shop_id: ui_state.shop_id,
                         item_id: item_id.clone(),

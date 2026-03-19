@@ -392,10 +392,10 @@ pub fn building_upgrade_navigation(
         let Some(to_tier) = entry.to_tier else { return };
 
         // Check gold
-        if player_state.gold < entry.cost_gold {
+        if player_state.gold.get() < entry.cost_gold {
             ui_state.status_message = format!(
                 "Not enough gold! Need {}g, have {}g.",
-                entry.cost_gold, player_state.gold
+                entry.cost_gold, player_state.gold.get()
             );
             ui_state.status_timer = 2.5;
             return;

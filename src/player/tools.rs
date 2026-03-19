@@ -85,7 +85,7 @@ pub fn tool_use(
     }
 
     // Check stamina — disallow if insufficient.
-    if player_state.stamina < cost {
+    if *player_state.stamina < cost {
         sfx_events.send(PlaySfxEvent {
             sfx_id: "error".to_string(),
         });
@@ -151,7 +151,8 @@ pub fn stamina_drain_handler(
     mut player_state: ResMut<PlayerState>,
 ) {
     for ev in events.read() {
-        player_state.stamina = (player_state.stamina - ev.amount).max(0.0);
+        player_state.stamina =
+            Stamina::new_unchecked((player_state.stamina.get() - ev.amount).max(0.0));
     }
 }
 
@@ -164,7 +165,7 @@ pub fn stamina_low_warning(
 ) {
     let threshold = player_state.max_stamina * 0.25;
 
-    if player_state.stamina <= threshold && !*warned {
+    if *player_state.stamina <= threshold && !*warned {
         *warned = true;
         toast_events.send(ToastEvent {
             message: "You're getting tired... consider resting or eating.".into(),
@@ -173,7 +174,7 @@ pub fn stamina_low_warning(
     }
 
     // Reset warning when stamina recovers above threshold
-    if player_state.stamina > threshold {
+    if *player_state.stamina > threshold {
         *warned = false;
     }
 }
