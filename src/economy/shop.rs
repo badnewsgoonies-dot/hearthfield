@@ -214,7 +214,7 @@ pub fn try_buy(
 
     // Add to inventory. try_add returns the number of items that
     // could NOT be added (remaining). If remaining == quantity, nothing was added.
-    let remaining = inventory.try_add(item_id, quantity, item_def.stack_size);
+    let remaining = inventory.try_add(item_id, quantity, item_def.stack_size.get());
     if remaining == quantity {
         return TransactionResult::InventoryFull;
     }
@@ -328,7 +328,7 @@ mod tests {
                     category: ItemCategory::Crop,
                     sell_price,
                     buy_price: None,
-                    stack_size: stack as u8,
+                    stack_size: StackSize::new_unchecked(stack as u8),
                     edible: false,
                     energy_restore: 0.0,
                     sprite_index: 0,

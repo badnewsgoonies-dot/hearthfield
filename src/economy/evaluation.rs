@@ -107,7 +107,7 @@ pub fn handle_evaluation(
         let npcs_at_8_hearts = relationships
             .friendship
             .values()
-            .filter(|&&pts| pts >= 800)
+            .filter(|pts| pts.get() >= 800)
             .count();
         if npcs_at_8_hearts >= 5 {
             categories.insert("friends_5_at_8_hearts".to_string(), 1);
@@ -118,7 +118,7 @@ pub fn handle_evaluation(
         let npcs_at_5_hearts = relationships
             .friendship
             .values()
-            .filter(|&&pts| pts >= 500)
+            .filter(|pts| pts.get() >= 500)
             .count();
         if npcs_at_5_hearts >= 10 {
             categories.insert("friends_10_at_5_hearts".to_string(), 1);

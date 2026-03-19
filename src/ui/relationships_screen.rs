@@ -347,7 +347,11 @@ fn spawn_detail_children(
     };
 
     let hearts = relationships.hearts(id);
-    let points = relationships.friendship.get(id).copied().unwrap_or(0);
+    let points = relationships
+        .friendship
+        .get(id)
+        .copied()
+        .unwrap_or(Friendship::new_unchecked(0));
 
     // NPC name header
     parent.spawn((
@@ -376,7 +380,7 @@ fn spawn_detail_children(
 
     // Friendship — sprite hearts row + text
     parent.spawn((
-        Text::new(format!("Friendship: {} pts", points)),
+        Text::new(format!("Friendship: {} pts", points.get())),
         TextFont {
             font: font.clone(),
             font_size: 12.0,

@@ -173,7 +173,7 @@ pub fn handle_craft_item(
         // Produce the result
         let max_stack = item_registry
             .get(&recipe.result)
-            .map(|d| d.stack_size)
+            .map(|d| d.stack_size.get())
             .unwrap_or(99);
 
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
@@ -315,7 +315,7 @@ pub fn refund_ingredients(inventory: &mut Inventory, recipe: &Recipe, registry: 
         if item_id == "any_fish" {
             continue;
         }
-        let max_stack = registry.get(item_id).map(|d| d.stack_size).unwrap_or(99);
+        let max_stack = registry.get(item_id).map(|d| d.stack_size.get()).unwrap_or(99);
         let leftover = inventory.try_add(item_id, *qty, max_stack);
         if leftover > 0 {
             warn!(

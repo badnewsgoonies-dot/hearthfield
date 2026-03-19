@@ -580,7 +580,7 @@ pub fn add_items_to_inventory(
     for ev in pickup_events.read() {
         let max_stack = item_registry
             .get(&ev.item_id)
-            .map(|def| def.stack_size)
+            .map(|def| def.stack_size.get())
             .unwrap_or(99);
         let remaining = inventory.try_add(&ev.item_id, ev.quantity, max_stack);
         if remaining == 0 {
@@ -709,7 +709,7 @@ pub fn grant_starter_items(mut inventory: ResMut<Inventory>, item_registry: Res<
     for (item_id, qty) in &starters {
         let max_stack = item_registry
             .get(item_id)
-            .map(|def| def.stack_size)
+            .map(|def| def.stack_size.get())
             .unwrap_or(99);
         inventory.try_add(item_id, *qty, max_stack);
     }

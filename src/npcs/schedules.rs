@@ -120,8 +120,12 @@ pub fn check_farm_visits(
             continue;
         }
 
-        let friendship = relationships.friendship.get(&npc_id).copied().unwrap_or(0);
-        if friendship < 800 {
+        let friendship = relationships
+            .friendship
+            .get(&npc_id)
+            .copied()
+            .unwrap_or(Friendship::new_unchecked(0));
+        if friendship.get() < 800 {
             // Not enough hearts yet
             tracker.rolled_today.push(npc_id);
             continue;

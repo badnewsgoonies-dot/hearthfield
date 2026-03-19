@@ -15,6 +15,12 @@ pub struct Happiness(pub u8);
 #[game_value(min = 0, max = 1000)]
 pub struct Friendship(pub u32);
 
+impl Default for Friendship {
+    fn default() -> Self {
+        Self::new_unchecked(0)
+    }
+}
+
 #[game_value(min = 1, max = 99)]
 pub struct StackSize(pub u8);
 

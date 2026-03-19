@@ -169,8 +169,12 @@ pub fn build_dialogue_lines(
     if let Some(tier_lines) = npc_def.heart_dialogue.get(&tier) {
         if !tier_lines.is_empty() {
             // Pick pseudo-randomly based on total friendship to vary lines day-to-day
-            let total_pts = relationships.friendship.get(npc_id).copied().unwrap_or(0);
-            let idx = (total_pts as usize / 5) % tier_lines.len();
+            let total_pts = relationships
+                .friendship
+                .get(npc_id)
+                .copied()
+                .unwrap_or(Friendship::new_unchecked(0));
+            let idx = (total_pts.get() as usize / 5) % tier_lines.len();
             lines.push(tier_lines[idx].clone());
             // Add a second line if available
             if tier_lines.len() > 1 {
@@ -199,8 +203,12 @@ pub fn build_dialogue_lines(
 
     // Ultimate fallback: default dialogue
     if !npc_def.default_dialogue.is_empty() {
-        let total_pts = relationships.friendship.get(npc_id).copied().unwrap_or(0);
-        let idx = (total_pts as usize) % npc_def.default_dialogue.len();
+        let total_pts = relationships
+            .friendship
+            .get(npc_id)
+            .copied()
+            .unwrap_or(Friendship::new_unchecked(0));
+        let idx = total_pts.get() as usize % npc_def.default_dialogue.len();
         lines.push(npc_def.default_dialogue[idx].clone());
     } else {
         lines.push(format!("Hello there! I'm {}.", npc_def.name));

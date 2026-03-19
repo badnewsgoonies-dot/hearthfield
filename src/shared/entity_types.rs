@@ -8,7 +8,7 @@ pub struct ItemDef {
     pub category: super::ItemCategory,
     pub sell_price: u32,
     pub buy_price: Option<u32>,
-    pub stack_size: u8,
+    pub stack_size: super::StackSize,
     pub edible: bool,
     pub energy_restore: f32,
     pub sprite_index: u32,

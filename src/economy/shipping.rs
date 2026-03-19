@@ -296,7 +296,7 @@ mod tests {
                     category: ItemCategory::Crop,
                     sell_price: price,
                     buy_price: None,
-                    stack_size: 99,
+                    stack_size: StackSize::new_unchecked(99),
                     edible: false,
                     energy_restore: 0.0,
                     sprite_index: 0,

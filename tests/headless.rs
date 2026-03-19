@@ -540,7 +540,7 @@ fn test_shipping_bin_sells_on_day_end() {
                 category: ItemCategory::Crop,
                 sell_price: 35,
                 buy_price: None,
-                stack_size: 99,
+                stack_size: StackSize::new_unchecked(99),
                 edible: true,
                 energy_restore: 10.0,
                 sprite_index: 0,
@@ -1004,7 +1004,7 @@ fn test_multi_day_shipping_accumulation() {
                 category: ItemCategory::AnimalProduct,
                 sell_price: 50,
                 buy_price: None,
-                stack_size: 99,
+                stack_size: StackSize::new_unchecked(99),
                 edible: true,
                 energy_restore: 5.0,
                 sprite_index: 0,
@@ -4792,7 +4792,7 @@ fn test_ecs_handle_craft_item_consumes_ingredients_and_produces_result() {
                 .map(|(item_id, _)| {
                     item_registry
                         .get(item_id)
-                        .map(|d| d.stack_size)
+                        .map(|d| d.stack_size.get())
                         .unwrap_or(99)
                 })
                 .collect()
@@ -5305,7 +5305,7 @@ fn test_consume_then_refund_roundtrips_ingredients() {
 
     // Add exactly the required ingredients
     for (item_id, qty) in &recipe.ingredients {
-        let max = registry.get(item_id).map(|d| d.stack_size).unwrap_or(99);
+        let max = registry.get(item_id).map(|d| d.stack_size.get()).unwrap_or(99);
         inventory.try_add(item_id, *qty, max);
     }
 
@@ -5410,7 +5410,7 @@ fn test_craft_full_inventory_no_item_duplication() {
     consume_ingredients(&mut inventory, &recipe);
     let max_stack = registry
         .get(&recipe.result)
-        .map(|d| d.stack_size)
+        .map(|d| d.stack_size.get())
         .unwrap_or(99);
     let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
 

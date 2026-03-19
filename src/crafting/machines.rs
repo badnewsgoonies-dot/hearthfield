@@ -627,7 +627,7 @@ pub fn handle_insert_machine_input(
             if removed > 0 {
                 let max_stack = item_registry
                     .get(&event.item_id)
-                    .map(|d| d.stack_size)
+                    .map(|d| d.stack_size.get())
                     .unwrap_or(99);
                 inventory.try_add(&event.item_id, removed, max_stack);
             }
@@ -717,7 +717,7 @@ pub fn handle_collect_machine_output(
 
         let max_stack = item_registry
             .get(output_id)
-            .map(|d| d.stack_size)
+            .map(|d| d.stack_size.get())
             .unwrap_or(99);
 
         let leftover = inventory.try_add(output_id, 1, max_stack);

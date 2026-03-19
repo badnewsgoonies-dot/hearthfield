@@ -633,7 +633,7 @@ pub fn shop_navigation(
                 if player.gold.get() >= listing.price {
                     let max_stack = item_registry
                         .get(&listing.item_id)
-                        .map(|d| d.stack_size)
+                        .map(|d| d.stack_size.get())
                         .unwrap_or(99);
                     let overflow = inventory.try_add(&listing.item_id, 1, max_stack);
                     if overflow == 0 {

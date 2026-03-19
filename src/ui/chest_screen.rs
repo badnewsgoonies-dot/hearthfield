@@ -521,7 +521,7 @@ fn transfer_from_chest_to_inventory(
 
     let max_stack = item_registry
         .get(&stack.item_id)
-        .map(|def| def.stack_size)
+        .map(|def| def.stack_size.get())
         .unwrap_or(99);
 
     let remaining = inventory.try_add(&stack.item_id, stack.quantity, max_stack);

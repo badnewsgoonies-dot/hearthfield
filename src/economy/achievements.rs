@@ -208,12 +208,12 @@ fn evaluate_condition(
             let count_five = relationships
                 .friendship
                 .values()
-                .filter(|&&pts| pts >= 500) // 5 hearts = 500 pts
+                .filter(|pts| pts.get() >= 500) // 5 hearts = 500 pts
                 .count();
             count_five >= 5
         }
         "best_friends" => {
-            relationships.friendship.values().any(|&pts| pts >= 1_000) // 10 hearts = 1000 pts
+            relationships.friendship.values().any(|pts| pts.get() >= 1_000) // 10 hearts = 1000 pts
         }
         "community_pillar" => {
             // All 10 main NPCs must have 5+ hearts.
@@ -222,7 +222,7 @@ fn evaluate_condition(
             let qualifying: Vec<_> = relationships
                 .friendship
                 .iter()
-                .filter(|(_, &pts)| pts >= 500)
+                .filter(|(_, pts)| pts.get() >= 500)
                 .collect();
             qualifying.len() >= 10
         }

@@ -143,7 +143,7 @@ pub fn handle_cook_item(
         // Produce the result
         let max_stack = item_registry
             .get(&recipe.result)
-            .map(|d| d.stack_size)
+            .map(|d| d.stack_size.get())
             .unwrap_or(99);
 
         let leftover = inventory.try_add(&recipe.result, recipe.result_quantity, max_stack);
@@ -163,7 +163,7 @@ pub fn handle_cook_item(
                 if has_any_fish_ingredient {
                     let fish_stack = item_registry
                         .get(fish_id.as_str())
-                        .map(|d| d.stack_size)
+                        .map(|d| d.stack_size.get())
                         .unwrap_or(99);
                     inventory.try_add(fish_id, 1, fish_stack);
                 }
@@ -279,7 +279,7 @@ fn refund_non_wildcard_ingredients(
         if item_id == "any_fish" {
             continue;
         }
-        let max_stack = registry.get(item_id).map(|d| d.stack_size).unwrap_or(99);
+        let max_stack = registry.get(item_id).map(|d| d.stack_size.get()).unwrap_or(99);
         inventory.try_add(item_id, *qty, max_stack);
     }
 }

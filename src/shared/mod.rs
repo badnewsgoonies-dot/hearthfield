@@ -9,7 +9,9 @@ pub mod entity_types;
 mod schedule;
 
 pub use schedule::*;
-pub use bounded_types::{BuildingLevel, Gold, Happiness, Health, MineFloor, Stamina};
+pub use bounded_types::{
+    BuildingLevel, Friendship, Gold, Happiness, Health, MineFloor, StackSize, Stamina,
+};
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -355,7 +357,7 @@ pub struct ItemDef {
     pub category: ItemCategory,
     pub sell_price: u32,
     pub buy_price: Option<u32>, // None = not buyable
-    pub stack_size: u8,         // max per slot (1 for tools, 99 for most items)
+    pub stack_size: StackSize,  // max per slot (1 for tools, 99 for most items)
     pub edible: bool,
     pub energy_restore: f32, // if edible
     pub sprite_index: u32,   // atlas index
@@ -698,20 +700,29 @@ pub struct NpcSchedule {
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Relationships {
     /// NPC id → friendship points (0-1000, 100 per heart)
-    pub friendship: HashMap<NpcId, u32>,
+    pub friendship: HashMap<NpcId, Friendship>,
     pub gifted_today: HashMap<NpcId, bool>,
     pub spouse: Option<NpcId>,
 }
 
 impl Relationships {
     pub fn hearts(&self, npc_id: &str) -> u8 {
-        let points = self.friendship.get(npc_id).copied().unwrap_or(0);
-        (points / 100).min(10) as u8
+        let points = self
+            .friendship
+            .get(npc_id)
+            .copied()
+            .unwrap_or(Friendship::new_unchecked(0));
+        (points.get() / 100).min(10) as u8
     }
 
     pub fn add_friendship(&mut self, npc_id: &str, amount: i32) {
-        let entry = self.friendship.entry(npc_id.to_string()).or_insert(0);
-        *entry = (*entry as i32 + amount).clamp(0, MAX_FRIENDSHIP as i32) as u32;
+        let entry = self
+            .friendship
+            .entry(npc_id.to_string())
+            .or_insert(Friendship::new_unchecked(0));
+        *entry = Friendship::new_unchecked(
+            ((entry.get() as i32 + amount).max(0).min(MAX_FRIENDSHIP as i32)) as u32,
+        );
     }
 }
 
@@ -2175,7 +2186,8 @@ mod tests {
     #[test]
     fn test_relationships_hearts_calculation() {
         let mut rel = Relationships::default();
-        rel.friendship.insert("elena".to_string(), 500);
+        rel.friendship
+            .insert("elena".to_string(), Friendship::new_unchecked(500));
         assert_eq!(rel.hearts("elena"), 5);
     }
 
@@ -2184,7 +2196,7 @@ mod tests {
         let mut rel = Relationships::default();
         rel.add_friendship("elena", 2000);
         // Should clamp to 1000
-        assert_eq!(*rel.friendship.get("elena").unwrap(), 1000);
+        assert_eq!(rel.friendship.get("elena").unwrap().get(), 1000);
     }
 
     #[test]
@@ -2192,24 +2204,28 @@ mod tests {
         let mut rel = Relationships::default();
         rel.add_friendship("elena", 50);
         rel.add_friendship("elena", -100);
-        assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
+        assert_eq!(rel.friendship.get("elena").unwrap().get(), 0);
     }
 
     #[test]
     fn test_add_friendship_clamps_at_max() {
         let mut rel = Relationships::default();
         rel.friendship
-            .insert("elena".to_string(), MAX_FRIENDSHIP - 10);
+            .insert(
+                "elena".to_string(),
+                Friendship::new_unchecked(MAX_FRIENDSHIP - 10),
+            );
         rel.add_friendship("elena", 100);
-        assert_eq!(*rel.friendship.get("elena").unwrap(), MAX_FRIENDSHIP);
+        assert_eq!(rel.friendship.get("elena").unwrap().get(), MAX_FRIENDSHIP);
     }
 
     #[test]
     fn test_add_friendship_clamps_at_zero() {
         let mut rel = Relationships::default();
-        rel.friendship.insert("elena".to_string(), 10);
+        rel.friendship
+            .insert("elena".to_string(), Friendship::new_unchecked(10));
         rel.add_friendship("elena", -100);
-        assert_eq!(*rel.friendship.get("elena").unwrap(), 0);
+        assert_eq!(rel.friendship.get("elena").unwrap().get(), 0);
     }
 
     #[test]
