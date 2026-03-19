@@ -1,0 +1,7 @@
+`spawn_agents_on_csv` completed for [`status/tasks/fix-unchecked.csv`](/home/claude/hearthfield/status/tasks/fix-unchecked.csv). Both worker rows finished successfully and wrote code. Results were exported to [`status/tasks/fix-unchecked-results.csv`](/home/claude/hearthfield/status/tasks/fix-unchecked-results.csv).
+
+`fix-computed` completed. It added missing upper clamps for computed `new_unchecked(...)` paths and reported changes in [`src/mining/combat.rs`](/home/claude/hearthfield/src/mining/combat.rs), [`src/mining/ladder.rs`](/home/claude/hearthfield/src/mining/ladder.rs), [`src/mining/transitions.rs`](/home/claude/hearthfield/src/mining/transitions.rs), [`src/player/tools.rs`](/home/claude/hearthfield/src/player/tools.rs), and [`src/crafting/buffs.rs`](/home/claude/hearthfield/src/crafting/buffs.rs). Validation: `cargo check --lib` passed.
+
+`fix-runtime` completed. It replaced runtime-fed `new_unchecked()` construction with validate-then-clamp logic and reported changes in [`src/mining/ladder.rs`](/home/claude/hearthfield/src/mining/ladder.rs), [`src/animals/day_end.rs`](/home/claude/hearthfield/src/animals/day_end.rs), and [`src/animals/interaction.rs`](/home/claude/hearthfield/src/animals/interaction.rs). Validation: `cargo check --lib` passed.
+
+The workers noted existing unrelated warnings in [`src/ui/calendar_screen.rs`](/home/claude/hearthfield/src/ui/calendar_screen.rs) and [`src/world/mod.rs`](/home/claude/hearthfield/src/world/mod.rs). Current working tree includes those modified files plus the generated results CSV.

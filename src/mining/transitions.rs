@@ -91,7 +91,7 @@ pub fn handle_day_end_in_mine(
             }
 
             // Restore health partially, stamina fully
-            player_state.health = Health::new_unchecked(player_state.max_health * 0.5);
+            player_state.health = Health::new_unchecked((player_state.max_health * 0.5).min(100.0));
             player_state.stamina = Stamina::new_unchecked(player_state.max_stamina);
 
             // Exit mine

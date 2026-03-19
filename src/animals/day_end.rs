@@ -127,40 +127,44 @@ pub fn handle_day_end_for_animals(
             // in [0, 255] — the valid range of `Happiness`.
             if animal.fed_today {
                 // Fed today: +8 happiness.
-                animal.happiness = Happiness::new_unchecked(
-                    animal
-                        .happiness
-                        .get()
-                        .saturating_add(HAPPINESS_FED_BONUS),
-                );
+                let happiness = animal
+                    .happiness
+                    .get()
+                    .saturating_add(HAPPINESS_FED_BONUS);
+                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
+                    Happiness::new_unchecked(happiness.clamp(0, 255))
+                });
             } else {
                 // Not fed: -18 happiness.
-                animal.happiness = Happiness::new_unchecked(
-                    animal
-                        .happiness
-                        .get()
-                        .saturating_sub(HAPPINESS_UNFED_PENALTY),
-                );
+                let happiness = animal
+                    .happiness
+                    .get()
+                    .saturating_sub(HAPPINESS_UNFED_PENALTY);
+                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
+                    Happiness::new_unchecked(happiness.clamp(0, 255))
+                });
             }
 
             if animal.petted_today {
                 // Petting gives an additional +7.
-                animal.happiness = Happiness::new_unchecked(
-                    animal
-                        .happiness
-                        .get()
-                        .saturating_add(HAPPINESS_PETTED_BONUS),
-                );
+                let happiness = animal
+                    .happiness
+                    .get()
+                    .saturating_add(HAPPINESS_PETTED_BONUS);
+                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
+                    Happiness::new_unchecked(happiness.clamp(0, 255))
+                });
             }
 
             if is_outside_on_farm_tile(logical_pos) {
                 // Sunny outdoor bonus: +6.
-                animal.happiness = Happiness::new_unchecked(
-                    animal
-                        .happiness
-                        .get()
-                        .saturating_add(HAPPINESS_OUTDOOR_SUNNY),
-                );
+                let happiness = animal
+                    .happiness
+                    .get()
+                    .saturating_add(HAPPINESS_OUTDOOR_SUNNY);
+                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
+                    Happiness::new_unchecked(happiness.clamp(0, 255))
+                });
             }
 
             // Warn via toast when an animal's happiness drops into danger zones.
@@ -349,7 +353,9 @@ mod tests {
             name: "Testy".to_string(),
             age: AnimalAge::Baby,
             days_old,
-            happiness: Happiness::new_unchecked(happiness),
+            happiness: Happiness::new(happiness).unwrap_or_else(|_| {
+                Happiness::new_unchecked(happiness.clamp(0, 255))
+            }),
             fed_today: false,
             petted_today: false,
             product_ready: false,

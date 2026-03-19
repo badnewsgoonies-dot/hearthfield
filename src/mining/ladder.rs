@@ -48,7 +48,9 @@ pub fn handle_ladder_interaction(
     for (grid_pos, ladder) in ladders.iter() {
         if grid_pos.x == px && grid_pos.y == py && ladder.revealed {
             // Descend!
-            let next_floor = MineFloor::new_unchecked(mine_state.current_floor.get() + 1);
+            let next_floor = MineFloor::new(mine_state.current_floor.get() + 1).unwrap_or_else(|_| {
+                MineFloor::new_unchecked((mine_state.current_floor.get() + 1).clamp(0, 120))
+            });
 
             // Cap at floor 20
             if next_floor.get() > 20 {
@@ -199,7 +201,9 @@ pub fn handle_elevator_selection(
             sfx_id: "mine_elevator".to_string(),
         });
 
-        mine_state.current_floor = MineFloor::new_unchecked(floor);
+        mine_state.current_floor = MineFloor::new(floor).unwrap_or_else(|_| {
+            MineFloor::new_unchecked(floor.clamp(0, 120))
+        });
         elevator_ui.0 = false;
 
         floor_req.pending = true;
