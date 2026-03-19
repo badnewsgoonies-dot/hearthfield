@@ -269,7 +269,7 @@ pub fn try_sell(
     inventory.try_remove(item_id, quantity);
 
     // Add gold.
-    player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(total_revenue));
+    player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(total_revenue).min(9_999_999));
 
     TransactionResult::Success {
         total: total_revenue,

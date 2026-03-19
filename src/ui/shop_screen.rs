@@ -676,7 +676,7 @@ pub fn shop_navigation(
                 let (ref item_id, _, price, _) = ui_state.sell_items[ui_state.cursor];
                 let removed = inventory.try_remove(item_id, 1);
                 if removed > 0 {
-                    player.gold = Gold::new_unchecked(player.gold.get() + price);
+                    player.gold = Gold::new_unchecked(player.gold.get().saturating_add(price).min(9_999_999));
                     tx_events.send(ShopTransactionEvent {
                         shop_id: ui_state.shop_id,
                         item_id: item_id.clone(),

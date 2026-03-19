@@ -21,7 +21,7 @@ pub fn apply_gold_changes(
     for ev in gold_events.read() {
         if ev.amount >= 0 {
             let gain = ev.amount as u32;
-            player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(gain));
+            player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(gain).min(9_999_999));
             stats.total_gold_earned = stats.total_gold_earned.saturating_add(gain as u64);
             info!(
                 "[Economy] Gold +{}: {}. New balance: {}g",
