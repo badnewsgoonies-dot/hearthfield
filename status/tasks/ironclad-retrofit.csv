@@ -1,0 +1,28 @@
+task_name,scope,prompt
+retrofit-game-value,"src/shared/mod.rs","Read ironclad/src/game_value.rs to understand the macro. Read src/shared/mod.rs. Add ironclad as a dependency to the root Cargo.toml: ironclad = { path = \"ironclad\" }. Then add use ironclad::game_value; at the top of src/shared/mod.rs. Create a new file src/shared/bounded_types.rs with these bounded newtypes using the game_value macro:
+
+#[game_value(min = 0, max = 100)]
+pub struct Stamina(f32);
+
+#[game_value(min = 0, max = 100)]
+pub struct Health(f32);
+
+#[game_value(min = 0, max = 999999)]
+pub struct Gold(u32);
+
+#[game_value(min = 0, max = 255)]
+pub struct Happiness(u8);
+
+#[game_value(min = 0, max = 1000)]
+pub struct Friendship(u32);
+
+#[game_value(min = 1, max = 99)]
+pub struct StackSize(u8);
+
+#[game_value(min = 0, max = 120)]
+pub struct MineFloor(u8);
+
+#[game_value(min = 0, max = 3)]
+pub struct BuildingLevel(u8);
+
+Add pub mod bounded_types; to src/shared/mod.rs. Then run: cd /home/claude/hearthfield && cargo check --lib 2>&1 | tail -20. Report whether it compiles."
