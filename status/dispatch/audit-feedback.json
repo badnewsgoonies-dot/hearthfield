@@ -142,8 +142,8 @@
       "data/*"
     ],
     "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing \u2014 fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment.",
-    "status": "BLOCKED on AUD-010: 17 type errors in tests/headless.rs",
-    "open_warnings": 3,
+    "status": "BLOCKED on AUD-010 (test type errors). New: AUD-011/012 (placeholder sprites).",
+    "open_warnings": 5,
     "open_warnings_note": "AUD-004/005/006 deferred by Builder. Safe with current constants. Will re-audit when max_health/max_stamina become bounded."
   },
   "round_2": {
@@ -353,5 +353,45 @@
     ],
     "status": "AUD-010 is BLOCKING. cargo test cannot compile until these 17 sites are fixed. Previous AUD-001/002/003 fixes remain good.",
     "cost": "0 premium (mechanical grep sweep)"
+  },
+  "round_6": {
+    "timestamp": "2026-03-19T18:20:00Z",
+    "commits_reviewed": [
+      "85f4e33",
+      "2302cd1",
+      "bf2c2af",
+      "de3de74"
+    ],
+    "findings": [
+      {
+        "id": "AUD-010",
+        "severity": "error",
+        "status": "STILL OPEN \u2014 Builder moved to sprite generation without fixing. tests/headless.rs still has 17 type errors. cargo test cannot compile.",
+        "action": "MUST be fixed before any further feature work can be validated by tests."
+      },
+      {
+        "id": "AUD-011",
+        "severity": "warning",
+        "file": "assets/sprites/horse.png",
+        "issue": "Gemini vision: all 96 frames are identical (no animation). No transparency. Low detail \u2014 Gemini says does not fit cozy RPG aesthetic. This is a placeholder, not production art.",
+        "dimensions": "768x128 (24 cols x 4 rows of 32x32). Matches atlas layout declaration. Correct.",
+        "suggestion": "Regenerate with gpt-image-1.5 using per-row direction convention (down/left/right/up) and distinct walk-cycle frames. Use background:transparent."
+      },
+      {
+        "id": "AUD-012",
+        "severity": "warning",
+        "file": "assets/sprites/cat.png",
+        "issue": "Gemini vision: all 96 frames are identical repeated silhouettes. No transparency. Lacks detail and shading. Not production quality.",
+        "dimensions": "384x64 (24 cols x 4 rows of 16x16). Matches atlas layout declaration. Correct.",
+        "suggestion": "Same as AUD-011 \u2014 regenerate with proper animation frames and transparency."
+      }
+    ],
+    "code_audit": {
+      "animals/mod.rs": "CLEAN. 4 new Handle fields for horse/cat image+layout. Atlas grid declarations match actual PNG dimensions (verified: horse 768x128=24x4@32, cat 384x64=24x4@16).",
+      "animals/spawning.rs": "CLEAN. Replaced colored-rectangle placeholders with atlas sprite construction. Custom sizes match frame dimensions (horse 32x32, cat 16x16). BottomCenter anchor preserved.",
+      "sprite-gen-spec.md": "Documentation only, no code impact."
+    },
+    "status": "AUD-010 STILL BLOCKING (17 test type errors). AUD-011/012 are asset quality warnings \u2014 sprites are functional placeholders but not production quality.",
+    "cost": "2 Gemini vision probes (free) + 0 Haiku (code audit was small enough to verify manually)"
   }
 }
