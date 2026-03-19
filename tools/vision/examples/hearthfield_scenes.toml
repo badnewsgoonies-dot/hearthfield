@@ -1,0 +1,57 @@
+# Hearthfield Visual Verification Manifest
+# Used by godogen_loop.py and batch_verify.py
+
+[scenes.farm_spring]
+capture_cmd = "cargo run --features headless -- --scene farm_spring --output {output}"
+reference = "screenshots/ref/farm_spring.png"
+assertions = [
+    "Player character sprite is visible on the farm",
+    "Tilled soil tiles are distinguishable from untilled ground",
+    "Crops are visible in planted tiles",
+    "The HUD or UI shows time of day and season",
+]
+
+[scenes.farm_interior]
+capture_cmd = "cargo run --features headless -- --scene farmhouse_interior --output {output}"
+reference = "screenshots/ref/farm_interior.png"
+assertions = [
+    "The farmhouse interior is rendered with furniture visible",
+    "The roof tiles are correctly mapped (no blank/invisible tiles)",
+    "The player can be seen inside the building",
+]
+
+[scenes.bridge_crossing]
+capture_cmd = "cargo run --features headless -- --scene bridge --output {output}"
+reference = "screenshots/ref/bridge_crossing.png"
+assertions = [
+    "The wooden bridge is visible spanning the water",
+    "Bridge planks are rendered (not invisible or blank)",
+    "Water tiles are visible beneath or beside the bridge",
+]
+
+[scenes.mining_area]
+capture_cmd = "cargo run --features headless -- --scene mining --output {output}"
+reference = "screenshots/ref/mining_area.png"
+assertions = [
+    "The mining area has visible floor tiles",
+    "Rock or ore deposits are visible",
+    "There is some visual variation in the floor (not wall-to-wall identical tiles)",
+]
+
+[scenes.npc_interaction]
+capture_cmd = "cargo run --features headless -- --scene village_npc --output {output}"
+reference = "screenshots/ref/npc_interaction.png"
+assertions = [
+    "At least one NPC character is visible",
+    "The NPC sprite is distinct from the player sprite",
+    "The village environment has buildings and paths",
+]
+
+[scenes.deep_forest]
+capture_cmd = "cargo run --features headless -- --scene deep_forest --output {output}"
+reference = "screenshots/ref/deep_forest.png"
+assertions = [
+    "Dense tree sprites are visible",
+    "The forest floor has ground cover or grass tiles",
+    "The area is visually distinct from the main farm area",
+]

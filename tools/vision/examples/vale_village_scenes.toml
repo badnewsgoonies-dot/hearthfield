@@ -1,0 +1,21 @@
+# Vale Village v2 Visual Verification Manifest (Browser/TypeScript)
+# Uses browser capture mode via Playwright
+
+[scenes.overworld_spawn]
+capture_cmd = "python3 generalized/capture.py --mode browser --url http://localhost:5174 --selector canvas.overworld-canvas --wait 3 --setup 'press:Enter' 'wait:1' 'click:button:has-text(New Game)' 'wait:3' --output {output}"
+reference = "screenshots/ref/overworld_spawn.png"
+assertions = [
+    "The overworld map is rendered with visible terrain tiles",
+    "The player character is visible near the center of the screen",
+    "Pixel art style is crisp (no bilinear interpolation artifacts)",
+]
+
+[scenes.battle_screen]
+capture_cmd = "python3 generalized/capture.py --mode browser --url http://localhost:5174 --selector canvas.battle-canvas --wait 3 --setup 'press:Enter' 'wait:1' 'click:button:has-text(New Game)' 'wait:5' --output {output}"
+reference = "screenshots/ref/battle_screen.png"
+assertions = [
+    "Enemy sprites are visible on the battle field",
+    "Player party members are shown",
+    "Action menu or combat UI is displayed",
+    "Health bars or status indicators are present",
+]
