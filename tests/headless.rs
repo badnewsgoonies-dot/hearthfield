@@ -573,7 +573,7 @@ fn test_shipping_bin_sells_on_day_end() {
     // Verify: 5 parsnips × 35g = 175g earned
     let ps = app.world().resource::<PlayerState>();
     assert_eq!(
-        ps.gold, 675,
+        ps.gold, Gold::new_unchecked(675),
         "Player should have 500 + (5×35=175) = 675g, got {}",
         ps.gold
     );
@@ -1036,7 +1036,7 @@ fn test_multi_day_shipping_accumulation() {
     let ps = app.world().resource::<PlayerState>();
     // 3 days × 2 eggs × 50g = 300g
     assert_eq!(
-        ps.gold, 300,
+        ps.gold, Gold::new_unchecked(300),
         "Should have 300g after 3 days of shipping 2 eggs"
     );
 }
@@ -1649,7 +1649,7 @@ fn test_building_upgrade_request_deducts_gold() {
     enter_playing_state(&mut app);
 
     // Give the player enough gold and materials for a Coop Basic upgrade (4000g + 150 wood + 50 stone)
-    app.world_mut().resource_mut::<PlayerState>().gold = 10_000;
+    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new_unchecked(10_000);
     {
         let mut inv = app.world_mut().resource_mut::<Inventory>();
         inv.try_add("wood", 200, 255);
@@ -1667,7 +1667,7 @@ fn test_building_upgrade_request_deducts_gold() {
 
     let player = app.world().resource::<PlayerState>();
     assert_eq!(
-        player.gold, 6_000,
+        player.gold, Gold::new_unchecked(6_000),
         "Gold should be deducted by 4000 for Coop Basic upgrade"
     );
 
@@ -1744,7 +1744,7 @@ fn test_building_upgrade_completes() {
         "has_coop should be true after Coop upgrade"
     );
     assert_eq!(
-        animal_state.coop_level, 1,
+        animal_state.coop_level, BuildingLevel::new_unchecked(1),
         "coop_level should be 1 for Basic"
     );
 }
@@ -1839,7 +1839,7 @@ fn test_tool_upgrade_request_queues() {
     app.world_mut().resource_mut::<ActiveShop>().shop_id = Some(ShopId::Blacksmith);
 
     // Give the player enough gold and copper bars for a Basic → Copper upgrade
-    app.world_mut().resource_mut::<PlayerState>().gold = 5_000;
+    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new_unchecked(5_000);
     {
         let mut inv = app.world_mut().resource_mut::<Inventory>();
         inv.try_add("copper_bar", 10, 255);
@@ -1865,7 +1865,7 @@ fn test_tool_upgrade_request_queues() {
 
     let player = app.world().resource::<PlayerState>();
     assert_eq!(
-        player.gold, 3_000,
+        player.gold, Gold::new_unchecked(3_000),
         "Gold should be 5000 - 2000 = 3000 after upgrade request"
     );
 }
@@ -2117,7 +2117,7 @@ fn test_bouquet_requires_8_hearts() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), 700);
+        .insert(npc_id.clone(), Friendship::new_unchecked(700));
     app.world_mut()
         .resource_mut::<Inventory>()
         .try_add("bouquet", 1, 99);
@@ -2154,7 +2154,7 @@ fn test_bouquet_sets_dating() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), 800);
+        .insert(npc_id.clone(), Friendship::new_unchecked(800));
     app.world_mut()
         .resource_mut::<Inventory>()
         .try_add("bouquet", 1, 99);
@@ -2193,7 +2193,7 @@ fn test_proposal_requires_dating_and_house() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), 1000);
+        .insert(npc_id.clone(), Friendship::new_unchecked(1000));
     app.world_mut()
         .resource_mut::<RelationshipStages>()
         .stages
@@ -2236,7 +2236,7 @@ fn test_proposal_starts_wedding_timer() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), 1000);
+        .insert(npc_id.clone(), Friendship::new_unchecked(1000));
     app.world_mut()
         .resource_mut::<RelationshipStages>()
         .stages
@@ -2635,7 +2635,7 @@ fn test_evaluation_sets_candles() {
     // Mine floor 20 -> 1 point
     app.world_mut()
         .resource_mut::<MineState>()
-        .deepest_floor_reached = 20;
+        .deepest_floor_reached = MineFloor::new_unchecked(20);
     // Deluxe house -> 1 point
     app.world_mut().resource_mut::<HouseState>().tier = HouseTier::Deluxe;
     // 8+ animals -> 1 point
@@ -2673,7 +2673,7 @@ fn test_evaluation_sets_candles() {
         }
     }
     // 1M gold on hand -> 1 point
-    app.world_mut().resource_mut::<PlayerState>().gold = 1_000_000;
+    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new_unchecked(1_000_000);
 
     app.world_mut().send_event(EvaluationTriggerEvent);
     app.update();
@@ -3427,11 +3427,11 @@ fn test_legendary_fish_identification() {
 fn test_mine_state_default_values() {
     let mine = MineState::default();
     assert_eq!(
-        mine.current_floor, 0,
+        mine.current_floor, MineFloor::new_unchecked(0),
         "Default mine floor should be 0 (not in mine)"
     );
     assert_eq!(
-        mine.deepest_floor_reached, 0,
+        mine.deepest_floor_reached, MineFloor::new_unchecked(0),
         "Default deepest floor should be 0"
     );
     assert!(
@@ -3443,7 +3443,7 @@ fn test_mine_state_default_values() {
 #[test]
 fn test_mine_elevator_unlocks_every_5_floors() {
     let mine = MineState {
-        deepest_floor_reached: 5,
+        deepest_floor_reached: MineFloor::new_unchecked(5),
         elevator_floors: vec![0, 5], // 0 = surface, 5 = first elevator stop
         ..MineState::default()
     };
@@ -3459,7 +3459,7 @@ fn test_mine_elevator_unlocks_every_5_floors() {
 
     // Simulate reaching floor 10
     let mine2 = MineState {
-        deepest_floor_reached: 10,
+        deepest_floor_reached: MineFloor::new_unchecked(10),
         elevator_floors: vec![0, 5, 10],
         ..MineState::default()
     };
@@ -3847,12 +3847,12 @@ fn test_save_roundtrip_relationships() {
 #[test]
 fn test_save_roundtrip_mine_state() {
     let mut ms = MineState::default();
-    ms.current_floor = 35;
-    ms.deepest_floor_reached = 50;
+    ms.current_floor = MineFloor::new_unchecked(35);
+    ms.deepest_floor_reached = MineFloor::new_unchecked(50);
 
     let restored = serde_roundtrip(&ms);
-    assert_eq!(restored.current_floor, 35);
-    assert_eq!(restored.deepest_floor_reached, 50);
+    assert_eq!(restored.current_floor, MineFloor::new_unchecked(35));
+    assert_eq!(restored.deepest_floor_reached, MineFloor::new_unchecked(50));
 }
 
 #[test]
@@ -4334,11 +4334,11 @@ fn test_mine_rock_health_and_drops() {
 #[test]
 fn test_mine_state_floor_persistence_roundtrip() {
     let mut mine_state = MineState::default();
-    mine_state.deepest_floor_reached = 15;
+    mine_state.deepest_floor_reached = MineFloor::new_unchecked(15);
     mine_state.elevator_floors = vec![5, 10, 15];
 
     let roundtripped = serde_roundtrip(&mine_state);
-    assert_eq!(roundtripped.deepest_floor_reached, 15);
+    assert_eq!(roundtripped.deepest_floor_reached, MineFloor::new_unchecked(15));
     assert_eq!(roundtripped.elevator_floors, vec![5, 10, 15]);
 }
 
@@ -4647,11 +4647,11 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
             "Sleeping should keep the player in PlayerHouse"
         );
         assert_eq!(
-            player_state.stamina, player_state.max_stamina,
+            player_state.stamina.get(), player_state.max_stamina,
             "Sleeping should fully restore stamina"
         );
         assert_eq!(
-            player_state.health, player_state.max_health,
+            player_state.health.get(), player_state.max_health,
             "Sleeping should fully restore health"
         );
     }
@@ -6504,7 +6504,7 @@ fn test_fireflies_spawn_only_outdoors_during_dusk_hours() {
     dusk_app.update();
 
     let dusk_count = dusk_app
-        .world()
+        .world_mut()
         .query::<&Firefly>()
         .iter(dusk_app.world())
         .count();
@@ -6518,7 +6518,7 @@ fn test_fireflies_spawn_only_outdoors_during_dusk_hours() {
     indoor_app.add_systems(Update, spawn_fireflies);
     indoor_app.update();
     let indoor_count = indoor_app
-        .world()
+        .world_mut()
         .query::<&Firefly>()
         .iter(indoor_app.world())
         .count();
@@ -6528,7 +6528,7 @@ fn test_fireflies_spawn_only_outdoors_during_dusk_hours() {
     midday_app.add_systems(Update, spawn_fireflies);
     midday_app.update();
     let midday_count = midday_app
-        .world()
+        .world_mut()
         .query::<&Firefly>()
         .iter(midday_app.world())
         .count();
@@ -6542,7 +6542,7 @@ fn test_fireflies_cleanup_when_dusk_ends_or_player_goes_indoors() {
     hour_cleanup_app.update();
     assert!(
         hour_cleanup_app
-            .world()
+            .world_mut()
             .query::<&Firefly>()
             .iter(hour_cleanup_app.world())
             .count()
@@ -6559,7 +6559,7 @@ fn test_fireflies_cleanup_when_dusk_ends_or_player_goes_indoors() {
     hour_cleanup_app.update();
     assert_eq!(
         hour_cleanup_app
-            .world()
+            .world_mut()
             .query::<&Firefly>()
             .iter(hour_cleanup_app.world())
             .count(),
@@ -6572,7 +6572,7 @@ fn test_fireflies_cleanup_when_dusk_ends_or_player_goes_indoors() {
     indoor_cleanup_app.update();
     assert!(
         indoor_cleanup_app
-            .world()
+            .world_mut()
             .query::<&Firefly>()
             .iter(indoor_cleanup_app.world())
             .count()
@@ -6588,7 +6588,7 @@ fn test_fireflies_cleanup_when_dusk_ends_or_player_goes_indoors() {
     indoor_cleanup_app.update();
     assert_eq!(
         indoor_cleanup_app
-            .world()
+            .world_mut()
             .query::<&Firefly>()
             .iter(indoor_cleanup_app.world())
             .count(),

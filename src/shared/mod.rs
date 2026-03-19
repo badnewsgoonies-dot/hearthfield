@@ -2232,7 +2232,7 @@ mod tests {
     fn test_add_friendship_new_npc_starts_at_zero() {
         let mut rel = Relationships::default();
         rel.add_friendship("new_npc", 50);
-        assert_eq!(*rel.friendship.get("new_npc").unwrap(), 50);
+        assert_eq!(rel.friendship.get("new_npc").unwrap().get(), 50);
     }
 
     // ── SprinklerKind ───────────────────────────────────────────────

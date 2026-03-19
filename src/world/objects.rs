@@ -3888,7 +3888,8 @@ mod window_glow_tests {
         let entity = spawn_test_window(&mut app);
         app.update();
 
-        let (sprite, visibility) = app.world().entity(entity).get::<(Sprite, Visibility)>().unwrap();
+        let sprite = app.world().entity(entity).get::<Sprite>().unwrap();
+        let visibility = app.world().entity(entity).get::<Visibility>().unwrap();
         assert_eq!(*visibility, Visibility::Hidden);
         assert_eq!(sprite.color.to_srgba().alpha, 0.0);
     }
@@ -3907,7 +3908,8 @@ mod window_glow_tests {
         let entity = spawn_test_window(&mut app);
         app.update();
 
-        let (sprite, visibility) = app.world().entity(entity).get::<(Sprite, Visibility)>().unwrap();
+        let sprite = app.world().entity(entity).get::<Sprite>().unwrap();
+        let visibility = app.world().entity(entity).get::<Visibility>().unwrap();
         assert_eq!(*visibility, Visibility::Inherited);
         assert!(sprite.color.to_srgba().alpha > 0.0);
     }
