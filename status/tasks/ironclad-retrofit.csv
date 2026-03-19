@@ -1,5 +1,5 @@
 task_name,scope,prompt
-retrofit-game-value,"src/shared/mod.rs","Read ironclad/src/game_value.rs to understand the macro. Read src/shared/mod.rs. Add ironclad as a dependency to the root Cargo.toml: ironclad = { path = \"ironclad\" }. Then add use ironclad::game_value; at the top of src/shared/mod.rs. Create a new file src/shared/bounded_types.rs with these bounded newtypes using the game_value macro:
+retrofit-game-value,"src/shared/mod.rs","Read ironclad/src/game_value.rs to understand the macro. Read src/shared/mod.rs. Add ironclad as a dependency to the root Cargo.toml: ironclad = { path = ""ironclad"" }. Then add use ironclad::game_value; at the top of src/shared/mod.rs. Create a new file src/shared/bounded_types.rs with these bounded newtypes using the game_value macro:
 
 #[game_value(min = 0, max = 100)]
 pub struct Stamina(f32);

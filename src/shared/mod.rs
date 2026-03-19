@@ -3,11 +3,13 @@
 //! This is the type contract. Every domain plugin imports from here.
 //! No domain imports from any other domain directly.
 
+pub mod bounded_types;
 mod schedule;
 
 pub use schedule::*;
 
 use bevy::prelude::*;
+use ironclad::game_value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

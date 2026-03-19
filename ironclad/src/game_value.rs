@@ -75,7 +75,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     let name_str = name.to_string();
 
     let expanded = quote! {
-        #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
+        #[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
         #vis struct #name(#inner_ty);
 
         impl #name {

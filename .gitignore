@@ -8,3 +8,4 @@ logs/
 .DS_Store
 sprites downlaoded packages/
 assets/police/sprites/staging/
+tools/vision/__pycache__/

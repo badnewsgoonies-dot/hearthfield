@@ -1,0 +1,868 @@
+# Hearthfield Asset Manifest
+# Generated: 2026-03-19T13:35:28Z
+# Source: find assets/ -name '*.png' + file + grep -rl in src/
+
+[summary]
+total_sprites = 172
+wired = 117  # referenced in src/
+unwired = 55  # no references found in src/
+
+[[sprites]]
+path = "assets/fonts/sprout_lands_bitmap.png"
+dimensions = "118 x 106"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/barn.png"
+dimensions = "128 x 160"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/chicken_house.png"
+dimensions = "48 x 48"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/dog.png"
+dimensions = "1152 x 416"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/door_anim.png"
+dimensions = "224 x 32"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/egg_and_nest.png"
+dimensions = "64 x 16"
+referenced_in = ["src/animals/mod.rs", "src/animals/products.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/farmhouse.png"
+dimensions = "128 x 160"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/machine_anim.png"
+dimensions = "1984 x 96"
+referenced_in = ["src/crafting/machines.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/milk_and_grass.png"
+dimensions = "64 x 16"
+referenced_in = ["src/animals/mod.rs", "src/animals/products.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/scarecrow.png"
+dimensions = "48 x 48"
+referenced_in = ["src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/sheep.png"
+dimensions = "768 x 128"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/sprinkler_anim.png"
+dimensions = "1344 x 192"
+referenced_in = ["src/farming/mod.rs", "src/farming/render.rs"]
+
+[[sprites]]
+path = "assets/sprites/_source_limezu/well.png"
+dimensions = "48 x 32"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/barn.png"
+dimensions = "128 x 160"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/carpenter_board.png"
+dimensions = "32 x 32"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/character_actions.png"
+dimensions = "96 x 576"
+referenced_in = ["src/player/spawn.rs"]
+
+[[sprites]]
+path = "assets/sprites/character_spritesheet.png"
+dimensions = "192 x 192"
+referenced_in = ["src/player/spawn.rs"]
+
+[[sprites]]
+path = "assets/sprites/chest.png"
+dimensions = "240 x 96"
+referenced_in = ["src/world/chests.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/chicken.png"
+dimensions = "384 x 64"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/chicken_house.png"
+dimensions = "48 x 48"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/cow.png"
+dimensions = "1152 x 192"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crafting_bench.png"
+dimensions = "48 x 48"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_carrot.png"
+dimensions = "112 x 32"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_cauliflower.png"
+dimensions = "112 x 32"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_coffee.png"
+dimensions = "112 x 64"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_corn.png"
+dimensions = "112 x 64"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_grape.png"
+dimensions = "112 x 96"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_onion.png"
+dimensions = "112 x 64"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_pepper.png"
+dimensions = "112 x 32"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_pineapple.png"
+dimensions = "112 x 64"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_pumpkin.png"
+dimensions = "112 x 64"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_radish.png"
+dimensions = "112 x 32"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_strawberry.png"
+dimensions = "112 x 32"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_tomato.png"
+dimensions = "112 x 64"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_turnip.png"
+dimensions = "112 x 48"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_watermelon.png"
+dimensions = "112 x 64"
+referenced_in = ["src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/crop_wheat.png"
+dimensions = "112 x 32"
+referenced_in = ["src/data/crops.rs", "src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/dog.png"
+dimensions = "1152 x 416"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/door_anim.png"
+dimensions = "224 x 32"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/duck.png"
+dimensions = "829 x 128"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/egg_and_nest.png"
+dimensions = "64 x 16"
+referenced_in = ["src/animals/mod.rs", "src/animals/products.rs"]
+
+[[sprites]]
+path = "assets/sprites/egg_item.png"
+dimensions = "16 x 16"
+referenced_in = ["src/calendar/festivals.rs"]
+
+[[sprites]]
+path = "assets/sprites/farmhouse.png"
+dimensions = "128 x 160"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/fishing_atlas.png"
+dimensions = "128 x 96"
+referenced_in = ["src/fishing/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/furniture.png"
+dimensions = "144 x 96"
+referenced_in = ["src/crafting/machines.rs", "src/farming/render.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/goat.png"
+dimensions = "768 x 192"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/grass_biome.png"
+dimensions = "144 x 80"
+referenced_in = ["src/world/grass_decor.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_CRROT_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Cabbage_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Cabbage_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Carrot_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Cauliflower_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Cauliflowert_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Chili_Pepper_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Chili_Pepper_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Coffee_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Coffee_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Corn_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Corn_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Cotton_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Cotton_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Grain_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Grain_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Grape_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Grape_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Onion_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Onion_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Pineapple_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Pineapple_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Prickly_Pear_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Prickly_Pear_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Pumpkin_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Pumpkin_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Radish_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Radish_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Strawberry_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Strawberry_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Tomato_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Tomato_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Turnip_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Turnip_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Watermelon_16x16.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Watermelon_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Zucchini_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items/Pickup_Crop_Zucchini_Rare_16x16.png"
+dimensions = "16 x 16"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/items_atlas.png"
+dimensions = "208 x 304"
+referenced_in = ["src/ui/hud.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/machine_anim.png"
+dimensions = "1984 x 96"
+referenced_in = ["src/crafting/machines.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/milk_and_grass.png"
+dimensions = "64 x 16"
+referenced_in = ["src/animals/mod.rs", "src/animals/products.rs"]
+
+[[sprites]]
+path = "assets/sprites/mine_enemies.png"
+dimensions = "48 x 16"
+referenced_in = ["src/mining/spawning.rs"]
+
+[[sprites]]
+path = "assets/sprites/mining_atlas.png"
+dimensions = "128 x 96"
+referenced_in = ["src/mining/spawning.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_blacksmith.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_child.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_farmer.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_guard.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_healer.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_mage.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_merchant.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_miner.png"
+dimensions = "192 x 192"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_noble.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_pirate.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_scholar.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/npcs/npc_traveler.png"
+dimensions = "192 x 192"
+referenced_in = ["src/npcs/definitions.rs"]
+
+[[sprites]]
+path = "assets/sprites/palette.png"
+dimensions = "16 x 7"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/paths.png"
+dimensions = "64 x 64"
+referenced_in = ["src/world/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/pickup_items.png"
+dimensions = "224 x 160"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/pig.png"
+dimensions = "768 x 128"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/plants.png"
+dimensions = "96 x 32"
+referenced_in = ["src/farming/mod.rs", "src/farming/render.rs"]
+
+[[sprites]]
+path = "assets/sprites/processing_machine.png"
+dimensions = "64 x 48"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/rabbit.png"
+dimensions = "768 x 128"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/scarecrow.png"
+dimensions = "48 x 48"
+referenced_in = ["src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/sheep.png"
+dimensions = "768 x 128"
+referenced_in = ["src/animals/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/shipping_bin.png"
+dimensions = "32 x 32"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/sprinkler.png"
+dimensions = "16 x 16"
+referenced_in = ["src/farming/mod.rs"]
+
+[[sprites]]
+path = "assets/sprites/sprinkler_anim.png"
+dimensions = "1344 x 192"
+referenced_in = ["src/farming/mod.rs", "src/farming/render.rs"]
+
+[[sprites]]
+path = "assets/sprites/tools.png"
+dimensions = "96 x 96"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/tools_and_materials.png"
+dimensions = "48 x 32"
+referenced_in = []
+
+[[sprites]]
+path = "assets/sprites/tree_birch_green.png"
+dimensions = "48 x 80"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/tree_oak_brown.png"
+dimensions = "80 x 96"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/tree_oak_green.png"
+dimensions = "80 x 96"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/tree_pine_blue.png"
+dimensions = "64 x 96"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/tree_sprites.png"
+dimensions = "128 x 96"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/well.png"
+dimensions = "48 x 32"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/sprites/wood_bridge.png"
+dimensions = "80 x 48"
+referenced_in = ["src/world/mod.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/tilesets/bitmask_ref_1.png"
+dimensions = "480 x 256"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/bitmask_ref_2.png"
+dimensions = "480 x 256"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/doors.png"
+dimensions = "16 x 64"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/tilesets/fences.png"
+dimensions = "64 x 64"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/tilesets/fungus_cave.png"
+dimensions = "128 x 560"
+referenced_in = ["src/mining/spawning.rs"]
+
+[[sprites]]
+path = "assets/tilesets/grass.png"
+dimensions = "176 x 112"
+referenced_in = ["src/animals/mod.rs", "src/animals/products.rs", "src/world/mod.rs"]
+
+[[sprites]]
+path = "assets/tilesets/hills.png"
+dimensions = "176 x 144"
+referenced_in = ["src/world/mod.rs", "src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/tilesets/house_roof.png"
+dimensions = "112 x 80"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/tilesets/house_walls.png"
+dimensions = "80 x 48"
+referenced_in = ["src/world/objects.rs"]
+
+[[sprites]]
+path = "assets/tilesets/modern_farm_autotiles.png"
+dimensions = "192 x 896"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/modern_farm_fences.png"
+dimensions = "512 x 272"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/modern_farm_terrain.png"
+dimensions = "512 x 368"
+referenced_in = ["src/world/mod.rs"]
+
+[[sprites]]
+path = "assets/tilesets/tilled_dirt.png"
+dimensions = "176 x 112"
+referenced_in = ["src/farming/mod.rs", "src/farming/render.rs", "src/world/mod.rs"]
+
+[[sprites]]
+path = "assets/tilesets/tilled_dirt_v2.png"
+dimensions = "176 x 112"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/tilled_dirt_wide.png"
+dimensions = "176 x 112"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/tilled_dirt_wide_v2.png"
+dimensions = "176 x 112"
+referenced_in = []
+
+[[sprites]]
+path = "assets/tilesets/water.png"
+dimensions = "64 x 16"
+referenced_in = ["src/world/mod.rs"]
+
+[[sprites]]
+path = "assets/ui/buttons_19x26.png"
+dimensions = "128 x 96"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/buttons_26x19.png"
+dimensions = "96 x 128"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/buttons_26x26.png"
+dimensions = "96 x 192"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/buttons_small.png"
+dimensions = "32 x 128"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/cursor_default.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/cursor.rs"]
+
+[[sprites]]
+path = "assets/ui/cursor_holding.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/cursor.rs"]
+
+[[sprites]]
+path = "assets/ui/cursor_pointing.png"
+dimensions = "16 x 16"
+referenced_in = ["src/ui/cursor.rs"]
+
+[[sprites]]
+path = "assets/ui/dialog_box.png"
+dimensions = "48 x 48"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/dialog_box_big.png"
+dimensions = "176 x 48"
+referenced_in = ["src/ui/dialogue_box.rs"]
+
+[[sprites]]
+path = "assets/ui/dialog_box_medium.png"
+dimensions = "128 x 48"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/dialog_box_small.png"
+dimensions = "112 x 48"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/dialog_continue_indicator.png"
+dimensions = "112 x 16"
+referenced_in = ["src/ui/dialogue_box.rs"]
+
+[[sprites]]
+path = "assets/ui/emoji_spritesheet.png"
+dimensions = "160 x 608"
+referenced_in = ["src/npcs/emotes.rs"]
+
+[[sprites]]
+path = "assets/ui/emotes.png"
+dimensions = "160 x 480"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/icons.png"
+dimensions = "288 x 48"
+referenced_in = ["src/ui/hud.rs", "src/ui/inventory_screen.rs", "src/ui/journal_screen.rs", "src/ui/mod.rs", "src/ui/pause_menu.rs", "src/ui/settings_screen.rs", "src/ui/shop_screen.rs"]
+
+[[sprites]]
+path = "assets/ui/icons_happiness.png"
+dimensions = "96 x 32"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/icons_special.png"
+dimensions = "112 x 64"
+referenced_in = ["src/ui/hud.rs", "src/ui/mod.rs"]
+
+[[sprites]]
+path = "assets/ui/icons_white.png"
+dimensions = "96 x 48"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/inventory_blocks.png"
+dimensions = "144 x 144"
+referenced_in = ["src/ui/inventory_screen.rs"]
+
+[[sprites]]
+path = "assets/ui/inventory_hearts.png"
+dimensions = "112 x 336"
+referenced_in = ["src/ui/relationships_screen.rs"]
+
+[[sprites]]
+path = "assets/ui/inventory_hearts_light.png"
+dimensions = "112 x 336"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/inventory_spritesheet.png"
+dimensions = "368 x 336"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/play_button.png"
+dimensions = "192 x 64"
+referenced_in = ["src/ui/menu_kit.rs"]
+
+[[sprites]]
+path = "assets/ui/premade_dialog_big.png"
+dimensions = "304 x 64"
+referenced_in = ["src/ui/dialogue_box.rs"]
+
+[[sprites]]
+path = "assets/ui/premade_dialog_medium.png"
+dimensions = "240 x 64"
+referenced_in = ["src/ui/toast.rs"]
+
+[[sprites]]
+path = "assets/ui/premade_dialog_small.png"
+dimensions = "176 x 64"
+referenced_in = ["src/ui/toast.rs"]
+
+[[sprites]]
+path = "assets/ui/settings_buttons.png"
+dimensions = "128 x 240"
+referenced_in = ["src/ui/settings_screen.rs"]
+
+[[sprites]]
+path = "assets/ui/settings_menu.png"
+dimensions = "256 x 144"
+referenced_in = ["src/ui/settings_screen.rs"]
+
+[[sprites]]
+path = "assets/ui/speech_bubble.png"
+dimensions = "448 x 192"
+referenced_in = ["src/npcs/speech_bubbles.rs"]
+
+[[sprites]]
+path = "assets/ui/ui_spritesheet.png"
+dimensions = "896 x 240"
+referenced_in = []
+
+[[sprites]]
+path = "assets/ui/weather_icons.png"
+dimensions = "64 x 96"
+referenced_in = ["src/ui/hud.rs"]
+
+[[sprites]]
+path = "assets/ui/weather_ui.png"
+dimensions = "80 x 112"
+referenced_in = ["src/ui/hud.rs"]
