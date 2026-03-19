@@ -4,6 +4,8 @@
 //! No domain imports from any other domain directly.
 
 pub mod bounded_types;
+pub mod lifecycle_types;
+pub mod entity_types;
 mod schedule;
 
 pub use schedule::*;
