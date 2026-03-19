@@ -1,0 +1,138 @@
+{
+  "audit_meta": {
+    "auditor": "Opus (orchestrator) + 5× Haiku (0.33 each = 1.65 premium total)",
+    "timestamp": "2026-03-19T17:15:00Z",
+    "base_commit": "0ee855d",
+    "head_commit": "214aeb2",
+    "scope": "Ironclad bounded-type wiring wave (6 commits, 37 .rs files)",
+    "contract_status": "MISMATCH — .contract.sha256 stale (cd8ad37...) vs actual shared/mod.rs (be9d346...). Expected: shared/mod.rs changed to add bounded_types/lifecycle_types/entity_types submodules."
+  },
+  "findings": [
+    {
+      "id": "AUD-001",
+      "severity": "error",
+      "file": "src/economy/gold.rs",
+      "line": 24,
+      "issue": "Gold overflow on add. saturating_add caps at u32::MAX (4.2B) not Gold::MAX (9,999,999). new_unchecked bypasses validation, so gold can silently exceed 9,999,999.",
+      "suggestion": "player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(gain).min(9999999));",
+      "verified": true,
+      "notes": "Confirmed by reading gold.rs:24. saturating_add(gain) where gain is unbounded u32."
+    },
+    {
+      "id": "AUD-002",
+      "severity": "error",
+      "file": "src/economy/shop.rs",
+      "line": 272,
+      "issue": "Gold overflow on sell revenue. Same pattern as AUD-001: saturating_add can exceed 9,999,999.",
+      "suggestion": "player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(total_revenue).min(9999999));",
+      "verified": true,
+      "notes": "Confirmed at shop.rs:272. total_revenue from saturating_mul is uncapped."
+    },
+    {
+      "id": "AUD-003",
+      "severity": "error",
+      "file": "src/ui/shop_screen.rs",
+      "line": 679,
+      "issue": "Gold overflow on UI sell path. player.gold.get() + price uses bare addition (not even saturating) — can panic on overflow AND exceed Gold::MAX.",
+      "suggestion": "player.gold = Gold::new_unchecked(player.gold.get().saturating_add(price).min(9999999));",
+      "verified": true,
+      "notes": "Confirmed at shop_screen.rs:679. Bare + operator, not saturating_add. Worst of the three gold-add sites."
+    },
+    {
+      "id": "AUD-004",
+      "severity": "warning",
+      "file": "src/mining/ladder.rs",
+      "line": 51,
+      "issue": "MineFloor wraps current_floor + 1 with new_unchecked. Game logic caps at floor 20 (line 56), so 21 is within MineFloor bounds (0..=120). Safe in practice but fragile — if cap changes to 120 later, floor 121 would violate bounds.",
+      "suggestion": "Use MineFloor::new(mine_state.current_floor.get() + 1).unwrap_or(mine_state.current_floor) for future-safety.",
+      "verified": true,
+      "notes": "Game caps at 20, MineFloor allows 120. Safe now but coupling between game constant and type bound is implicit."
+    },
+    {
+      "id": "AUD-005",
+      "severity": "warning",
+      "file": "src/mining/transitions.rs",
+      "line": 94,
+      "issue": "Health::new_unchecked(player_state.max_health * 0.5) where max_health is bare f32 (currently const 100.0). Safe with current constants but breaks if max_health ever exceeds 200.",
+      "suggestion": "Health::new((player_state.max_health * 0.5).clamp(0.0, 100.0)).unwrap_or(Health::new_unchecked(50.0))",
+      "verified": true,
+      "notes": "max_health is f32 in PlayerState (mod.rs:291), not a bounded type. Same pattern at combat.rs:304, interaction.rs:626/636."
+    },
+    {
+      "id": "AUD-006",
+      "severity": "warning",
+      "file": "src/mining/transitions.rs",
+      "line": 95,
+      "issue": "Stamina::new_unchecked(player_state.max_stamina) where max_stamina is bare f32. Safe with current const MAX_STAMINA=100.0 but unguarded.",
+      "suggestion": "Stamina::new(player_state.max_stamina.clamp(0.0, 100.0)).unwrap_or(Stamina::new_unchecked(100.0))",
+      "verified": true,
+      "notes": "Same pattern at interaction.rs:626. max_stamina is f32 (mod.rs:289)."
+    },
+    {
+      "id": "AUD-007",
+      "severity": "info",
+      "file": "src/shared/mod.rs",
+      "line": 0,
+      "issue": "Contract checksum stale. .contract.sha256 contains cd8ad37... but shared/mod.rs now hashes to be9d346... due to bounded_types/lifecycle_types/entity_types submodule additions.",
+      "suggestion": "sha256sum src/shared/mod.rs | awk '{print $1 \"  src/shared/mod.rs\"}' > .contract.sha256 && git add .contract.sha256",
+      "verified": true,
+      "notes": "Expected divergence from the ironclad retrofit. Needs formal amendment per contract amendment process."
+    },
+    {
+      "id": "AUD-008",
+      "severity": "info",
+      "file": "src/ui/tutorial.rs",
+      "line": 104,
+      "issue": "Uses *player_state.stamina < 20.0 (Deref) instead of .get(). Functionally identical but inconsistent with .get() pattern used everywhere else.",
+      "suggestion": "player_state.stamina.get() < 20.0",
+      "verified": true,
+      "notes": "Style only. Deref works but .get() is the project convention."
+    }
+  ],
+  "false_positives_rejected": [
+    {
+      "source": "economy auditor",
+      "claim": "gold.rs:33 — Gold::new_unchecked after saturating_sub unsafe",
+      "reason": "saturating_sub result is always ≤ current gold which is already in bounds. Additionally guarded by if player_state.gold.get() >= cost."
+    },
+    {
+      "source": "economy auditor",
+      "claim": "gold.rs:51 — Gold::new_unchecked(0) should use new()",
+      "reason": "0 is unconditionally within Gold bounds (0..=9999999). new_unchecked(0) is correct for the clamp-to-zero fallback."
+    },
+    {
+      "source": "economy auditor",
+      "claim": "shop.rs:224 — Gold::new_unchecked after saturating_sub unsafe",
+      "reason": "saturating_sub result is always ≤ current gold. Safe."
+    },
+    {
+      "source": "ui-npc auditor",
+      "claim": "shop_screen.rs:640 — Gold subtraction can underflow",
+      "reason": "Pre-checked at line 630: if player.gold.get() >= listing.price. Subtraction is guarded."
+    },
+    {
+      "source": "combat auditor",
+      "claim": "combat.rs:251 — Health::new_unchecked with runtime damage",
+      "reason": "Code does (*player_state.health - damage).max(0.0). The .max(0.0) clamps floor. Result is 0..=current_health which is ≤ 100. Safe."
+    },
+    {
+      "source": "combat auditor",
+      "claim": "tools.rs:154 — Stamina::new_unchecked after subtraction",
+      "reason": "Code does (stamina.get() - ev.amount).max(0.0). Clamped to 0 minimum, result ≤ current stamina ≤ 100. Safe."
+    },
+    {
+      "source": "combat auditor",
+      "claim": "ladder.rs:202 — new_unchecked with user-selected elevator floor",
+      "reason": "Floor comes from mine_state.elevator_floors (populated only at multiples of 5 up to current max floor) or hardcoded 1. All values are within MineFloor bounds."
+    }
+  ],
+  "summary": {
+    "errors": 3,
+    "warnings": 3,
+    "info": 2,
+    "false_positives_caught": 7,
+    "pattern": "All 3 errors are the same root cause: Gold addition (saturating_add or bare +) can exceed Gold::MAX (9,999,999) because saturating_add caps at u32::MAX. Fix: add .min(9999999) before new_unchecked on every Gold addition site.",
+    "clean_domains": ["shared/bounded_types.rs", "shared/lifecycle_types.rs", "shared/entity_types.rs", "tests/headless.rs", "save/mod.rs", "crafting/*", "data/*"],
+    "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing — fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment."
+  }
+}
