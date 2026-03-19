@@ -1,0 +1,3 @@
+task_name,scope,prompt
+probe-1,ironclad/src/,"Read ironclad/src/game_value.rs. Report the function signature of expand() and how many lines it is. Return JSON with keys: function_sig, line_count."
+probe-2,ironclad/src/,"Read ironclad/src/game_lifecycle.rs. Report what states are parsed from the attribute and how transitions work. Return JSON with keys: parsing_method, transition_mechanism."
