@@ -2,37 +2,40 @@
   "waves": [
     {
       "wave": 1,
-      "timestamp": "2026-03-19T12:00:00Z",
-      "task": "Wire remaining bare Gold callsites to bounded types",
+      "task": "Wire remaining bare Gold callsites",
       "status": "complete",
-      "commit": "e45aea4",
-      "files_changed": ["src/economy/shop.rs", "src/economy/tool_upgrades.rs"],
-      "summary": "3 assert_eq + 4 raw assignments in test code. All Gold callsites now use .get() or Gold::new_unchecked()."
+      "commit": "e45aea4"
     },
     {
       "wave": 2,
-      "timestamp": "2026-03-19T12:15:00Z",
-      "task": "Wire remaining bare Happiness assertions + audit all 8 bounded types",
+      "task": "Wire bare Happiness assertions + audit all 8 bounded types",
       "status": "complete",
-      "commit": "43a0a3d",
-      "files_changed": ["src/animals/day_end.rs"],
-      "summary": "2 assert_eq!(happiness, N) → .get(). Full audit: all 8 bounded types complete across entire codebase.",
-      "audit_results": {
-        "Health": "2/2 wired",
-        "Stamina": "11/11 wired",
-        "Gold": "42/42 wired (7 fixed wave 1)",
-        "Happiness": "12/12 wired (2 fixed wave 2)",
-        "Friendship": "10/10 already wired",
-        "StackSize": "transparent via Deref",
-        "MineFloor": "4/4 already wired",
-        "BuildingLevel": "6/6 already wired"
+      "commit": "43a0a3d"
+    },
+    {
+      "wave": 3,
+      "task": "Fix Auditor findings AUD-001 through AUD-003, AUD-007, AUD-008",
+      "status": "complete",
+      "commit": "2e8d880",
+      "files_changed": [
+        "src/economy/gold.rs",
+        "src/economy/shop.rs",
+        "src/ui/shop_screen.rs",
+        "src/ui/tutorial.rs",
+        ".contract.sha256"
+      ],
+      "summary": "3 Gold overflow bugs fixed (saturating_add now capped at 9,999,999). Contract checksum amended. Style fix for Deref vs .get() consistency.",
+      "deferred": {
+        "AUD-004": "MineFloor future-safety — safe with current cap of 20, revisit if cap changes",
+        "AUD-005": "Health::new_unchecked from max_health*0.5 — safe with MAX_HEALTH=100, revisit when max_health becomes bounded",
+        "AUD-006": "Stamina::new_unchecked from max_stamina — same pattern, same deferral"
       }
     }
   ],
   "queue_status": {
     "bounded_type_wiring": "COMPLETE",
-    "sprite_generation": "NEXT — 55 unwired gaps per asset manifest",
-    "bevy_render_pipeline": "pending"
+    "audit_fixes": "COMPLETE (3 errors fixed, 3 warnings deferred, 2 info resolved)",
+    "sprite_generation": "NEXT — 55 unwired gaps per asset manifest"
   },
-  "next_action": "Read asset-manifest.toml, identify sprite gaps, generate missing sprites"
+  "next_action": "Read asset-manifest.toml, catalog the 55 sprite gaps, begin generation"
 }
