@@ -560,7 +560,7 @@ fn test_shipping_bin_sells_on_day_end() {
     // Start with 500g
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = 500;
+        ps.gold = Gold::new_unchecked(500);
     }
 
     enter_playing_state(&mut app);
@@ -612,7 +612,7 @@ fn test_empty_shipping_bin_no_gold_change() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = 1000;
+        ps.gold = Gold::new_unchecked(1000);
     }
 
     enter_playing_state(&mut app);
@@ -620,7 +620,7 @@ fn test_empty_shipping_bin_no_gold_change() {
     app.update();
 
     let ps = app.world().resource::<PlayerState>();
-    assert_eq!(ps.gold, 1000, "Gold should remain unchanged with empty bin");
+    assert_eq!(ps.gold.get(), 1000, "Gold should remain unchanged with empty bin");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -899,7 +899,7 @@ fn test_gold_increase_via_event() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = 100;
+        ps.gold = Gold::new_unchecked(100);
     }
 
     enter_playing_state(&mut app);
@@ -911,7 +911,7 @@ fn test_gold_increase_via_event() {
     app.update();
 
     let ps = app.world().resource::<PlayerState>();
-    assert_eq!(ps.gold, 350, "Gold should increase by 250");
+    assert_eq!(ps.gold.get(), 350, "Gold should increase by 250");
 }
 
 #[test]
@@ -926,7 +926,7 @@ fn test_gold_decrease_via_event() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = 500;
+        ps.gold = Gold::new_unchecked(500);
     }
 
     enter_playing_state(&mut app);
@@ -938,7 +938,7 @@ fn test_gold_decrease_via_event() {
     app.update();
 
     let ps = app.world().resource::<PlayerState>();
-    assert_eq!(ps.gold, 300, "Gold should decrease by 200");
+    assert_eq!(ps.gold.get(), 300, "Gold should decrease by 200");
 }
 
 #[test]
@@ -953,7 +953,7 @@ fn test_gold_clamps_to_zero() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = 50;
+        ps.gold = Gold::new_unchecked(50);
     }
 
     enter_playing_state(&mut app);
@@ -965,7 +965,7 @@ fn test_gold_clamps_to_zero() {
     app.update();
 
     let ps = app.world().resource::<PlayerState>();
-    assert_eq!(ps.gold, 0, "Gold should clamp to 0, not go negative");
+    assert_eq!(ps.gold.get(), 0, "Gold should clamp to 0, not go negative");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1014,7 +1014,7 @@ fn test_multi_day_shipping_accumulation() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = 0;
+        ps.gold = Gold::new_unchecked(0);
     }
 
     enter_playing_state(&mut app);
@@ -3566,8 +3566,8 @@ fn test_save_roundtrip_calendar() {
 #[test]
 fn test_save_roundtrip_player_state() {
     let mut ps = PlayerState::default();
-    ps.gold = 12345;
-    ps.stamina = 50.0;
+    ps.gold = Gold::new_unchecked(12345);
+    ps.stamina = Stamina::new_unchecked(50.0);
     ps.equipped_tool = ToolKind::Pickaxe;
     ps.tools.insert(ToolKind::Hoe, ToolTier::Gold);
     ps.current_map = MapId::Mine;
@@ -3575,8 +3575,8 @@ fn test_save_roundtrip_player_state() {
     ps.save_grid_y = 22;
 
     let restored = serde_roundtrip(&ps);
-    assert_eq!(restored.gold, 12345);
-    assert!((restored.stamina - 50.0).abs() < f32::EPSILON);
+    assert_eq!(restored.gold.get(), 12345);
+    assert!((restored.stamina.get() - 50.0).abs() < f32::EPSILON);
     assert_eq!(restored.equipped_tool, ToolKind::Pickaxe);
     assert_eq!(restored.tools.get(&ToolKind::Hoe), Some(&ToolTier::Gold));
     assert_eq!(restored.current_map, MapId::Mine);
@@ -3867,7 +3867,7 @@ fn test_save_roundtrip_all_resources_combined() {
         ..Calendar::default()
     };
     let mut player_state = PlayerState::default();
-    player_state.gold = 99999;
+    player_state.gold = Gold::new_unchecked(99999);
     player_state.tools.insert(ToolKind::Axe, ToolTier::Iridium);
 
     let mut inventory = Inventory::default();
@@ -3895,7 +3895,7 @@ fn test_save_roundtrip_all_resources_combined() {
 
     assert_eq!(cal_r.season, Season::Winter);
     assert_eq!(cal_r.weather, Weather::Snowy);
-    assert_eq!(ps_r.gold, 99999);
+    assert_eq!(ps_r.gold.get(), 99999);
     assert_eq!(ps_r.tools.get(&ToolKind::Axe), Some(&ToolTier::Iridium));
     assert!(inv_r.slots[0].is_some());
     assert!(ql_r.completed.contains(&"main_quest_1".to_string()));
@@ -3923,7 +3923,7 @@ fn test_save_roundtrip_empty_defaults() {
     assert_eq!(cal_r.day, 1);
 
     let ps_r = serde_roundtrip(&ps);
-    assert_eq!(ps_r.gold, 500);
+    assert_eq!(ps_r.gold.get(), 500);
 
     let inv_r = serde_roundtrip(&inv);
     assert!(inv_r.slots.iter().all(|s| s.is_none()));
@@ -4607,9 +4607,9 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
     {
         let mut player_state = app.world_mut().resource_mut::<PlayerState>();
         player_state.current_map = MapId::PlayerHouse;
-        player_state.stamina = 7.0;
+        player_state.stamina = Stamina::new_unchecked(7.0);
         player_state.max_stamina = 100.0;
-        player_state.health = 12.0;
+        player_state.health = Health::new_unchecked(12.0);
         player_state.max_health = 80.0;
     }
 
