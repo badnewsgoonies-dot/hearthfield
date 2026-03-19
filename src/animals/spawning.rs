@@ -317,20 +317,26 @@ fn spawn_animal_entity(
                 s
             }
             AnimalKind::Horse => {
-                let mut s = Sprite {
-                    color: Color::srgb(0.35, 0.2, 0.1),
-                    custom_size: Some(Vec2::new(24.0, 20.0)),
-                    ..default()
-                };
+                let mut s = Sprite::from_atlas_image(
+                    sprite_data.horse_image.clone(),
+                    TextureAtlas {
+                        layout: sprite_data.horse_layout.clone(),
+                        index: 0,
+                    },
+                );
+                s.custom_size = Some(Vec2::new(32.0, 32.0));
                 s.anchor = bevy::sprite::Anchor::BottomCenter;
                 s
             }
             AnimalKind::Cat => {
-                let mut s = Sprite {
-                    color: Color::srgb(0.9, 0.55, 0.2),
-                    custom_size: Some(Vec2::new(12.0, 12.0)),
-                    ..default()
-                };
+                let mut s = Sprite::from_atlas_image(
+                    sprite_data.cat_image.clone(),
+                    TextureAtlas {
+                        layout: sprite_data.cat_layout.clone(),
+                        index: 0,
+                    },
+                );
+                s.custom_size = Some(Vec2::new(16.0, 16.0));
                 s.anchor = bevy::sprite::Anchor::BottomCenter;
                 s
             }

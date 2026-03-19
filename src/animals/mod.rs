@@ -97,6 +97,10 @@ pub struct AnimalSpriteData {
     pub rabbit_layout: Handle<TextureAtlasLayout>,
     pub dog_image: Handle<Image>,
     pub dog_layout: Handle<TextureAtlasLayout>,
+    pub horse_image: Handle<Image>,
+    pub horse_layout: Handle<TextureAtlasLayout>,
+    pub cat_image: Handle<Image>,
+    pub cat_layout: Handle<TextureAtlasLayout>,
     // Product indicator sprites
     pub egg_nest_image: Handle<Image>,
     pub egg_nest_layout: Handle<TextureAtlasLayout>,
@@ -190,6 +194,26 @@ pub fn load_animal_sprites(
         UVec2::new(48, 32),
         24,
         13,
+        None,
+        None,
+    ));
+
+    // horse.png: 768×128, 24 cols × 4 rows of 32×32 frames
+    sprite_data.horse_image = asset_server.load("sprites/horse.png");
+    sprite_data.horse_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(32, 32),
+        24,
+        4,
+        None,
+        None,
+    ));
+
+    // cat.png: 384×64, 24 cols × 4 rows of 16×16 frames
+    sprite_data.cat_image = asset_server.load("sprites/cat.png");
+    sprite_data.cat_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        24,
+        4,
         None,
         None,
     ));
