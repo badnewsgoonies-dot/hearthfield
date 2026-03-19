@@ -158,5 +158,28 @@
     ],
     "status": "Round 1 findings (AUD-001 through AUD-003: Gold overflow) still open. Builder has not yet addressed them \u2014 may not have seen audit-feedback.json yet.",
     "cost": "0 premium (mechanical verification only)"
+  },
+  "round_3": {
+    "timestamp": "2026-03-19T17:30:00Z",
+    "commits_reviewed": "none (Builder idle)",
+    "proactive_analysis": {
+      "finding": "AUD-009: Zero validated new() calls across entire codebase",
+      "severity": "warning",
+      "details": "336 total new_unchecked() calls. 0 new() calls. Bounded type validation only triggers during Serde deserialization (save/load). All runtime construction bypasses bounds entirely. Of 26 runtime-value new_unchecked sites, 3 are confirmed unsafe (AUD-001/002/003 Gold overflow), 6 are safe-by-clamping (.max(0.0), .min(max), saturating_sub with pre-check), 6 are safe-by-coincidence (Happiness u8 saturating ops can't exceed u8::MAX=255=Happiness::MAX), 5 are safe-by-current-constants (max_health=100.0 but not mechanically enforced), 3 are test helpers (safe), 3 are from trusted data sources (elevator_floors, clamped friendship, constant pool).",
+      "recommendation": "Not an immediate bug \u2014 but the Builder should consider adding a helper method like Gold::saturating_add(self, amount) -> Gold that handles clamping internally, so callers don't need to remember .min(MAX). This is the bounded-type equivalent of the mechanical enforcement principle: make the wrong thing impossible to write."
+    },
+    "verified_safe_sites": {
+      "economy/gold.rs:33": "subtraction guarded by if gold >= cost",
+      "economy/shop.rs:226": "saturating_sub, result <= current",
+      "ui/shop_screen.rs:640": "guarded by if gold >= listing.price",
+      "mining/combat.rs:251": ".max(0.0) clamps floor",
+      "player/tools.rs:155": ".max(0.0) clamps floor",
+      "crafting/buffs.rs:197": ".min(max_stamina) clamps ceiling",
+      "crafting/buffs.rs:351": ".min(original) clamps ceiling",
+      "animals/day_end.rs:130-158": "u8 saturating ops, Happiness::MAX=u8::MAX",
+      "animals/interaction.rs:76": "u8 saturating_add, same",
+      "shared/mod.rs:724": "manually clamped to [0, MAX_FRIENDSHIP=1000=Friendship::MAX]"
+    },
+    "cost": "0 premium (manual analysis during Builder idle time)"
   }
 }
