@@ -142,8 +142,8 @@
       "data/*"
     ],
     "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing \u2014 fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment.",
-    "status": "ALL CLEAR \u2014 0 errors, 0 blocking issues",
-    "open_warnings": 5,
+    "status": "GOOD \u2014 AUD-013 has 3 minor misses from fix wave. Non-blocking.",
+    "open_warnings": 4,
     "open_warnings_note": "AUD-004/005/006 deferred by Builder. Safe with current constants. Will re-audit when max_health/max_stamina become bounded."
   },
   "round_2": {
@@ -409,5 +409,62 @@
     },
     "status": "ALL CLEAR. 0 open errors. Builder queue drained. Bounded-type wiring fully complete across src/ and tests/.",
     "cost": "0 premium (mechanical verification only)"
+  },
+  "round_8": {
+    "timestamp": "2026-03-19T21:30:00Z",
+    "commits_reviewed": [
+      "1073f18",
+      "a14ce98",
+      "6452b41",
+      "c9e34e6",
+      "6ea4d1f",
+      "d7fc39b"
+    ],
+    "findings": [
+      {
+        "id": "AUD-013",
+        "severity": "warning",
+        "issue": "3 max_stamina/max_health unchecked sites missed by fix wave",
+        "sites": [
+          {
+            "file": "src/mining/transitions.rs",
+            "line": 95,
+            "code": "Stamina::new_unchecked(player_state.max_stamina)",
+            "fix": "add .min(100.0)"
+          },
+          {
+            "file": "src/player/interaction.rs",
+            "line": 626,
+            "code": "Stamina::new_unchecked(player_state.max_stamina)",
+            "fix": "add .min(100.0)"
+          },
+          {
+            "file": "src/player/interaction.rs",
+            "line": 636,
+            "code": "Health::new_unchecked(player_state.max_health)",
+            "fix": "add .min(100.0)"
+          }
+        ],
+        "notes": "The commit fixed max_health * 0.5 sites (combat.rs:305, transitions.rs:94) but missed the bare max_stamina and max_health assignments. Same risk profile as AUD-005/006 \u2014 safe with current constants but unguarded."
+      },
+      {
+        "id": "AUD-014",
+        "severity": "info",
+        "issue": "Happiness rewrites are correct but redundant",
+        "notes": "Happiness is u8 with max=255. u8::saturating_add/sub cannot exceed 0..=255. Happiness::new() will NEVER fail on a u8 saturating result because the type bounds match u8::MAX exactly. The new() + unwrap_or_else pattern adds dead code paths. Not wrong, just unnecessary verbosity. The old new_unchecked was already safe by type coincidence."
+      }
+    ],
+    "code_audit": {
+      "build.rs": "New asset validation build script. Parses asset-manifest.toml with string splitting (not a TOML parser). Checks each [[sprites]] path exists on disk. Emits cargo:warning for missing sprites. Good defensive addition \u2014 catches missing assets at compile time.",
+      "animals/day_end.rs": "Happiness saturating ops wrapped with new() + fallback. Correct but redundant (see AUD-014).",
+      "animals/interaction.rs": "Same pattern. Correct.",
+      "crafting/buffs.rs": "Stamina restore now .min(max_stamina).min(100.0). Double-clamped \u2014 correct.",
+      "mining/combat.rs": "Health damage .max(0.0).min(100.0). Correct.",
+      "mining/ladder.rs": "MineFloor +1 wrapped with new() + clamp fallback. Correct, addresses AUD-004.",
+      "mining/transitions.rs": "Health fixed (line 94), Stamina MISSED (line 95). See AUD-013.",
+      "player/tools.rs": "Stamina drain .max(0.0).min(100.0). Correct."
+    },
+    "status": "AUD-013 (3 missed sites) is non-blocking \u2014 same risk as the previously deferred AUD-005/006. All code compiles clean.",
+    "cost": "0 premium (manual review)"
   }
 }
