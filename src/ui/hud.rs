@@ -179,6 +179,11 @@ pub fn preload_item_atlas(
         ("pumpkin", "sprites/items/Pickup_Crop_Pumpkin_16x16.png"),
         ("melon", "sprites/items/Pickup_Crop_Watermelon_16x16.png"),
         ("coffee", "sprites/items/Pickup_Crop_Coffee_16x16.png"),
+        ("carrot", "sprites/items/Pickup_Crop_Carrot_16x16.png"),
+        ("radish", "sprites/items/Pickup_Crop_Radish_16x16.png"),
+        ("onion", "sprites/items/Pickup_Crop_Onion_16x16.png"),
+        ("pineapple", "sprites/items/Pickup_Crop_Pineapple_16x16.png"),
+        ("grape", "sprites/items/Pickup_Crop_Grape_16x16.png"),
     ] {
         atlas_data
             .crop_overrides
