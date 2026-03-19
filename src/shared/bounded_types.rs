@@ -21,5 +21,17 @@ pub struct StackSize(pub u8);
 #[game_value(min = 0, max = 120)]
 pub struct MineFloor(pub u8);
 
+impl Default for MineFloor {
+    fn default() -> Self {
+        Self::new_unchecked(0)
+    }
+}
+
 #[game_value(min = 0, max = 3)]
 pub struct BuildingLevel(pub u8);
+
+impl Default for BuildingLevel {
+    fn default() -> Self {
+        BuildingLevel::new_unchecked(0)
+    }
+}

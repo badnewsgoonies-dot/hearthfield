@@ -305,7 +305,7 @@ pub fn check_player_knockout(
         iframes.timer = Timer::from_seconds(0.0, TimerMode::Once);
 
         // Reset mine state
-        mine_state.current_floor = 0;
+        mine_state.current_floor = MineFloor::new_unchecked(0);
         in_mine.0 = false;
         active_floor.spawned = false;
 

@@ -235,8 +235,8 @@ fn evaluate_condition(
         "shipping_mogul" => stats.items_shipped >= 500,
 
         // ── Mining ───────────────────────────────────────────────────────
-        "spelunker" => mine.deepest_floor_reached >= 10,
-        "mine_crawler" => mine.deepest_floor_reached >= 20,
+        "spelunker" => mine.deepest_floor_reached.get() >= 10,
+        "mine_crawler" => mine.deepest_floor_reached.get() >= 20,
 
         // ── Crafting/Cooking ─────────────────────────────────────────────
         "chef" => {
@@ -256,7 +256,7 @@ fn evaluate_condition(
         "pet_lover" => animals
             .animals
             .iter()
-            .any(|a| matches!(a.kind, AnimalKind::Cat | AnimalKind::Dog) && a.happiness == 255),
+            .any(|a| matches!(a.kind, AnimalKind::Cat | AnimalKind::Dog) && *a.happiness == 255),
         "rancher" => animals.animals.len() >= 12,
 
         // ── Time-of-day ──────────────────────────────────────────────────
@@ -655,7 +655,7 @@ mod tests {
         let house = HouseState::default();
         let farm = FarmState::default();
 
-        mine.deepest_floor_reached = 9;
+        mine.deepest_floor_reached = MineFloor::new_unchecked(9);
         assert!(!evaluate_condition(
             "spelunker",
             &stats,
@@ -670,7 +670,7 @@ mod tests {
             &farm,
         ));
 
-        mine.deepest_floor_reached = 10;
+        mine.deepest_floor_reached = MineFloor::new_unchecked(10);
         assert!(evaluate_condition(
             "spelunker",
             &stats,

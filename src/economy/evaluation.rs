@@ -153,7 +153,7 @@ pub fn handle_evaluation(
         }
 
         // Floor 20 reached in the mine
-        if mine_state.deepest_floor_reached >= 20 {
+        if mine_state.deepest_floor_reached.get() >= 20 {
             categories.insert("skills_mine_floor_20".to_string(), 1);
             total += 1;
         }

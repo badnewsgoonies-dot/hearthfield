@@ -9,10 +9,9 @@ pub mod entity_types;
 mod schedule;
 
 pub use schedule::*;
-pub use bounded_types::{Gold, Health, Stamina};
+pub use bounded_types::{BuildingLevel, Gold, Happiness, Health, MineFloor, Stamina};
 
 use bevy::prelude::*;
-use ironclad::game_value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -572,7 +571,7 @@ pub struct Animal {
     pub name: String,
     pub age: AnimalAge,
     pub days_old: u16,
-    pub happiness: u8, // 0-255
+    pub happiness: Happiness,
     pub fed_today: bool,
     pub petted_today: bool,
     pub product_ready: bool,
@@ -583,8 +582,8 @@ pub struct AnimalState {
     pub animals: Vec<Animal>,
     pub has_coop: bool,
     pub has_barn: bool,
-    pub coop_level: u8, // 0=none, 1=basic, 2=big, 3=deluxe
-    pub barn_level: u8,
+    pub coop_level: BuildingLevel, // 0=none, 1=basic, 2=big, 3=deluxe
+    pub barn_level: BuildingLevel,
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -835,8 +834,8 @@ pub enum MineEnemy {
 
 #[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MineState {
-    pub current_floor: u8,         // 0 = not in mine
-    pub deepest_floor_reached: u8, // for elevator
+    pub current_floor: MineFloor,         // 0 = not in mine
+    pub deepest_floor_reached: MineFloor, // for elevator
     pub elevator_floors: Vec<u8>,  // unlocked elevator stops (every 5)
 }
 

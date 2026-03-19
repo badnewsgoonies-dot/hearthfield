@@ -39,10 +39,10 @@ pub fn handle_mine_entry(
 
             // If mine_state.current_floor is already set (e.g. restored from
             // a save file), resume on that floor instead of resetting to 1.
-            if mine_state.current_floor > 0 {
+            if mine_state.current_floor.get() > 0 {
                 let floor = mine_state.current_floor;
                 floor_req.pending = true;
-                floor_req.floor = floor;
+                floor_req.floor = floor.get();
                 active_floor.spawned = false;
             } else if !mine_state.elevator_floors.is_empty() {
                 // If player has elevator floors, show elevator selection
@@ -50,7 +50,7 @@ pub fn handle_mine_entry(
                 // Don't spawn floor yet; wait for elevator selection
             } else {
                 // Start at floor 1
-                mine_state.current_floor = 1;
+                mine_state.current_floor = MineFloor::new_unchecked(1);
                 floor_req.pending = true;
                 floor_req.floor = 1;
                 active_floor.spawned = false;
@@ -60,7 +60,7 @@ pub fn handle_mine_entry(
         // If transitioning away from mine to something else
         if event.to_map != MapId::Mine && in_mine.0 {
             in_mine.0 = false;
-            mine_state.current_floor = 0;
+            mine_state.current_floor = MineFloor::new_unchecked(0);
             active_floor.spawned = false;
         }
     }
@@ -95,7 +95,7 @@ pub fn handle_day_end_in_mine(
             player_state.stamina = Stamina::new_unchecked(player_state.max_stamina);
 
             // Exit mine
-            mine_state.current_floor = 0;
+            mine_state.current_floor = MineFloor::new_unchecked(0);
             in_mine.0 = false;
             active_floor.spawned = false;
 
