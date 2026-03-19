@@ -127,7 +127,7 @@
     }
   ],
   "summary": {
-    "errors": 0,
+    "errors": 1,
     "warnings": 3,
     "info": 2,
     "false_positives_caught": 7,
@@ -142,7 +142,7 @@
       "data/*"
     ],
     "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing \u2014 fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment.",
-    "status": "CLEAN \u2014 all errors resolved as of round 4",
+    "status": "BLOCKED on AUD-010: 17 type errors in tests/headless.rs",
     "open_warnings": 3,
     "open_warnings_note": "AUD-004/005/006 deferred by Builder. Safe with current constants. Will re-audit when max_health/max_stamina become bounded."
   },
@@ -224,5 +224,134 @@
     "files_audited": 37,
     "commits_audited": 11,
     "verdict": "PASS \u2014 all blocking issues resolved. Bounded-type wiring is correct and complete."
+  },
+  "round_5": {
+    "timestamp": "2026-03-19T18:00:00Z",
+    "commits_reviewed": [
+      "43a0a3d",
+      "448ef20"
+    ],
+    "findings": [
+      {
+        "id": "AUD-010",
+        "severity": "error",
+        "file": "tests/headless.rs",
+        "issue": "BLOCKING: ~17 bare primitive assignments/comparisons to bounded types in headless.rs. These are compile errors \u2014 cargo test will not build. Builder claim \"zero bare primitive access remaining\" was scoped to src/ only; tests/ was not swept.",
+        "sites": {
+          "bare_gold_assignments": [
+            {
+              "line": 563,
+              "code": "ps.gold = 500",
+              "fix": "ps.gold = Gold::new_unchecked(500)"
+            },
+            {
+              "line": 615,
+              "code": "ps.gold = 1000",
+              "fix": "ps.gold = Gold::new_unchecked(1000)"
+            },
+            {
+              "line": 902,
+              "code": "ps.gold = 100",
+              "fix": "ps.gold = Gold::new_unchecked(100)"
+            },
+            {
+              "line": 929,
+              "code": "ps.gold = 500",
+              "fix": "ps.gold = Gold::new_unchecked(500)"
+            },
+            {
+              "line": 956,
+              "code": "ps.gold = 50",
+              "fix": "ps.gold = Gold::new_unchecked(50)"
+            },
+            {
+              "line": 1017,
+              "code": "ps.gold = 0",
+              "fix": "ps.gold = Gold::new_unchecked(0)"
+            },
+            {
+              "line": 3569,
+              "code": "ps.gold = 12345",
+              "fix": "ps.gold = Gold::new_unchecked(12345)"
+            }
+          ],
+          "bare_stamina_assignments": [
+            {
+              "line": 3570,
+              "code": "ps.stamina = 50.0",
+              "fix": "ps.stamina = Stamina::new_unchecked(50.0)"
+            },
+            {
+              "line": 4610,
+              "code": "player_state.stamina = 7.0",
+              "fix": "player_state.stamina = Stamina::new_unchecked(7.0)"
+            }
+          ],
+          "bare_health_assignments": [
+            {
+              "line": 4612,
+              "code": "player_state.health = 12.0",
+              "fix": "player_state.health = Health::new_unchecked(12.0)"
+            }
+          ],
+          "bare_gold_comparisons": [
+            {
+              "line": 623,
+              "code": "assert_eq!(ps.gold, 1000)",
+              "fix": "assert_eq!(ps.gold.get(), 1000)"
+            },
+            {
+              "line": 914,
+              "code": "assert_eq!(ps.gold, 350)",
+              "fix": "assert_eq!(ps.gold.get(), 350)"
+            },
+            {
+              "line": 941,
+              "code": "assert_eq!(ps.gold, 300)",
+              "fix": "assert_eq!(ps.gold.get(), 300)"
+            },
+            {
+              "line": 968,
+              "code": "assert_eq!(ps.gold, 0)",
+              "fix": "assert_eq!(ps.gold.get(), 0)"
+            },
+            {
+              "line": 3578,
+              "code": "assert_eq!(restored.gold, 12345)",
+              "fix": "assert_eq!(restored.gold.get(), 12345)"
+            },
+            {
+              "line": 3898,
+              "code": "assert_eq!(ps_r.gold, 99999)",
+              "fix": "assert_eq!(ps_r.gold.get(), 99999)"
+            },
+            {
+              "line": 3926,
+              "code": "assert_eq!(ps_r.gold, 500)",
+              "fix": "assert_eq!(ps_r.gold.get(), 500)"
+            }
+          ],
+          "bare_stamina_comparison": [
+            {
+              "line": 3579,
+              "code": "(restored.stamina - 50.0).abs()",
+              "fix": "(restored.stamina.get() - 50.0).abs()"
+            }
+          ]
+        },
+        "total_sites": 17,
+        "all_values_in_bounds": true,
+        "notes": "All fixes are mechanical. All new_unchecked values are constant literals within bounds. All comparisons just need .get(). This is the same pattern as Builder commit e45aea4 (shop.rs + tool_upgrades.rs) but for headless.rs."
+      }
+    ],
+    "also_noted": [
+      "quality_from_happiness() takes u8 not Happiness \u2014 callers at lines 796-804 are fine (function signature accepts bare u8).",
+      "reward_gold is u32 (not Gold) in QuestReward \u2014 comparison at line 3633 is fine.",
+      "spouse_happiness is i16 (not Happiness) in RelationshipState \u2014 comparison at line 3704 is fine.",
+      "rock.health is u32 (not Health) in MineRock \u2014 comparisons at lines 4316/4324/4331/5036/5085 are fine.",
+      "Builder commit 43a0a3d (day_end.rs test fix): CLEAN."
+    ],
+    "status": "AUD-010 is BLOCKING. cargo test cannot compile until these 17 sites are fixed. Previous AUD-001/002/003 fixes remain good.",
+    "cost": "0 premium (mechanical grep sweep)"
   }
 }
