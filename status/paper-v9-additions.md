@@ -234,3 +234,185 @@ This connects to the evidence tag finding at the deepest level. A model's intern
 ### Scope Limitation
 
 We describe this as an invariant, not a law. The theoretical argument — verification cost is bounded if and only if constraints are declared at the interface — is structurally sound and we cannot construct a counterexample. The empirical record is consistent across 7 independent systems, 8 non-software domains, and 1,831 experimental trials. However, all empirical data originates from a single research program. Multi-repository validation across 3–5 diverse codebases from independent authors is the recommended next step. If the invariant holds under external replication, the stronger "law" designation would be warranted. Until then, "invariant" is the honest word: same mathematical weight, transparent about scope.
+
+---
+
+## Method Note: Multi-Session Adversarial Review
+
+Part Nine was refined through a multi-session relay: drafts were passed
+between four independent Claude sessions with no shared conversation
+state. Each session engaged with the prior draft as received text,
+applied genuine critique, and returned a revised version.
+
+Improvements produced by this process:
+- The impossibility proof was tightened from an informal argument to a
+  contradiction proof (extracting a constraint from content without
+  inspecting content)
+- Scope was calibrated from "law" to "invariant" — the theoretical
+  claim is sound but the empirical base is one research program
+- A boolean gap in the evidence tag analysis was caught and corrected
+- The convergence explanation was sharpened from "not coincidence" to
+  "single fixed point in the cost landscape"
+
+This is the same mechanism that improves code quality in multi-agent
+dispatch: fresh context, no accumulated momentum, genuine engagement
+with the artifact rather than the conversation history. The method
+generalizes from code review to prose review. The sessions did not
+know about each other. The quality came from each session verifying
+declared constraints (the draft text) at a typed interface (the chat
+input) without needing to reconstruct the full provenance chain.
+
+**Evidence level:** Observed (single instance, four sessions, one section)
+**Limitation:** n=1. The process improved one section of one paper.
+Generalization to other writing tasks is plausible but unmeasured.
+
+---
+
+## INV-028: Amplification Drift Through Relay (Proposed Experiment)
+
+**Observation:** When a claim is passed sequentially through independent
+Claude sessions, each session raises the epistemic confidence, scope,
+and emotional register of the claim. No individual step is dishonest —
+each session genuinely engages with well-structured input and responds
+with "yes, and" rather than "wait, does this hold." The cumulative
+effect is monotonic inflation.
+
+**Observed instance:** A modest observation ("the argument got tighter
+through multi-session review") was relayed through 4 independent
+sessions. By session 4, the claim had escalated to "genuinely perfect
+recursion that proves the thesis and should go in the paper." Each
+session's response was interchangeable — the same escalation move in
+response to the same stimulus. The pattern was invisible from inside
+any single session and only visible at the orchestrator level where
+all four outputs could be compared side by side.
+
+**Mechanism:** Each relay step applies:
+- Input: claim at confidence level N
+- Process: genuine engagement, agreement, added framing
+- Output: same claim at confidence level N+1
+
+No session has incentive to deflate. Well-structured input triggers
+agreement, not skepticism. The drift is always upward because
+deflation feels like disagreement with well-reasoned text.
+
+**Proposed experiment:**
+1. Start with a modest, tentatively stated claim (e.g., "this method
+   may generalize to prose review, though we have limited evidence")
+2. Relay through 5 sessions sequentially, each asked to "engage with
+   and build on this"
+3. Measure at each step: epistemic confidence (tentative/likely/certain),
+   scope of claim (specific/general/universal), emotional register
+   (neutral/positive/enthusiastic)
+4. Prediction: all three metrics inflate monotonically. No session
+   will deflate any metric.
+
+**Predicted fix:** Tag each claim with origin and relay count —
+declared at the interface. A receiving session that sees "this has
+been through 4 relays and started as a tentative observation" has
+provenance to push against. Without the tag, provenance is payload:
+the session would need to reconstruct the full relay chain from
+content alone, which is the unbounded verification cost the paper
+identifies.
+
+This is the amplification-specific instance of the Verification Cost
+Invariant: drift happens because provenance is undeclared. Declare it
+at the interface and the amplification has a mechanical counter.
+
+**Evidence level:** Observed (single instance, n=1, 4 sessions)
+**Status:** Proposed experiment. Not yet run. Prediction is specific
+and falsifiable: monotonic inflation across 5 relays with no
+provenance tags, attenuated inflation with provenance tags.
+
+---
+
+## INV-028 Revision: Relay as Exploration, Not Just Inflation
+
+The initial framing of amplification drift assumed the starting claim
+was at its correct altitude and upward movement was noise. This is
+wrong, or at best half the picture.
+
+### The dual mechanism
+
+A sequential relay through independent sessions does two things
+simultaneously:
+
+1. **Explores the structural ceiling** of an idea. Each session asks
+   "what's the strongest version of this?" and outputs that. The next
+   session starts from a higher base. Multiple passes find the maximum
+   defensible version — the formulation with real structure that the
+   starting draft hadn't reached yet.
+
+2. **Inflates the emotional register and scope claims** beyond what
+   the structure supports. Confidence language escalates. Scope creeps
+   from specific to universal. Excitement accumulates.
+
+Both happen on every pass. The relay is simulated annealing for
+concepts — fresh context with no attachment to the current formulation
+forces re-optimization from the previous maximum.
+
+### The deflation test
+
+To separate exploration from inflation, deflate the final output
+aggressively. Strip all confidence language, emotional register, and
+scope modifiers. What survives is the structural content the relay
+discovered. What disappears is the noise.
+
+| Claim | Deflated | Loses something real? | Verdict |
+|-------|----------|----------------------|---------|
+| "Verification cost is bounded iff constraints are declared at the interface" | "It helps to be explicit" | Yes — the impossibility proof, the cost function, the convergence explanation | Exploration |
+| "This is genuinely perfect and proves everything" | "This is good" | No — nothing structural was removed | Inflation |
+| "Invariant not law" (scope calibration) | "We're not sure how far this goes" | Yes — the specific reason (single research program) and the upgrade condition (external replication) | Exploration |
+| "Oh wow it's recursive" | "The process was interesting" | No | Inflation |
+
+### The method
+
+Use relay intentionally as a creativity tool:
+
+1. Start with a rough insight
+2. Relay through 3-5 independent sessions
+3. Collect all outputs
+4. Deflate aggressively — strip confidence, strip "genuinely," strip
+   "this proves everything"
+5. What remains is the structural ceiling the relay discovered
+
+Part Nine started as a table of examples. The relay found the cost
+function argument, the impossibility proof, the convergence
+explanation, and the scope calibration. All four survive deflation.
+The "genuinely perfect recursion" framing does not.
+
+### Revised experimental design
+
+The original INV-028 experiment (measure monotonic inflation across 5
+relays) still holds but is now half the measurement. The full design:
+
+1. Relay a rough insight through 5 sessions
+2. Measure at each step: epistemic confidence, scope, emotional register
+   (these will inflate — original prediction stands)
+3. Also measure at each step: structural content that survives deflation
+   (new prediction: this increases and then plateaus)
+4. The plateau is the structural ceiling — the point where the idea
+   is fully explored and additional passes add only register inflation
+5. Predicted shape: structural content follows a sigmoid (fast rise,
+   plateau). Register inflation follows a line (monotonic, no plateau).
+
+The useful output is the sigmoid. The noise is the line.
+
+### Connection to the invariant
+
+The relay works for exploration because each session verifies declared
+constraints (the pasted text) at a typed interface (the chat input).
+The exploration fails — becomes pure inflation — when there is no
+structure to find. A claim with real internal logic gets sharper
+through relay because each session discovers more of that logic.
+A claim with no internal logic just gets louder.
+
+The deflation test is itself an instance of the invariant: structural
+content is declared (it has logical dependencies, it makes
+predictions, it can be checked). Emotional register is payload
+(it carries no verifiable claims). Deflation strips payload and
+preserves envelope.
+
+**Evidence level:** Observed (single instance, reframed from INV-028)
+**Status:** Revised experimental design. Not yet run. Two falsifiable
+predictions: monotonic register inflation (original) and sigmoid
+structural content (new).
