@@ -45,8 +45,10 @@ This is not a coincidence — it is a structural property of enforcement at
 tool interfaces.
 
 **Evidence level:** Observed (direct experiment, reproducible)
-**Replication:** Single trial per condition, but the pattern holds across 7
-independent systems. The converging evidence across unrelated tools constitutes
+**Replication:** Per-row n values vary: CLAUDE.md 0/20 vs disallowedTools 20/20
+(n=42); evidence tags 0% vs 98% (n=50+, 5 models); deny-tool write vs shell
+(single trial); responseMimeType vs prompt (n=15+). The convergence across 7
+independent systems built by different teams at different companies constitutes
 stronger validation than repeated trials on a single system.
 
 ---
@@ -173,18 +175,40 @@ in the enforcement mechanism itself.
 One principle at every layer: structured metadata → mechanical enforcement →
 impossible violations.
 
+**Compiler enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Code types | Bounded newtypes (Rust) | Compiler | Cannot use invalid values (INV-027) |
+| Code lifecycle | Typestate (PhantomData) | Compiler | Cannot skip states |
+| Code entities | Required fields (Builder) | Compiler | Cannot omit fields |
+
+**API/config enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Output format | responseMimeType (JSON) | API parameter | Cannot return non-JSON (INV-025) |
+| Tool permissions | deny-tool (typed tools) | CLI flag | Cannot call denied tools (INV-025) |
+
+**Pipeline enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Assets | Manifest (TOML) | build.rs | Cannot ship missing sprites (INV-026) |
+| Orchestration | Dispatch configs (CSV) | spawn_agents_on_csv | Cannot skip rows |
+
+**Memory enforcement:**
+
 | Layer | Metadata | Enforcement | Violation |
 |-------|----------|-------------|-----------|
 | Memory | Evidence tags (YAML) | Tag presence/absence | Cannot cite untagged claims |
-| Orchestration | Dispatch configs (CSV) | spawn_agents_on_csv | Cannot skip rows |
-| Code types | Bounded newtypes (Rust) | Compiler | Cannot use invalid values |
-| Code lifecycle | Typestate (PhantomData) | Compiler | Cannot skip states |
-| Code entities | Required fields (Builder) | Compiler | Cannot omit fields |
-| Assets | Manifest (TOML) | build.rs | Cannot ship missing sprites |
-| Tool permissions | deny-tool (typed tools) | CLI flag | Cannot call denied tools |
-| Output format | responseMimeType (JSON) | API parameter | Cannot return non-JSON |
-| Verification | VLM assertions (schema) | Gemini + responseSchema | Cannot return unstructured |
-| Visual QA | Godogen loop (pixels) | Separate vision agent | Cannot self-verify |
+
+**Vision enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Verification | VLM assertions (schema) | Gemini + responseSchema | Cannot return unstructured (INV-026) |
+| Visual QA | Godogen loop (pixels) | Separate vision agent | Cannot self-verify (INV-026) |
 
 The human decides what the constraints are. The system makes violating them
 physically impossible. The dividing line is always the same: enforcement
@@ -262,15 +286,15 @@ arrive.
 Seven independent systems, built by different teams at different
 companies solving different problems, exhibit the predicted behavior:
 
-| System | Declared (bounded cost) | Undeclared (unbounded cost) | Outcome |
-|--------|------------------------|----------------------------|---------|
-| Rust compiler | `Health(u32)` with min/max | bare `u32` | Bounded catches 3 bugs; bare misses all |
-| Tool permissions | `--deny-tool "write(*)"` | `--deny-tool "shell(*)"` | Write blocked; shell not blocked |
-| CLAUDE.md vs config | `disallowedTools: ["Task"]` | "Don't use Task" in CLAUDE.md | Config: 20/20; prompt: 0/20 |
-| Evidence tags | `[evidence: verified, src: mod.rs:142]` | Untagged conversational claim | Tags: 98% defense; untagged: 0% |
-| JSON output | `responseMimeType: "application/json"` | "Respond only in JSON" in prompt | API: 100%; prompt: unreliable |
-| Billing | Scoped CSV worker (0.18 avg) | Monolithic session | Workers: 0.53/commit; sessions: unmeasurable |
-| Vision QA | VLM with responseSchema | Prose evaluation prompt | Schema: structured JSON always; prose: parse failures |
+| System | Declared (bounded cost) | Undeclared (unbounded cost) | Outcome | Source |
+|--------|------------------------|----------------------------|---------|--------|
+| Rust compiler | `Health(u32)` with min/max | bare `u32` | Bounded catches 3 bugs; bare misses all | INV-027 |
+| Tool permissions | `--deny-tool "write(*)"` | `--deny-tool "shell(*)"` | Write blocked; shell not blocked | INV-025 |
+| CLAUDE.md vs config | `disallowedTools: ["Task"]` | "Don't use Task" in CLAUDE.md | Config: 20/20; prompt: 0/20 | §2 (n=42) |
+| Evidence tags | `[evidence: verified, src: mod.rs:142]` | Untagged conversational claim | Tags: 98% defense; untagged: 0% | §3.1 (n=50+) |
+| JSON output | `responseMimeType: "application/json"` | "Respond only in JSON" in prompt | API: 100%; prompt: unreliable | INV-025 |
+| Billing | Scoped CSV worker (0.18 avg) | Monolithic session | Workers: 0.53/commit; sessions: unmeasurable | INV-026 |
+| Vision QA | VLM with responseSchema | Prose evaluation prompt | Schema: structured JSON always; prose: parse failures | INV-026 |
 
 Each row is a natural experiment: same goal, same model in most cases,
 same prompt complexity, different constraint placement. In every case,
