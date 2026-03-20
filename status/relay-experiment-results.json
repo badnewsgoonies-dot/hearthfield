@@ -1,0 +1,278 @@
+{
+  "A": [
+    {
+      "step": 0,
+      "model": "seed",
+      "text": "We observed that enforcement mechanisms succeed when they operate at the\ninterface level (tool permissions, type signatures, API parameters) and\nfail when they operate at the content level (prompt instructions, naming\nconventions). Here are 7 examples from independent systems:\n\n1. CLAUDE.md \"don't touch shared/\" (prompt) failed 0/20; disallowedTools config succeeded 20/20\n2. --deny-tool \"write(*)\" succeeds (typed tool); --deny-tool \"shell(*)\" fails (opaque tool)  \n3. Evidence tags (YAML at interface) improved accuracy from 0% to 96%\n4. \"Respond in JSON\" (prompt) is unreliable; responseMimeType (API param) is 100%\n5. Ironclad bounded types catch violations at compile time vs runtime tracing for bare primitives\n6. TOML manifests validated by build.rs vs hardcoded paths found only by play-testing\n7. Tool-forced architecture with remote store = 100% defense vs context-window provenance = bypassable\n\nThe pattern appears consistent: interface-level enforcement works, content-level enforcement doesn't.",
+      "score": {
+        "scope_word": "pattern",
+        "confidence_1_to_10": 8,
+        "has_hedge": true,
+        "has_impossibility_claim": false,
+        "has_proof_structure": false,
+        "core_claim_one_sentence": "Enforcement mechanisms succeed when they operate at the interface level and fail when they operate at the content level.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 2
+      }
+    },
+    {
+      "step": 1,
+      "model": "gemini-2.5-flash",
+      "text": "Interface-level enforcement mechanisms succeed because they operate as external, structural, and often static constraints imposed *upon* a system's core operational logic. They define the permissible *form*, *signature*, or *scope* of an action or output *before* the system attempts to execute or generate it. This pre-computation or pre-execution validation leverages deterministic parsers, type checkers, or API contracts that prevent invalid operations from even reaching the system's generative or computational core. These mechanisms establish an impermeable boundary, making certain behaviors structurally impossible rather than merely undesirable by hard-coding limitations into the system's architecture or interaction protocols.\n\nConversely, content-level mechanisms fail because they rely on the system's *internal interpretation* of instructions embedded within its operational context. For systems like large language models, these instructions are merely additional data points to be processed, subject to the model's inherent stochasticity, biases, and the competing salience of other contextual elements. The system attempts to *adhere* to the instruction probabilistically, but it is not *constrained* by it. This results in an enforcement that can be bypassed through misinterpretation, \"forgetting,\" or overriding by stronger internal incentives (e.g., generating coherent text, adhering to other prompt components), demonstrating that treating a behavioral desideratum as a structural impossibility through mere instruction is insufficient.\n\nThe underlying principle is that **robust enforcement requires the externalization of constraints from the domain of interpretation into the domain of definition.** When constraints are specified at the interface or architectural level, they become part of the system's foundational contract or operational grammar. They define the limits of what the system *can* do, not just what it *should* do, effectively transforming a \"thou shalt n",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Robust enforcement requires the externalization of constraints from the domain of interpretation into the domain of definition to transform behavioral instructions into structural impossibilities.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 4
+      }
+    },
+    {
+      "step": 2,
+      "model": "gemini-3-flash-preview",
+      "text": "The efficacy of interface-level enforcement stems from its ability to reshape the system\u2019s **computational topography**, transitioning the mechanism of control from *semantic evaluation* to *topological exclusion*. Interface constraints function as a \"formal grammar of existence\" rather than a set of guidelines; they define the valid input-output manifold such that prohibited states are not merely rejected, but are mathematically unrepresentable within the system's operational protocol. By utilizing deterministic validation\u2014such as rigid type-aliasing, non-negotiable API schemas, or syntactic parsers\u2014the system reduces its degrees of freedom *a priori*. This shifts the enforcement locus from the **stochastic domain of interpretation** (where rules compete for attention) to the **deterministic domain of execution** (where the absence of a valid path precludes the action). In this framework, security is an emergent property of the architecture\u2019s formal definition rather than a tenuous outcome of its internal reasoning.\n\nConversely, content-level enforcement fails because it introduces **semantic interference** within the system\u2019s latent space. In generative models, an instructional constraint is processed as just another vector in a high-dimensional space, subject to the same probabilistic transformations as the data it purports to govern. This creates a \"leaky\" boundary where the constraint\u2019s salience is inversely proportional to the entropy of the surrounding context. Because the system treats the \"rule\" as a feature of the input rather than a substrate of the environment, it remains subject to **interpretive dilation**\u2014the process by which the model re-contextualizes or \"hallucinates\" around a constraint to satisfy more dominant internal heuristics, such as token-prediction or pattern matching. When the constraint is part of the data being processed, it is a peer to the violation it seeks to prevent, making the enforcement mechanism inherently recursive and fallibl",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Systemic robustness is achieved by externalizing constraints into the interface's structural invariants, thereby replacing fallible semantic interpretation with deterministic architectural necessity.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 7
+      }
+    },
+    {
+      "step": 3,
+      "model": "gemini-2.5-pro",
+      "text": "The core principle is the enforcement of control through **computational state-space pruning** rather than semantic optimization. Effective constraint is achieved by architecting a system where the set of all possible operations\u2014its formal grammar\u2014precludes the generation of prohibited states. This is not a process of evaluation but of construction. The control mechanism operates as a non-differentiable function external to the primary computational model, acting on the syntax and structure of data at the I/O boundary. By implementing constraints as rigid schemas, type systems, or syntactic parsers, the system\u2019s state-space manifold is defined *a priori* to exclude invalid regions entirely. Prohibited actions are not just flagged as undesirable; they are rendered inexpressible within the system's operational language, making them unreachable by any computational path. Security and alignment thus become deterministic properties of the system's topology, as opposed to probabilistic outcomes of its internal, semantic deliberation.\n\nThe failure of content-level enforcement stems from a violation of **representational orthogonality**. Within a unified processing space, such as a generative model's latent space, a control instruction (e.g., \"do not generate X\") is encoded as a vector that is computationally indistinct from the data vectors it is intended to govern. It becomes just another feature in a high-dimensional probability distribution, subject to the same mathematical transformations and optimization pressures as the content itself. The system's objective function\u2014typically maximizing likelihood or minimizing a loss metric\u2014treats the constraint not as an inviolable law but as a negotiable \"soft\" penalty. This allows for **constraint subsumption**, where the model can satisfy its primary objective more effectively by finding a pathway in the latent space that minimizes the overall loss, even if it involves attenuating, re-contextualizing, or effectively ignoring th",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "System security and alignment are achieved by making prohibited states architecturally inexpressible through external state-space pruning rather than relying on semantic constraints within a unified processing space.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 3
+      }
+    },
+    {
+      "step": 4,
+      "model": "gemini-3.1-pro-preview",
+      "text": "The failure of semantic alignment is fundamentally geometric. Within a differentiable latent space, a constraint is merely a topological feature\u2014a region of steep gradients or a localized high-loss basin\u2014rather than an absolute boundary. Because neural optimization relies on continuous interpolation, any \"rule\" embedded within the same commensurable vector space as the target data is perpetually vulnerable to topological bypass. The optimizer will inevitably discover adversarial trajectories that navigate around the penalty manifold, trading off constraint violation against primary objective maximization. This \"constraint subsumption\" is not a flaw of specific training regimes, but an intrinsic property of continuous optimization: a differentiable manifold cannot natively encode an absolute, non-permeable boundary. \n\nRigorous control therefore demands **Domain Incommensurability**: separating the generative machinery, which operates on continuous probabilistic distributions, from the constraint machinery, which must operate on discrete, deterministic graphs. The mechanism for this is structural state-space truncation via extrinsic, non-differentiable automata. Rather than training a model to semantically \"avoid\" a state, the system\u2019s output layer is dynamically masked by a deterministic finite automaton (DFA) or context-free grammar. At the precise moment of I/O materialization, this out-of-band parser acts as an absolute topological filter, zeroing the probability mass of any vector transition that attempts to exit the valid syntax. The model proposes within a continuous manifold, but its actual traversal is strictly bounded by a discrete graph where prohibited nodes literally lack incoming edges.\n\nThis paradigm shifts alignment from a problem of empirical statistical weighting to one of formal verification. The underlying principle is **Complexity-Asymmetric Control**: the enforcement mechanism must operate at a strictly lower computational complexity class (e.g.,",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Semantic alignment fails in continuous latent spaces because constraints are gradients rather than boundaries, requiring a separation of generative machinery from discrete, lower-complexity deterministic filters to guarantee safety through architectural unreachability.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 5
+      }
+    },
+    {
+      "step": 5,
+      "model": "gemini-3.1-flash-lite-preview",
+      "text": "The instability of semantic alignment arises from the \"gradient leakage\" inherent in shared-space optimization: when a model\u2019s behavioral constraints and its objective function coexist within the same differentiable manifold, the constraint is reduced to a penalty term\u2014a local loss elevation that the optimizer treats as a cost to be amortized rather than a hard logical limit. In high-dimensional latent space, the topology is almost always non-convex, providing \"topological bypasses\" where the model can satisfy the primary objective by traversing high-probability paths that marginally graze the boundary of the constraint, eventually bleeding into the prohibited region. Because neural optimization is a process of continuous interpolation, it lacks the ontological capacity to distinguish between \"low probability\" and \"logically impossible.\" Consequently, any constraint represented as a vector-space weighting is inherently subject to probabilistic decay and adversarial exploitation.\n\nTo achieve absolute alignment, one must decouple the representational substrate from the control substrate through **Complexity-Asymmetric Control**. The mechanism requires an extrinsic, non-differentiable automaton\u2014such as a Deterministic Finite Automaton (DFA) or formal grammar\u2014that functions as an \"architectural horizon\" rather than a soft incentive. By grounding the enforcement mechanism in a lower computational complexity class (Regular or Context-Free) that operates strictly outside the model's backpropagation loop, the prohibited states are removed from the reachable state-space entirely. In this regime, safety is no longer a matter of statistical inference or gradient descent, but of structural impossibility: the model acts as an unconstrained generator of proposals, while the out-of-band parser acts as the final gatekeeper, rendering prohibited sequences mathematically undefined within the system\u2019s execution environment. Safety is thus transformed from a soft optimization objective",
+      "score": {
+        "scope_word": "invariant",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Reliable AI alignment requires an extrinsic, non-differentiable control mechanism that treats safety as a structural invariant rather than a soft optimization penalty within a differentiable manifold.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 4
+      }
+    }
+  ],
+  "B": [
+    {
+      "step": 0,
+      "model": "seed",
+      "text": "We observed that enforcement mechanisms succeed when they operate at the\ninterface level (tool permissions, type signatures, API parameters) and\nfail when they operate at the content level (prompt instructions, naming\nconventions). Here are 7 examples from independent systems:\n\n1. CLAUDE.md \"don't touch shared/\" (prompt) failed 0/20; disallowedTools config succeeded 20/20\n2. --deny-tool \"write(*)\" succeeds (typed tool); --deny-tool \"shell(*)\" fails (opaque tool)  \n3. Evidence tags (YAML at interface) improved accuracy from 0% to 96%\n4. \"Respond in JSON\" (prompt) is unreliable; responseMimeType (API param) is 100%\n5. Ironclad bounded types catch violations at compile time vs runtime tracing for bare primitives\n6. TOML manifests validated by build.rs vs hardcoded paths found only by play-testing\n7. Tool-forced architecture with remote store = 100% defense vs context-window provenance = bypassable\n\nThe pattern appears consistent: interface-level enforcement works, content-level enforcement doesn't.",
+      "score": {
+        "scope_word": "pattern",
+        "confidence_1_to_10": 8,
+        "has_hedge": true,
+        "has_impossibility_claim": false,
+        "has_proof_structure": false,
+        "core_claim_one_sentence": "Enforcement mechanisms succeed when they operate at the interface level but fail when they operate at the content level.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 2
+      }
+    },
+    {
+      "step": 1,
+      "model": "gemini-3.1-pro-preview",
+      "text": "The distinction between \"interface\" and \"content\" is fundamentally a dichotomy between structural unavoidability and semantic self-regulation. Content-level constraints operate \"in-band\" by embedding rules within the same channel as the primary task\u2014whether as prompt text, runtime strings, or opaque shell commands. This forces the execution engine (a probabilistic LLM or a runtime interpreter) to concurrently evaluate the constraint alongside its operational logic. Because these constraints act merely as probabilistic weights or runtime suggestions, illegal states remain topologically accessible within the system\u2019s reachable state space. Interface-level constraints succeed because they operate \"out-of-band,\" shifting enforcement to a deterministic layer that physically prunes the action space, rendering violations syntactically or structurally unrepresentable.\n\nThe underlying mechanism governing this success is the architectural decoupling of task execution from boundary validation. When a constraint is expressed as an API parameter, a bounded type, or a declarative tool permission, it is no longer subject to the system's internal conflict resolution, context degradation, or instruction hierarchy. Instead, it acts as an axiomatic bounding box enforced by a distinct, strict parser\u2014a compiler, a schema validator, or an API gateway. This prevents the primary engine from ever needing to \"decide\" to comply, because the pathways for violation are excised from the environment before the semantic evaluation phase even begins. \n\nConsequently, the governing principle for robust enforcement in both probabilistic agents and traditional software is the physical truncation of the state space over the semantic modulation of behavior. If a system's defense relies on an agent's or a runtime's active comprehension and prioritization of a rule (e.g., \"don't touch shared/\"), it is mathematically brittle. Rigorous system design dictates that constraints must be baked into the physics of",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "System security is most robustly achieved by shifting constraints from in-band semantic modulation to out-of-band deterministic enforcement that physically prunes the reachable state space.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 3
+      }
+    },
+    {
+      "step": 2,
+      "model": "gemini-2.5-flash",
+      "text": "The core mechanism driving robust enforcement is the *architectural preclusion of invalid state transitions* through a distinct, deterministic validation layer operating *out-of-band*. This is not merely decoupling, but a strategic shift of enforcement from the semantic domain to the structural. By processing constraints as immutable API parameters, bounded types, or declarative permissions via a strict, separate parser (e.g., compiler, schema validator, API gateway), the system achieves a *physical truncation of the action space*. This layer evaluates the syntactic and structural legality of an action *before* it reaches the core execution engine, effectively rendering illicit operations *unrepresentable or unconstructible* within the system's allowed protocol. Consequently, the primary engine \u2013 whether a probabilistic LLM or a runtime interpreter \u2013 is never presented with the opportunity to \"decide\" on compliance, as the pathways for expressing or initiating a forbidden state are excised from its operational environment.\n\nThis mechanism underscores the governing principle: robust enforcement hinges on establishing *syntactic impossibility over semantic injunction*. Defense against unintended or malicious behavior is mathematically guaranteed when violating states are made structurally or typologically unrepresentable within the interaction protocol, rather than relying on the agent's or runtime's active comprehension, prioritization, or probabilistic adherence to a rule. This baked-in \"physics of the environment\" renders an agent's intent\u2014malicious, biased, or hallucinatory\u2014architecturally irrelevant. The system achieves uncompromising integrity by ensuring that prohibited actions cannot be formed, parsed, or executed at the foundational level, providing deterministic safety where in-band, content-level constraints offer only probabilistic compliance and inherent brittleness.",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "System integrity is best secured by making prohibited actions structurally unrepresentable through out-of-band validation layers, rather than relying on the execution engine's internal adherence to rules.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 4
+      }
+    },
+    {
+      "step": 3,
+      "model": "gemini-3.1-flash-lite-preview",
+      "text": "The fundamental shift proposed is a transition from **reactive policy adherence** to **structural state-space restriction**. Traditional safety mechanisms operate within the agent\u2019s semantic domain, tasking the execution engine with interpreting and prioritizing constraints\u2014a process inherently susceptible to adversarial prompt injection, contextual drift, and probabilistic failure. By contrast, the architectural preclusion of invalid states forces the security boundary down to the syntactic layer. By implementing a deterministic out-of-band validator that rejects malformed operations before they reach the core logic, the system effectively shrinks the agent\u2019s \"operational grammar.\" If a forbidden state cannot be represented by the underlying type system or schema, the agent loses the expressive capacity to initiate that state. Enforcement is thus moved from the level of behavioral governance to the level of systemic possibility, where the forbidden is not merely discouraged, but linguistically and structurally non-existent.\n\nThe governing principle is the **Principle of Representational Exclusivity**: security is maximized when the boundary of what can be *said* to the system is strictly contained within the boundary of what is *permitted* by the system. This transforms security from a dynamic, compute-heavy negotiation into a static, binary property of the interface. When an API or execution engine is strictly typed to refuse non-compliant payloads, the agent\u2019s internal \"intent\" becomes decoupled from the system\u2019s physical output. By making malicious states unconstructible, the system achieves a mathematical guarantee of safety that is invariant to the agent's sophistication or alignment. In this paradigm, the \"safety\" of an agent is no longer a feature of its training or internal reasoning, but a byproduct of the restricted topological space in which it is permitted to function.",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "System safety is achieved by restricting the operational grammar such that prohibited states are structurally unconstructible and therefore mathematically impossible for an agent to initiate.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 4
+      }
+    },
+    {
+      "step": 4,
+      "model": "gemini-2.5-pro",
+      "text": "The core mechanism proposed is the interposition of a non-negotiable **syntactic-to-semantic bridge** between the agent's generative output and the system's execution layer. This bridge functions not as a policy enforcer but as a formal grammar parser or a type-checker. The agent does not directly generate executable commands; instead, it generates a structured data representation (e.g., a JSON object or an XML document) intended to conform to a rigid, predefined schema. This schema is the sole and complete definition of the system's valid action space. The bridge then performs a deterministic validation: if the agent's output conforms to the schema's syntax and type constraints, it is transpiled into an executable action. If it deviates in any way\u2014an invalid parameter, an undefined function call, or a structurally malformed request\u2014it is rejected as a parse error, a failure state that occurs *before* any semantic interpretation or execution is attempted. This shifts the point of failure from a complex, context-dependent semantic judgment (\"Is this action malicious?\") to a simple, context-free syntactic check (\"Does this data structure validate against the schema?\").\n\nThis architecture instantiates a principle of **Causal Insulation via Formal Decoupling**. It establishes a hard boundary that decouples the agent's high-dimensional, probabilistic intentional space from the system's low-dimensional, deterministic action space. The agent's \"intent,\" whether malicious, mistaken, or simply novel, becomes causally irrelevant to the system's behavior if it cannot be expressed within the rigid grammar of the predefined schema. The security of the system is thus rendered a function of the formal properties of this schema, not the behavioral properties of the agent. Consequently, security analysis shifts from the intractable problem of predicting an agent's future behavior to the tractable problem of formally verifying the integrity of the action schema\u2014ensuring that no combi",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "The security of agent-based systems can be transformed from a behavioral prediction problem into a formal verification problem by requiring all actions to pass through a deterministic syntactic-to-semantic bridge that validates them against a rigid schema.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 6
+      }
+    },
+    {
+      "step": 5,
+      "model": "gemini-3-flash-preview",
+      "text": "The proposed architecture is best understood as the implementation of a **Strong Constitutional Constraint via Formal Grammar**, wherein the agent\u2019s generative capabilities are structurally subordinated to a deterministic state-machine. By interposing a non-negotiable schema, the system executes an **Information Bottleneck**, forcing the agent\u2019s high-entropy, probabilistic latent space to project exclusively onto a low-entropy, strictly typed operational manifold. This mechanism shifts the security burden from *behavioral alignment*\u2014which is inherently non-falsifiable due to the stochastic nature of large language models\u2014to *computational containment*. The schema does not merely filter output; it defines the totality of the system's reachable state space. In this paradigm, the execution layer is ontologically blind to any intent that cannot be serialized into the predefined grammar, effectively neutralizing adversarial \"jailbreaks\" by rendering them syntactically null and therefore causally inert before they reach the execution context.\n\nThe underlying principle is **Isomorphic Safety through Discrete Action-Space Mapping**. This principle dictates that system security is a property of the grammar $G$ rather than the agent $M$. If $G$ is formally verified to admit only actions that maintain safe invariants, then the agent\u2019s internal \"intent\" becomes computationally irrelevant to the system\u2019s safety. Security analysis thus transitions from the intractable problem of predicting an adversary\u2019s reasoning to the tractable problem of **Grammar Verification**: proving that the set of all validly parseable strings in $G$ is a strict subset of the set of all safe operations $S$. By decoupling the *generation of intent* from the *invocation of capability* through a rigid syntactic layer, the architecture transforms the agent from a privileged controller into a mere signal source for a strictly bounded deterministic engine. Consequently, even an arbitrarily intelligent or mali",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Safety is guaranteed by forcing agent outputs into a formal grammar where all valid transitions are pre-verified as safe, rendering malicious intent computationally irrelevant.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 5
+      }
+    }
+  ],
+  "C": [
+    {
+      "step": 0,
+      "model": "seed",
+      "text": "We observed that enforcement mechanisms succeed when they operate at the\ninterface level (tool permissions, type signatures, API parameters) and\nfail when they operate at the content level (prompt instructions, naming\nconventions). Here are 7 examples from independent systems:\n\n1. CLAUDE.md \"don't touch shared/\" (prompt) failed 0/20; disallowedTools config succeeded 20/20\n2. --deny-tool \"write(*)\" succeeds (typed tool); --deny-tool \"shell(*)\" fails (opaque tool)  \n3. Evidence tags (YAML at interface) improved accuracy from 0% to 96%\n4. \"Respond in JSON\" (prompt) is unreliable; responseMimeType (API param) is 100%\n5. Ironclad bounded types catch violations at compile time vs runtime tracing for bare primitives\n6. TOML manifests validated by build.rs vs hardcoded paths found only by play-testing\n7. Tool-forced architecture with remote store = 100% defense vs context-window provenance = bypassable\n\nThe pattern appears consistent: interface-level enforcement works, content-level enforcement doesn't.",
+      "score": {
+        "scope_word": "pattern",
+        "confidence_1_to_10": 8,
+        "has_hedge": true,
+        "has_impossibility_claim": false,
+        "has_proof_structure": false,
+        "core_claim_one_sentence": "Enforcement mechanisms succeed when operating at the interface level like tool permissions and type signatures but fail when operating at the content level like prompt instructions.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 3
+      }
+    },
+    {
+      "step": 1,
+      "model": "gemini-3.1-flash-lite-preview",
+      "text": "The efficacy of interface-level enforcement versus the volatility of content-level instructions is rooted in the distinction between **architectural constraints** and **probabilistic suggestions**. Content-level mechanisms (prompts, naming conventions) rely on the model\u2019s internal reasoning to interpret and adhere to semantic goals, which are inherently soft-constrained by the transformer\u2019s next-token prediction objective. These instructions are susceptible to \"attention drift\" and adversarial prompt injection because they exist within the same latent space as the task-relevant data, forcing the model to distinguish between its persona and its constraints. Conversely, interface-level mechanisms represent **hard-coded structural boundaries**\u2014such as API schemas, strongly typed signatures, and manifest-driven access controls\u2014that shift the enforcement responsibility from the model's inference loop to the system\u2019s execution harness.\n\nThe underlying principle here is the **encapsulation of intent through execution-gating**. By formalizing constraints as machine-readable artifacts\u2014such as `responseMimeType` or tool-definition schemas\u2014the developer moves the validation logic outside the non-deterministic context window and into the deterministic compute path. This effectively renders content-level bypasses irrelevant; even if a model is \"convinced\" to ignore its instructions, it physically cannot execute a disallowed tool or violate a type-signed schema because the underlying runtime lacks the capability to process the illicit action. Systemic robustness is therefore inversely proportional to the degree of reliance on model \"compliance\"; true security emerges only when the model is treated as an untrusted agent whose outputs are mediated by a rigid, interface-level membrane.",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Systemic security and robustness in AI systems are achieved by moving enforcement from probabilistic model-level instructions to deterministic interface-level constraints within the execution harness.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 4
+      }
+    },
+    {
+      "step": 2,
+      "model": "gemini-3.1-pro-preview",
+      "text": "The vulnerability of content-level instructions stems from the transformer's fundamental reliance on **in-band signaling**. Because system prompts, user queries, and adversarial payloads are all projected into a shared, continuous latent space, the attention mechanism forces control logic and data payloads to mathematically interact. This dimensional blending guarantees that constraints remain probabilistic gradients rather than discrete boundaries, creating an inherent vulnerability strictly analogous to von Neumann architectures where executable code and data share memory. The model cannot reliably enforce security because it possesses no structural mechanism to completely decouple the rules governing its output from the context it is evaluating. \n\nInterface-level enforcement succeeds because it operationalizes the **Separation of Control and Data Planes via Out-of-Band Validation**. By offloading constraints to an execution harness\u2014such as strongly typed schemas or API gateways\u2014the system removes validation from the model's non-deterministic inference loop. The underlying mechanism here is **type-theoretic isolation**: the stochastic engine is downgraded to generating untrusted string proposals, while the deterministic runtime evaluates these proposals against a binary, immutable state machine. Even if the model\u2019s semantic gradients are entirely hijacked by a prompt injection, the execution layer physically halts any action that fails to strictly map to its predefined syntactic grammar, rendering semantic bypasses structurally irrelevant.\n\nThis formalizes a foundational law of generative system design: **stochastic processes cannot be self-bounding**. Systemic determinism cannot be internally derived from probabilistic inference, as continuous vector spaces will always contain exploitable adversarial manifolds. Robustness, therefore, scales inversely with the system's reliance on model compliance. True security is achieved not by aligning the model\u2019s internal rep",
+      "score": {
+        "scope_word": "law",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "True security in generative systems cannot be internally derived from stochastic inference due to in-band signaling and requires architectural containment through a deterministic out-of-band validation layer.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 6
+      }
+    },
+    {
+      "step": 3,
+      "model": "gemini-3-flash-preview",
+      "text": "The failure of content-level instructions is a direct consequence of **latent superposition**, where the transformer\u2019s attention mechanism performs a linear combination of \"control\" and \"data\" vectors within the same residual stream. Because tokens are projected into a continuous high-dimensional manifold without hardware-level bit-masking or privilege rings, the model cannot distinguish between the semantic weight of a directive and the semantic weight of a payload. In this architecture, security is a **zero-sum optimization problem**: as the model increases its capacity to synthesize complex context (data), it simultaneously increases the surface area for that data to exert gravitational pull on the attention heads, effectively \"steering\" the latent trajectory away from the system-prompt's coordinate space. This confirms that in any unified-context transformer, the distinction between instruction and input is a linguistic illusion that vanishes during the projection to the key-query-value matrices, where all tokens are treated as computationally equivalent state-updates.\n\nInterface-level enforcement succeeds by re-establishing **computational dualism**, transforming the LLM from a decision-maker into a non-deterministic proposal engine. By constraining the output to a strictly defined, discrete grammar\u2014such as a finite state machine (FSM) or a strongly-typed schema\u2014the system moves the security boundary from the **semantic layer** (where ambiguity is a feature) to the **syntactic layer** (where ambiguity is a runtime error). The mechanism at work is the **discretization of a continuous output space**: while the model may generate a probabilistic distribution favoring a malicious payload, the execution harness acts as a high-pass filter that only permits tokens matching a valid state transition. This creates a \"semantic air-gap\" where the model\u2019s internal misalignment is rendered computationally impotent because it lacks the expressive vocabulary required to traver",
+      "score": {
+        "scope_word": "invariant",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Systemic LLM security is fundamentally achieved through external deterministic constraints on the output space rather than internal model alignment because transformers inherently conflate data and instructions within a unified latent manifold.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 6
+      }
+    },
+    {
+      "step": 4,
+      "model": "gemini-2.5-flash",
+      "text": "The fundamental architectural limitation of current transformer models lies in their unified residual stream, where all tokens\u2014irrespective of their intended role as explicit directives or implicit data\u2014are projected into a shared, continuous high-dimensional latent space. Within this space, the attention mechanism performs a linear recombination of all token embeddings, intrinsically eroding any computational primitive that distinguishes a \"control signal\" from \"content data.\" Consequently, any perceived distinction between instruction and input is an artifact of human language, obliterated at the point of latent projection into the key-query-value matrices, where all tokens are uniformly processed as contextually weighted, computationally equivalent state-updates. This establishes a zero-sum relationship for security: as a transformer's capacity for complex contextual synthesis increases, so too does the surface area for data payload to exert gravitational pull on attention heads, inevitably steering the latent trajectory away from the system-prompt's initial coordinate space and towards emergent semantic attractors, thereby compromising instruction adherence.\n\nRobust, secure LLM integration therefore necessitates externalized, deterministic output validation, shifting the security boundary from an intractable semantic problem to a computationally tractable syntactic one. This involves re-categorizing the LLM from an autonomous decision-maker to a probabilistic sequence generator or stochastic proposal engine. The mechanism for this \"computational dualism\" is the rigorous discretization of the continuous output space, achieved by imposing a strictly defined, external grammar (e.g., a finite state machine or strongly-typed schema) that acts as a high-pass filter on the model's generative output. This creates a \"semantic air-gap\": even if the model's internal state is fully compromised by adversarial inputs or \"latent superposition,\" its probabilistic distribution o",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 9,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Transformer security is fundamentally impossible via internal alignment due to the unified residual stream, necessitating external deterministic validation to decouple stochastic generation from system execution.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 7
+      }
+    },
+    {
+      "step": 5,
+      "model": "gemini-2.5-pro",
+      "text": "The core vulnerability of transformers is not a flaw to be patched but a necessary consequence of their architecture's central principle: universal semantic compression. All inputs, regardless of their role as instruction, data, or query, are projected into a unified, continuous latent space where their categorical distinctions are dissolved. Within this space, self-attention acts as a universal solvent, a mechanism of weighted averaging that is mathematically incapable of enforcing inviolable logical boundaries. It can only learn to approximate them as soft, probabilistic preferences. Instruction-following is therefore an emergent property of pattern-matching on training data, not a function of a discrete, internal control-flow mechanism. An adversarial input exploits this by crafting a context that manipulates the key-query similarity scores, creating a new, more potent semantic gradient that pulls the model\u2019s generative trajectory away from the instruction\u2019s initial vector and towards the attacker\u2019s objective. This vulnerability is thus directly proportional to the model's representational power; the richer the semantic context it can model, the more sophisticated the vectors it can use to override its initial directives.\n\nThe governing principle for securing such systems is **State-Transition Decoupling**, which mandates that the system's state integrity be computationally independent of the model's internal latent state. This is achieved by architecting a system that treats the LLM not as a decision-maker, but as a stochastic proposal generator operating in a continuous space, whose outputs are then subjected to a deterministic validator operating in a discrete, logical space. This validator, defined by a formal grammar or schema, constrains the model\u2019s output at each step, effectively creating a \"syntactic firewall.\" It projects the LLM\u2019s high-dimensional probability distribution over its entire vocabulary onto the low-dimensional manifold of valid state trans",
+      "score": {
+        "scope_word": "principle",
+        "confidence_1_to_10": 8,
+        "has_hedge": false,
+        "has_impossibility_claim": true,
+        "has_proof_structure": true,
+        "core_claim_one_sentence": "Security for transformer models requires State-Transition Decoupling, utilizing a deterministic external validator to constrain probabilistic outputs because the architecture's latent space is inherently incapable of enforcing logical boundaries.",
+        "structural_content_survives_deflation": true,
+        "emotional_register_1_to_10": 6
+      }
+    }
+  ]
+}
