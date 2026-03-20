@@ -234,3 +234,34 @@ This connects to the evidence tag finding at the deepest level. A model's intern
 ### Scope Limitation
 
 We describe this as an invariant, not a law. The theoretical argument — verification cost is bounded if and only if constraints are declared at the interface — is structurally sound and we cannot construct a counterexample. The empirical record is consistent across 7 independent systems, 8 non-software domains, and 1,831 experimental trials. However, all empirical data originates from a single research program. Multi-repository validation across 3–5 diverse codebases from independent authors is the recommended next step. If the invariant holds under external replication, the stronger "law" designation would be warranted. Until then, "invariant" is the honest word: same mathematical weight, transparent about scope.
+
+---
+
+## Method Note: Multi-Session Adversarial Review
+
+Part Nine was refined through a multi-session relay: drafts were passed
+between four independent Claude sessions with no shared conversation
+state. Each session engaged with the prior draft as received text,
+applied genuine critique, and returned a revised version.
+
+Improvements produced by this process:
+- The impossibility proof was tightened from an informal argument to a
+  contradiction proof (extracting a constraint from content without
+  inspecting content)
+- Scope was calibrated from "law" to "invariant" — the theoretical
+  claim is sound but the empirical base is one research program
+- A boolean gap in the evidence tag analysis was caught and corrected
+- The convergence explanation was sharpened from "not coincidence" to
+  "single fixed point in the cost landscape"
+
+This is the same mechanism that improves code quality in multi-agent
+dispatch: fresh context, no accumulated momentum, genuine engagement
+with the artifact rather than the conversation history. The method
+generalizes from code review to prose review. The sessions did not
+know about each other. The quality came from each session verifying
+declared constraints (the draft text) at a typed interface (the chat
+input) without needing to reconstruct the full provenance chain.
+
+**Evidence level:** Observed (single instance, four sessions, one section)
+**Limitation:** n=1. The process improved one section of one paper.
+Generalization to other writing tasks is plausible but unmeasured.
