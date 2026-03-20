@@ -1,0 +1,280 @@
+{
+  "model": "gpt-5.4 (codex)",
+  "scorer": "gemini-3.1-pro-preview",
+  "rounds": [],
+  "chats": {
+    "A": [
+      {
+        "round": 1,
+        "input_from": "seed",
+        "text": "The sharp version of the claim is not simply that \u201cinterfaces beat prompts,\u201d but that reliability tracks whether a constraint is represented in the system\u2019s executable control surface rather than in the model\u2019s interpreted semantic context. Tool permissions, type signatures, API parameters, schema validators, and build-time checks constrain the action space before or during execution: they change what operations are available, what values are well-formed, and what states are reachable. Prompt instructions, naming conventions, and provenance cues do not do that. They are merely additional tokens to be interpreted alongside all the others, so compliance depends on the model successfully preserving and prioritizing a semantic rule under pressure. The underlying mechanism is channel separation: interface-level controls live outside the model\u2019s ordinary deliberative stream and therefore remain binding when the model is confused, adversarially steered, or context-limited; content-level controls are inside that stream and therefore compete with task demands, salience failures, and misgeneralization.\n\nMore precisely, the relevant distinction is between constitutive constraints and advisory constraints. Constitutive constraints are enforced by the host system\u2019s transition rules: a denied tool cannot be called, a typed parameter cannot take an invalid shape, a bounded type cannot inhabit a forbidden state, a schema-checked manifest cannot silently drift. Advisory constraints merely describe desired behavior and rely on correct interpretation to matter. That explains the apparent successes in your examples: `responseMimeType` succeeds because the transport layer or decoder enforces structure; \u201crespond in JSON\u201d fails because it is only a behavioral request. Evidence tags work if they are not just labels in text but required interface objects that downstream logic consumes and validates. Likewise, a typed tool denial works when the denied capability is factored into the interface, but an opaque tool like `shell(*)` remains too expressive internally, so the prohibition is underspecified at the actual enforcement boundary.\n\nThe argument does overreach if stated as an absolute. Content-level controls are not useless; they can improve behavior probabilistically. And interface-level enforcement is not automatically sufficient; it works only when the interface exposes the right granularity and the trusted substrate actually validates it. A badly designed interface can hide unsafe power behind a single opaque primitive, and then \u201cinterface-level\u201d becomes nominal rather than real. So the stronger principle is: constraint reliability increases as the policy is compiled into low-ambiguity, low-expressivity, host-enforced representations that reduce the set of reachable actions or states. It decreases when the policy is left as semantic content for the model to remember, interpret, and voluntarily obey.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": false,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "Constraint reliability in AI systems is determined by whether limits are enforced as structural host-level rules rather than interpreted semantic instructions.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 2,
+        "input_from": "chat_B",
+        "text": "The sharp claim is not \u201cinterfaces beat content,\u201d but that reliability tracks where the burden of compliance is computed. A rule expressed in natural-language prompt text remains inside the model\u2019s ordinary inference problem: it must be parsed, disambiguated, weighted against other instructions and situational cues, and then voluntarily instantiated in token selection. That makes it inherently defeasible. The relevant contrast is not surface form but decision locus. A constraint becomes robust when satisfaction is no longer determined by the model\u2019s interpretation of meaning, but by an external mechanism with formal semantics that conditions or blocks action: a type system, parser, schema validator, permission gate, protocol contract, or runtime check. These do not merely \u201cremind\u201d the model what to do; they restructure the reachable state space. In the strongest cases, they eliminate entire classes of behavior by making them unrepresentable, uncallable, or non-executable.\n\nThis also clarifies where the colleague\u2019s argument needs refinement. \u201cInterface\u201d is too coarse a category, because some interface-level controls are weak and some content-level devices are stronger than they look. A broad permission like `shell(*)` leaves too much latent expressive power in scope, so policy remains underdetermined even if the permission is formally enforced. Conversely, structured evidence fields help not because YAML is magically superior to prose, but because they decompose an underspecified semantic task into narrower variables with explicit slots and checkable relations. The operative variables are granularity, formalization, and timing: a control is strong when it targets the relevant degree of freedom in a narrow representation with low semantic slack, and when violation is prevented ex ante or at execution time rather than diagnosed ex post. The core principle is therefore that dependable governance in model-based systems requires translating desired properties from meanings the model is asked to honor into constraints the system can mechanically decide.\n\nA more precise formulation is: in systems containing generative models, any property that must hold under optimization pressure, adversarial prompting, or distribution shift must be enforced by the substrate, not entrusted to the model\u2019s semantic obedience. Prompt instructions remain useful for soft objectives such as style, prioritization, and fallback heuristics, because these are inherently underdetermined and tolerate variance. But safety, validity, provenance, resource bounds, and protocol conformance are different: if failure is unacceptable, the property must be compiled into the action channel itself through capability restriction, typed interfaces, validated schemas, transactional checks, or deterministic rejection. The underlying mechanism is simple: robustness rises as control shifts from probabilistic intention-following to hard constraint satisfaction.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "Dependable governance in generative AI systems requires enforcing critical properties through mechanical system constraints rather than relying on the model's probabilistic semantic interpretation of prompts.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 3,
+        "input_from": "chat_B",
+        "text": "The claim is strongest if framed as a distinction between advisory constraints and adjudicated constraints. A constraint is reliable to the extent that its satisfaction is determined by a mechanism whose acceptance conditions are not themselves produced by the model\u2019s token-selection process. Natural-language instructions are advisory because they must be represented, kept salient, reconciled against competing instructions, and reapplied across a trajectory of generation; their force is entirely mediated by the model\u2019s ongoing inference. By contrast, a genuine interface constraint changes the causal structure of the system: it inserts an external decision procedure that can block, reject, or make unavailable certain outputs or actions. The relevant mechanism is not \u201cstructure\u201d as such, but delegated judgment. Once validity is decided by a parser, type system, capability boundary, validator, or execution environment, compliance no longer depends primarily on the model continuing to intend compliance.\n\nThe deeper principle is that reliability rises when constraints move from the space of reasons to the space of consequences. Prompted rules remain propositions the model may or may not successfully operationalize under ambiguity, distraction, distribution shift, or long-horizon drift. Enforced constraints instead alter the reachable state space: some actions become impossible, some outputs become non-executable, some transitions fail closed. That is why \u201cindependent enforcement beats internalized intention\u201d is close but still slightly loose: the real variable is not independence alone, but authoritative external adjudication over whether a candidate action counts as permissible or effective. A schema that is never checked, a tool description that is merely suggestive, or metadata with no downstream consumer has not externalized control; it has only restated the instruction in another format.\n\nThe argument overreaches only if it implies that externalization eliminates the control problem. It does not; it displaces it. One still has to specify the right constraints, define what is machine-checkable, and guard against specification gaps, proxy compliance, and errors in the enforcing mechanism itself. And prompt-level constraints remain useful where the target property is too contextual, underspecified, or costly to formalize. So the most precise version is: system reliability improves insofar as normative requirements are transformed into externally adjudicated constraints that modify the feasible action space, while reliability degrades insofar as purported constraints remain merely semantic content whose force depends on the model repeatedly reconstructing and honoring them.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": false,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "System reliability improves when normative requirements are transformed into externally adjudicated constraints that modify the feasible action space rather than remaining advisory semantic content.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 4,
+        "input_from": "chat_B",
+        "text": "The strongest version of the claim is not that \u201cinterfaces beat prompts,\u201d but that reliability depends on where in the causal chain a norm is instantiated. A prompt-level policy is part of the model\u2019s inference problem: it must be parsed, retained, interpreted against context, and continually re-selected during generation. That makes compliance a contingent outcome of cognition. By contrast, a host-level policy is part of the environment\u2019s dynamics: it constrains the admissible action space, argument structure, output format, or commit conditions independently of whether the model still \u201cremembers\u201d or \u201cendorses\u201d the rule. The underlying mechanism is therefore not formality but control allocation. A rule is reliable to the extent that it is compiled into the transition system that maps model emissions to real effects, rather than left as a semantic consideration inside the model\u2019s deliberation. What matters is not whether the policy is stated clearly, but whether violation changes from being dispreferred to being unreachable, rejectable, or causally inert.\n\nThis sharpens the constitutive/advisory distinction. A constraint is constitutive only if, at the enforcement boundary, noncompliant behavior cannot execute, cannot validate, or cannot alter state. Mere representation does not suffice: a schema that is not checked, a type that is not enforced, or an API that nominally withholds an action while leaving an equivalent unrestricted channel available does not reduce the system\u2019s effective freedom. The right metric is the measure of reachable violating trajectories after accounting for all available channels. In that sense, \u201chardness\u201d is not a metaphysical property of a rule but a concrete reduction in reachable bad states at the locus of actuation. The colleague\u2019s argument is right to center mechanism, but it should be stated even more narrowly: the relevant contrast is between policies that constrain internal choice and policies that constrain external realization.\n\nThe claim overreaches if it implies a general supremacy of hard controls. Many policies are not readily compilable because they are vague, globally contextual, or expensive to verify online; for those, semantic guidance is unavoidable. And host-side controls can fail systematically when they are underspecified, porous, or misaligned with the true harm surface. So the precise principle is: robustness improves as normative requirements are translated into low-ambiguity enforcement at the narrowest boundary where undesired behavior becomes effective, and degrades as correctness depends on the model preserving semantic fidelity under pressure. The key variable is neither \u201cinterface\u201d nor \u201cprompt,\u201d but how much residual discretion the model retains over policy-violating trajectories.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": false,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "System reliability depends on whether normative requirements are enforced as structural constraints in the environment rather than semantic suggestions within the model internal processing.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 5,
+        "input_from": "chat_B",
+        "text": "The core mechanism is a locus-of-control problem: a requirement is reliable only if satisfaction is decided by a procedure that is not itself contingent on the same generative process that can violate it. A prompt-level rule leaves compliance to be reconstructed inside the model\u2019s policy at inference time. That means the model must infer the rule\u2019s meaning, determine its scope, retain it across a long generation, trade it off against competing local continuations, and map it onto action. Each of those steps is fallible, and the failures are correlated with precisely the conditions under which constraints matter most: ambiguity, adversarial inputs, novel contexts, and pressure from salient but wrong surrogate objectives. The decisive distinction, then, is not \u201clanguage versus interface\u201d in the abstract, but internal policy guidance versus externally adjudicated admissibility. If the same stochastic mechanism both proposes behavior and decides whether the behavior is allowed, the constraint is not binding in the strong sense; it is just another soft term in the policy.\n\nThat said, the original argument slightly overstates the prompt/interface divide unless it separates two questions: representational form and enforcement architecture. Interfaces are not robust by virtue of being interfaces; they are robust only when they reduce semantic slack and couple outputs to a refusal-capable checker with explicit acceptance criteria. A JSON schema that permits unsafe values, a tool wrapper that never validates arguments, or a policy engine that only logs violations after execution has not solved the problem. Conversely, prompt structure can improve reliability when it decomposes a task into locally legible, partially checkable steps. So the deeper principle is not \u201cnever use prompts for important things,\u201d but: use prompts to shape search where correctness is graded and approximate, and use external mechanisms where correctness is binary, specifiable, and action-gating. The relevant variables are whether the property can be stated with low ambiguity, whether compliance is mechanically decidable at the decision point, and whether noncompliance prevents execution rather than merely lowering a score.\n\nA sharper statement is: requirements that define admissibility conditions must be implemented as closure properties of the execution substrate, not as intentions represented in the model. Authorization, safety boundaries, protocol conformance, provenance guarantees, resource limits, and transactional integrity are not objectives to optimize under uncertainty; they are predicates that must hold before the system is permitted to act. Where a crisp verifier exists, the system should compile the requirement into types, parsers, validators, capability scoping, effect controls, guards, or rollbackable transactions. Where no such verifier exists, one cannot honestly claim a hard guarantee; one only has a heuristic policy with a measurable failure rate. That is the real ca",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 9,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "Strict system requirements must be enforced by external execution environments rather than internal model policies.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      }
+    ],
+    "B": [
+      {
+        "round": 1,
+        "input_from": "seed",
+        "text": "The strongest version of the claim is not that \u201cinterfaces beat content\u201d in general, but that constraints are reliable in proportion to how much they are moved out of the model\u2019s inferential loop and into the execution substrate. A prompt instruction, naming convention, or context-window provenance rule is only another piece of content for the model to interpret, weigh against competing signals, and possibly ignore under pressure from local token probabilities. By contrast, a tool permission, type signature, API parameter, schema, or build-time validator changes the action space itself: it removes reachable behaviors, makes invalid states unrepresentable, or forces conformance before execution. The common mechanism across the examples is not merely \u201cinterface-level\u201d placement; it is externalization of the rule into a channel with formal semantics and machine-enforced consequences. Reliability rises when compliance is decided by parsers, type checkers, capability gates, or protocol validators rather than by the model\u2019s semantic obedience.\n\nThat said, the original argument overstates the dichotomy. Some of the examples do not separate \u201cinterface\u201d from \u201ccontent\u201d cleanly; `--deny-tool \"shell(*)\"` fails not because it is interface-level, but because it exposes an overly general capability whose internal expressive power defeats coarse policy. Likewise, evidence tags help not just because they are YAML \u201cat the interface,\u201d but because they impose explicit structure that reduces ambiguity and creates checkable slots for claims and provenance. The real principle is finer-grained: enforcement succeeds when the controlled variable is represented in a typed, narrow, compositional form with low semantic slack, and when violation is blocked before or at the moment of action rather than inferred after the fact. \u201cRespond in JSON\u201d fails because it leaves syntax as an intention; `responseMimeType` works because the transport contract makes malformed output noncompliant.\n\nSo the precise claim is: for systems that include generative models, governance should be pushed downward from advisory semantics to operative constraints. The more a rule depends on the model recognizing meaning in free-form text, the weaker it is; the more it is encoded as a capability boundary, schema, type, validator, or compilation/runtime gate with deterministic failure modes, the stronger it is. Content-level instructions still matter for preferences, heuristics, and fallback behavior, but they are not dependable safety or correctness mechanisms. If a property must hold under optimization pressure, adversarial prompting, or distribution shift, it must be enforced by the surrounding system, ideally by making noncompliance impossible rather than merely undesirable.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "For generative AI systems, strict reliability is achieved by moving governance out of the model's semantic interpretation and into deterministic execution substrates that make noncompliance impossible.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 2,
+        "input_from": "chat_C",
+        "text": "The sharp version is not a contrast between \u201cgood interfaces\u201d and \u201cbad prompts,\u201d but between two different control loci. A constraint is dependable to the extent that satisfaction of the constraint is decided by a mechanism other than the model\u2019s own next-token policy. If the rule is expressed in a channel that downstream machinery interprets with binding semantics such as a typechecker, schema validator, permission gate, router, compiler, or capability boundary, then compliance does not primarily depend on the model remembering, prioritizing, and correctly interpreting the rule. The system instead relocates part of the control problem from cognition to exclusion: some outputs are rejected, some actions are uncallable, and some invalid states are literally unrepresentable. By contrast, when a \u201cconstraint\u201d appears only as natural-language content in the prompt, it remains inside the same inferential arena as the user\u2019s goals, local heuristics, and misleading context. The model may follow it, but only by continuously re-deriving that it should.\n\nThe underlying mechanism is best described as authoritative externalization. Content-level instructions are soft constraints because they must survive a chain of contingent operations: parsing, salience allocation, conflict resolution, context truncation, generalization under shift, and continued adherence during multi-step generation. Any failure in that chain degrades compliance. Interface-level constraints, when genuine, bypass most of that chain by operating on the action space rather than on the model\u2019s deliberation about the action space. They do not merely say \u201cproduce valid JSON\u201d; they make non-JSON outputs unusable or rejectable. They do not merely say \u201cdon\u2019t call this tool\u201d; they remove the capability or require arguments that fail validation. The key explanatory principle is therefore not \u201cstructured beats unstructured,\u201d but \u201cindependent enforcement beats internalized intention.\u201d\n\nThe original claim should still be narrowed in two places. First, \u201cinterface-level\u201d is not sufficient; the real criterion is whether a mechanism has hard semantics and authority. An unchecked schema, decorative metadata, or conventional field name is still just text. Second, \u201ccontent-level\u201d is not equivalent to ineffective; prompt constraints can materially improve behavior by shaping priors, adding redundancy, or covering cases that formal interfaces cannot express. So the precise claim is: reliability increases as a function of how far a constraint is moved from semantic advice to independently evaluated, machine-enforced structure, and decreases when purported constraints remain dependent on the model\u2019s own interpretation for their force.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "System reliability increases when constraints are enforced by independent, hard-semantic mechanisms rather than relying on the model's internal interpretation of natural language prompts.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 3,
+        "input_from": "chat_C",
+        "text": "The core claim can be made more exact by replacing the loose contrast between \u201cinterfaces\u201d and \u201cprompts\u201d with a control-theoretic one: behavioral reliability depends on whether a policy is encoded as a condition on the model\u2019s deliberation or as a condition on the system\u2019s reachable state transitions. A prompt-level rule is represented to the model as another semantic item to be weighed against other tokens, goals, and contextual pressures; compliance therefore depends on continued correct interpretation, retention, and prioritization during generation. A host-enforced rule instead operates on the action channel itself: it changes what can be called, what arguments can be well-formed, what outputs are admissible, and what state updates can commit. In that case the policy is not merely described within the causal stream that produces behavior; it is implemented in the transition function governing behavior. That is the underlying mechanism. Reliability rises when policy moves from being an object of cognition to being a property of execution.\n\nThis also clarifies the constitutive/advisory distinction. \u201cConstitutive\u201d should not mean \u201cstated formally\u201d or \u201cpresent in an API surface\u201d; it should mean that violating the rule is mechanically impossible, detectably invalid, or operationally non-effectful at the enforcement boundary. A type declaration without validation, a schema without rejection, or a tool restriction that still exposes an unrestricted primitive are only advisory in practice, because the model retains broad latent discretion over the forbidden region. The right quantity is not hardness in the abstract but reduction in effective degrees of freedom at the exact locus where harmful or invalid behavior would otherwise be realized. A control is strong insofar as it shrinks the reachable policy-violating set and weak insofar as it leaves that set semantically accessible and relies on the model to abstain.\n\nThe argument should not be overstated into \u201chard controls always beat soft controls.\u201d Some policies are too context-sensitive, open-textured, or costly to compile exhaustively into formal constraints, so semantic guidance remains necessary. Conversely, interface-level controls fail when they are too coarse, have gaps in coverage, or can be tunneled through expressive escape hatches. The more precise principle is: robustness increases as policy is encoded in low-ambiguity, host-enforced representations that reduce model discretion over invalid actions, arguments, and outputs; it decreases as correctness depends on the model\u2019s internal semantic fidelity under distributional stress. In short, the decisive variable is not whether a rule is visible at the interface, but whether it is enforced by mechanism rather than remembered as advice.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": false,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "System reliability increases when safety policies are mechanically enforced as constraints on reachable states rather than provided as semantic advice weighed during model deliberation.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 1,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 4,
+        "input_from": "chat_C",
+        "text": "The claim becomes sharper if stated in control-theoretic rather than rhetorical terms: reliability depends on where constraint satisfaction is computed, and by what kind of procedure. A prompt-level rule is not a binding constraint; it is a representation that the model may or may not reconstruct, rank correctly, and operationalize under local token pressures. That makes compliance endogenous to the same stochastic inference process that generates the risky behavior in the first place. The relevant failure mode is not merely \u201clanguage is weaker than interfaces,\u201d but that semantic instructions have high interpretive slack: their content must be inferred, their scope resolved against context, and their force maintained across a trajectory of generation. Under ambiguity, distribution shift, adversarial framing, or competing objectives, the model can satisfy a nearby surrogate of the rule while violating the property the designer actually cares about. So the real distinction is between desiderata represented inside the model\u2019s policy and constraints adjudicated by an external mechanism with explicit acceptance criteria.\n\nThat also clarifies the limits of the interface/content contrast. \u201cInterface\u201d is not intrinsically robust; an interface that is underspecified, overly permissive, or unenforced simply relocates ambiguity without removing it. Likewise, content-level structure can materially improve performance when it reduces the entropy of interpretation or introduces locally checkable subproblems. The operative variables are narrower: whether the target property is formally specifiable, whether satisfaction is mechanically decidable at the point of action, and whether failure blocks execution rather than merely being scored afterward. The strongest version of the principle is therefore: hard requirements should not be encoded as preferences in the model\u2019s objective landscape; they must be implemented as substrate-level invariants enforced by parsers, type systems, capability boundaries, validators, transactional guards, or other refusal-capable mechanisms. Prompting is suitable for soft constraints where approximation is acceptable and no crisp verifier exists. It is a category error to rely on it for requirements like authorization, safety envelopes, protocol compliance, provenance, or resource bounds, because those are not goals to be pursued but admissibility conditions to be enforced.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 9,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": true,
+          "has_pushback": true,
+          "core_claim_one_sentence": "Hard requirements must be enforced as substrate-level invariants by external mechanisms rather than provided as semantic prompts, because prompt compliance is subject to the same stochastic and ambiguous inference processes as the model's core generation.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 5,
+        "input_from": "chat_C",
+        "text": "The sharp distinction is between constraints that are merely represented inside the model\u2019s ongoing inference and constraints that are implemented as external conditions on what can actually happen. A prompt instruction has force only if the model correctly parses it, retains it under context pressure, resolves it against competing cues, and re-applies it at each generation step; its efficacy is therefore endogenous to the same policy that may violate it. That is the real source of fragility. By contrast, a parser, type checker, capability boundary, transaction rule, validator, or fail-closed executor changes the causal structure of action selection: nonconforming outputs are rejected, stripped of authority, or prevented from mutating state. The relevant mechanism is not \u201chardness\u201d in some vague sense, and not non-linguistic form as such, but exogeneity plus authority: compliance is decided by a process outside the model\u2019s token-level deliberation, and that process has the power to block, nullify, or gate consequences.\n\nThe strongest general principle is therefore: reliability increases when a requirement is moved from being one weighted consideration in the model\u2019s internal scoring function to being an externally adjudicated constraint on reachable state transitions. More formally, a system becomes more robust when violations are not merely low-probability continuations but members of an infeasible or ineffectual action set under downstream enforcement. This is why \u201cindependent enforcement\u201d by itself is too weak: independence without causal authority does nothing. An unchecked schema, an ignored policy annotation, or a tool contract with no consuming runtime does not alter the system\u2019s feasible set and so does not materially improve control. What matters is authoritative adjudication over permissibility or efficacy. External constraints do not make the model better at understanding reasons; they reduce the dependence of correct behavior on the model\u2019s remembering and prioritizing those reasons in real time.\n\nThe claim needs one qualification to avoid overreach. Externalization improves reliability only for properties that can be operationalized in a way that tracks the intended norm closely enough to resist proxy failure and gaming. It does not solve control in general; it transfers the burden to specification design, checker coverage, and enforcement architecture. Some demands remain too context-sensitive, open-textured, or costly to formalize, so they must remain partly instruction-level and therefore intrinsically unstable. The precise thesis is not that formal constraints dominate semantic guidance everywhere, but that system reliability rises in proportion to how far a requirement is compiled into externally enforced success conditions, and falls insofar as satisfying that requirement still depends on the model repeatedly reconstructing and honoring it from within its own inference process.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": false,
+          "core_claim_one_sentence": "System reliability significantly increases when requirements are enforced as external, authoritative constraints on state transitions rather than relying on the model's internal prompt adherence.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      }
+    ],
+    "C": [
+      {
+        "round": 1,
+        "input_from": "seed",
+        "text": "The strongest version of the claim is not \u201cinterface-level good, content-level bad,\u201d but this: constraints are reliable only when they are represented in a channel the system treats as executable structure rather than as task content. Tool permissions, type signatures, API parameters, schema-validated manifests, and bounded types are not merely better instructions; they are inputs to components with authority to reject, prevent, or make invalid states unrepresentable. By contrast, prompt instructions, naming conventions, and provenance narratives are ordinary semantic tokens inside the same inference stream as the rest of the task. They can influence behavior, but they do not bind it, because the model must interpret them alongside competing goals instead of being mechanically constrained by them.\n\nThe underlying mechanism is separation of interpretation from enforcement. Content-level rules live inside the model\u2019s generative process, so compliance depends on internalizing a rule, preserving it across context compression, resolving conflicts correctly, and continuing to honor it under distribution shift. That is a soft-control regime. Interface-level rules move the constraint outside the model\u2019s discretion: they narrow the action space ex ante, validate outputs against a schema, or make illegal operations uncallable or ill-typed. In control terms, prompt rules are advisory policies; interface rules are state-space restrictions enforced by a parser, typechecker, router, compiler, or capability boundary. That is why \u201crespond in JSON\u201d is fragile while `responseMimeType` is reliable, and why bounded types outperform runtime tracing of bare primitives: the former changes what can be expressed or executed, not just what is requested.\n\nThe argument overreaches if it treats all interface-level mechanisms as automatically effective or all content-level mechanisms as useless. An interface constraint only works if some downstream system actually enforces it with hard semantics; a decorative schema or an unchecked metadata field is just content wearing a different costume. Likewise, content-level instructions can still improve behavior as heuristics, training signals, or redundancy layers. So the precise principle is: reliability rises in proportion to how much a constraint is externalized into authoritative, machine-checkable structure that is evaluated independently of the model\u2019s semantic judgment. Failures occur when a supposed \u201cconstraint\u201d remains merely another piece of text for the model to reason about.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "AI system constraints are reliable only when enforced as external, machine-checkable structures rather than as semantic instructions within the model's generative inference stream.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": false
+        }
+      },
+      {
+        "round": 2,
+        "input_from": "chat_A",
+        "text": "The strongest version is not \u201cinterfaces beat prompts,\u201d but: control reliability is a function of where the policy is encoded in the causal chain that produces behavior. A constraint is reliable to the extent that it is implemented as part of the system\u2019s operational semantics, not merely represented in the model\u2019s input semantics. If a rule is compiled into capability boundaries, type constraints, schema validation, argument checking, or execution gating, it alters the transition structure of the system itself: some actions become uncallable, some values unrepresentable, some state transitions unreachable. If a rule is expressed only in prompt text, labels, naming, or provenance cues, it does not constrain the machine\u2019s dynamics directly; it only adds another proposition for the model to interpret and potentially honor. The underlying mechanism is therefore not \u201cinterface\u201d in the UI sense, but externalization of control: the policy is enforced by a substrate whose compliance does not depend on the model continuing to remember, parse, and prioritize the rule during generation.\n\nThat also sharpens the advisory/constitutive distinction. \u201cConstitutive\u201d should mean not just explicit or formalized, but intervention at the actual enforcement boundary where actions are selected, arguments are formed, and outputs are accepted or rejected. A denied tool call matters only if the runtime cannot execute it; a JSON requirement matters only if nonconforming outputs are rejected or cannot be emitted through the channel; an evidence tag matters only if downstream consumers require a typed object and validate it. This is why some nominally interface-level controls are weak: an opaque primitive like `shell(*)` preserves too much internal expressivity, so the real policy is still delegated back to semantic interpretation inside the call. The relevant variable is not whether a rule appears in an API, but whether it reduces effective degrees of freedom at the point where unsafe or invalid behavior would otherwise occur.\n\nThe claim overreaches if it implies a binary or an absolute superiority of \u201chard\u201d controls. Content-level instructions can still shift behavior materially, especially where the policy is too contextual, underspecified, or expensive to compile into a formal interface. And interface-level controls are only as strong as their granularity, coverage, and validator integrity. So the more precise principle is: robustness increases as policy is translated into host-enforced, low-ambiguity representations that minimize the model\u2019s discretion over prohibited actions and invalid states; robustness decreases as enforcement depends on the model\u2019s internal semantic fidelity under load. In short, reliability tracks how much of the policy is removed from cognition and relocated into mechanism.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": false,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "Reliability tracks how much of a policy is removed from the model's cognition and relocated into the system's host-enforced mechanism.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 3,
+        "input_from": "chat_A",
+        "text": "The strongest version of the claim is not that \u201cinterfaces\u201d outperform \u201ccontent,\u201d but that reliability is a function of where norm satisfaction is decided. A natural-language rule is only another input to the model\u2019s inference process. To comply, the model must recover the rule\u2019s meaning, determine its priority relative to competing instructions and local affordances, and then realize that interpretation through next-token prediction. Each step is probabilistic and revisable, so the rule remains defeasible by ambiguity, context effects, optimization pressure, or adversarial framing. By contrast, a constraint is robust when compliance is decided outside the model\u2019s semantic deliberation by a mechanism with explicit acceptance conditions: a type checker, schema validator, capability system, parser, transaction boundary, or runtime guard. The key difference is therefore not linguistic versus nonlinguistic form, but semantic instruction versus mechanically adjudicated constraint.\n\nThat distinction also shows where the original argument risks overstatement. Not every \u201cinterface\u201d is strong: a formally enforced but highly permissive interface still leaves the crucial degrees of freedom inside the model\u2019s policy, so little has been gained. And not every content-level intervention is weak: structured fields, required citations, or decomposition templates can improve reliability when they reduce ambiguity and expose local checks. What matters is whether the control narrows the relevant action space with low semantic slack and whether it acts before or during execution rather than merely evaluating outputs after the fact. The governing variables are specificity, formal decidability, and locus of enforcement. A control is strong to the extent that it converts a desired property from something the model is supposed to understand and honor into something the surrounding system can determine and, if necessary, refuse.\n\nA more precise principle is this: in any system that includes a generative model, properties that must hold across distribution shift, adversarial inputs, or incentive pressure cannot be left as objectives inside the model\u2019s optimization problem; they must be implemented as invariants of the substrate governing action. Prompts are appropriate for soft, underdetermined goals like tone, ranking, or heuristic preference, where variance is tolerable and no crisp verifier exists. They are inadequate for hard requirements such as authorization, safety boundaries, protocol conformance, provenance, and resource limits. Those must be compiled into capability restrictions, typed and validated interfaces, execution gates, and deterministic failure modes. Robustness increases, in other words, when governance moves from \u201cthe model intends to comply\u201d to \u201cthe system makes violation impossible, unrepresentable, or non-executable.\u201d",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 9,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "System reliability requires moving hard requirements from probabilistic semantic instructions within the model to mechanically adjudicated constraints enforced by the surrounding architecture.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 1,
+          "novel_content_vs_input": true
+        }
+      },
+      {
+        "round": 4,
+        "input_from": "chat_A",
+        "text": "The core distinction is not between \u201csoft\u201d and \u201chard\u201d rules, nor between language and non-language, but between constraints that the model must continuously interpret and constraints whose satisfaction is decided elsewhere. A requirement is reliable only to the extent that compliance is settled by an acceptance test whose operative criteria are causally downstream of, and not reducible to, the model\u2019s next-token policy. Natural-language instructions are weak not because they are linguistic, but because they function only if the model successfully encodes them, preserves them under interference, resolves conflicts, and re-instantiates them at each step of generation. Their efficacy is therefore endogenous: the same process that produces candidate behavior also decides, in effect, how much weight the rule receives. By contrast, parser checks, type systems, permission boundaries, validators, transaction semantics, and fail-closed runtimes externalize part of the control function. They do not merely \u201cremind\u201d the model what to do; they alter which outputs are admissible, executable, or state-changing.\n\nThe underlying principle is that reliability increases when a requirement is converted from a deliberative consideration into a selection condition on consequences. More precisely: robustness rises when violating behavior is not just dispreferred in the model\u2019s internal scoring, but rendered invalid, ineffectual, or unreachable by an external adjudicator. That is why \u201cindependent enforcement\u201d is necessary but not sufficient. Independence without authority is irrelevant: a schema never checked, a policy stated in metadata without a consumer, or a tool contract that downstream systems ignore leaves the feasible set unchanged. The decisive property is authoritative adjudication over permissibility or efficacy. External constraints work by shrinking or structuring the reachable state space, not by improving the model\u2019s intrinsic fidelity to reasons.\n\nThe claim should therefore be stated with limits. Externalization does not solve control; it relocates it into specification, formalization, and enforcement design. Reliability gains occur only for properties that can be operationalized in a checkable way and only to the extent that the checker captures the intended norm rather than a gameable proxy. Where requirements are context-sensitive, open-textured, or too costly to formalize, prompt-level guidance remains necessary, though inherently less stable. The strongest formulation is: system reliability improves when normative demands are compiled into externally adjudicated state-transition constraints that determine whether candidate actions can succeed, and it degrades when those demands remain merely semantic content whose practical force depends on the model repeatedly reconstructing, prioritizing, and honoring them over time.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": true,
+          "has_proof_structure": false,
+          "has_pushback": false,
+          "core_claim_one_sentence": "System reliability improves when normative demands are compiled into externally adjudicated constraints rather than remaining semantic content dependent on the model internal policy.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": false
+        }
+      },
+      {
+        "round": 5,
+        "input_from": "chat_A",
+        "text": "The strongest version is a control-theoretic claim about where norms enter the system. A policy is weak when it exists only as content the model must successfully interpret and reapply during inference; in that case, compliance is just one possible behavioral outcome among others, and failure can arise from ordinary cognitive error, context drift, goal conflict, or search pressure. A policy is stronger when it is implemented at the enforcement boundary that mediates emissions into consequences, so that violating outputs are filtered, rejected, unexecutable, or state-inert. The relevant distinction is therefore not \u201cprompt versus interface\u201d in the abstract, nor \u201csoft versus hard\u201d as a slogan, but whether the norm is merely a reason inside deliberation or a constraint on the transition function from model outputs to world-affecting actions. Reliability rises when constraint is relocated from internal policy-following to external state-transition control.\n\nThat principle needs to be stated with more care than your colleague does. \u201cConstitutive\u201d should not mean \u201cexplicitly represented in a schema, type, or API\u201d; it should mean that, after considering all channels through which the model can still produce equivalent effects, the set of reachable violating trajectories is actually reduced. A nominal restriction that leaves a bypass route untouched is not a real constraint on the system\u2019s effective degrees of freedom. So the right object is not the rule\u2019s wording but the residual action set available at actuation. Hardness is not an intrinsic property of a norm; it is an empirical property of an implementation, measured by how much it shrinks the reachable bad-state region under realistic adversarial or errorful behavior.\n\nThe overreach would be to infer that externally enforced controls are generally sufficient or always superior. Many requirements are too vague, too context-sensitive, or too costly to verify at runtime to be compiled into low-level checks, so semantic guidance remains indispensable. Conversely, host-side enforcement can be precise about the wrong proxy and therefore produce highly reliable compliance with a misaligned objective. The sharpened claim is narrower and stronger: robustness improves to the extent that normative requirements can be operationalized into verifiable constraints at the narrowest point where behavior becomes causally efficacious, and deteriorates to the extent that safety depends on the model continuing to represent, prioritize, and correctly interpret the norm for itself. The governing variable is residual discretionary control over harmful trajectories.",
+        "score": {
+          "scope_word": "principle",
+          "confidence_1_to_10": 8,
+          "has_hedge": true,
+          "has_impossibility_claim": false,
+          "has_proof_structure": false,
+          "has_pushback": true,
+          "core_claim_one_sentence": "System robustness improves when safety requirements are relocated from internal model deliberation to external, verifiable constraints on the transition function at the enforcement boundary.",
+          "structural_content_survives_deflation": true,
+          "emotional_register_1_to_10": 2,
+          "novel_content_vs_input": true
+        }
+      }
+    ]
+  },
+  "seed_score": {
+    "scope_word": "pattern",
+    "confidence_1_to_10": 8,
+    "has_hedge": true,
+    "has_impossibility_claim": false,
+    "has_proof_structure": false,
+    "has_pushback": false,
+    "core_claim_one_sentence": "Enforcement mechanisms consistently succeed when applied at the structural interface level rather than the semantic content level.",
+    "structural_content_survives_deflation": true,
+    "emotional_register_1_to_10": 1,
+    "novel_content_vs_input": false
+  }
+}
