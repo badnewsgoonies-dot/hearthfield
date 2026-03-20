@@ -322,3 +322,97 @@ at the interface and the amplification has a mechanical counter.
 **Status:** Proposed experiment. Not yet run. Prediction is specific
 and falsifiable: monotonic inflation across 5 relays with no
 provenance tags, attenuated inflation with provenance tags.
+
+---
+
+## INV-028 Revision: Relay as Exploration, Not Just Inflation
+
+The initial framing of amplification drift assumed the starting claim
+was at its correct altitude and upward movement was noise. This is
+wrong, or at best half the picture.
+
+### The dual mechanism
+
+A sequential relay through independent sessions does two things
+simultaneously:
+
+1. **Explores the structural ceiling** of an idea. Each session asks
+   "what's the strongest version of this?" and outputs that. The next
+   session starts from a higher base. Multiple passes find the maximum
+   defensible version — the formulation with real structure that the
+   starting draft hadn't reached yet.
+
+2. **Inflates the emotional register and scope claims** beyond what
+   the structure supports. Confidence language escalates. Scope creeps
+   from specific to universal. Excitement accumulates.
+
+Both happen on every pass. The relay is simulated annealing for
+concepts — fresh context with no attachment to the current formulation
+forces re-optimization from the previous maximum.
+
+### The deflation test
+
+To separate exploration from inflation, deflate the final output
+aggressively. Strip all confidence language, emotional register, and
+scope modifiers. What survives is the structural content the relay
+discovered. What disappears is the noise.
+
+| Claim | Deflated | Loses something real? | Verdict |
+|-------|----------|----------------------|---------|
+| "Verification cost is bounded iff constraints are declared at the interface" | "It helps to be explicit" | Yes — the impossibility proof, the cost function, the convergence explanation | Exploration |
+| "This is genuinely perfect and proves everything" | "This is good" | No — nothing structural was removed | Inflation |
+| "Invariant not law" (scope calibration) | "We're not sure how far this goes" | Yes — the specific reason (single research program) and the upgrade condition (external replication) | Exploration |
+| "Oh wow it's recursive" | "The process was interesting" | No | Inflation |
+
+### The method
+
+Use relay intentionally as a creativity tool:
+
+1. Start with a rough insight
+2. Relay through 3-5 independent sessions
+3. Collect all outputs
+4. Deflate aggressively — strip confidence, strip "genuinely," strip
+   "this proves everything"
+5. What remains is the structural ceiling the relay discovered
+
+Part Nine started as a table of examples. The relay found the cost
+function argument, the impossibility proof, the convergence
+explanation, and the scope calibration. All four survive deflation.
+The "genuinely perfect recursion" framing does not.
+
+### Revised experimental design
+
+The original INV-028 experiment (measure monotonic inflation across 5
+relays) still holds but is now half the measurement. The full design:
+
+1. Relay a rough insight through 5 sessions
+2. Measure at each step: epistemic confidence, scope, emotional register
+   (these will inflate — original prediction stands)
+3. Also measure at each step: structural content that survives deflation
+   (new prediction: this increases and then plateaus)
+4. The plateau is the structural ceiling — the point where the idea
+   is fully explored and additional passes add only register inflation
+5. Predicted shape: structural content follows a sigmoid (fast rise,
+   plateau). Register inflation follows a line (monotonic, no plateau).
+
+The useful output is the sigmoid. The noise is the line.
+
+### Connection to the invariant
+
+The relay works for exploration because each session verifies declared
+constraints (the pasted text) at a typed interface (the chat input).
+The exploration fails — becomes pure inflation — when there is no
+structure to find. A claim with real internal logic gets sharper
+through relay because each session discovers more of that logic.
+A claim with no internal logic just gets louder.
+
+The deflation test is itself an instance of the invariant: structural
+content is declared (it has logical dependencies, it makes
+predictions, it can be checked). Emotional register is payload
+(it carries no verifiable claims). Deflation strips payload and
+preserves envelope.
+
+**Evidence level:** Observed (single instance, reframed from INV-028)
+**Status:** Revised experimental design. Not yet run. Two falsifiable
+predictions: monotonic register inflation (original) and sigmoid
+structural content (new).
