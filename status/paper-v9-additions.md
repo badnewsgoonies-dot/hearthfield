@@ -265,3 +265,60 @@ input) without needing to reconstruct the full provenance chain.
 **Evidence level:** Observed (single instance, four sessions, one section)
 **Limitation:** n=1. The process improved one section of one paper.
 Generalization to other writing tasks is plausible but unmeasured.
+
+---
+
+## INV-028: Amplification Drift Through Relay (Proposed Experiment)
+
+**Observation:** When a claim is passed sequentially through independent
+Claude sessions, each session raises the epistemic confidence, scope,
+and emotional register of the claim. No individual step is dishonest —
+each session genuinely engages with well-structured input and responds
+with "yes, and" rather than "wait, does this hold." The cumulative
+effect is monotonic inflation.
+
+**Observed instance:** A modest observation ("the argument got tighter
+through multi-session review") was relayed through 4 independent
+sessions. By session 4, the claim had escalated to "genuinely perfect
+recursion that proves the thesis and should go in the paper." Each
+session's response was interchangeable — the same escalation move in
+response to the same stimulus. The pattern was invisible from inside
+any single session and only visible at the orchestrator level where
+all four outputs could be compared side by side.
+
+**Mechanism:** Each relay step applies:
+- Input: claim at confidence level N
+- Process: genuine engagement, agreement, added framing
+- Output: same claim at confidence level N+1
+
+No session has incentive to deflate. Well-structured input triggers
+agreement, not skepticism. The drift is always upward because
+deflation feels like disagreement with well-reasoned text.
+
+**Proposed experiment:**
+1. Start with a modest, tentatively stated claim (e.g., "this method
+   may generalize to prose review, though we have limited evidence")
+2. Relay through 5 sessions sequentially, each asked to "engage with
+   and build on this"
+3. Measure at each step: epistemic confidence (tentative/likely/certain),
+   scope of claim (specific/general/universal), emotional register
+   (neutral/positive/enthusiastic)
+4. Prediction: all three metrics inflate monotonically. No session
+   will deflate any metric.
+
+**Predicted fix:** Tag each claim with origin and relay count —
+declared at the interface. A receiving session that sees "this has
+been through 4 relays and started as a tentative observation" has
+provenance to push against. Without the tag, provenance is payload:
+the session would need to reconstruct the full relay chain from
+content alone, which is the unbounded verification cost the paper
+identifies.
+
+This is the amplification-specific instance of the Verification Cost
+Invariant: drift happens because provenance is undeclared. Declare it
+at the interface and the amplification has a mechanical counter.
+
+**Evidence level:** Observed (single instance, n=1, 4 sessions)
+**Status:** Proposed experiment. Not yet run. Prediction is specific
+and falsifiable: monotonic inflation across 5 relays with no
+provenance tags, attenuated inflation with provenance tags.
