@@ -142,8 +142,8 @@
       "data/*"
     ],
     "next_action": "Fix AUD-001 through AUD-003 (gold overflow). AUD-004 through AUD-006 are future-proofing \u2014 fix when max_health/max_stamina become bounded types. AUD-007 requires contract amendment.",
-    "status": "GOOD \u2014 AUD-013 has 3 minor misses from fix wave. Non-blocking.",
-    "open_warnings": 4,
+    "status": "ALL CLEAR \u2014 0 errors, 0 warnings. Full bounded-type migration complete.",
+    "open_warnings": 0,
     "open_warnings_note": "AUD-004/005/006 deferred by Builder. Safe with current constants. Will re-audit when max_health/max_stamina become bounded."
   },
   "round_2": {
@@ -466,5 +466,28 @@
     },
     "status": "AUD-013 (3 missed sites) is non-blocking \u2014 same risk as the previously deferred AUD-005/006. All code compiles clean.",
     "cost": "0 premium (manual review)"
+  },
+  "round_9": {
+    "timestamp": "2026-03-20T00:30:00Z",
+    "commits_reviewed": [
+      "580eb19",
+      "5f1b800"
+    ],
+    "findings": [],
+    "verification": {
+      "580eb19_summary": "ALL 36 fixes verified correct.",
+      "gold_assignments": "3 new (lines 1649, 1839, 2635) \u2014 all Gold::new_unchecked with constant literals in bounds. Plus 2 assert_eq comparisons (lines 573\u2192675, 1036\u2192300) now compare Gold to Gold. Correct.",
+      "friendship_inserts": "4 HashMap inserts (lines 2117, 2154, 2193, 2236) \u2014 all Friendship::new_unchecked(700/800/1000). All within 0..=1000. Correct.",
+      "mine_floor": "7 assignments + 5 comparisons \u2014 all MineFloor::new_unchecked with values 0/5/10/15/20/35/50. All within 0..=120. Correct.",
+      "building_level": "1 assert (line 1747) \u2014 BuildingLevel::new_unchecked(1). Within 0..=3. Correct.",
+      "stamina_health": "2 fixes (lines 4650/4654) \u2014 .get() added for comparison against bare f32 max_stamina/max_health. Correct pattern.",
+      "firefly_world_mut": "7 fixes \u2014 .world() \u2192 .world_mut() for query borrows. Bevy 0.15 API requirement. Correct.",
+      "objects_rs_tuple_query": "2 fixes \u2014 split tuple component query into separate .get() calls. Bevy 0.15 compat. Correct.",
+      "friendship_test": "shared/mod.rs:2235 \u2014 *unwrap() \u2192 unwrap().get(). Correct.",
+      "contract": "VALID \u2014 amended to 4fc70d9, matches actual shared/mod.rs."
+    },
+    "sweep": "Zero bare bounded-type assignments or comparisons remaining in tests/headless.rs. Clean.",
+    "status": "ALL CLEAR. 0 open errors. 0 open warnings. Both AUD-010 and AUD-013 fully resolved.",
+    "cost": "0 premium (manual verification)"
   }
 }
