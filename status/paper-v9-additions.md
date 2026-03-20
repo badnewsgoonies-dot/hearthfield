@@ -148,3 +148,45 @@ is a more reliable verifier than the model. Models chase green builds
 (20/20 with mechanical enforcement). Every green build now means every
 game design constraint is satisfied. The review burden shifts from
 "read the code" to "check if it compiled."
+
+## The Verification Cost Invariant
+
+### The Mechanism
+
+Verification has exactly two costs: acquiring the information needed to check a claim, and evaluating whether that information satisfies the constraint. These are the only two operations any verification system performs, regardless of domain.
+
+When a constraint is declared at the interface — a type bound, an evidence tag, a schema annotation, a tool permission — both costs collapse to zero for external verifiers. The information is already exposed (no acquisition cost) and the evaluation is structural matching against a declared specification (no interpretation cost). A compiler checking `Health(u32)` against `min=0, max=999` performs a mechanical comparison. A reviewer checking an evidence tag against its cited source performs a mechanical comparison. Neither requires understanding the content that produced the value.
+
+When a constraint is hidden in content — a bare `u32` that "should" be between 0 and 999, a model's reasoning that "should" be grounded in sources, a shell command that "should not" delete files — neither cost is bounded. The verifier must first extract the constraint from the content (reverse-engineering intent from behavior), then evaluate whether the content satisfies the constraint it just extracted. Both operations require interpreting the content itself, and content interpretation has no guaranteed upper bound on cost or convergence.
+
+### The Impossibility Claim
+
+No system can cheaply verify undeclared constraints. This is not an empirical observation but a structural impossibility. Consider any candidate counterexample: a system that achieves cheap verification of a constraint that is not declared at the interface. For the verifier to check the constraint, it must first know what the constraint is. If the constraint is not at the interface, the only place it can exist is in the content. To extract it from the content, the verifier must inspect the content. Content inspection cost is unbounded — it requires the verifier to reconstruct the reasoning that produced the content, with no guarantee of arriving at the same constraint the author intended. Therefore no cheap verification of undeclared constraints exists. The absence of counterexamples across 1,831 trials, 7 independent systems, and 8 non-software domains is consistent with this impossibility, but the claim does not rest on the empirical record. It rests on the structure of the cost function.
+
+### The Convergence Explanation
+
+This impossibility explains why independent teams converge on the same architecture. The Rust compiler team did not study billing systems. The billing team did not study tool-permission frameworks. The evidence tag experiments were not informed by JSON schema enforcement. Yet all arrived at the same structural choice: declare constraints at the interface, enforce them mechanically, make violations impossible rather than detectable.
+
+They converged because the constraint landscape has one basin of attraction. If you are building a system that must verify claims — about types, about sources, about permissions, about data shapes — declared constraints are the only place where verification cost is bounded. Every other point in the design space has unbounded verification cost. This is what makes the convergence inevitable rather than coincidental: there is nowhere else to arrive.
+
+### Empirical Illustrations
+
+The following systems were built independently by different teams solving different problems. None referenced each other. All arrived at the same structural choice.
+
+| System | Undeclared (fails) | Declared (succeeds) | Verification cost |
+|--------|-------------------|--------------------|--------------------|
+| CLAUDE.md "don't touch shared/" | Prompt in content | `disallowedTools: ["Task"]` in config | 0/20 → 20/20 |
+| Copilot `--deny-tool "write(*)"` | `--deny-tool "shell(*)"` (opaque) | `--deny-tool "write(*)"` (typed) | Fails → succeeds |
+| Evidence tags | Model's internal reasoning | ~200 chars YAML at interface | 0% → 96% correct |
+| `responseMimeType` | "Respond only in JSON" (prompt) | `responseMimeType: "application/json"` | Unreliable → 100% |
+| Ironclad `#[game_value]` | Bare `u32` (opaque) | `Health(u32)` with min/max | Runtime trace → compile-time |
+| TOML sprite manifests | Hardcoded paths in code | Manifest entries validated by `build.rs` | Play-test → build-time |
+| Tool-forced architecture | Context-window provenance | Empty context + remote store | Prompt bypass → 100% defense |
+
+The bare `u32` example is load-bearing. A `u32` and a `Health(u32)` have the same memory footprint, the same runtime performance, the same content. The only difference is whether the constraint is visible to external inspection. One requires whole-system tracing to verify. The other is checked at zero marginal cost by the compiler. The difference is not in the data. It is in whether the constraint is declared at the interface.
+
+This connects to the evidence tag finding at the deepest level. A model's internal reasoning is a bare `u32` — opaque, might be correct, cannot be checked without re-deriving the entire chain. An evidence tag is a `Health(u32)` — the same content, but the constraint is now at the interface where any external system (another model, a human reviewer, a mechanical checker) can verify it without opening the box. The 0% → 96% result is not surprising under this framing. The tags did not make the model smarter. They made its claims inspectable.
+
+### Scope Limitation
+
+We describe this as an invariant, not a law. The theoretical argument — verification cost is bounded if and only if constraints are declared at the interface — is structurally sound and we cannot construct a counterexample. The empirical record is consistent across 7 independent systems, 8 non-software domains, and 1,831 experimental trials. However, all empirical data originates from a single research program. Multi-repository validation across 3–5 diverse codebases from independent authors is the recommended next step. If the invariant holds under external replication, the stronger "law" designation would be warranted. Until then, "invariant" is the honest word: same mathematical weight, transparent about scope.
