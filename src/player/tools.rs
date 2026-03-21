@@ -152,7 +152,7 @@ pub fn stamina_drain_handler(
 ) {
     for ev in events.read() {
         player_state.stamina =
-            Stamina::new_unchecked((player_state.stamina.get() - ev.amount).max(0.0).min(100.0));
+            Stamina::new((player_state.stamina.get() - ev.amount).max(0.0).min(100.0));
     }
 }
 

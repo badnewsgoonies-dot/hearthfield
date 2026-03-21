@@ -79,7 +79,28 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
         #vis struct #name(#inner_ty);
 
         impl #name {
-            pub fn new(val: #inner_ty) -> ::std::result::Result<Self, ::std::string::String> {
+            /// The minimum valid value.
+            pub const MIN: #inner_ty = #min_lit as #inner_ty;
+            /// The maximum valid value.
+            pub const MAX: #inner_ty = #max_lit as #inner_ty;
+
+            /// Create a new value, clamping at bounds. Always succeeds.
+            /// This is the primary constructor — safe, zero-ceremony.
+            #[inline]
+            pub fn new(val: #inner_ty) -> Self {
+                let clamped = if (val as i64) < #min_lit {
+                    #min_lit as #inner_ty
+                } else if (val as i64) > #max_lit {
+                    #max_lit as #inner_ty
+                } else {
+                    val
+                };
+                Self(clamped)
+            }
+
+            /// Validate a value, returning Err if out of bounds.
+            /// Use at trust boundaries (deserialization, user input).
+            pub fn validate(val: #inner_ty) -> ::std::result::Result<Self, ::std::string::String> {
                 let n = val as i64;
                 if n < #min_lit || n > #max_lit {
                     Err(::std::format!(
@@ -89,11 +110,6 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
                 } else {
                     Ok(Self(val))
                 }
-            }
-
-            #[inline]
-            pub fn new_unchecked(val: #inner_ty) -> Self {
-                Self(val)
             }
 
             #[inline]
@@ -131,7 +147,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
                 D: serde::Deserializer<'de>,
             {
                 let val = <#inner_ty as serde::Deserialize<'de>>::deserialize(deserializer)?;
-                Self::new(val).map_err(serde::de::Error::custom)
+                Self::validate(val).map_err(serde::de::Error::custom)
             }
         }
     };

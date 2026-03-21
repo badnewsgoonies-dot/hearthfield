@@ -173,7 +173,7 @@ pub fn build_dialogue_lines(
                 .friendship
                 .get(npc_id)
                 .copied()
-                .unwrap_or(Friendship::new_unchecked(0));
+                .unwrap_or(Friendship::new(0));
             let idx = (total_pts.get() as usize / 5) % tier_lines.len();
             lines.push(tier_lines[idx].clone());
             // Add a second line if available
@@ -207,7 +207,7 @@ pub fn build_dialogue_lines(
             .friendship
             .get(npc_id)
             .copied()
-            .unwrap_or(Friendship::new_unchecked(0));
+            .unwrap_or(Friendship::new(0));
         let idx = total_pts.get() as usize % npc_def.default_dialogue.len();
         lines.push(npc_def.default_dialogue[idx].clone());
     } else {

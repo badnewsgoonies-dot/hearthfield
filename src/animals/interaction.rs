@@ -73,9 +73,7 @@ pub fn handle_animal_interact(
                 220..=u8::MAX => 1,
             };
             let happiness = prior_happiness.saturating_add(happiness_bump);
-            animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
-                Happiness::new_unchecked(happiness.clamp(0, 255))
-            });
+            animal.happiness = Happiness::new(happiness);
 
             let pet_text = match (animal.kind, prior_happiness) {
                 (AnimalKind::Chicken, 0..=79) => "Bawk?",

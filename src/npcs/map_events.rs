@@ -93,7 +93,7 @@ pub fn handle_day_end(
                         .friendship
                         .get(npc_id.as_str())
                         .copied()
-                        .unwrap_or(Friendship::new_unchecked(0));
+                        .unwrap_or(Friendship::new(0));
 
                     // Only decay if there is friendship to lose
                     if before.get() > 0 {
@@ -104,7 +104,7 @@ pub fn handle_day_end(
                             .friendship
                             .get(npc_id.as_str())
                             .copied()
-                            .unwrap_or(Friendship::new_unchecked(0));
+                            .unwrap_or(Friendship::new(0));
 
                         // Warn when a heart is lost (crossed a 100-point boundary)
                         let hearts_before = (before.get() / FRIENDSHIP_PER_HEART).min(MAX_HEARTS);

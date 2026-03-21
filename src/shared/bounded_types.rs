@@ -17,7 +17,7 @@ pub struct Friendship(pub u32);
 
 impl Default for Friendship {
     fn default() -> Self {
-        Self::new_unchecked(0)
+        Self::new(0)
     }
 }
 
@@ -29,7 +29,7 @@ pub struct MineFloor(pub u8);
 
 impl Default for MineFloor {
     fn default() -> Self {
-        Self::new_unchecked(0)
+        Self::new(0)
     }
 }
 
@@ -38,6 +38,6 @@ pub struct BuildingLevel(pub u8);
 
 impl Default for BuildingLevel {
     fn default() -> Self {
-        BuildingLevel::new_unchecked(0)
+        BuildingLevel::new(0)
     }
 }

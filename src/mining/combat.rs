@@ -249,7 +249,7 @@ pub fn enemy_attack_player(
             // Attack!
             let damage = monster.damage;
             player_state.health =
-                Health::new_unchecked((*player_state.health - damage).max(0.0).min(100.0));
+                Health::new((*player_state.health - damage).max(0.0).min(100.0));
 
             sfx_events.send(PlaySfxEvent {
                 sfx_id: "player_hurt".to_string(),
@@ -302,11 +302,11 @@ pub fn check_player_knockout(
         }
 
         // Restore partial health
-        player_state.health = Health::new_unchecked((player_state.max_health * 0.5).min(100.0));
+        player_state.health = Health::new((player_state.max_health * 0.5).min(100.0));
         iframes.timer = Timer::from_seconds(0.0, TimerMode::Once);
 
         // Reset mine state
-        mine_state.current_floor = MineFloor::new_unchecked(0);
+        mine_state.current_floor = MineFloor::new(0);
         in_mine.0 = false;
         active_floor.spawned = false;
 

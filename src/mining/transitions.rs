@@ -50,7 +50,7 @@ pub fn handle_mine_entry(
                 // Don't spawn floor yet; wait for elevator selection
             } else {
                 // Start at floor 1
-                mine_state.current_floor = MineFloor::new_unchecked(1);
+                mine_state.current_floor = MineFloor::new(1);
                 floor_req.pending = true;
                 floor_req.floor = 1;
                 active_floor.spawned = false;
@@ -60,7 +60,7 @@ pub fn handle_mine_entry(
         // If transitioning away from mine to something else
         if event.to_map != MapId::Mine && in_mine.0 {
             in_mine.0 = false;
-            mine_state.current_floor = MineFloor::new_unchecked(0);
+            mine_state.current_floor = MineFloor::new(0);
             active_floor.spawned = false;
         }
     }
@@ -91,11 +91,11 @@ pub fn handle_day_end_in_mine(
             }
 
             // Restore health partially, stamina fully
-            player_state.health = Health::new_unchecked((player_state.max_health * 0.5).min(100.0));
-            player_state.stamina = Stamina::new_unchecked(player_state.max_stamina);
+            player_state.health = Health::new((player_state.max_health * 0.5).min(100.0));
+            player_state.stamina = Stamina::new(player_state.max_stamina);
 
             // Exit mine
-            mine_state.current_floor = MineFloor::new_unchecked(0);
+            mine_state.current_floor = MineFloor::new(0);
             in_mine.0 = false;
             active_floor.spawned = false;
 

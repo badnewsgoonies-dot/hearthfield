@@ -223,7 +223,7 @@ pub fn try_buy(
     let total_cost = price_per_unit.saturating_mul(actually_added as u32);
 
     // Deduct gold.
-    player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_sub(total_cost));
+    player_state.gold = Gold::new(player_state.gold.get().saturating_sub(total_cost));
 
     TransactionResult::Success { total: total_cost }
 }
@@ -269,7 +269,7 @@ pub fn try_sell(
     inventory.try_remove(item_id, quantity);
 
     // Add gold.
-    player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(total_revenue).min(9_999_999));
+    player_state.gold = Gold::new(player_state.gold.get().saturating_add(total_revenue).min(9_999_999));
 
     TransactionResult::Success {
         total: total_revenue,
@@ -328,7 +328,7 @@ mod tests {
                     category: ItemCategory::Crop,
                     sell_price,
                     buy_price: None,
-                    stack_size: StackSize::new_unchecked(stack as u8),
+                    stack_size: StackSize::new(stack as u8),
                     edible: false,
                     energy_restore: 0.0,
                     sprite_index: 0,
@@ -340,7 +340,7 @@ mod tests {
 
     fn default_player(gold: u32) -> PlayerState {
         let mut ps = PlayerState::default();
-        ps.gold = Gold::new_unchecked(gold);
+        ps.gold = Gold::new(gold);
         ps
     }
 

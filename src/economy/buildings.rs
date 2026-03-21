@@ -194,9 +194,9 @@ pub fn tick_building_upgrade(
                 BuildingKind::Coop => {
                     animal_state.has_coop = true;
                     animal_state.coop_level = match target_tier {
-                        BuildingTier::Basic => BuildingLevel::new_unchecked(1),
-                        BuildingTier::Big => BuildingLevel::new_unchecked(2),
-                        BuildingTier::Deluxe => BuildingLevel::new_unchecked(3),
+                        BuildingTier::Basic => BuildingLevel::new(1),
+                        BuildingTier::Big => BuildingLevel::new(2),
+                        BuildingTier::Deluxe => BuildingLevel::new(3),
                         _ => animal_state.coop_level,
                     };
                     building_levels.coop_tier = target_tier;
@@ -204,9 +204,9 @@ pub fn tick_building_upgrade(
                 BuildingKind::Barn => {
                     animal_state.has_barn = true;
                     animal_state.barn_level = match target_tier {
-                        BuildingTier::Basic => BuildingLevel::new_unchecked(1),
-                        BuildingTier::Big => BuildingLevel::new_unchecked(2),
-                        BuildingTier::Deluxe => BuildingLevel::new_unchecked(3),
+                        BuildingTier::Basic => BuildingLevel::new(1),
+                        BuildingTier::Big => BuildingLevel::new(2),
+                        BuildingTier::Deluxe => BuildingLevel::new(3),
                         _ => animal_state.barn_level,
                     };
                     building_levels.barn_tier = target_tier;

@@ -351,7 +351,7 @@ fn spawn_detail_children(
         .friendship
         .get(id)
         .copied()
-        .unwrap_or(Friendship::new_unchecked(0));
+        .unwrap_or(Friendship::new(0));
 
     // NPC name header
     parent.spawn((

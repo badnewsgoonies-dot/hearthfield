@@ -14,6 +14,7 @@ pub mod gold;
 pub mod play_stats;
 pub mod shipping;
 pub mod shop;
+pub mod simple_gold;
 pub mod stats;
 pub mod tool_upgrades;
 

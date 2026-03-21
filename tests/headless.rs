@@ -540,7 +540,7 @@ fn test_shipping_bin_sells_on_day_end() {
                 category: ItemCategory::Crop,
                 sell_price: 35,
                 buy_price: None,
-                stack_size: StackSize::new_unchecked(99),
+                stack_size: StackSize::new(99),
                 edible: true,
                 energy_restore: 10.0,
                 sprite_index: 0,
@@ -560,7 +560,7 @@ fn test_shipping_bin_sells_on_day_end() {
     // Start with 500g
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = Gold::new_unchecked(500);
+        ps.gold = Gold::new(500);
     }
 
     enter_playing_state(&mut app);
@@ -573,7 +573,7 @@ fn test_shipping_bin_sells_on_day_end() {
     // Verify: 5 parsnips × 35g = 175g earned
     let ps = app.world().resource::<PlayerState>();
     assert_eq!(
-        ps.gold, Gold::new_unchecked(675),
+        ps.gold, Gold::new(675),
         "Player should have 500 + (5×35=175) = 675g, got {}",
         ps.gold
     );
@@ -612,7 +612,7 @@ fn test_empty_shipping_bin_no_gold_change() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = Gold::new_unchecked(1000);
+        ps.gold = Gold::new(1000);
     }
 
     enter_playing_state(&mut app);
@@ -647,7 +647,7 @@ fn test_animal_happiness_increases_when_fed() {
             name: "Clucky".to_string(),
             age: AnimalAge::Adult,
             days_old: 10,
-            happiness: Happiness::new_unchecked(100),
+            happiness: Happiness::new(100),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -690,7 +690,7 @@ fn test_animal_happiness_decreases_when_not_fed() {
             name: "Bessie".to_string(),
             age: AnimalAge::Adult,
             days_old: 20,
-            happiness: Happiness::new_unchecked(100),
+            happiness: Happiness::new(100),
             fed_today: false,
             petted_today: false,
             product_ready: false,
@@ -729,7 +729,7 @@ fn test_animal_fed_and_petted_bonus() {
             name: "Woolly".to_string(),
             age: AnimalAge::Adult,
             days_old: 15,
-            happiness: Happiness::new_unchecked(200),
+            happiness: Happiness::new(200),
             fed_today: true,
             petted_today: true,
             product_ready: false,
@@ -767,7 +767,7 @@ fn test_baby_animal_grows_to_adult() {
             name: "Chick".to_string(),
             age: AnimalAge::Baby,
             days_old: 6, // will become 7 after day end → adult
-            happiness: Happiness::new_unchecked(150),
+            happiness: Happiness::new(150),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -899,7 +899,7 @@ fn test_gold_increase_via_event() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = Gold::new_unchecked(100);
+        ps.gold = Gold::new(100);
     }
 
     enter_playing_state(&mut app);
@@ -926,7 +926,7 @@ fn test_gold_decrease_via_event() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = Gold::new_unchecked(500);
+        ps.gold = Gold::new(500);
     }
 
     enter_playing_state(&mut app);
@@ -953,7 +953,7 @@ fn test_gold_clamps_to_zero() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = Gold::new_unchecked(50);
+        ps.gold = Gold::new(50);
     }
 
     enter_playing_state(&mut app);
@@ -1004,7 +1004,7 @@ fn test_multi_day_shipping_accumulation() {
                 category: ItemCategory::AnimalProduct,
                 sell_price: 50,
                 buy_price: None,
-                stack_size: StackSize::new_unchecked(99),
+                stack_size: StackSize::new(99),
                 edible: true,
                 energy_restore: 5.0,
                 sprite_index: 0,
@@ -1014,7 +1014,7 @@ fn test_multi_day_shipping_accumulation() {
 
     {
         let mut ps = app.world_mut().resource_mut::<PlayerState>();
-        ps.gold = Gold::new_unchecked(0);
+        ps.gold = Gold::new(0);
     }
 
     enter_playing_state(&mut app);
@@ -1036,7 +1036,7 @@ fn test_multi_day_shipping_accumulation() {
     let ps = app.world().resource::<PlayerState>();
     // 3 days × 2 eggs × 50g = 300g
     assert_eq!(
-        ps.gold, Gold::new_unchecked(300),
+        ps.gold, Gold::new(300),
         "Should have 300g after 3 days of shipping 2 eggs"
     );
 }
@@ -1064,7 +1064,7 @@ fn test_animal_starvation_blocks_production() {
                 name: "Hungry".to_string(),
                 age: AnimalAge::Adult,
                 days_old: 10,
-                happiness: Happiness::new_unchecked(200),
+                happiness: Happiness::new(200),
                 fed_today: false,
                 petted_today: false,
                 product_ready: false,
@@ -1649,7 +1649,7 @@ fn test_building_upgrade_request_deducts_gold() {
     enter_playing_state(&mut app);
 
     // Give the player enough gold and materials for a Coop Basic upgrade (4000g + 150 wood + 50 stone)
-    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new_unchecked(10_000);
+    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new(10_000);
     {
         let mut inv = app.world_mut().resource_mut::<Inventory>();
         inv.try_add("wood", 200, 255);
@@ -1667,7 +1667,7 @@ fn test_building_upgrade_request_deducts_gold() {
 
     let player = app.world().resource::<PlayerState>();
     assert_eq!(
-        player.gold, Gold::new_unchecked(6_000),
+        player.gold, Gold::new(6_000),
         "Gold should be deducted by 4000 for Coop Basic upgrade"
     );
 
@@ -1744,7 +1744,7 @@ fn test_building_upgrade_completes() {
         "has_coop should be true after Coop upgrade"
     );
     assert_eq!(
-        animal_state.coop_level, BuildingLevel::new_unchecked(1),
+        animal_state.coop_level, BuildingLevel::new(1),
         "coop_level should be 1 for Basic"
     );
 }
@@ -1839,7 +1839,7 @@ fn test_tool_upgrade_request_queues() {
     app.world_mut().resource_mut::<ActiveShop>().shop_id = Some(ShopId::Blacksmith);
 
     // Give the player enough gold and copper bars for a Basic → Copper upgrade
-    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new_unchecked(5_000);
+    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new(5_000);
     {
         let mut inv = app.world_mut().resource_mut::<Inventory>();
         inv.try_add("copper_bar", 10, 255);
@@ -1865,7 +1865,7 @@ fn test_tool_upgrade_request_queues() {
 
     let player = app.world().resource::<PlayerState>();
     assert_eq!(
-        player.gold, Gold::new_unchecked(3_000),
+        player.gold, Gold::new(3_000),
         "Gold should be 5000 - 2000 = 3000 after upgrade request"
     );
 }
@@ -2117,7 +2117,7 @@ fn test_bouquet_requires_8_hearts() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), Friendship::new_unchecked(700));
+        .insert(npc_id.clone(), Friendship::new(700));
     app.world_mut()
         .resource_mut::<Inventory>()
         .try_add("bouquet", 1, 99);
@@ -2154,7 +2154,7 @@ fn test_bouquet_sets_dating() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), Friendship::new_unchecked(800));
+        .insert(npc_id.clone(), Friendship::new(800));
     app.world_mut()
         .resource_mut::<Inventory>()
         .try_add("bouquet", 1, 99);
@@ -2193,7 +2193,7 @@ fn test_proposal_requires_dating_and_house() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), Friendship::new_unchecked(1000));
+        .insert(npc_id.clone(), Friendship::new(1000));
     app.world_mut()
         .resource_mut::<RelationshipStages>()
         .stages
@@ -2236,7 +2236,7 @@ fn test_proposal_starts_wedding_timer() {
     app.world_mut()
         .resource_mut::<Relationships>()
         .friendship
-        .insert(npc_id.clone(), Friendship::new_unchecked(1000));
+        .insert(npc_id.clone(), Friendship::new(1000));
     app.world_mut()
         .resource_mut::<RelationshipStages>()
         .stages
@@ -2635,7 +2635,7 @@ fn test_evaluation_sets_candles() {
     // Mine floor 20 -> 1 point
     app.world_mut()
         .resource_mut::<MineState>()
-        .deepest_floor_reached = MineFloor::new_unchecked(20);
+        .deepest_floor_reached = MineFloor::new(20);
     // Deluxe house -> 1 point
     app.world_mut().resource_mut::<HouseState>().tier = HouseTier::Deluxe;
     // 8+ animals -> 1 point
@@ -2647,7 +2647,7 @@ fn test_evaluation_sets_candles() {
                 name: format!("Chick{}", i),
                 age: AnimalAge::Adult,
                 days_old: 30,
-                happiness: Happiness::new_unchecked(200),
+                happiness: Happiness::new(200),
                 fed_today: true,
                 petted_today: false,
                 product_ready: false,
@@ -2673,7 +2673,7 @@ fn test_evaluation_sets_candles() {
         }
     }
     // 1M gold on hand -> 1 point
-    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new_unchecked(1_000_000);
+    app.world_mut().resource_mut::<PlayerState>().gold = Gold::new(1_000_000);
 
     app.world_mut().send_event(EvaluationTriggerEvent);
     app.update();
@@ -3276,7 +3276,7 @@ fn test_animal_happiness_clamps_to_zero() {
             name: "Sad".to_string(),
             age: AnimalAge::Adult,
             days_old: 10,
-            happiness: Happiness::new_unchecked(5), // will drop by 12 when unfed -> should clamp to 0
+            happiness: Happiness::new(5), // will drop by 12 when unfed -> should clamp to 0
             fed_today: false,
             petted_today: false,
             product_ready: false,
@@ -3309,7 +3309,7 @@ fn test_baby_animal_stays_baby_before_threshold() {
             name: "BabyCow".to_string(),
             age: AnimalAge::Baby,
             days_old: 3, // will become 4, still baby (needs 7+)
-            happiness: Happiness::new_unchecked(100),
+            happiness: Happiness::new(100),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -3427,11 +3427,11 @@ fn test_legendary_fish_identification() {
 fn test_mine_state_default_values() {
     let mine = MineState::default();
     assert_eq!(
-        mine.current_floor, MineFloor::new_unchecked(0),
+        mine.current_floor, MineFloor::new(0),
         "Default mine floor should be 0 (not in mine)"
     );
     assert_eq!(
-        mine.deepest_floor_reached, MineFloor::new_unchecked(0),
+        mine.deepest_floor_reached, MineFloor::new(0),
         "Default deepest floor should be 0"
     );
     assert!(
@@ -3443,7 +3443,7 @@ fn test_mine_state_default_values() {
 #[test]
 fn test_mine_elevator_unlocks_every_5_floors() {
     let mine = MineState {
-        deepest_floor_reached: MineFloor::new_unchecked(5),
+        deepest_floor_reached: MineFloor::new(5),
         elevator_floors: vec![0, 5], // 0 = surface, 5 = first elevator stop
         ..MineState::default()
     };
@@ -3459,7 +3459,7 @@ fn test_mine_elevator_unlocks_every_5_floors() {
 
     // Simulate reaching floor 10
     let mine2 = MineState {
-        deepest_floor_reached: MineFloor::new_unchecked(10),
+        deepest_floor_reached: MineFloor::new(10),
         elevator_floors: vec![0, 5, 10],
         ..MineState::default()
     };
@@ -3566,8 +3566,8 @@ fn test_save_roundtrip_calendar() {
 #[test]
 fn test_save_roundtrip_player_state() {
     let mut ps = PlayerState::default();
-    ps.gold = Gold::new_unchecked(12345);
-    ps.stamina = Stamina::new_unchecked(50.0);
+    ps.gold = Gold::new(12345);
+    ps.stamina = Stamina::new(50.0);
     ps.equipped_tool = ToolKind::Pickaxe;
     ps.tools.insert(ToolKind::Hoe, ToolTier::Gold);
     ps.current_map = MapId::Mine;
@@ -3817,7 +3817,7 @@ fn test_save_roundtrip_animal_state() {
         kind: AnimalKind::Cow,
         age: AnimalAge::Adult,
         days_old: 30,
-        happiness: Happiness::new_unchecked(200),
+        happiness: Happiness::new(200),
         fed_today: false,
         petted_today: false,
         product_ready: true,
@@ -3847,12 +3847,12 @@ fn test_save_roundtrip_relationships() {
 #[test]
 fn test_save_roundtrip_mine_state() {
     let mut ms = MineState::default();
-    ms.current_floor = MineFloor::new_unchecked(35);
-    ms.deepest_floor_reached = MineFloor::new_unchecked(50);
+    ms.current_floor = MineFloor::new(35);
+    ms.deepest_floor_reached = MineFloor::new(50);
 
     let restored = serde_roundtrip(&ms);
-    assert_eq!(restored.current_floor, MineFloor::new_unchecked(35));
-    assert_eq!(restored.deepest_floor_reached, MineFloor::new_unchecked(50));
+    assert_eq!(restored.current_floor, MineFloor::new(35));
+    assert_eq!(restored.deepest_floor_reached, MineFloor::new(50));
 }
 
 #[test]
@@ -3867,7 +3867,7 @@ fn test_save_roundtrip_all_resources_combined() {
         ..Calendar::default()
     };
     let mut player_state = PlayerState::default();
-    player_state.gold = Gold::new_unchecked(99999);
+    player_state.gold = Gold::new(99999);
     player_state.tools.insert(ToolKind::Axe, ToolTier::Iridium);
 
     let mut inventory = Inventory::default();
@@ -4334,11 +4334,11 @@ fn test_mine_rock_health_and_drops() {
 #[test]
 fn test_mine_state_floor_persistence_roundtrip() {
     let mut mine_state = MineState::default();
-    mine_state.deepest_floor_reached = MineFloor::new_unchecked(15);
+    mine_state.deepest_floor_reached = MineFloor::new(15);
     mine_state.elevator_floors = vec![5, 10, 15];
 
     let roundtripped = serde_roundtrip(&mine_state);
-    assert_eq!(roundtripped.deepest_floor_reached, MineFloor::new_unchecked(15));
+    assert_eq!(roundtripped.deepest_floor_reached, MineFloor::new(15));
     assert_eq!(roundtripped.elevator_floors, vec![5, 10, 15]);
 }
 
@@ -4607,9 +4607,9 @@ fn test_sleep_rollover_advances_day_before_cutscene_state_change() {
     {
         let mut player_state = app.world_mut().resource_mut::<PlayerState>();
         player_state.current_map = MapId::PlayerHouse;
-        player_state.stamina = Stamina::new_unchecked(7.0);
+        player_state.stamina = Stamina::new(7.0);
         player_state.max_stamina = 100.0;
-        player_state.health = Health::new_unchecked(12.0);
+        player_state.health = Health::new(12.0);
         player_state.max_health = 80.0;
     }
 

@@ -310,13 +310,13 @@ impl Default for PlayerState {
         tools.insert(ToolKind::Scythe, ToolTier::Basic);
 
         Self {
-            stamina: Stamina::new_unchecked(MAX_STAMINA),
+            stamina: Stamina::new(MAX_STAMINA),
             max_stamina: MAX_STAMINA,
-            health: Health::new_unchecked(MAX_HEALTH),
+            health: Health::new(MAX_HEALTH),
             max_health: MAX_HEALTH,
             equipped_tool: ToolKind::Hoe,
             tools,
-            gold: Gold::new_unchecked(500),
+            gold: Gold::new(500),
             current_map: MapId::PlayerHouse,
             save_grid_x: 8,
             save_grid_y: 8,
@@ -711,7 +711,7 @@ impl Relationships {
             .friendship
             .get(npc_id)
             .copied()
-            .unwrap_or(Friendship::new_unchecked(0));
+            .unwrap_or(Friendship::new(0));
         (points.get() / 100).min(10) as u8
     }
 
@@ -719,8 +719,8 @@ impl Relationships {
         let entry = self
             .friendship
             .entry(npc_id.to_string())
-            .or_insert(Friendship::new_unchecked(0));
-        *entry = Friendship::new_unchecked(
+            .or_insert(Friendship::new(0));
+        *entry = Friendship::new(
             ((entry.get() as i32 + amount).max(0).min(MAX_FRIENDSHIP as i32)) as u32,
         );
     }
@@ -2187,7 +2187,7 @@ mod tests {
     fn test_relationships_hearts_calculation() {
         let mut rel = Relationships::default();
         rel.friendship
-            .insert("elena".to_string(), Friendship::new_unchecked(500));
+            .insert("elena".to_string(), Friendship::new(500));
         assert_eq!(rel.hearts("elena"), 5);
     }
 
@@ -2213,7 +2213,7 @@ mod tests {
         rel.friendship
             .insert(
                 "elena".to_string(),
-                Friendship::new_unchecked(MAX_FRIENDSHIP - 10),
+                Friendship::new(MAX_FRIENDSHIP - 10),
             );
         rel.add_friendship("elena", 100);
         assert_eq!(rel.friendship.get("elena").unwrap().get(), MAX_FRIENDSHIP);
@@ -2223,7 +2223,7 @@ mod tests {
     fn test_add_friendship_clamps_at_zero() {
         let mut rel = Relationships::default();
         rel.friendship
-            .insert("elena".to_string(), Friendship::new_unchecked(10));
+            .insert("elena".to_string(), Friendship::new(10));
         rel.add_friendship("elena", -100);
         assert_eq!(rel.friendship.get("elena").unwrap().get(), 0);
     }

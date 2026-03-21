@@ -131,18 +131,14 @@ pub fn handle_day_end_for_animals(
                     .happiness
                     .get()
                     .saturating_add(HAPPINESS_FED_BONUS);
-                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
-                    Happiness::new_unchecked(happiness.clamp(0, 255))
-                });
+                animal.happiness = Happiness::new(happiness);
             } else {
                 // Not fed: -18 happiness.
                 let happiness = animal
                     .happiness
                     .get()
                     .saturating_sub(HAPPINESS_UNFED_PENALTY);
-                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
-                    Happiness::new_unchecked(happiness.clamp(0, 255))
-                });
+                animal.happiness = Happiness::new(happiness);
             }
 
             if animal.petted_today {
@@ -151,9 +147,7 @@ pub fn handle_day_end_for_animals(
                     .happiness
                     .get()
                     .saturating_add(HAPPINESS_PETTED_BONUS);
-                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
-                    Happiness::new_unchecked(happiness.clamp(0, 255))
-                });
+                animal.happiness = Happiness::new(happiness);
             }
 
             if is_outside_on_farm_tile(logical_pos) {
@@ -162,9 +156,7 @@ pub fn handle_day_end_for_animals(
                     .happiness
                     .get()
                     .saturating_add(HAPPINESS_OUTDOOR_SUNNY);
-                animal.happiness = Happiness::new(happiness).unwrap_or_else(|_| {
-                    Happiness::new_unchecked(happiness.clamp(0, 255))
-                });
+                animal.happiness = Happiness::new(happiness);
             }
 
             // Warn via toast when an animal's happiness drops into danger zones.
@@ -353,9 +345,7 @@ mod tests {
             name: "Testy".to_string(),
             age: AnimalAge::Baby,
             days_old,
-            happiness: Happiness::new(happiness).unwrap_or_else(|_| {
-                Happiness::new_unchecked(happiness.clamp(0, 255))
-            }),
+            happiness: Happiness::new(happiness),
             fed_today: false,
             petted_today: false,
             product_ready: false,

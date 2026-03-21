@@ -179,7 +179,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Goldie".into(),
             age: AnimalAge::Adult,
             days_old: 14,
-            happiness: Happiness::new_unchecked(180),
+            happiness: Happiness::new(180),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -189,7 +189,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Puddle".into(),
             age: AnimalAge::Adult,
             days_old: 14,
-            happiness: Happiness::new_unchecked(170),
+            happiness: Happiness::new(170),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -199,7 +199,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Bessie".into(),
             age: AnimalAge::Adult,
             days_old: 21,
-            happiness: Happiness::new_unchecked(185),
+            happiness: Happiness::new(185),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -209,7 +209,7 @@ fn starter_herd() -> Vec<Animal> {
             name: "Woolie".into(),
             age: AnimalAge::Adult,
             days_old: 21,
-            happiness: Happiness::new_unchecked(175),
+            happiness: Happiness::new(175),
             fed_today: true,
             petted_today: false,
             product_ready: false,
@@ -421,8 +421,8 @@ pub fn spawn_animals_from_state(
     {
         animal_state.has_coop = true;
         animal_state.has_barn = true;
-        animal_state.coop_level = BuildingLevel::new_unchecked(1);
-        animal_state.barn_level = BuildingLevel::new_unchecked(1);
+        animal_state.coop_level = BuildingLevel::new(1);
+        animal_state.barn_level = BuildingLevel::new(1);
 
         for (slot, animal) in starter_herd().into_iter().enumerate() {
             let spawn_pos = pen_spawn_position(animal.kind, slot);
@@ -604,7 +604,7 @@ pub fn handle_animal_purchase(
             name: name.clone(),
             age: AnimalAge::Baby,
             days_old: 0,
-            happiness: Happiness::new_unchecked(128),
+            happiness: Happiness::new(128),
             fed_today: false,
             petted_today: false,
             product_ready: false,
@@ -709,8 +709,8 @@ mod tests {
             state.has_barn,
             "starter herd should mark the barn as present"
         );
-        assert_eq!(state.coop_level, BuildingLevel::new_unchecked(1));
-        assert_eq!(state.barn_level, BuildingLevel::new_unchecked(1));
+        assert_eq!(state.coop_level, BuildingLevel::new(1));
+        assert_eq!(state.barn_level, BuildingLevel::new(1));
     }
 
     #[test]
@@ -722,15 +722,15 @@ mod tests {
                 name: "Bessie".into(),
                 age: AnimalAge::Adult,
                 days_old: 20,
-                happiness: Happiness::new_unchecked(180),
+                happiness: Happiness::new(180),
                 fed_today: true,
                 petted_today: false,
                 product_ready: false,
             }],
             has_coop: false,
             has_barn: true,
-            coop_level: BuildingLevel::new_unchecked(0),
-            barn_level: BuildingLevel::new_unchecked(1),
+            coop_level: BuildingLevel::new(0),
+            barn_level: BuildingLevel::new(1),
         });
         app.init_resource::<AnimalSpriteData>();
         app.add_systems(Update, spawn_animals_from_state);

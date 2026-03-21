@@ -611,7 +611,7 @@ mod tests {
         let house = HouseState::default();
         let farm = FarmState::default();
 
-        player.gold = Gold::new_unchecked(999_999);
+        player.gold = Gold::new(999_999);
         assert!(!evaluate_condition(
             "millionaire",
             &stats,
@@ -626,7 +626,7 @@ mod tests {
             &farm,
         ));
 
-        player.gold = Gold::new_unchecked(1_000_000);
+        player.gold = Gold::new(1_000_000);
         assert!(evaluate_condition(
             "millionaire",
             &stats,
@@ -655,7 +655,7 @@ mod tests {
         let house = HouseState::default();
         let farm = FarmState::default();
 
-        mine.deepest_floor_reached = MineFloor::new_unchecked(9);
+        mine.deepest_floor_reached = MineFloor::new(9);
         assert!(!evaluate_condition(
             "spelunker",
             &stats,
@@ -670,7 +670,7 @@ mod tests {
             &farm,
         ));
 
-        mine.deepest_floor_reached = MineFloor::new_unchecked(10);
+        mine.deepest_floor_reached = MineFloor::new(10);
         assert!(evaluate_condition(
             "spelunker",
             &stats,

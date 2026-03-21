@@ -623,7 +623,7 @@ pub fn handle_day_end(
 ) {
     for _ev in events.read() {
         // Restore stamina fully.
-        player_state.stamina = Stamina::new_unchecked(player_state.max_stamina);
+        player_state.stamina = Stamina::new(player_state.max_stamina);
 
         // If the player is in the mine, the mining domain handles the transition
         // (with gold penalty and partial health restore). Skip here.
@@ -633,7 +633,7 @@ pub fn handle_day_end(
         }
 
         // Restore health fully.
-        player_state.health = Health::new_unchecked(player_state.max_health);
+        player_state.health = Health::new(player_state.max_health);
 
         let bed_gx = 12;
         let bed_gy = 4;

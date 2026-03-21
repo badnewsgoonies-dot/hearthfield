@@ -124,7 +124,7 @@ pub fn check_farm_visits(
             .friendship
             .get(&npc_id)
             .copied()
-            .unwrap_or(Friendship::new_unchecked(0));
+            .unwrap_or(Friendship::new(0));
         if friendship.get() < 800 {
             // Not enough hearts yet
             tracker.rolled_today.push(npc_id);

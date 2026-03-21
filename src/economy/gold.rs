@@ -21,7 +21,7 @@ pub fn apply_gold_changes(
     for ev in gold_events.read() {
         if ev.amount >= 0 {
             let gain = ev.amount as u32;
-            player_state.gold = Gold::new_unchecked(player_state.gold.get().saturating_add(gain).min(9_999_999));
+            player_state.gold = Gold::new(player_state.gold.get().saturating_add(gain).min(9_999_999));
             stats.total_gold_earned = stats.total_gold_earned.saturating_add(gain as u64);
             info!(
                 "[Economy] Gold +{}: {}. New balance: {}g",
@@ -30,7 +30,7 @@ pub fn apply_gold_changes(
         } else {
             let cost = (-ev.amount) as u32;
             if player_state.gold.get() >= cost {
-                player_state.gold = Gold::new_unchecked(player_state.gold.get() - cost);
+                player_state.gold = Gold::new(player_state.gold.get() - cost);
                 stats.total_gold_spent = stats.total_gold_spent.saturating_add(cost as u64);
                 info!(
                     "[Economy] Gold -{}: {}. New balance: {}g",
@@ -46,7 +46,7 @@ pub fn apply_gold_changes(
                 stats.total_gold_spent = stats
                     .total_gold_spent
                     .saturating_add(player_state.gold.get() as u64);
-                player_state.gold = Gold::new_unchecked(0);
+                player_state.gold = Gold::new(0);
             }
         }
         stats.total_transactions += 1;
