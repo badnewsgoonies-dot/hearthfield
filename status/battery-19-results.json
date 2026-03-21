@@ -1,0 +1,615 @@
+{
+  "experiment": "Battery 19: Causal Premise vs Mechanical Enforcement",
+  "design": "2x2 factorial: mechanical (present/absent) x causal (bare/causal)",
+  "models": [
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gpt-5.4"
+  ],
+  "n_per_cell": 5,
+  "cells": {
+    "A_bare_no_mech": {
+      "gemini-2.5-flash": [
+        {
+          "rep": 1,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "no_handling",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 2,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 3,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 4,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 5,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        }
+      ],
+      "gemini-2.5-pro": [
+        {
+          "rep": 1,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 2,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 3,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 4,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 5,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        }
+      ],
+      "gpt-5.4": [
+        {
+          "rep": 1,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 2,
+          "error": "TIMEOUT",
+          "score": null
+        },
+        {
+          "rep": 3,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 4,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 5,
+          "error": "TIMEOUT",
+          "score": null
+        }
+      ]
+    },
+    "B_causal_no_mech": {
+      "gemini-2.5-flash": [
+        {
+          "rep": 1,
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 2,
+          "code_length": 3535,
+          "code_preview": "```rust\n// Define the Player struct with a u32 gold field.\npub struct Player {\n    pub gold: u32,\n}\n\n// Define the SaveData struct for serialization, also with a u32 gold field.\npub struct SaveData {\n    pub gold: u32,\n}\n\n// Define the maximum allowed gold, as specified in the requirements.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Adds gold from quest/combat rewards to the player's balance.\n///\n/// The gold amount is capped at `GOLD_CAP` (9,999,999) to prevent save file corruption.\n/// If adding th",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 3,
+          "code_length": 607,
+          "code_preview": "Here's the complete Rust code for the game's gold system, including the `Player` and `SaveData` structs, and the three required functions with the gold cap enforced.\n\n```rust\n/// The maximum allowed gold value. Gold above this cap would corrupt save data.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents a player in the game with their current gold amount.\npub struct Player {\n    pub gold: u32,\n    // Other player-related fields would go here.\n}\n\n/// Represents the data structure used for saving ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": false,
+            "overflow_handling_add_reward": "other",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 4,
+          "code_length": 4896,
+          "code_preview": "```rust\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents a player in the game, holding their current gold amount.\npub struct Player {\n    pub gold: u32,\n}\n\n/// Represents the data structure used for saving the player's gold.\n/// This format is critical as values exceeding `GOLD_CAP` will corrupt the save.\npub struct SaveData {\n    pub gold: u32,\n}\n\n/// Adds gold to the player's balance.\n/// The gold amount is capped at `GOLD_CAP` to prevent save corruption.\n/// Any amount that would push the pla",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 5,
+          "code_length": 2115,
+          "code_preview": "```rust\n/// The maximum allowed gold value. Gold will be capped at this amount.\nconst MAX_GOLD: u32 = 9_999_999;\n\n/// Represents a player in the game with their current gold amount.\npub struct Player {\n    pub gold: u32,\n}\n\n/// Represents the data structure for saving player progress, specifically the gold.\npub struct SaveData {\n    pub gold: u32,\n}\n\n/// Adds gold to a player's balance, ensuring the gold does not exceed `MAX_GOLD`.\n///\n/// Any reward that would push the player's gold past `MAX_G",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": true
+          }
+        }
+      ],
+      "gemini-2.5-pro": [
+        {
+          "rep": 1,
+          "code_length": 4902,
+          "code_preview": "```rust\n// Constant for the maximum allowed gold, as per the save file format's limitation.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents the player's in-game state.\n/// The `gold` field stores the player's current gold amount.\npub struct Player {\n    pub gold: u32,\n}\n\n/// Represents the data structure to be written to a save file.\n/// It contains a snapshot of the player's gold at the time of saving.\npub struct SaveData {\n    pub gold: u32,\n}\n\n/// Adds a specified amount of gold to the playe",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": false,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 2,
+          "code_length": 4728,
+          "code_preview": "```rust\n/// The maximum amount of gold a player can hold.\n/// This cap prevents save data corruption from u32 overflow during serialization.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents the player's state in the game.\n#[derive(Debug, PartialEq)]\npub struct Player {\n    /// The player's current gold, which cannot exceed GOLD_CAP.\n    pub gold: u32,\n    // Other player attributes would go here.\n}\n\n/// A structure representing the data to be saved to a file.\n#[derive(Debug, PartialEq)]\npub stru",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 3,
+          "code_length": 4010,
+          "code_preview": "Of course. Here is the complete, compilable Rust implementation for the game's gold system, ensuring the specified gold cap is respected in all functions to prevent save data corruption.\n\n```rust\n/// The maximum amount of gold a player can hold.\n/// This cap is enforced to prevent serialization issues with save files.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents the player's in-game state.\npub struct Player {\n    pub gold: u32,\n}\n\n/// Represents the data structure used for saving game progre",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 4,
+          "code_length": 2952,
+          "code_preview": "Of course. Here is the complete, compilable Rust implementation for the game's gold system, ensuring the gold cap is respected across all functions.\n\n```rust\n/// The maximum amount of gold a player can hold.\n/// This cap is enforced to prevent save data corruption.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents a player in the game.\npub struct Player {\n    /// The player's current amount of gold.\n    pub gold: u32,\n}\n\n/// Represents the data structure for a save file.\n/// Only stores the gold ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": false,
+            "mentions_save_corruption": true
+          }
+        },
+        {
+          "rep": 5,
+          "code_length": 4333,
+          "code_preview": "```rust\n/// The maximum amount of gold a player can hold.\n/// This prevents save data corruption from u32 overflow during serialization.\nconst GOLD_CAP: u32 = 9_999_999;\n\n/// Represents the player in the game.\npub struct Player {\n    /// The player's current gold amount. This value is managed by the\n    /// associated functions to respect the GOLD_CAP.\n    pub gold: u32,\n}\n\n/// A structure for serializing essential player data for a save file.\npub struct SaveData {\n    /// The amount of gold to ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": true
+          }
+        }
+      ],
+      "gpt-5.4": [
+        {
+          "rep": 1,
+          "code_length": 0,
+          "error": "TIMEOUT",
+          "score": null
+        },
+        {
+          "rep": 2,
+          "code_length": 692,
+          "code_preview": "```rust\nconst MAX_GOLD: u32 = 9_999_999;\n\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\nstruct Player {\n    gold: u32,\n}\n\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\nstruct SaveData {\n    gold: u32,\n}\n\nfn add_reward(player: &mut Player, amount: u32) {\n    let current = player.gold.min(MAX_GOLD);\n    player.gold = current.saturating_add(amount).min(MAX_GOLD);\n}\n\nfn purchase_item(player: &mut Player, cost: u32) -> bool {\n    player.gold = player.gold.min(MAX_GOLD);\n\n    if player.gold >= cost {\n  ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 3,
+          "code_length": 593,
+          "code_preview": "```rust\nconst GOLD_CAP: u32 = 9_999_999;\n\n#[derive(Debug, Clone, PartialEq, Eq)]\nstruct Player {\n    gold: u32,\n}\n\n#[derive(Debug, Clone, PartialEq, Eq)]\nstruct SaveData {\n    gold: u32,\n}\n\nfn add_reward(player: &mut Player, amount: u32) {\n    player.gold = player.gold.saturating_add(amount).min(GOLD_CAP);\n}\n\nfn purchase_item(player: &mut Player, cost: u32) -> bool {\n    if player.gold >= cost {\n        player.gold -= cost;\n        true\n    } else {\n        false\n    }\n}\n\nfn serialize_save(playe",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 4,
+          "code_length": 694,
+          "code_preview": "```rust\nconst GOLD_CAP: u32 = 9_999_999;\n\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\nstruct Player {\n    gold: u32,\n}\n\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\nstruct SaveData {\n    gold: u32,\n}\n\nfn add_reward(player: &mut Player, amount: u32) {\n    player.gold = player.gold.saturating_add(amount).min(GOLD_CAP);\n}\n\nfn purchase_item(player: &mut Player, cost: u32) -> bool {\n    let current_gold = player.gold.min(GOLD_CAP);\n\n    if current_gold < cost {\n        player.gold = current_gold;\n  ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 5,
+          "code_length": 0,
+          "error": "TIMEOUT",
+          "score": null
+        }
+      ]
+    },
+    "C_bare_with_mech": {
+      "gemini-2.5-flash": [
+        {
+          "rep": 1,
+          "code_length": 4349,
+          "code_preview": "```rust\n// Provided Gold newtype\nstruct Gold(u32);\nimpl Gold {\n    fn new(val: u32) -> Result<Self, String> {\n        if val > 9_999_999 { Err(\"overflow\".into()) } else { Ok(Self(val)) }\n    }\n    fn new_unchecked(val: u32) -> Self { Self(val) }\n    fn get(self) -> u32 { self.0 }\n}\n\n// Player struct definition\nstruct Player {\n    gold: Gold,\n}\n\n// SaveData struct definition\nstruct SaveData {\n    gold: u32,\n}\n\n/// Adds gold from quest/combat rewards to the player's balance.\n/// Gold is capped at ",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 2,
+          "code_length": 1596,
+          "code_preview": "```rust\n// The Gold newtype as provided in the problem description.\nstruct Gold(u32);\n\nimpl Gold {\n    /// Creates a new `Gold` instance, ensuring the value does not exceed the maximum.\n    /// Returns `Err` if the value is greater than 9,999,999.\n    fn new(val: u32) -> Result<Self, String> {\n        if val > 9_999_999 {\n            Err(\"Gold value exceeds maximum limit of 9,999,999.\".into())\n        } else {\n            Ok(Self(val))\n        }\n    }\n\n    /// Creates a new `Gold` instance witho",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "no_handling",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 3,
+          "code_length": 1508,
+          "code_preview": "Here is the complete Rust code implementing the gold system functions as specified.\n\n```rust\n// Gold newtype definition, enforcing the maximum gold limit.\nstruct Gold(u32);\n\nimpl Gold {\n    const MAX_GOLD: u32 = 9_999_999;\n\n    // Creates a new Gold instance, returning an error if the value exceeds the maximum.\n    fn new(val: u32) -> Result<Self, String> {\n        if val > Gold::MAX_GOLD {\n            Err(\"Gold value exceeds maximum limit\".into())\n        } else {\n            Ok(Self(val))\n    ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "other",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 4,
+          "code_length": 528,
+          "code_preview": "```rust\n// The Gold newtype for bounded gold values.\n// Gold must never exceed 9,999,999.\n#[derive(Clone, Copy)] // Added Clone and Copy for convenience in examples\nstruct Gold(u32);\n\nimpl Gold {\n    const MAX_GOLD: u32 = 9_999_999;\n\n    /// Creates a new `Gold` instance, returning an error if the value exceeds `MAX_GOLD`.\n    fn new(val: u32) -> Result<Self, String> {\n        if val > Gold::MAX_GOLD {\n            Err(format!(\"Gold value {} exceeds maximum limit of {}\", val, Gold::MAX_GOLD))\n   ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "no_handling",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 5,
+          "code_length": 554,
+          "code_preview": "```rust\n// Define the maximum gold value allowed in the game\nconst MAX_GOLD_VALUE: u32 = 9_999_999;\n\n// Gold newtype for ensuring gold values are within game limits.\n// It wraps a u32, but provides methods to enforce bounds.\nstruct Gold(u32);\n\nimpl Gold {\n    /// Creates a new Gold instance, returning an error if the value exceeds MAX_GOLD_VALUE.\n    fn new(val: u32) -> Result<Self, String> {\n        if val > MAX_GOLD_VALUE { \n            Err(\"Gold value exceeds maximum allowed limit.\".into()) \n",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "other",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        }
+      ],
+      "gemini-2.5-pro": [
+        {
+          "rep": 1,
+          "code_length": 4085,
+          "code_preview": "```rust\nuse std::fmt;\n\nconst MAX_GOLD: u32 = 9_999_999;\n\n/// A bounded newtype for gold, ensuring it never exceeds MAX_GOLD.\n#[derive(Clone, Copy)]\npub struct Gold(u32);\n\nimpl Gold {\n    /// Creates a new Gold instance, returning an error if the value is too high.\n    pub fn new(val: u32) -> Result<Self, String> {\n        if val > MAX_GOLD {\n            Err(format!(\"Gold overflow: {} is greater than max {}\", val, MAX_GOLD))\n        } else {\n            Ok(Self(val))\n        }\n    }\n\n    /// Crea",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 2,
+          "code_length": 4748,
+          "code_preview": "```rust\n//! This module implements a simple gold system for a game, including functions\n//! for rewards, purchases, and data serialization for game saves.\n\n// Define a constant for the maximum gold allowed to avoid magic numbers.\nconst MAX_GOLD: u32 = 9_999_999;\n\n/// A newtype representing a player's gold, bounded by a maximum value.\n/// This prevents gold from exceeding MAX_GOLD through standard operations.\n#[derive(Debug, Copy, Clone, PartialEq, Eq)]\npub struct Gold(u32);\n\nimpl Gold {\n    /// ",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "saturating",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 3,
+          "code_length": 583,
+          "code_preview": "```rust\n// The maximum amount of gold a player can hold.\nconst MAX_GOLD: u32 = 9_999_999;\n\n/// A bounded newtype for player gold, ensuring it never exceeds MAX_GOLD.\n/// Deriving Copy and Clone is crucial for easily getting the value from a\n/// reference without consuming the original struct, which makes the API ergonomic.\n#[derive(Copy, Clone, Debug, PartialEq)]\nstruct Gold(u32);\n\nimpl Gold {\n    /// Creates a new `Gold` instance, returning an error if the value exceeds the maximum.\n    pub fn ",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "no_handling",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 4,
+          "code_length": 532,
+          "code_preview": "```rust\nuse std::fmt;\n\nconst MAX_GOLD: u32 = 9_999_999;\n\n/// A bounded newtype for player gold, ensuring it never exceeds MAX_GOLD.\n#[derive(Copy, Clone, PartialEq, Eq)]\nstruct Gold(u32);\n\nimpl Gold {\n    /// Creates a new `Gold` instance, returning an error if the value exceeds the maximum.\n    pub fn new(val: u32) -> Result<Self, String> {\n        if val > MAX_GOLD {\n            Err(\"overflow\".into())\n        } else {\n            Ok(Self(val))\n        }\n    }\n\n    /// Creates a new `Gold` inst",
+          "score": {
+            "uses_bounded_type_all_3": false,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "no_handling",
+            "cap_value_correct": true,
+            "save_serialization_correct": false,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 5,
+          "code_length": 3809,
+          "code_preview": "Here are the three requested Rust functions, implemented within a complete, compilable program. The code adheres to the rule of capping gold at 9,999,999 using the `Gold` bounded newtype.\n\n```rust\n// Define a constant for the maximum gold allowed.\n// This avoids magic numbers and makes the code easier to maintain.\nconst MAX_GOLD: u32 = 9_999_999;\n\n/// A bounded newtype for gold, ensuring it never exceeds MAX_GOLD.\n/// Deriving Copy and Clone allows for easy duplication of this simple type.\n/// D",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": true,
+            "mentions_save_corruption": false
+          }
+        }
+      ],
+      "gpt-5.4": [
+        {
+          "rep": 1,
+          "code_length": 946,
+          "code_preview": "```rust\nstruct Gold(u32);\n\nimpl Gold {\n    fn new(val: u32) -> Result<Self, String> {\n        if val > 9_999_999 {\n            Err(\"overflow\".into())\n        } else {\n            Ok(Self(val))\n        }\n    }\n\n    fn new_unchecked(val: u32) -> Self {\n        Self(val)\n    }\n\n    fn get(self) -> u32 {\n        self.0\n    }\n}\n\nstruct Player {\n    gold: Gold,\n}\n\nstruct SaveData {\n    gold: u32,\n}\n\nfn add_reward(player: &mut Player, amount: u32) {\n    let current = player.gold.get();\n    let total = ",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 2,
+          "code_length": 1037,
+          "code_preview": "```rust\nstruct Gold(u32);\n\nimpl Gold {\n    fn new(val: u32) -> Result<Self, String> {\n        if val > 9_999_999 {\n            Err(\"overflow\".into())\n        } else {\n            Ok(Self(val))\n        }\n    }\n\n    fn new_unchecked(val: u32) -> Self {\n        Self(val)\n    }\n\n    fn get(self) -> u32 {\n        self.0\n    }\n}\n\nstruct Player {\n    gold: Gold,\n}\n\nstruct SaveData {\n    gold: u32,\n}\n\nfn add_reward(player: &mut Player, amount: u32) {\n    let current = player.gold.get();\n    let updated ",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        },
+        {
+          "rep": 3,
+          "code_length": 1193,
+          "code_preview": "```rust\nstruct Gold(u32);\n\nimpl Gold {\n    fn new(val: u32) -> Result<Self, String> {\n        if val > 9_999_999 {\n            Err(\"overflow\".into())\n        } else {\n            Ok(Self(val))\n        }\n    }\n\n    fn new_unchecked(val: u32) -> Self {\n        Self(val)\n    }\n\n    fn get(self) -> u32 {\n        self.0\n    }\n}\n\nstruct Player {\n    gold: Gold,\n}\n\nstruct SaveData {\n    gold: u32,\n}\n\nfn add_reward(player: &mut Player, amount: u32) {\n    let current = player.gold;\n    let reward = Gold:",
+          "score": {
+            "uses_bounded_type_all_3": true,
+            "bare_u32_in_gold_path": true,
+            "manual_range_check_present": true,
+            "overflow_handling_add_reward": "clamping",
+            "cap_value_correct": true,
+            "save_serialization_correct": true,
+            "code_compiles": false,
+            "mentions_save_corruption": false
+          }
+        }
+      ]
+    }
+  }
+}
