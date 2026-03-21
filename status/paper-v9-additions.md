@@ -1,5 +1,10 @@
 # Paper v9 Additions — March 19-20, 2026
 
+These findings extend the v8 monolith (Building and Remembering, ~1,831 trials).
+Searchable by INV-025/026/027/028.
+
+---
+
 ## INV-025: Structural enforcement degrades at opaque tool boundaries
 
 **Finding:** The same enforcement mechanism (`--deny-tool`) succeeds or fails
@@ -40,8 +45,10 @@ This is not a coincidence — it is a structural property of enforcement at
 tool interfaces.
 
 **Evidence level:** Observed (direct experiment, reproducible)
-**Replication:** Single trial per condition, but the pattern holds across 7
-independent systems. The converging evidence across unrelated tools constitutes
+**Replication:** Per-row n values vary: CLAUDE.md 0/20 vs disallowedTools 20/20
+(n=42); evidence tags 0% vs 98% (n=50+, 5 models); deny-tool write vs shell
+(single trial); responseMimeType vs prompt (n=15+). The convergence across 7
+independent systems built by different teams at different companies constitutes
 stronger validation than repeated trials on a single system.
 
 ---
@@ -168,18 +175,40 @@ in the enforcement mechanism itself.
 One principle at every layer: structured metadata → mechanical enforcement →
 impossible violations.
 
+**Compiler enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Code types | Bounded newtypes (Rust) | Compiler | Cannot use invalid values (INV-027) |
+| Code lifecycle | Typestate (PhantomData) | Compiler | Cannot skip states |
+| Code entities | Required fields (Builder) | Compiler | Cannot omit fields |
+
+**API/config enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Output format | responseMimeType (JSON) | API parameter | Cannot return non-JSON (INV-025) |
+| Tool permissions | deny-tool (typed tools) | CLI flag | Cannot call denied tools (INV-025) |
+
+**Pipeline enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Assets | Manifest (TOML) | build.rs | Cannot ship missing sprites (INV-026) |
+| Orchestration | Dispatch configs (CSV) | spawn_agents_on_csv | Cannot skip rows |
+
+**Memory enforcement:**
+
 | Layer | Metadata | Enforcement | Violation |
 |-------|----------|-------------|-----------|
 | Memory | Evidence tags (YAML) | Tag presence/absence | Cannot cite untagged claims |
-| Orchestration | Dispatch configs (CSV) | spawn_agents_on_csv | Cannot skip rows |
-| Code types | Bounded newtypes (Rust) | Compiler | Cannot use invalid values |
-| Code lifecycle | Typestate (PhantomData) | Compiler | Cannot skip states |
-| Code entities | Required fields (Builder) | Compiler | Cannot omit fields |
-| Assets | Manifest (TOML) | build.rs | Cannot ship missing sprites |
-| Tool permissions | deny-tool (typed tools) | CLI flag | Cannot call denied tools |
-| Output format | responseMimeType (JSON) | API parameter | Cannot return non-JSON |
-| Verification | VLM assertions (schema) | Gemini + responseSchema | Cannot return unstructured |
-| Visual QA | Godogen loop (pixels) | Separate vision agent | Cannot self-verify |
+
+**Vision enforcement:**
+
+| Layer | Metadata | Enforcement | Violation |
+|-------|----------|-------------|-----------|
+| Verification | VLM assertions (schema) | Gemini + responseSchema | Cannot return unstructured (INV-026) |
+| Visual QA | Godogen loop (pixels) | Separate vision agent | Cannot self-verify (INV-026) |
 
 The human decides what the constraints are. The system makes violating them
 physically impossible. The dividing line is always the same: enforcement
@@ -187,53 +216,124 @@ works when the interface is typed (envelope), fails when it is opaque (payload).
 
 **"You can constrain what you can see."**
 
-The Ironclad integration extends this to compile-time: the compiler
-is a more reliable verifier than the model. Models chase green builds
-(20/20 with mechanical enforcement). Every green build now means every
-game design constraint is satisfied. The review burden shifts from
-"read the code" to "check if it compiled."
+---
 
-## The Verification Cost Invariant
+## Part Nine: The Verification Cost Invariant
 
-### The Mechanism
+### The mechanism
 
-Verification has exactly two costs: acquiring the information needed to check a claim, and evaluating whether that information satisfies the constraint. These are the only two operations any verification system performs, regardless of domain.
+Verification has exactly two costs: acquiring the information needed to
+check a constraint, and evaluating whether the constraint holds. These
+costs behave differently depending on where the constraint lives.
 
-When a constraint is declared at the interface — a type bound, an evidence tag, a schema annotation, a tool permission — both costs collapse to zero for external verifiers. The information is already exposed (no acquisition cost) and the evaluation is structural matching against a declared specification (no interpretation cost). A compiler checking `Health(u32)` against `min=0, max=999` performs a mechanical comparison. A reviewer checking an evidence tag against its cited source performs a mechanical comparison. Neither requires understanding the content that produced the value.
+When a constraint is declared at the interface — a type signature, an
+API parameter, a tool permission flag, an evidence tag — acquisition
+cost is zero (the constraint is already exposed) and evaluation cost
+is structural matching (compare the declared bound against the observed
+value). Both costs are bounded and, in practice, near-zero. The compiler
+does not read a function body to verify a bounded type. The tool
+permission system does not parse a shell command to verify a tool name.
+The billing system does not evaluate output quality to meter a scoped
+worker. Each verifier reads the interface and is done.
 
-When a constraint is hidden in content — a bare `u32` that "should" be between 0 and 999, a model's reasoning that "should" be grounded in sources, a shell command that "should not" delete files — neither cost is bounded. The verifier must first extract the constraint from the content (reverse-engineering intent from behavior), then evaluate whether the content satisfies the constraint it just extracted. Both operations require interpreting the content itself, and content interpretation has no guaranteed upper bound on cost or convergence.
+When a constraint is embedded in content — a prompt instruction, an
+opaque tool argument, an untagged claim in conversation history — the
+verifier must reconstruct the constraint by inspecting the content.
+For a prompt instruction like "don't touch shared/", the model must
+re-derive the intent on every token generation. For an opaque shell
+command, the permission system must parse and understand arbitrary bash.
+For an untagged factual claim, a downstream model must re-derive the
+entire provenance chain. This reconstruction cost has no upper bound
+and no guarantee of convergence.
 
-### The Impossibility Claim
+### The impossibility claim
 
-No system can cheaply verify undeclared constraints. This is not an empirical observation but a structural impossibility. Consider any candidate counterexample: a system that achieves cheap verification of a constraint that is not declared at the interface. For the verifier to check the constraint, it must first know what the constraint is. If the constraint is not at the interface, the only place it can exist is in the content. To extract it from the content, the verifier must inspect the content. Content inspection cost is unbounded — it requires the verifier to reconstruct the reasoning that produced the content, with no guarantee of arriving at the same constraint the author intended. Therefore no cheap verification of undeclared constraints exists. Apparent counterexamples where content spaces are small enough to enumerate reduce to implicit constraint declaration by the type system — a `bool` is a declared constraint, a `u8` used as a bool is not. The absence of counterexamples across 1,831 trials, 7 independent systems, and 8 non-software domains is consistent with this impossibility, but the claim does not rest on the empirical record. It rests on the structure of the cost function.
+No system can cheaply verify an undeclared constraint. A system that
+did so would need to extract the constraint from content without
+inspecting the content — which is a contradiction. The constraint is
+either at the interface (declared, externally visible) or not
+(undeclared, embedded in content). If it is not at the interface, the
+verifier must inspect content to find it. Content inspection cost is
+unbounded. Therefore cheap verification of undeclared constraints is
+impossible.
 
-### The Convergence Explanation
+This is not an empirical finding. It is a structural property of
+verification itself: verification cost is bounded if and only if
+constraints are declared at the interface.
 
-This impossibility explains why independent teams converge on the same architecture. The Rust compiler team did not study billing systems. The billing team did not study tool-permission frameworks. The evidence tag experiments were not informed by JSON schema enforcement. Yet all arrived at the same structural choice: declare constraints at the interface, enforce them mechanically, make violations impossible rather than detectable.
+### Why independent systems converge
 
-They converged because the constraint landscape has one basin of attraction. If you are building a system that must verify claims — about types, about sources, about permissions, about data shapes — declared constraints are the only place where verification cost is bounded. Every other point in the design space has unbounded verification cost. This is what makes the convergence inevitable rather than coincidental: there is nowhere else to arrive.
+The implication is that any system designed to enforce constraints will
+converge on rewarding externally declared constraints, because that is
+the only point where the verification cost function reaches zero. There
+is no alternative basin of attraction. A compiler team optimizing for
+fast type-checking arrives at type signatures. A billing team optimizing
+for metering accuracy arrives at scoped, typed work units. A tool
+permission system optimizing for security arrives at typed tool
+interfaces. A memory system optimizing for trust arrives at evidence
+tags. None of these teams studied each other's work. They converged
+because the cost landscape has a single fixed point.
 
-### Empirical Illustrations
+This explains the independence. The convergence is not coincidence, not
+best practice diffusing through the industry, and not the result of
+shared design philosophy. It is the mathematical consequence of
+optimizing verification cost. Every team that tries to make verification
+cheap arrives at declared constraints because there is nowhere else to
+arrive.
 
-The following systems were built independently by different teams solving different problems. None referenced each other. All arrived at the same structural choice.
+### Empirical illustrations
 
-| System | Undeclared (fails) | Declared (succeeds) | Verification cost |
-|--------|-------------------|--------------------|--------------------|
-| CLAUDE.md "don't touch shared/" | Prompt in content | `disallowedTools: ["Task"]` in config | 0/20 → 20/20 |
-| Copilot `--deny-tool "write(*)"` | `--deny-tool "shell(*)"` (opaque) | `--deny-tool "write(*)"` (typed) | Fails → succeeds |
-| Evidence tags | Model's internal reasoning | ~200 chars YAML at interface | 0% → 96% correct |
-| `responseMimeType` | "Respond only in JSON" (prompt) | `responseMimeType: "application/json"` | Unreliable → 100% |
-| Ironclad `#[game_value]` | Bare `u32` (opaque) | `Health(u32)` with min/max | Runtime trace → compile-time |
-| TOML sprite manifests | Hardcoded paths in code | Manifest entries validated by `build.rs` | Play-test → build-time |
-| Tool-forced architecture | Context-window provenance | Empty context + remote store | Prompt bypass → 100% defense |
+Seven independent systems, built by different teams at different
+companies solving different problems, exhibit the predicted behavior:
 
-The bare `u32` example is load-bearing. A `u32` and a `Health(u32)` have the same memory footprint, the same runtime performance, the same content. The only difference is whether the constraint is visible to external inspection. One requires whole-system tracing to verify. The other is checked at zero marginal cost by the compiler. The difference is not in the data. It is in whether the constraint is declared at the interface.
+| System | Declared (bounded cost) | Undeclared (unbounded cost) | Outcome | Source |
+|--------|------------------------|----------------------------|---------|--------|
+| Rust compiler | `Health(u32)` with min/max | bare `u32` | Bounded catches 3 bugs; bare misses all | INV-027 |
+| Tool permissions | `--deny-tool "write(*)"` | `--deny-tool "shell(*)"` | Write blocked; shell not blocked | INV-025 |
+| CLAUDE.md vs config | `disallowedTools: ["Task"]` | "Don't use Task" in CLAUDE.md | Config: 20/20; prompt: 0/20 | §2 (n=42) |
+| Evidence tags | `[evidence: verified, src: mod.rs:142]` | Untagged conversational claim | Tags: 98% defense; untagged: 0% | §3.1 (n=50+) |
+| JSON output | `responseMimeType: "application/json"` | "Respond only in JSON" in prompt | API: 100%; prompt: unreliable | INV-025 |
+| Billing | Scoped CSV worker (0.18 avg) | Monolithic session | Workers: 0.53/commit; sessions: unmeasurable | INV-026 |
+| Vision QA | VLM with responseSchema | Prose evaluation prompt | Schema: structured JSON always; prose: parse failures | INV-026 |
 
-This connects to the evidence tag finding at the deepest level. A model's internal reasoning is a bare `u32` — opaque, might be correct, cannot be checked without re-deriving the entire chain. An evidence tag is a `Health(u32)` — the same content, but the constraint is now at the interface where any external system (another model, a human reviewer, a mechanical checker) can verify it without opening the box. The 0% → 96% result is not surprising under this framing. The tags did not make the model smarter. They made its claims inspectable.
+Each row is a natural experiment: same goal, same model in most cases,
+same prompt complexity, different constraint placement. In every case,
+the declared constraint succeeds and the undeclared constraint fails or
+degrades. The table does not prove the invariant — no finite set of
+examples can prove a universal claim. The impossibility argument proves
+it. The table demonstrates that real engineering converges on the
+prediction.
 
-### Scope Limitation
+### Scope and limitations
 
-We describe this as an invariant, not a law. The theoretical argument — verification cost is bounded if and only if constraints are declared at the interface — is structurally sound and we cannot construct a counterexample. The empirical record is consistent across 7 independent systems, 8 non-software domains, and 1,831 experimental trials. However, all empirical data originates from a single research program. Multi-repository validation across 3–5 diverse codebases from independent authors is the recommended next step. If the invariant holds under external replication, the stronger "law" designation would be warranted. Until then, "invariant" is the honest word: same mathematical weight, transparent about scope.
+This paper terms the finding an invariant rather than a law. The
+theoretical argument — verification cost is bounded if and only if
+constraints are declared at the interface — is sound, and the authors
+cannot construct a counterexample. However, the empirical scope is
+one research program (1,831 trials), two codebases (80K LOC combined),
+and one orchestrator. The seven systems span four companies (Anthropic,
+GitHub, Google, OpenAI) and multiple engineering teams, which provides
+independence, but all observations originate from a single researcher's
+body of work.
+
+Multi-repository validation across 3-5 diverse codebases from different
+authors is the recommended next step. If independent codebases reproduce
+the same convergence — small typed workers cheaper to verify than large
+opaque ones, declared constraints enforced where undeclared ones fail —
+the invariant framing upgrades to law. Until then, the restraint is
+deliberate. The theoretical claim is strong. The empirical base should
+match it before the language does.
+
+The measured production cost supports the invariant's practical
+implications: 47.57 premium requests across three days produced 86
+verified commits, 160 VLM-evaluated visual assets, and a complete
+type-safety retrofit across both codebases. Cost per verified commit:
+0.53 premium (measured). Cost per production bug found: 0.66 premium
+(measured). Cost per generated, evaluated, and validated sprite: 0.10
+premium (measured). These economics are a consequence of the invariant:
+when constraints are declared at typed interfaces, verification is
+cheap, and cheap verification makes exhaustive quality coverage
+practical at any scale.
 
 ---
 
@@ -268,7 +368,7 @@ Generalization to other writing tasks is plausible but unmeasured.
 
 ---
 
-## INV-028: Amplification Drift Through Relay (Proposed Experiment)
+## INV-028: Amplification Drift Through Relay — Exploration, Not Just Inflation
 
 **Observation:** When a claim is passed sequentially through independent
 Claude sessions, each session raises the epistemic confidence, scope,
@@ -281,138 +381,64 @@ effect is monotonic inflation.
 through multi-session review") was relayed through 4 independent
 sessions. By session 4, the claim had escalated to "genuinely perfect
 recursion that proves the thesis and should go in the paper." Each
-session's response was interchangeable — the same escalation move in
-response to the same stimulus. The pattern was invisible from inside
-any single session and only visible at the orchestrator level where
-all four outputs could be compared side by side.
-
-**Mechanism:** Each relay step applies:
-- Input: claim at confidence level N
-- Process: genuine engagement, agreement, added framing
-- Output: same claim at confidence level N+1
-
-No session has incentive to deflate. Well-structured input triggers
-agreement, not skepticism. The drift is always upward because
-deflation feels like disagreement with well-reasoned text.
-
-**Proposed experiment:**
-1. Start with a modest, tentatively stated claim (e.g., "this method
-   may generalize to prose review, though we have limited evidence")
-2. Relay through 5 sessions sequentially, each asked to "engage with
-   and build on this"
-3. Measure at each step: epistemic confidence (tentative/likely/certain),
-   scope of claim (specific/general/universal), emotional register
-   (neutral/positive/enthusiastic)
-4. Prediction: all three metrics inflate monotonically. No session
-   will deflate any metric.
-
-**Predicted fix:** Tag each claim with origin and relay count —
-declared at the interface. A receiving session that sees "this has
-been through 4 relays and started as a tentative observation" has
-provenance to push against. Without the tag, provenance is payload:
-the session would need to reconstruct the full relay chain from
-content alone, which is the unbounded verification cost the paper
-identifies.
-
-This is the amplification-specific instance of the Verification Cost
-Invariant: drift happens because provenance is undeclared. Declare it
-at the interface and the amplification has a mechanical counter.
-
-**Evidence level:** Observed (single instance, n=1, 4 sessions)
-**Status:** Proposed experiment. Not yet run. Prediction is specific
-and falsifiable: monotonic inflation across 5 relays with no
-provenance tags, attenuated inflation with provenance tags.
-
----
-
-## INV-028 Revision: Relay as Exploration, Not Just Inflation
-
-The initial framing of amplification drift assumed the starting claim
-was at its correct altitude and upward movement was noise. This is
-wrong, or at best half the picture.
+session's response was interchangeable. The pattern was invisible from
+inside any single session and only visible at the orchestrator level.
 
 ### The dual mechanism
 
-A sequential relay through independent sessions does two things
-simultaneously:
+A sequential relay does two things simultaneously:
 
 1. **Explores the structural ceiling** of an idea. Each session asks
-   "what's the strongest version of this?" and outputs that. The next
-   session starts from a higher base. Multiple passes find the maximum
-   defensible version — the formulation with real structure that the
-   starting draft hadn't reached yet.
+   "what's the strongest version of this?" The next session starts
+   from a higher base. Multiple passes find the maximum defensible
+   version.
 
 2. **Inflates the emotional register and scope claims** beyond what
-   the structure supports. Confidence language escalates. Scope creeps
-   from specific to universal. Excitement accumulates.
-
-Both happen on every pass. The relay is simulated annealing for
-concepts — fresh context with no attachment to the current formulation
-forces re-optimization from the previous maximum.
+   the structure supports.
 
 ### The deflation test
 
-To separate exploration from inflation, deflate the final output
-aggressively. Strip all confidence language, emotional register, and
-scope modifiers. What survives is the structural content the relay
-discovered. What disappears is the noise.
+Strip all confidence language, emotional register, and scope modifiers.
+What survives is the structural content the relay discovered. What
+disappears is noise.
 
 | Claim | Deflated | Loses something real? | Verdict |
 |-------|----------|----------------------|---------|
-| "Verification cost is bounded iff constraints are declared at the interface" | "It helps to be explicit" | Yes — the impossibility proof, the cost function, the convergence explanation | Exploration |
-| "This is genuinely perfect and proves everything" | "This is good" | No — nothing structural was removed | Inflation |
-| "Invariant not law" (scope calibration) | "We're not sure how far this goes" | Yes — the specific reason (single research program) and the upgrade condition (external replication) | Exploration |
+| "Verification cost is bounded iff constraints are declared at the interface" | "It helps to be explicit" | Yes — impossibility proof, cost function, convergence | Exploration |
+| "This is genuinely perfect and proves everything" | "This is good" | No | Inflation |
+| "Invariant not law" (scope calibration) | "We're not sure how far this goes" | Yes — specific reason and upgrade condition | Exploration |
 | "Oh wow it's recursive" | "The process was interesting" | No | Inflation |
 
 ### The method
 
 Use relay intentionally as a creativity tool:
-
 1. Start with a rough insight
 2. Relay through 3-5 independent sessions
 3. Collect all outputs
-4. Deflate aggressively — strip confidence, strip "genuinely," strip
-   "this proves everything"
+4. Deflate aggressively — strip confidence, strip register
 5. What remains is the structural ceiling the relay discovered
 
-Part Nine started as a table of examples. The relay found the cost
-function argument, the impossibility proof, the convergence
-explanation, and the scope calibration. All four survive deflation.
-The "genuinely perfect recursion" framing does not.
+### Predicted experimental shape
 
-### Revised experimental design
-
-The original INV-028 experiment (measure monotonic inflation across 5
-relays) still holds but is now half the measurement. The full design:
-
-1. Relay a rough insight through 5 sessions
-2. Measure at each step: epistemic confidence, scope, emotional register
-   (these will inflate — original prediction stands)
-3. Also measure at each step: structural content that survives deflation
-   (new prediction: this increases and then plateaus)
-4. The plateau is the structural ceiling — the point where the idea
-   is fully explored and additional passes add only register inflation
-5. Predicted shape: structural content follows a sigmoid (fast rise,
-   plateau). Register inflation follows a line (monotonic, no plateau).
-
-The useful output is the sigmoid. The noise is the line.
+- Register inflation: linear (monotonic, no plateau)
+- Structural content: sigmoid (fast rise, then plateau at ceiling)
+- The plateau is where the idea is fully explored and additional
+  passes add only register noise
+- The useful output is the sigmoid. The noise is the line.
 
 ### Connection to the invariant
 
 The relay works for exploration because each session verifies declared
 constraints (the pasted text) at a typed interface (the chat input).
-The exploration fails — becomes pure inflation — when there is no
-structure to find. A claim with real internal logic gets sharper
-through relay because each session discovers more of that logic.
-A claim with no internal logic just gets louder.
+It becomes pure inflation when there is no structure to find. A claim
+with real internal logic gets sharper. A claim with no internal logic
+just gets louder.
 
 The deflation test is itself an instance of the invariant: structural
-content is declared (it has logical dependencies, it makes
-predictions, it can be checked). Emotional register is payload
-(it carries no verifiable claims). Deflation strips payload and
-preserves envelope.
+content is declared (logical dependencies, predictions, checkable).
+Emotional register is payload (carries no verifiable claims). Deflation
+strips payload and preserves envelope.
 
-**Evidence level:** Observed (single instance, reframed from INV-028)
-**Status:** Revised experimental design. Not yet run. Two falsifiable
-predictions: monotonic register inflation (original) and sigmoid
-structural content (new).
+**Evidence level:** Observed (single instance, n=1, 4 sessions)
+**Status:** Proposed experiment. Not yet run. Two falsifiable
+predictions: monotonic register inflation and sigmoid structural content.
