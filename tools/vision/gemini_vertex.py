@@ -77,10 +77,10 @@ def _endpoint(model):
 def _extract_text(response):
     """Extract text from response, handling thinking models.
 
-    Gemini 3.x thinking models put text and thoughtSignature in the same
-    parts array. We collect text fields that are NOT thinking signatures.
-    If all parts have thoughtSignature, we fall back to collecting their
-    text anyway (thinking-only response with no separate output).
+    Gemini 3.x thinking models: thoughtSignature is metadata on response
+    parts, not a separator. Extract text from ALL parts that have a text
+    field. Do not filter on thoughtSignature — filtering drops the actual
+    response.
     """
     candidates = response.get("candidates", [])
     if not candidates:
@@ -94,19 +94,8 @@ def _extract_text(response):
 
     parts = candidate.get("content", {}).get("parts", [])
 
-    # First pass: collect non-thinking text parts
-    text_parts = []
-    for part in parts:
-        if "text" in part and "thoughtSignature" not in part:
-            text_parts.append(part["text"])
-
-    if text_parts:
-        return "".join(text_parts)
-
-    # Fallback: thinking-only response — grab text from thought parts
-    for part in parts:
-        if "text" in part:
-            text_parts.append(part["text"])
+    # Collect text from every part that has a text field
+    text_parts = [part["text"] for part in parts if "text" in part]
 
     if text_parts:
         return "".join(text_parts)

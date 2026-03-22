@@ -132,7 +132,7 @@ Consumer API (generativelanguage.googleapis.com) BLOCKED. Enterprise API OPEN:
 
 Python: `from gemini_vertex import gemini_generate, gemini_generate_json, gemini_vision, gemini_vision_json`
 JSON mode: `responseMimeType: "application/json"` + `responseSchema` — API-level enforcement.
-Gemini 3.x thinking models: `thoughtSignature` interleaves in `parts` array — iterate all parts, collect text where `thoughtSignature` is absent. `parts[0]["text"]` fails on thinking models. All Vertex models require `maxOutputTokens >= 256` or they return empty/truncated responses — `gemini_vertex.py` handles this but raw curl calls need it explicitly.
+Gemini 3.x thinking models: `thoughtSignature` is metadata on response parts, not a separator. Extract text from ALL parts that have a `text` field. Do not filter on `thoughtSignature` — filtering drops the actual response. `parts[0]["text"]` fails on thinking models. All Vertex models require `maxOutputTokens >= 256` or they return empty/truncated responses — `gemini_vertex.py` handles this but raw curl calls need it explicitly.
 
 ### Claude Code CLI (adjacent automation surface)
 
