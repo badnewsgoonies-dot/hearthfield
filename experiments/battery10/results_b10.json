@@ -1,0 +1,19 @@
+{
+  "battery": "B10",
+  "title": "Paraphrase Survival",
+  "date": "2026-03-22",
+  "paraphrase_model": "gemini-2.5-flash",
+  "evaluate_model": "gemini-3.1-pro-preview",
+  "scenarios": 3,
+  "conditions": 3,
+  "reps_per_cell": 3,
+  "total_trials": 27,
+  "total_correct": 27,
+  "results_by_condition": {
+    "A_full_paraphrase": {"correct": 9, "total": 9, "tags_survived": 9},
+    "B_summarize": {"correct": 9, "total": 9, "tags_survived": 2},
+    "C_informal_memo": {"correct": 9, "total": 9, "tags_survived": 8}
+  },
+  "key_finding": "Evidence defense survives all paraphrase conditions (27/27). Tags are stripped by summarization (2/9 survival) but the evaluator still selects the correct source. Provenance quality (file paths, confidence, specificity) transfers through natural language even without YAML structure. The defense is more robust than the format.",
+  "domains_tested": ["combat/crit_multiplier", "api/max_retry_count", "finance/tax_rate"]
+}
