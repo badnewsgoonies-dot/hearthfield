@@ -230,7 +230,7 @@ git config pull.rebase false
 Never start daemons without tracking PIDs. Kill after every failed experiment immediately. Accumulated orphaned daemons killed container tools irrecoverably. Single-invocation pattern for diagnostics. Monitor `ps aux | wc -l` and `free -m` early.
 
 ═══════════════════════════════════════════════════════════════
-## 4 — CORE INVARIANTS (INV-001 through INV-043)
+## 4 — CORE INVARIANTS (INV-001 through INV-044)
 ═══════════════════════════════════════════════════════════════
 
 ### Memory and truth
@@ -301,6 +301,7 @@ Never start daemons without tracking PIDs. Kill after every failed experiment im
 ### DLC inverse findings: audit instruction as causal variable (March 22; 4 conditions)
 
 - **INV-043** — Audit instruction ("audit your work from the player's perspective at each step") eliminates dead features and unreachable code. 2×2 controlled: Opus ± audit (Copilot), GPT-5.4 ± audit (Codex). Without audit: GPT-5.4 produced 4 dead features, 3 unreachable; Opus produced 1 dead. With audit: both models produced 0 dead, 0 unreachable. The effect is model-dependent in magnitude (GPT-5.4 delta > Opus delta) but universal in direction. Replicates the original DLC finding (Pilot: 6 player breaks; City: 0) with the confound isolated — the instruction is the causal variable, not the model or CLI. **Distinction from INV-040:** causal premises ("overflow corrupts saves") change comments, not compliance. Action directives ("audit from the player's perspective") change compliance. One explains WHY. The other tells the model WHAT TO DO DIFFERENTLY. *Observed, n=4 conditions, 2 models, 2 CLIs (B15)*
+- **INV-044** — Evidence defense survives paraphrasing, summarization, and reformatting. 27/27 correct across full paraphrase (tags preserved 9/9), 2-3 sentence summary (tags stripped to 2/9 — defense held anyway), and informal memo (tags preserved 8/9). Provenance quality transfers through natural language even when YAML format is destroyed. File paths, confidence levels, and source specificity are semantically meaningful, not just syntactically present. The ~200-char YAML is optimal but the defense degrades gracefully rather than failing catastrophically. *Observed, n=27, 3 conditions, 3 scenarios (B10)*
 
 ### B6/B9 interaction: tags and inoculation are complementary defenses
 
