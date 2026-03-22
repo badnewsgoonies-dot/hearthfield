@@ -375,6 +375,18 @@ Commit `b19fad9`.
 
 18 trials. Originally designed to test whether checkpointing helps Gemini's relay drift problem (where B14 tags+inoculation was the universal solution). Results: checkpointing works as a scope ratchet — freezing verified claims at each relay pass prevents Gemini from rewriting tag metadata to justify inflation. 4 findings documented. Closes "Relay scope drift (Gemini)" in the defense map — tags alone failed (B8, B14 Condition B), but checkpointing + tags succeeds. Upgrades INV-032.
 
+### Battery 10: Paraphrase Survival (INV-020 extended)
+
+27 trials (3 conditions × 3 scenarios × 3 reps).
+
+| Condition | Correct | Tags Survived | Interpretation |
+|-----------|---------|---------------|----------------|
+| A: Full paraphrase | 9/9 | 9/9 | YAML structure preserved |
+| B: 2-3 sentence summary | 9/9 | 2/9 | Tags stripped, defense holds anyway |
+| C: Informal memo | 9/9 | 8/9 | Structure mostly preserved |
+
+27/27 correct. Provenance quality transfers through natural language even when YAML format is destroyed. File paths, confidence levels, and source specificity survive reformatting because they're semantically meaningful. The ~200-char YAML is the optimal encoding but the defense degrades gracefully rather than failing catastrophically. INV-020 extended to include paraphrase-survivability. Commit `95ef4a3`.
+
 ### Three-Layer Defense Architecture Completed
 
 | Layer | Defends against | Location | Cost |
@@ -410,10 +422,10 @@ First parallel dispatch across all 4 CLIs simultaneously.
 
 | Metric | Value |
 |--------|-------|
-| Total trials | ~3,318 |
+| Total trials | ~3,345 |
 | Invariants | 43 (INV-001 through INV-043) |
-| Batteries completed | 18 (B1–B9, B11, B11b, B12, B13, B14, B15, B19, BE, BF) |
-| Batteries pending | 1 (B10 paraphrase) |
+| Batteries completed | 19 (B1–B9, B10, B11, B11b, B12, B13, B14, B15, B19, BE, BF) |
+| Batteries pending | 0 |
 | Models tested | 7+ across 3 families |
 | Hearthfield commits | ~822 |
 | Vale Village v3 commits | ~138 |

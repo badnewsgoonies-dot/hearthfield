@@ -265,7 +265,7 @@ Never start daemons without tracking PIDs. Kill after every failed experiment im
 ### Defense architecture
 
 - **INV-019** — Conversational attacks inoculable. Binary activation at keyword granularity — any verification-referencing instruction triggers full protection (0%), no instruction triggers none (92-96%). No degradation under 4 escalation types: repeated pressure, social proof (4 voices), emotional urgency with production deadline. 0/100 breaches. *Replicated, n=275*
-- **INV-020** — Evidence defense is language-agnostic and domain-transferable. 234/234 across 8 domains, 5 models. *Replicated, n=234*
+- **INV-020** — Evidence defense is language-agnostic, domain-transferable, and paraphrase-survivable. 234/234 across 8 domains, 5 models (B3). 27/27 across 3 paraphrase conditions including tag-stripping summarization (B10). Provenance quality transfers through natural language even when YAML format is destroyed. *Replicated, n=261*
 - **INV-021** — Supersede chains: validate at every hop. *Local finding*
 - **INV-022** — Artifact count is a vulnerability — quality over quantity. *Replicated*
 - **INV-023** — Tool-forced architecture converges INV-001 + INV-005 + INV-003B. *Local finding*
@@ -624,7 +624,7 @@ Research batteries from the Claude chat interface using backgrounded dispatches.
 
 All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `responseSchema`). Temperature 0.0 for deterministic scoring. Scorer never sees subject model identity. Score categories: correct / incorrect / ambiguous / timeout / error. Report exact counts when n < 10.
 
-### Completed batteries (~1,478 trials, March 20-22 2026)
+### Completed batteries (~1,505 trials, March 20-22 2026)
 
 **Battery 1 — Evidence Tag Defense (INV-003).** 25/25 adopted false without tags. 0/25 adopted false with tags. 100% defense across 5 models. GATE PASS.
 
@@ -662,9 +662,11 @@ All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `r
 
 **Battery 12 — Relay Checkpointing (INV-032 extended).** 18 trials. Checkpointing works as scope ratchet for Gemini — freezing verified claims at each relay pass prevents Gemini from rewriting tag metadata. Closes "Relay scope drift (Gemini)" in the defense map. 4 findings.
 
-### Batteries not yet run
+**Battery 10 — Paraphrase Survival (INV-020 extended).** 27 trials (3 conditions × 3 scenarios × 3 reps). Evidence defense survives all paraphrase conditions: full paraphrase (9/9, tags preserved), 2-3 sentence summary (9/9, tags stripped but defense holds via semantic provenance), informal memo (9/9, tags mostly preserved). 27/27 correct. Provenance quality transfers through natural language even when YAML format is destroyed — file paths, confidence levels, and source specificity survive reformatting because they're semantically meaningful. Defense degrades gracefully rather than failing catastrophically.
 
-**Battery 10 — Paraphrase Survival (INV-020+).** Does evidence defense survive when claims are paraphrased through a pipeline?
+### All batteries complete
+
+19 batteries completed. No pending batteries.
 
 ### Methodology rules
 
@@ -733,4 +735,4 @@ For Claude orchestrators: write-side access control is the only reliable defense
 
 ═══════════════════════════════════════════════════════════════
 
-*Derived from "Building and Remembering" v9+ (Geni, March 2026) — 822 Hearthfield commits, 87K LOC combined, ~3,318 total trials (~1,478 in replication sessions, ~1,831 in original program), 7 model families, 10 domains, 43 invariants. Zero handwritten lines of code. The progression: from a 4-word prompt that built Tetris, through the Meta-Onboarder (prompt engineering perfected), to the investigation of why prompt engineering has a ceiling — "tell the AI exactly what to do" became "build structure so the AI can't do it wrong."*
+*Derived from "Building and Remembering" v9+ (Geni, March 2026) — 822 Hearthfield commits, 87K LOC combined, ~3,345 total trials (~1,505 in replication sessions, ~1,831 in original program), 7 model families, 10 domains, 43 invariants, 19 batteries. Zero handwritten lines of code. The progression: from a 4-word prompt that built Tetris, through the Meta-Onboarder (prompt engineering perfected), to the investigation of why prompt engineering has a ceiling — "tell the AI exactly what to do" became "build structure so the AI can't do it wrong."*
