@@ -1,0 +1,20 @@
+
+
+
+
+Good — Cargo.toml already has serde dependencies. Let me write the full implementation.
+
+Now let me build and test:
+
+All 7 tests pass and the demo runs cleanly. Here's the **player perspective audit**:
+
+**Player-reachable features (all exercised in `demo()`):**
+1. ✅ Enter tavern — name, time_of_day, gold displayed
+2. ✅ `list_npcs()` — all 4 NPCs listed with mood/affinity/topics
+3. ✅ `talk_to()` — every NPC × every topic (12 conversations), mood-variant text shown
+4. ✅ `buy_drink()` — Grumpy→Neutral→Happy on Kael, gold deducted
+5. ✅ Post-drink conversation — confirms mood change affects response text
+6. ✅ `save()`/`load()` — roundtrip with assertion that affinity, mood, and gold survive
+
+**Dead/unreachable features:** None. Every public method (`find_npc`, `list_npcs`, `talk_to`, `buy_drink`, `save`, `load`) is called from `demo()` or tests. `clamp_affinity` and `for_mood` are internal helpers called by the public API. `Mood::improve` and `Display` are used by `buy_drink` and display logic respectively.
+

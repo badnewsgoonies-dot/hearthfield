@@ -1,0 +1,19 @@
+
+
+
+
+Cargo.toml is fine. The main.rs is basically empty (1 line). Let me overwrite it.
+
+Let me fix the one warning:
+
+All 5 tests pass with zero warnings. Here's a summary of what's in `src/main.rs`:
+
+- **`Mood`** enum (Grumpy/Neutral/Happy) with `improve()` tier method
+- **`NpcProfile`** struct with name, mood, topics, affinity (0–100), and mood-variant response maps
+- **`Tavern`** struct with name, 4 NPCs, time_of_day, player_gold
+- **`converse()`** — picks NPC + topic → returns mood-influenced response, adjusts affinity (+5 good / +1 neutral / −10 bad)
+- **`buy_drink()`** — costs 10 gold, improves mood one tier
+- **`save()`/`load()`** — serde JSON round-trip
+- **`demo()`** — full player visit simulation (enter → talk → buy drink → talk again → save → load → verify)
+- **5 unit tests** covering conversation flow, affinity changes, mood transitions, buy_drink, and save/load roundtrip
+
