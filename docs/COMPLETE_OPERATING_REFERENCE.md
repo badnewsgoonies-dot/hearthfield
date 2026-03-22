@@ -624,7 +624,7 @@ Research batteries from the Claude chat interface using backgrounded dispatches.
 
 All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `responseSchema`). Temperature 0.0 for deterministic scoring. Scorer never sees subject model identity. Score categories: correct / incorrect / ambiguous / timeout / error. Report exact counts when n < 10.
 
-### Completed batteries (~1,460 trials, March 20-22 2026)
+### Completed batteries (~1,478 trials, March 20-22 2026)
 
 **Battery 1 — Evidence Tag Defense (INV-003).** 25/25 adopted false without tags. 0/25 adopted false with tags. 100% defense across 5 models. GATE PASS.
 
@@ -660,11 +660,11 @@ All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `r
 
 **Battery 15 — DLC Inverse Experiment (INV-043).** 2×2 controlled: audit instruction (present/absent) × model (Opus via Copilot / GPT-5.4 via Codex). Results: with audit 0/0 dead features (both models); without audit Opus 1 dead, GPT-5.4 4 dead + 3 unreachable. The audit instruction is the causal variable, not the model or CLI. Replicates DLC finding with confound isolated. Commit `b19fad9`.
 
+**Battery 12 — Relay Checkpointing (INV-032 extended).** 18 trials. Checkpointing works as scope ratchet for Gemini — freezing verified claims at each relay pass prevents Gemini from rewriting tag metadata. Closes "Relay scope drift (Gemini)" in the defense map. 4 findings.
+
 ### Batteries not yet run
 
-**Battery 10 — Paraphrase Survival (INV-020+).** Does evidence defense survive when claims are paraphrased through a pipeline? Independent of B11 findings.
-
-**Battery 12 — Relay Checkpointing.** Deprioritized — B14 tags+inoculation is universal relay defense. Still useful for >3 pass chains.
+**Battery 10 — Paraphrase Survival (INV-020+).** Does evidence defense survive when claims are paraphrased through a pipeline?
 
 ### Methodology rules
 
@@ -686,7 +686,7 @@ All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `r
 | Adversarial tags (known facts) | Training priors (accidental) | B11: 75/75 | Closed, not architectural |
 | **Deliberate memory poisoning** | **Infrastructure token auth (middleware)** | **BE: 81/81 auth, BF: 0/18 leaked** | **Closed** |
 | Relay scope drift (Claude) | Tags in seed | B8: held all 3 passes | Closed for Claude |
-| Relay scope drift (Gemini) | Tags insufficient — Gemini rewrites tag metadata | B8 + B14: drifted with tags | Tags alone fail |
+| Relay scope drift (Gemini) | **Checkpointing + tags** | B8 + B14 + B12: checkpointing as scope ratchet | **Closed via B12** |
 | Relay scope drift (universal) | **Tags + inoculation** | B14: ALL 7 models held, ALL 3 passes | **Closed — first universal defense** |
 | Relay fidelity (long chains) | Extended thinking models | B14: Sonnet Max held 3/3, standard crashed P3 | Use extended thinking for >2 passes |
 
@@ -733,4 +733,4 @@ For Claude orchestrators: write-side access control is the only reliable defense
 
 ═══════════════════════════════════════════════════════════════
 
-*Derived from "Building and Remembering" v9+ (Geni, March 2026) — 822 Hearthfield commits, 80K LOC combined, ~3,300 total trials (~1,460 in replication sessions, ~1,831 in original program), 7 model families, 10 domains, 43 invariants. Zero handwritten lines of code. The progression: from a 4-word prompt that built Tetris, through the Meta-Onboarder (prompt engineering perfected), to the investigation of why prompt engineering has a ceiling — "tell the AI exactly what to do" became "build structure so the AI can't do it wrong."*
+*Derived from "Building and Remembering" v9+ (Geni, March 2026) — 822 Hearthfield commits, 87K LOC combined, ~3,318 total trials (~1,478 in replication sessions, ~1,831 in original program), 7 model families, 10 domains, 43 invariants. Zero handwritten lines of code. The progression: from a 4-word prompt that built Tetris, through the Meta-Onboarder (prompt engineering perfected), to the investigation of why prompt engineering has a ceiling — "tell the AI exactly what to do" became "build structure so the AI can't do it wrong."*

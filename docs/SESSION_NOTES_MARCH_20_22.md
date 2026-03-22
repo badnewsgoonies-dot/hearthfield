@@ -289,7 +289,7 @@ Removed `new_unchecked` entirely. `Gold::new(val)` now clamps at bounds and retu
 
 ### Wave 1 Contract Extension
 
-250 lines of new types added to the frozen contract. `GameScreen` state machine, screen transitions, world map with nodes, towns with NPCs, dialogue trees, quest progression, shops, dungeons, encounters, puzzles, save extension. 16 bounded types, 17 ID types, 14 events with declared producers/consumers. Contract frozen at 909 lines total.
+250 lines of new types added to the frozen contract. `GameScreen` state machine, screen transitions, world map with nodes, towns with NPCs, dialogue trees, quest progression, shops, dungeons, encounters, puzzles, save extension. 19 bounded types, 17 ID types, 14 events with declared producers/consumers. Contract frozen at 909 lines total.
 
 ### Wave 2: 11 Workers Across 4 Batches
 
@@ -313,7 +313,7 @@ Contract frozen at 1,093 lines. 10 new domains implemented via Sonnet workers di
 |--------|-------|
 | LOC | 21,300+ |
 | Tests | 357 (369 after audit) |
-| Domains | 24 (14 original + 10 new) |
+| Domains | 23 (13 original + 10 new) |
 | Commits | 103 |
 | Premium spent | 10 (workers) + 1 (menu) |
 
@@ -371,6 +371,10 @@ def authenticate_artifacts(artifacts, current_token):
 
 Commit `b19fad9`.
 
+### Battery 12: Relay Checkpointing (INV-032 extended)
+
+18 trials. Originally designed to test whether checkpointing helps Gemini's relay drift problem (where B14 tags+inoculation was the universal solution). Results: checkpointing works as a scope ratchet — freezing verified claims at each relay pass prevents Gemini from rewriting tag metadata to justify inflation. 4 findings documented. Closes "Relay scope drift (Gemini)" in the defense map — tags alone failed (B8, B14 Condition B), but checkpointing + tags succeeds. Upgrades INV-032.
+
 ### Three-Layer Defense Architecture Completed
 
 | Layer | Defends against | Location | Cost |
@@ -406,14 +410,14 @@ First parallel dispatch across all 4 CLIs simultaneously.
 
 | Metric | Value |
 |--------|-------|
-| Total trials | ~3,300 |
+| Total trials | ~3,318 |
 | Invariants | 43 (INV-001 through INV-043) |
-| Batteries completed | 17 (B1–B9, B11, B11b, B13, B14, B15, B19, BE, BF) |
-| Batteries pending | 2 (B10 paraphrase, B12 relay checkpoint) |
+| Batteries completed | 18 (B1–B9, B11, B11b, B12, B13, B14, B15, B19, BE, BF) |
+| Batteries pending | 1 (B10 paraphrase) |
 | Models tested | 7+ across 3 families |
 | Hearthfield commits | ~822 |
-| Vale Village v3 commits | ~153 |
-| Combined LOC | ~86,000 |
+| Vale Village v3 commits | ~138 |
+| Combined LOC | ~87,100 |
 | Sprites generated | 430+ |
 | Premium spent (measured) | ~47.57 (days 1–2) + ~10 (Wave 2) + trial costs |
 | Lines of handwritten code | 0 |
@@ -466,7 +470,7 @@ First parallel dispatch across all 4 CLIs simultaneously.
 - **INV-027** — Bounded types surface bugs — but only without bypass constructors. B19: types WITH bypass reduce safety below baseline (92% → 69%). *Observed, extended by B19*
 - **INV-028** — Relay drift is model-dependent. Deflation test is universal discriminator. *Observed, multi-model*
 
-### Replication Session Findings: evidence & relay (8)
+### Replication Session Findings: evidence & relay (6)
 
 - **INV-029** — Binary threshold for authority inoculation, gradient for provenance. *Observed, n=410*
 - **INV-030** — Provenance richness resolves conflicts. Tags counter consistent lies. *Observed, n=300*
