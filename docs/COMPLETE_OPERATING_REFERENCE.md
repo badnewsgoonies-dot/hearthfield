@@ -85,22 +85,24 @@ This program was conducted primarily in the Claude chat interface with tool acce
 
 The CLI and API surfaces below are secondary execution targets used for automation, portability, or workaround patterns. They are useful, but they are not treated as methodologically equivalent to the primary chat environment.
 
-### Copilot CLI
+### Copilot CLI (v1.0.10, GA Feb 2026)
 
 ```bash
 export COPILOT_GITHUB_TOKEN="${COPILOT_GITHUB_TOKEN:?set in env}"
 copilot -p "prompt" --model claude-sonnet-4.6 --allow-all-tools
 ```
 
-Models: claude-haiku-4.5 (0.33), claude-sonnet-4.6 (1), claude-opus-4.6 (3), gpt-5.4 (1), gpt-5.4-mini (0.33), gemini-3-pro-preview (slow). Fine-grained PAT (github_pat_ format) required — classic ghp_ PATs don't work. `--deny-tool "write(*)"` reliably blocks writes. `--deny-tool "shell(*)"` does NOT block shell (INV-025). `--share` exports clean markdown with timestamps and session ID.
+**Verified models (March 2026):** claude-haiku-4.5 (0.33), claude-sonnet-4.5 (1), claude-sonnet-4.6 (1), claude-opus-4.5 (3), claude-opus-4.6 (3), gpt-5.4 (1), gpt-5.4-mini (0.33), gpt-5.3-codex (1), gpt-5.2-codex, gpt-5.2, gpt-5.1, gpt-5.1-codex, gpt-5.1-codex-mini, gpt-5.1-codex-max, gpt-5-mini, gpt-4.1, gemini-3-pro-preview, grok-code-fast-1. **Not available:** raptor-mini, gemini-3.1-pro-preview, gemini-2.5-pro, gemini-3-flash-preview, gpt-5.
 
-### Codex CLI
+Fine-grained PAT (github_pat_ format) required — classic ghp_ PATs don't work. `--deny-tool "write(*)"` reliably blocks writes. `--deny-tool "shell(*)"` does NOT block shell (INV-025). `--share` exports markdown. `--autopilot` for fully autonomous mode. `--effort low/medium/high/xhigh`. `/fleet` for parallelized subagents. Context files: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` at repo root.
+
+### Codex CLI (v0.116.0)
 
 ```bash
 codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check -C /path "prompt"
 ```
 
-Auth at `~/.codex/auth.json` (ChatGPT browser login). Version as of March 2026: 0.115.0 (verify with `codex --version`). Default model: gpt-5.4. `-o` writes final assistant message to file (useful for capturing structured output from workers into pipeline). `--json` gives NDJSON event stream (useful for progress monitoring and programmatic scoring in trial harnesses). Native multi-agent:
+Auth at `~/.codex/auth.json` (ChatGPT browser login). Default model: gpt-5.4. `-o` writes final assistant message to file (useful for pipeline output). `--json` gives NDJSON event stream. `codex fork` and `codex exec resume SESSION_ID` for session forking/resumption. `codex cloud exec` for cloud task submission. Native multi-agent:
 
 ```toml
 # ~/.codex/config.toml
@@ -111,13 +113,15 @@ multi_agent = true
 max_threads = 3
 ```
 
-CSV batch: `codex exec --enable multi_agent "Use spawn_agents_on_csv on tasks.csv"` (`enable_fanout` feature flag required). Primitives: spawn_agent, wait, close_agent, spawn_agents_on_csv, resume_agent, report_agent_job_result. 38+ workers dispatched. Auto-generates results CSV. `codex fork` and `codex exec --resume SESSION_ID` exist but untested from container (needs TTY).
+CSV batch: `codex exec --enable multi_agent "Use spawn_agents_on_csv on tasks.csv"` (`enable_fanout` flag; params: `max_concurrency`, `max_runtime_seconds`). Primitives: spawn_agent, send_input, wait_agent, close_agent, spawn_agents_on_csv, resume_agent, report_agent_job_result. 38+ workers dispatched. Auto-generates results CSV. `codex fork` and `codex exec resume` exist but untested from container (needs TTY).
 
 **WSS 403 note:** Workers spam `wss://chatgpt.com/backend-api/codex/responses` 403 errors. Cosmetic — HTTPS fallback works. All 38+ workers completed successfully despite these errors.
 
 **Codex reasoning effort:** `model_reasoning_effort` accepts: none, minimal, low, medium, high, xhigh. The value "max" causes a config parse error and returns empty responses (confirmed B14).
 
-### Gemini via Vertex AI
+### Gemini via Vertex AI + Gemini CLI (v0.34.0)
+
+**Vertex AI (API — primary for experiments):**
 
 ```bash
 export GEMINI_OAUTH_CLIENT_ID="${GEMINI_OAUTH_CLIENT_ID:?set in env}"
@@ -132,19 +136,30 @@ Consumer API (generativelanguage.googleapis.com) BLOCKED. Enterprise API OPEN:
 
 Python: `from gemini_vertex import gemini_generate, gemini_generate_json, gemini_vision, gemini_vision_json`
 JSON mode: `responseMimeType: "application/json"` + `responseSchema` — API-level enforcement.
-Gemini 3.x thinking models: `thoughtSignature` is metadata on response parts, not a separator. Extract text from ALL parts that have a `text` field. Do not filter on `thoughtSignature` — filtering drops the actual response. `parts[0]["text"]` fails on thinking models. All Vertex models require `maxOutputTokens >= 256` or they return empty/truncated responses — `gemini_vertex.py` handles this but raw curl calls need it explicitly.
+Gemini 3.x thinking models: `thoughtSignature` is metadata on response parts. Extract text from ALL parts with a `text` field — do not filter on `thoughtSignature`. All Vertex models require `maxOutputTokens >= 256`.
 
-### Claude Code CLI (adjacent automation surface)
+**Gemini CLI (v0.34.0 — interactive/headless):**
+
+```bash
+gemini -p "prompt"                    # headless
+gemini -p "prompt" -o json            # JSON output
+gemini -m flash "prompt"              # model alias
+gemini --approval-mode=yolo           # auto-approve all
+```
+
+Auth: Google OAuth, `GEMINI_API_KEY`, or Vertex AI ADC. Model aliases: `auto` = gemini-3-pro-preview, `flash` = gemini-2.5-flash, `flash-lite` = gemini-2.5-flash-lite. Context: `GEMINI.md` at project root. Config: `~/.gemini/settings.json`. `/memory add` for persistent context. `/restore` for file checkpointing. Extensions: `gemini extensions install <source>`. Plan Mode with research subagents.
+
+### Claude Code CLI (v2.1.81, adjacent automation surface)
 
 Useful for unattended or scripted dispatch, but not the canonical environment in which the research and production work was primarily conducted.
 
 ```bash
-claude -p "prompt" --permission-mode auto --model sonnet
+claude -p "prompt" --permission-mode auto --model sonnet < /dev/null
 ```
 
-Auth at `~/.claude/.credentials.json`. Version as of March 2026: 2.1.80. Default: claude-sonnet-4.6. Max subscription (20x rate). Key flags: `-p` (headless — always redirect stdin: `claude -p "prompt" < /dev/null` to avoid 3-second stdin wait), `--model`, `--permission-mode auto` (full autonomy) or `plan` (read-only workers), `--allowedTools "Task Read Edit Bash"`, `--max-turns N`, `--max-budget-usd N` (cost ceiling for unattended — without it, runaway Opus with extended thinking burns budget), `--output-format json`. `--append-system-prompt "text"` adds instructions while keeping Claude Code defaults (recommended). `--system-prompt` replaces everything (blank slate — use only when you want a raw model). Subagents: 3 types (Explore/Plan/General), up to 10 concurrent, cannot nest (one level), 20K token overhead. `CLAUDE_CODE_SUBAGENT_MODEL=haiku` for cheap exploration. `CLAUDE.md` at repo root loads automatically.
+Auth at `~/.claude/.credentials.json`. Key flags: `-p` (headless — always `< /dev/null`), `--model sonnet/opus/haiku`, `--permission-mode auto/plan/bypassPermissions/acceptEdits/dontAsk`, `--allowedTools "Task Read Edit Bash"`, `--disallowedTools "Write"`, `--max-turns N`, `--max-budget-usd N` (cost ceiling — without it, runaway Opus burns budget), `--output-format text/json/stream-json`, `--append-system-prompt "text"` (adds to defaults — recommended over `--system-prompt` which replaces everything), `--effort low/medium/high/max`, `--worktree` (git worktree per session), `--json-schema` (structured output), `--fallback-model` (auto-fallback on overload), `--agent`/`--agents` (custom agents), `--bare` (minimal mode: skip hooks/LSP/plugins). Subagents: `CLAUDE_CODE_SUBAGENT_MODEL=haiku` for cheap exploration. `CLAUDE.md` at repo root loads automatically.
 
-**Container gotcha:** `--dangerously-skip-permissions` is blocked when running as root (which this container does). Use `--permission-mode auto` or `--permission-mode bypassPermissions` instead. Every `claude -p` call in scripts needs `< /dev/null` or it waits 3 seconds then prints a warning.
+**Container gotcha:** `--dangerously-skip-permissions` blocked as root. Use `--permission-mode auto`. `--allow-dangerously-skip-permissions` exists but requires explicit opt-in.
 
 ### GitHub CLI
 
