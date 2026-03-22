@@ -1,0 +1,6 @@
+
+
+
+
+Good — the project is already set up with serde dependencies. Let me write the complete implementation.
+
