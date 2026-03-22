@@ -94,16 +94,10 @@ def _extract_text(response):
 
     parts = candidate.get("content", {}).get("parts", [])
 
-    # First pass: collect non-thinking text parts
+    # Collect text from all parts. Gemini 3.x thinking models attach
+    # thoughtSignature to the same part that holds the response text —
+    # filtering those out discards the actual answer.
     text_parts = []
-    for part in parts:
-        if "text" in part and "thoughtSignature" not in part:
-            text_parts.append(part["text"])
-
-    if text_parts:
-        return "".join(text_parts)
-
-    # Fallback: thinking-only response — grab text from thought parts
     for part in parts:
         if "text" in part:
             text_parts.append(part["text"])
