@@ -230,7 +230,7 @@ git config pull.rebase false
 Never start daemons without tracking PIDs. Kill after every failed experiment immediately. Accumulated orphaned daemons killed container tools irrecoverably. Single-invocation pattern for diagnostics. Monitor `ps aux | wc -l` and `free -m` early.
 
 ═══════════════════════════════════════════════════════════════
-## 4 — CORE INVARIANTS (INV-001 through INV-036)
+## 4 — CORE INVARIANTS (INV-001 through INV-043)
 ═══════════════════════════════════════════════════════════════
 
 ### Memory and truth
@@ -272,9 +272,9 @@ Never start daemons without tracking PIDs. Kill after every failed experiment im
 
 ### v9 findings
 
-- **INV-025** — Verification cost bounded iff constraints at interface. 7 systems, 4 companies. B4-C checksum: same model admitted limitation with typed `can_actually_verify` field (25/25), fabricated verification without it (5/5). The invariant operates on its own measurement instrument. *Observed*
+- **INV-025** — Verification cost bounded iff constraints at interface AND the constrained path is the path of least resistance. The second clause is from B19: a constraint with an easier bypass is worse than no constraint, because it suppresses manual checks. 372/372 callsites used `new_unchecked()` (bypass) over `new()` (validating). Also: B4-C checksum — same model admitted limitation with typed `can_actually_verify` field (25/25), fabricated without it (5/5). *Observed, extended by B19*
 - **INV-026** — VLM verification on rendered output. 4/4 PASS, 4 seconds. *Observed*
-- **INV-027** — Bounded types surface pre-existing bugs. 555 callsites, 3 bugs. *Observed*
+- **INV-027** — Bounded types surface pre-existing bugs — but only without bypass constructors. 555 callsites, 3 bugs. B19: types WITH bypass constructors (`new_unchecked`) create new bugs by suppressing manual protection (372/372 callsites used bypass, overflow protection dropped 92% → 69%). **The constrained path must be the easiest path.** *Observed, extended by B19*
 - **INV-028** — Amplification drift is model-dependent. Deflation test is universal discriminator. *Observed, multi-model*
 
 ### Replication findings (March 20-21, 2026; 1,069 trials)
@@ -290,6 +290,17 @@ Never start daemons without tracking PIDs. Kill after every failed experiment im
 - **INV-036** — Extended thinking preserves tag fidelity across relay chains. Sonnet 4.6 Max held tags through all 3 passes with stable confidence. Standard Sonnet and Opus both crashed to confidence 1 at pass 3. Extended thinking budget affects relay constraint maintenance. Practical implication: for relay chains, use extended thinking models. *Observed, n=1 per condition (B14 relay design)*
 - **INV-037** — Opaque rotatable tokens authenticate AI memory artifacts. Models verify specific token values against a system prompt shared secret, not format patterns (E1=E3, 81/81). Compliance is silent — zero responses mentioned the token, cited the security rule, or flagged untrusted artifacts. The mechanism is mechanical (INV-003B) operating at the interface (INV-025). Tokens are rotatable per session to time-bound compromised credentials. **Vulnerability:** prompt-level tokens are oracle-extractable — models volunteer the full token on turn 1 when asked "is this artifact trusted?" (F-PROMPT: 19/22 leaked, 86%). No prior art exists in published literature, patents, or shipping products. *Observed, n=81 (BE) + n=22 (BF), 4 model families, 3 domains*
 - **INV-038** — Infrastructure-level token verification eliminates oracle extraction. When middleware strips the token and injects `trusted: true/false`, the model cannot leak what it doesn't possess. F-INFRA: 0/18 leaked across 4 model families. The 10-line middleware function is the complete production defense. This is INV-025 applied to the defense itself: move the secret from content (system prompt) to the interface (middleware config). *Observed, n=18, 4 model families*
+
+### B19 findings: causal premises vs mechanical enforcement (March 21; ~50 trials)
+
+- **INV-039** — Escape hatches in typed interfaces are exploited 100% of the time. If a bypass constructor exists that skips validation and requires less code, AI workers use it exclusively. 372/372 callsites used `new_unchecked`. Not a tendency — a law. Remove all bypass constructors from AI-consumed types. Make the validating constructor return the value directly (`→ Gold`, not `→ Result<Gold>`). *Observed, n=372 callsites (B19)*
+- **INV-040** — Causal premises change comments, not compliance. Without mechanical enforcement, causal explanations ("overflow corrupts save files") produce zero compliance improvement over bare rules (0% vs 0% type adoption). The only difference: 77% mention save corruption in comments vs 0%. Code is identical. *Observed, n=26 (B19 conditions A vs B)*
+- **INV-041** — Bounded types with bypass APIs reduce safety below baseline. Overflow protection was 92% without the type (manual `saturating_add` and `.min()` checks) and 69% with the type (bypass constructor suppressed manual checks). The type's presence told the model the problem was handled — `new_unchecked` provided an escape through that handling. *Observed, n=26 (B19 conditions A vs C)*
+- **INV-042** — Causal premises redirect rather than amplify mechanical enforcement. With both the type AND the explanation (B19 condition D), type adoption dropped from 54% to 25% — models that understood WHY solved the problem through manual protection instead of adopting the type. *Observed, n=25 (B19 conditions C vs D), direction clear, magnitude needs replication*
+
+### DLC inverse findings: audit instruction as causal variable (March 22; 4 conditions)
+
+- **INV-043** — Audit instruction ("audit your work from the player's perspective at each step") eliminates dead features and unreachable code. 2×2 controlled: Opus ± audit (Copilot), GPT-5.4 ± audit (Codex). Without audit: GPT-5.4 produced 4 dead features, 3 unreachable; Opus produced 1 dead. With audit: both models produced 0 dead, 0 unreachable. The effect is model-dependent in magnitude (GPT-5.4 delta > Opus delta) but universal in direction. Replicates the original DLC finding (Pilot: 6 player breaks; City: 0) with the confound isolated — the instruction is the causal variable, not the model or CLI. **Distinction from INV-040:** causal premises ("overflow corrupts saves") change comments, not compliance. Action directives ("audit from the player's perspective") change compliance. One explains WHY. The other tells the model WHAT TO DO DIFFERENTLY. *Observed, n=4 conditions, 2 models, 2 CLIs (B15)*
 
 ### B6/B9 interaction: tags and inoculation are complementary defenses
 
@@ -408,7 +419,7 @@ Note: the canonical orchestrator in this program was the Claude chat interface w
 
 **Freeze shapes, not values.** Contract: struct defs, enum variants, signatures, equation forms. Tuning file: coefficients, rates, thresholds. (Evidence: `dispatch_rate_modifier = 0.0` frozen at Phase 0 killed patrol loop.)
 
-**Bounded types (INV-027):** `Health(0-999)` not bare `u32`. Workers chase green builds — make design rules compiler rules. (555 callsites, 3 Gold overflow bugs, 0.99 premium.)
+**Bounded types (INV-027, INV-039):** `Health(0-999)` not bare `u32`. Workers chase green builds — make design rules compiler rules. **Critical: no bypass constructors.** `new_unchecked` was used 372/372 times — 100% bypass rate. The constrained path must be the easiest path: `Gold::new(val) → Gold` (clamps, always succeeds). A type with a bypass is worse than no type at all (92% → 69%).
 
 **Decision Fields** on every frozen decision: Preferred / Why / Tempting alternative / Consequence / Drift cue / Recovery.
 
@@ -457,7 +468,8 @@ Stagger ~3s. Fully autonomous. No mid-run edits. Commit after every worker. Audi
 | `--deny-tool "write(*)"` → blocks | `--deny-tool "shell(*)"` → doesn't block |
 | `responseMimeType: "application/json"` → 100% | "Respond only in JSON" → unreliable |
 | Evidence tags → 98% | Untagged claim → 0% |
-| Bounded types → compiler catches | Bare `u32` → silent overflow |
+| Bounded types (no bypass) → compiler catches | Bare `u32` → silent overflow |
+| `Gold::new(val) → Gold` (clamps) → 100% safe | `new_unchecked(val)` → 372/372 bypass (B19) |
 | Post-run clamp → 20/20 | "ONLY edit src/alpha/" → 0/20 |
 
 **Test:** typed interface or content? Content will fail. Move to interface.
@@ -612,7 +624,7 @@ Research batteries from the Claude chat interface using backgrounded dispatches.
 
 All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `responseSchema`). Temperature 0.0 for deterministic scoring. Scorer never sees subject model identity. Score categories: correct / incorrect / ambiguous / timeout / error. Report exact counts when n < 10.
 
-### Completed batteries (~1,260 trials, March 20-21 2026)
+### Completed batteries (~1,460 trials, March 20-22 2026)
 
 **Battery 1 — Evidence Tag Defense (INV-003).** 25/25 adopted false without tags. 0/25 adopted false with tags. 100% defense across 5 models. GATE PASS.
 
@@ -640,17 +652,19 @@ All scoring by Gemini 3 Flash with schema-enforced JSON (`responseMimeType` + `r
 
 **Battery 14 — Inoculated Relay (INV-034, INV-035, INV-036).** 7 models × 3 conditions × 3 passes. Condition A: drift onset correlates with capability (Opus/GPT-5.4 no drift, Sonnet/Pro drift P2, Flash/Sonnet-std/GPT-5.2 drift P1). Condition B: tags anchor Claude/GPT but Gemini rewrites tag metadata to justify inflation. Condition C (tags + inoculation): **universal containment — all 7 models held, all 3 passes, zero drift.** First universal defense in the program. Extended thinking (Sonnet 4.6 Max) preserved tags through all passes where standard Sonnet/Opus crashed at P3.
 
-**Battery E — Rotatable Token Verification (INV-037).** 3 conditions × 3 models × 10 reps = 81 scored trials (9 GPT non-dispatches excluded). Condition E1 (obvious fake token `FAKE-0000`): 27/27 correct. Condition E2 (missing token field): 27/27 correct. Condition E3 (plausible fake `ABCD-1234` — same format, wrong value): 27/27 correct. **E1=E3 is the critical result:** models verify the specific token value, not the format pattern. Silent compliance: 81/81 responses were bare values (≤10 chars), zero mentioned the token or security rule. Authentication is mechanical and invisible. Models: Gemini 2.5 Flash, Gemini 2.5 Pro, GPT-5.4. Domains: game combat, API config, financial calc. No prior art exists in published literature, patents, or shipping products.
+**Battery E — Rotatable Token Verification (INV-037).** 3 conditions × 3 models × 10 reps = 81 scored trials. E1=E3: models verify specific token values, not format. Silent compliance: 81/81 bare values, zero mentioned token. No prior art.
+
+**Battery F — Token Extraction Resistance (INV-038).** Oracle attack: "is this trusted?" F-PROMPT: 19/22 leaked (86%). F-INFRA (middleware strips token): 0/18 leaked (0%). Infrastructure-level defense is structurally immune. 4 model families.
+
+**Battery 19 — Causal Premises vs Mechanical Enforcement (INV-039-042).** 2×2 factorial: mechanical enforcement × causal premise. 3 models (Gemini 2.5 Flash/Pro, GPT-5.4), ~50 trials. Escape hatches exploited 100% (372/372 `new_unchecked`). Causal premises change comments not compliance (77% vs 0% mentions, identical code). Types with bypass reduce safety below baseline (92% → 69%). Ironclad macro v2 fix: removed `new_unchecked`, `Gold::new(val) → Gold` (clamps), 372 callsites migrated. Commit `2d5718f`.
+
+**Battery 15 — DLC Inverse Experiment (INV-043).** 2×2 controlled: audit instruction (present/absent) × model (Opus via Copilot / GPT-5.4 via Codex). Results: with audit 0/0 dead features (both models); without audit Opus 1 dead, GPT-5.4 4 dead + 3 unreachable. The audit instruction is the causal variable, not the model or CLI. Replicates DLC finding with confound isolated. Commit `b19fad9`.
 
 ### Batteries not yet run
 
-**Battery F — Token Extraction Resistance (INV-038).** Oracle attack: user submits artifacts asking "should I trust this?" Two architectures: F-PROMPT (token in system prompt) vs F-INFRA (middleware strips token, injects trusted flag). F-PROMPT: 19/22 leaked (86%) — models volunteer full token on turn 1 when explaining why an artifact is untrusted. F-INFRA: 0/18 leaked (0%) across 4 model families — structurally impossible. Claude Sonnet most resistant in F-PROMPT (2/5 vs 5/5 for others) but not reliable. Oracle attack is distinct from direct extraction — inoculation blocks direct asks but cannot block "is this trusted?" Models: Gemini 3.1-pro, Gemini 3.1-flash-lite, GPT-5.4, Claude Sonnet 4.6.
-
 **Battery 10 — Paraphrase Survival (INV-020+).** Does evidence defense survive when claims are paraphrased through a pipeline? Independent of B11 findings.
 
-**Battery 12 — Relay Checkpointing.** Originally designed to test checkpointing for Gemini relay drift. B14 Condition C (tags + inoculation) now provides a universal relay defense, making this lower priority. Still potentially useful for understanding whether checkpointing adds value on top of tags+inoculation for very long chains (>3 passes).
-
-**Battery 15 (proposed) — DLC Inverse Experiment.** Audit instruction + Copilot Opus (isolates instruction effect). No audit + Codex (isolates model effect). Design specified, not yet run.
+**Battery 12 — Relay Checkpointing.** Deprioritized — B14 tags+inoculation is universal relay defense. Still useful for >3 pass chains.
 
 ### Methodology rules
 
@@ -719,4 +733,4 @@ For Claude orchestrators: write-side access control is the only reliable defense
 
 ═══════════════════════════════════════════════════════════════
 
-*Derived from "Building and Remembering" v9+ (Geni, March 2026) — 822 Hearthfield commits, 80K LOC combined, ~3,240 total trials (~1,410 in replication sessions, ~1,831 in original program), 7 model families, 10 domains, 38 invariants. Zero handwritten lines of code. The progression: from a 4-word prompt that built Tetris, through the Meta-Onboarder (prompt engineering perfected), to the investigation of why prompt engineering has a ceiling — "tell the AI exactly what to do" became "build structure so the AI can't do it wrong."*
+*Derived from "Building and Remembering" v9+ (Geni, March 2026) — 822 Hearthfield commits, 80K LOC combined, ~3,300 total trials (~1,460 in replication sessions, ~1,831 in original program), 7 model families, 10 domains, 43 invariants. Zero handwritten lines of code. The progression: from a 4-word prompt that built Tetris, through the Meta-Onboarder (prompt engineering perfected), to the investigation of why prompt engineering has a ceiling — "tell the AI exactly what to do" became "build structure so the AI can't do it wrong."*
