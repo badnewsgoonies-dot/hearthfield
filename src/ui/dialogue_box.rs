@@ -136,7 +136,20 @@ pub fn spawn_dialogue_box(
                     },
                 ))
                 .with_children(|panel| {
-                    // Left: NPC portrait using per-NPC spritesheet
+                    // Left: NPC portrait with border frame
+                    panel
+                        .spawn((Node {
+                            width: Val::Px(96.0),
+                            height: Val::Px(96.0),
+                            border: UiRect::all(Val::Px(3.0)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+                        BorderColor(Color::srgb(0.5, 0.4, 0.25)),
+                        BackgroundColor(Color::srgba(0.15, 0.1, 0.08, 0.9)),
+                        ))
+                        .with_children(|frame| {
                     if npc_sprites.loaded {
                         let npc_id_str = ui_state.as_ref().map(|s| s.npc_id.as_str()).unwrap_or("");
                         let portrait_image = npc_sprites
@@ -144,36 +157,34 @@ pub fn spawn_dialogue_box(
                             .get(npc_id_str)
                             .cloned()
                             .unwrap_or_else(|| asset_server.load(npc_sprite_file(npc_id_str)));
-                        panel.spawn((
+                        frame.spawn((
                             DialoguePortrait,
                             Node {
-                                width: Val::Px(80.0),
-                                height: Val::Px(80.0),
+                                width: Val::Px(88.0),
+                                height: Val::Px(88.0),
                                 ..default()
                             },
                             ImageNode {
                                 image: portrait_image,
                                 texture_atlas: Some(TextureAtlas {
                                     layout: npc_sprites.layout.clone(),
-                                    // Always use index 0: front-facing idle pose (walk-down, frame 0).
-                                    // The portrait_index previously picked random walk frames from the
-                                    // 4×4 spritesheet, showing tiny mid-stride sprites as "portraits".
                                     index: 0,
                                 }),
                                 ..default()
                             },
                         ));
                     } else {
-                        panel.spawn((
+                        frame.spawn((
                             DialoguePortrait,
                             Node {
-                                width: Val::Px(80.0),
-                                height: Val::Px(80.0),
+                                width: Val::Px(88.0),
+                                height: Val::Px(88.0),
                                 ..default()
                             },
                             BackgroundColor(Color::srgb(0.3, 0.5, 0.7)),
                         ));
                     }
+                        }); // close portrait frame
 
                     // Right: Text area
                     panel

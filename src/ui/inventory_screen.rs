@@ -82,16 +82,16 @@ pub fn spawn_inventory_screen(
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
         ))
         .with_children(|parent| {
-            // Main inventory panel
+            // Main inventory panel — wider to fit 12 cols at readable size
             parent
                 .spawn((
                     Node {
-                        width: Val::Px(760.0),
-                        height: Val::Px(430.0),
+                        width: Val::Px(820.0),
+                        height: Val::Px(460.0),
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
                         padding: UiRect::all(Val::Px(16.0)),
-                        row_gap: Val::Px(10.0),
+                        row_gap: Val::Px(8.0),
                         border: UiRect::all(Val::Px(3.0)),
                         ..default()
                     },
@@ -143,8 +143,8 @@ pub fn spawn_inventory_screen(
                                             InventoryGridSlot { index },
                                             InventorySlotBg { index },
                                             Node {
-                                                width: Val::Px(58.0),
-                                                height: Val::Px(76.0),
+                                                width: Val::Px(62.0),
+                                                height: Val::Px(80.0),
                                                 flex_direction: FlexDirection::Column,
                                                 justify_content: JustifyContent::FlexStart,
                                                 align_items: AlignItems::Center,
@@ -177,9 +177,9 @@ pub fn spawn_inventory_screen(
                                                     InventorySlotIcon { index },
                                                     item_image_node(&atlas_data, item_id, sprite_idx),
                                                     Node {
-                                                        width: Val::Px(28.0),
-                                                        height: Val::Px(28.0),
-                                                        margin: UiRect::bottom(Val::Px(1.0)),
+                                                        width: Val::Px(32.0),
+                                                        height: Val::Px(32.0),
+                                                        margin: UiRect::bottom(Val::Px(2.0)),
                                                         ..default()
                                                     },
                                                     if has_item {
@@ -195,13 +195,13 @@ pub fn spawn_inventory_screen(
                                                 Text::new(""),
                                                 TextFont {
                                                     font: font.clone(),
-                                                    font_size: 8.0,
+                                                    font_size: 10.0,
                                                     ..default()
                                                 },
                                                 TextColor(Color::srgb(0.97, 0.95, 0.9)),
                                                 Node {
                                                     width: Val::Percent(100.0),
-                                                    min_height: Val::Px(18.0),
+                                                    min_height: Val::Px(14.0),
                                                     ..default()
                                                 },
                                             ));
@@ -211,7 +211,7 @@ pub fn spawn_inventory_screen(
                                                 Text::new(""),
                                                 TextFont {
                                                     font: font.clone(),
-                                                    font_size: 7.5,
+                                                    font_size: 9.0,
                                                     ..default()
                                                 },
                                                 TextColor(Color::srgb(0.72, 0.9, 0.72)),
@@ -226,7 +226,7 @@ pub fn spawn_inventory_screen(
                                                 Text::new(""),
                                                 TextFont {
                                                     font: font.clone(),
-                                                    font_size: 7.5,
+                                                    font_size: 9.0,
                                                     ..default()
                                                 },
                                                 TextColor(Color::srgb(0.8, 0.78, 0.74)),
@@ -257,7 +257,7 @@ pub fn spawn_inventory_screen(
                                 Text::new("Selected Item"),
                                 TextFont {
                                     font: font.clone(),
-                                    font_size: 12.0,
+                                    font_size: 14.0,
                                     ..default()
                                 },
                                 TextColor(Color::srgb(1.0, 0.9, 0.65)),
@@ -267,7 +267,7 @@ pub fn spawn_inventory_screen(
                                 Text::new("Move the cursor over an item to inspect it."),
                                 TextFont {
                                     font: font.clone(),
-                                    font_size: 11.0,
+                                    font_size: 13.0,
                                     ..default()
                                 },
                                 TextColor(Color::srgb(0.85, 0.82, 0.72)),
