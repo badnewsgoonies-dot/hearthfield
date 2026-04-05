@@ -170,6 +170,8 @@ def capture_screenshot(output_path):
 
 STATE_FILE = "/tmp/hearthfield-state.json"
 
+COLLISION_FILE = "/tmp/hearthfield-collision.json"
+
 def read_game_state():
     """Read the current game state from the telemetry file."""
     try:
@@ -177,6 +179,21 @@ def read_game_state():
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return None
+
+def read_collision(expected_map=None, timeout=5):
+    """Read collision grid. If expected_map given, wait until data matches."""
+    deadline = time.time() + timeout
+    while True:
+        try:
+            with open(COLLISION_FILE, "r") as f:
+                data = json.load(f)
+            if expected_map is None or data.get("map") == expected_map:
+                return data
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        if time.time() > deadline:
+            return None
+        time.sleep(0.3)
 
 def wait_for_state(target_state, timeout=15):
     """Wait until game_state matches target. Returns True on match."""

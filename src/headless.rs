@@ -76,9 +76,13 @@ fn write_state_telemetry(
 
     let _ = std::fs::write(STATE_FILE, json);
 
-    // Write collision grid when map changes
-    if collision_map.initialised && telemetry.last_collision_map != player_map {
-        telemetry.last_collision_map = player_map;
+    // Write collision grid when the map changes AND collision has been rebuilt.
+    // Include map name so the driver can verify it's reading the right map.
+    let map_id_str = format!("{:?}", current_map_id.map_id);
+    let collision_fresh = collision_map.initialised
+        && (telemetry.last_collision_map != map_id_str);
+    if collision_fresh {
+        telemetry.last_collision_map = map_id_str.clone();
         let (min_x, max_x, min_y, max_y) = collision_map.bounds;
         let mut solid_list = collision_map
             .solid_tiles
@@ -87,8 +91,8 @@ fn write_state_telemetry(
             .collect::<Vec<_>>();
         solid_list.sort();
         let collision_json = format!(
-            r#"{{"bounds":[{},{},{},{}],"solid":[{}]}}"#,
-            min_x, max_x, min_y, max_y,
+            r#"{{"map":"{}","bounds":[{},{},{},{}],"solid":[{}]}}"#,
+            map_id_str, min_x, max_x, min_y, max_y,
             solid_list.join(",")
         );
         let _ = std::fs::write(COLLISION_FILE, collision_json);
