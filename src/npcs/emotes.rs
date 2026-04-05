@@ -23,6 +23,14 @@ const EMOTE_COLS: u32 = 10;
 /// Number of rows in the emote spritesheet.
 const EMOTE_ROWS: u32 = 38;
 
+/// Path to the face emote spritesheet (5 cols × 15 rows, 32×32 tiles).
+/// Contains cute character-face expressions for NPC reactions.
+const FACE_EMOTE_SHEET_PATH: &str = "ui/emotes.png";
+/// Columns in the face emote spritesheet.
+const FACE_EMOTE_COLS: u32 = 5;
+/// Rows in the face emote spritesheet.
+const FACE_EMOTE_ROWS: u32 = 15;
+
 /// Atlas-backed emote sprite cache (loaded once, reused per emote event).
 #[derive(Resource, Default)]
 pub struct EmoteSprites {
@@ -31,6 +39,15 @@ pub struct EmoteSprites {
     /// Handle to the shared TextureAtlasLayout for the spritesheet.
     pub layout: Handle<TextureAtlasLayout>,
     /// Whether the atlas handles have been registered.
+    pub loaded: bool,
+}
+
+/// Face-emote atlas: cute character-face expressions (emotes.png).
+/// Used for NPC speech bubble reactions during dialogue/gifting.
+#[derive(Resource, Default)]
+pub struct FaceEmoteSprites {
+    pub image: Handle<Image>,
+    pub layout: Handle<TextureAtlasLayout>,
     pub loaded: bool,
 }
 
@@ -74,6 +91,28 @@ impl EmoteKind {
             EmoteKind::Exclamation => 181,
             // row 18, col 3 — pink question mark symbol
             EmoteKind::Question => 183,
+        }
+    }
+
+    /// Returns the atlas index into `emotes.png` (face emote sheet, 5 cols).
+    /// [Observed] — verified against actual sprite content via image inspection.
+    ///
+    /// Row 0: happy grin, love-eyes blush
+    /// Row 1: sleepy, wink
+    /// Row 2: singing, tongue-out
+    /// Row 3: big-grin, surprise
+    /// Row 4: mischief, sweat-drop
+    /// Row 5-6: tears, anger, frustrated
+    /// Row 7-8: shock, sick, embarrassed
+    pub fn face_atlas_index(self) -> usize {
+        match self {
+            EmoteKind::Heart => 1,        // row 0, col 1 — love-eyes blush face
+            EmoteKind::Happy => 0,        // row 0, col 0 — happy grin face
+            EmoteKind::Neutral => 5,      // row 1, col 0 — sleepy/neutral face
+            EmoteKind::Sad => 25,         // row 5, col 0 — teary face
+            EmoteKind::Angry => 30,       // row 6, col 0 — angry face
+            EmoteKind::Exclamation => 15, // row 3, col 0 — big-grin/surprise face
+            EmoteKind::Question => 35,    // row 7, col 0 — shock/confused face
         }
     }
 }
@@ -378,6 +417,7 @@ pub fn spawn_emote_bubbles(
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut emote_sprites: ResMut<EmoteSprites>,
+    mut face_sprites: ResMut<FaceEmoteSprites>,
     npc_query: Query<(&Npc, &Transform)>,
 ) {
     // Register atlas handles once on first call.
@@ -392,6 +432,18 @@ pub fn spawn_emote_bubbles(
         ));
         emote_sprites.loaded = true;
     }
+    // Register face emote atlas on first call.
+    if !face_sprites.loaded {
+        face_sprites.image = asset_server.load(FACE_EMOTE_SHEET_PATH);
+        face_sprites.layout = layouts.add(TextureAtlasLayout::from_grid(
+            UVec2::new(32, 32),
+            FACE_EMOTE_COLS,
+            FACE_EMOTE_ROWS,
+            None,
+            None,
+        ));
+        face_sprites.loaded = true;
+    }
 
     for event in events.read() {
         // Find the NPC's current position
@@ -403,16 +455,38 @@ pub fn spawn_emote_bubbles(
         let npc_pos = transform.translation;
         let emote_y = npc_pos.y + 20.0; // above head
 
-        let atlas_index = event.emote.atlas_index();
-
-        let mut sprite = Sprite::from_atlas_image(
-            emote_sprites.image.clone(),
-            TextureAtlas {
-                layout: emote_sprites.layout.clone(),
-                index: atlas_index,
-            },
+        // Use face emotes for emotional reactions (more expressive),
+        // and abstract emoji icons for symbol-type emotes.
+        let use_face = matches!(
+            event.emote,
+            EmoteKind::Heart
+                | EmoteKind::Happy
+                | EmoteKind::Neutral
+                | EmoteKind::Sad
+                | EmoteKind::Angry
         );
-        sprite.custom_size = Some(Vec2::splat(16.0));
+
+        let mut sprite = if use_face {
+            let mut s = Sprite::from_atlas_image(
+                face_sprites.image.clone(),
+                TextureAtlas {
+                    layout: face_sprites.layout.clone(),
+                    index: event.emote.face_atlas_index(),
+                },
+            );
+            s.custom_size = Some(Vec2::splat(24.0)); // face emotes are 32×32, show slightly larger
+            s
+        } else {
+            let mut s = Sprite::from_atlas_image(
+                emote_sprites.image.clone(),
+                TextureAtlas {
+                    layout: emote_sprites.layout.clone(),
+                    index: event.emote.atlas_index(),
+                },
+            );
+            s.custom_size = Some(Vec2::splat(16.0));
+            s
+        };
 
         commands.spawn((
             EmoteBubble {

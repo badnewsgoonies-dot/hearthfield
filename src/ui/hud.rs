@@ -184,6 +184,8 @@ pub fn preload_item_atlas(
         ("onion", "sprites/items/Pickup_Crop_Onion_16x16.png"),
         ("pineapple", "sprites/items/Pickup_Crop_Pineapple_16x16.png"),
         ("grape", "sprites/items/Pickup_Crop_Grape_16x16.png"),
+        ("pepper", "sprites/items/Pickup_Crop_Chili_Pepper_16x16.png"),
+        ("wheat", "sprites/items/Pickup_Crop_Grain_16x16.png"),
     ] {
         atlas_data
             .crop_overrides

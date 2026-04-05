@@ -2116,9 +2116,9 @@ pub fn populate_items(registry: &mut ItemRegistry) {
         ItemDef { id: "lava_eel".into(), name: "Lava Eel".into(), description: "An eel that thrives in volcanic heat. Extremely difficult to catch.".into(), category: ItemCategory::Fish, sell_price: 700, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 134 },
 
         // Snow Mountain fish
-        ItemDef { id: "ice_perch".into(), name: "Ice Perch".into(), description: "A crisp mountain perch at home in thin winter light.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 135 },
-        ItemDef { id: "frost_trout".into(), name: "Frost Trout".into(), description: "A cold-stream trout with a silver-blue back.".into(), category: ItemCategory::Fish, sell_price: 250, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 136 },
-        ItemDef { id: "glacial_pike".into(), name: "Glacial Pike".into(), description: "An alpine predator that arrives with snow.".into(), category: ItemCategory::Fish, sell_price: 350, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 137 },
+        ItemDef { id: "ice_perch".into(), name: "Ice Perch".into(), description: "A crisp mountain perch at home in thin winter light.".into(), category: ItemCategory::Fish, sell_price: 200, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 249 },
+        ItemDef { id: "frost_trout".into(), name: "Frost Trout".into(), description: "A cold-stream trout with a silver-blue back.".into(), category: ItemCategory::Fish, sell_price: 250, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 248 },
+        ItemDef { id: "glacial_pike".into(), name: "Glacial Pike".into(), description: "An alpine predator that arrives with snow.".into(), category: ItemCategory::Fish, sell_price: 350, buy_price: None, stack_size: StackSize::new(99), edible: false, energy_restore: 0.0, sprite_index: 250 },
 
         // ═══════════════════════════════════════════════════════════════
         // SPECIAL — Romance & relationship items

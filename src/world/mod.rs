@@ -266,6 +266,10 @@ pub struct TerrainAtlases {
     // Modern Farm terrain sheet (512×368, 32 cols × 23 rows of 16×16 tiles)
     pub terrain_image: Handle<Image>,
     pub terrain_layout: Handle<TextureAtlasLayout>,
+    // Modern Farm autotile sheet (192×896, 12 cols × 56 rows of 16×16 tiles)
+    // Premium terrain autotiles for seasonal farm terrain transitions.
+    pub autotile_image: Handle<Image>,
+    pub autotile_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads all terrain atlas assets on first use. Subsequent calls are no-ops.
@@ -288,8 +292,8 @@ fn ensure_atlases_loaded(
         None,
     ));
 
-    // tilled_dirt.png: 176x112px -> 16x16 tiles, 11 columns x 7 rows
-    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt.png");
+    // tilled_dirt_v2.png: 176x112px -> 16x16 tiles, 11 columns x 7 rows
+    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt_v2.png");
     atlases.dirt_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
         11,
@@ -344,6 +348,17 @@ fn ensure_atlases_loaded(
         UVec2::new(16, 16),
         32,
         23,
+        None,
+        None,
+    ));
+
+    // modern_farm_autotiles.png: 192×896, 12 cols × 56 rows of 16×16 tiles.
+    // Premium seasonal terrain autotile transitions.
+    atlases.autotile_image = asset_server.load("tilesets/modern_farm_autotiles.png");
+    atlases.autotile_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        12,
+        56,
         None,
         None,
     ));

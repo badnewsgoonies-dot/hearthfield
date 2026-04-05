@@ -1,4 +1,4 @@
-use super::UiFontHandle;
+use super::{PremiumUiImages, UiFontHandle};
 use crate::shared::*;
 use bevy::prelude::*;
 
@@ -97,6 +97,7 @@ pub fn handle_toast_events(
     mut events: EventReader<ToastEvent>,
     font_handle: Res<UiFontHandle>,
     asset_server: Res<AssetServer>,
+    premium_ui: Res<PremiumUiImages>,
     container_query: Query<Entity, With<ToastContainer>>,
     existing_toasts: Query<Entity, With<ToastItem>>,
 ) {
@@ -121,10 +122,16 @@ pub fn handle_toast_events(
         // Determine category accent colour from message content.
         let accent_color = toast_accent_color(&message);
 
-        // Use pre-rendered dialog sprites as background (medium for normal,
-        // small for short pickup messages).
+        // Use premium dialog box sprites as background (medium for normal,
+        // small for short pickup messages). Falls back to premade_dialog if not loaded.
         let is_short = message.len() < 20;
-        let dialog_bg: Handle<Image> = if is_short {
+        let dialog_bg: Handle<Image> = if premium_ui.loaded {
+            if is_short {
+                premium_ui.dialog_small.clone()
+            } else {
+                premium_ui.dialog_medium.clone()
+            }
+        } else if is_short {
             asset_server.load("ui/premade_dialog_small.png")
         } else {
             asset_server.load("ui/premade_dialog_medium.png")
