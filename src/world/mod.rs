@@ -966,25 +966,28 @@ fn load_map(
     // These coordinates match the door-entry zones in edge_transition()
     // (src/player/interaction.rs).
     if map_id == MapId::Farm {
-        // Player House door at (15-16, 2) and exit landing tiles (15-16, 1)
-        world_map.solid_tiles.remove(&(15, 2));
-        world_map.solid_tiles.remove(&(16, 2));
-        world_map.solid_tiles.remove(&(15, 1));
-        world_map.solid_tiles.remove(&(16, 1));
-        // Also clear a path south from the house (15-16, 0) so player can walk away
-        world_map.solid_tiles.remove(&(15, 0));
-        world_map.solid_tiles.remove(&(16, 0));
+        // Player House door at (7-8, 19) — must match DoorDef in map_data.rs.
+        // Also clear the exit landing tile (8, 18) and a path south.
+        world_map.solid_tiles.remove(&(7, 19));
+        world_map.solid_tiles.remove(&(8, 19));
+        world_map.solid_tiles.remove(&(7, 18));
+        world_map.solid_tiles.remove(&(8, 18));
+        world_map.solid_tiles.remove(&(7, 17));
+        world_map.solid_tiles.remove(&(8, 17));
     }
     if map_id == MapId::Town {
-        // General Store door at (5-6, 2)
+        // General Store door at (5-6, 2) + exit landing at y=3
         world_map.solid_tiles.remove(&(5, 2));
         world_map.solid_tiles.remove(&(6, 2));
-        // Animal Shop door at (22-23, 2)
+        world_map.solid_tiles.remove(&(6, 3));
+        // Animal Shop door at (22-23, 2) + exit landing at y=3
         world_map.solid_tiles.remove(&(22, 2));
         world_map.solid_tiles.remove(&(23, 2));
-        // Blacksmith door at (22-23, 13)
+        world_map.solid_tiles.remove(&(22, 3));
+        // Blacksmith door at (22-23, 13) + exit landing at y=14
         world_map.solid_tiles.remove(&(22, 13));
         world_map.solid_tiles.remove(&(23, 13));
+        world_map.solid_tiles.remove(&(22, 14));
         // Library door at (8-9, 17)
         world_map.solid_tiles.remove(&(8, 17));
         world_map.solid_tiles.remove(&(9, 17));

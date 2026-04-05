@@ -341,9 +341,11 @@ mod tests {
     #[test]
     fn player_house_exit_lands_on_farm_path_outside_door_trigger() {
         let reg = test_registry();
+        // Exit from PlayerHouse north edge should land near farmhouse door (7-8, 19),
+        // one tile south at (8, 18) to avoid immediate re-entry.
         assert_eq!(
             edge_transition_from_registry(&MapId::PlayerHouse, 8, 15, &reg),
-            Some((MapId::Farm, 16, 3))
+            Some((MapId::Farm, 8, 18))
         );
     }
 
@@ -499,6 +501,7 @@ pub fn handle_map_transition(
     registry: Res<MapRegistry>,
     mut cooldown: ResMut<TransitionCooldown>,
     mut input_blocks: ResMut<InputBlocks>,
+    mut boat_mode: ResMut<BoatMode>,
 ) {
     // Process only the most recent transition (in case multiple fire).
     let Some(ev) = events.read().last() else {
@@ -528,6 +531,15 @@ pub fn handle_map_transition(
     let to_outdoor = crate::world::map_data::is_outdoor_map(ev.to_map);
     if !(from_outdoor && to_outdoor) {
         camera_snap.frames_remaining = 3;
+    }
+
+    // Reset boat mode when leaving a water map — prevents being stuck on
+    // land maps where all tiles are impassable in sailing mode.
+    if boat_mode.active {
+        let to_water_map = matches!(ev.to_map, MapId::CoralIsland | MapId::Beach);
+        if !to_water_map {
+            boat_mode.active = false;
+        }
     }
 
     // Invalidate the collision map — the world domain will re-populate it
