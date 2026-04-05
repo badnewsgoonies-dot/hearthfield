@@ -647,12 +647,13 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
         });
 
     // ─── OBJECTIVE — absolute position, top-left below top bar ───
+    // Top bar height is 64 px. Use 72 px to clear it with 8 px breathing room.
     commands
         .spawn((
             HudObjective,
             Node {
                 position_type: PositionType::Absolute,
-                top: Val::Px(52.0),
+                top: Val::Px(72.0),
                 left: Val::Px(12.0),
                 padding: UiRect {
                     left: Val::Px(10.0),
