@@ -155,7 +155,7 @@ pub fn forward_hint_to_toast(
 // Fix 1: Added "exit_house" as the first objective (index 0).
 // Fix 2: Updated all objective descriptions for clarity.
 pub const OBJECTIVES: &[(&str, &str)] = &[
-    ("exit_house",   "Leave your house \u{2014} walk south to the door and exit"),
+    ("exit_house",   "Leave your house \u{2014} walk north to the door and exit"),
     ("till_soil",    "Till some soil \u{2014} select your Hoe with [ or ], then press Space on grass"),
     ("plant_seeds",  "Plant seeds \u{2014} press E to open inventory, click turnip seeds to select, close inventory, then press F on tilled soil"),
     ("water_crops",  "Water your crops \u{2014} select Watering Can with [ or ], then press Space on planted soil"),
