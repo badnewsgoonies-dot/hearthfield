@@ -273,7 +273,7 @@
     ],
     doors: [],
     edges: (
-        north: Some((Farm, Fixed(16, 3))),
+        north: Some((Farm, Fixed(8, 18))),
         south: None,
         east: None,
         west: None,

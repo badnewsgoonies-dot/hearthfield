@@ -161,7 +161,7 @@
     ],
     doors: [],
     edges: (
-        north: Some((Town, Fixed(22, 18))),
+        north: Some((Town, Fixed(22, 14))),
         south: None,
         east: None,
         west: None,
