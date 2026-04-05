@@ -659,11 +659,11 @@ fn test_animal_happiness_increases_when_fed() {
 
     let animal = app.world().entity(chicken_id).get::<Animal>().unwrap();
 
-    // Fed: +5 happiness
+    // Fed: +8 happiness (HAPPINESS_FED_BONUS = 8)
     assert_eq!(
         animal.happiness.get(),
-        105,
-        "Fed chicken should gain 5 happiness"
+        108,
+        "Fed chicken should gain 8 happiness"
     );
     assert!(
         animal.product_ready,
@@ -702,11 +702,11 @@ fn test_animal_happiness_decreases_when_not_fed() {
 
     let animal = app.world().entity(cow_id).get::<Animal>().unwrap();
 
-    // Not fed: -12 happiness
+    // Not fed: -18 happiness (HAPPINESS_UNFED_PENALTY = 18)
     assert_eq!(
         animal.happiness.get(),
-        88,
-        "Unfed cow should lose 12 happiness"
+        82,
+        "Unfed cow should lose 18 happiness"
     );
     assert!(!animal.product_ready, "Unfed cow should not produce");
 }
@@ -741,11 +741,11 @@ fn test_animal_fed_and_petted_bonus() {
 
     let animal = app.world().entity(sheep_id).get::<Animal>().unwrap();
 
-    // Fed +5, petted +5 = 210
+    // Fed +8, petted +7 = 215 (HAPPINESS_FED_BONUS=8, HAPPINESS_PETTED_BONUS=7)
     assert_eq!(
         animal.happiness.get(),
-        210,
-        "Fed + petted animal should gain 10 happiness"
+        215,
+        "Fed + petted animal should gain 15 happiness"
     );
 }
 
@@ -793,14 +793,15 @@ fn test_baby_animal_grows_to_adult() {
 
 #[test]
 fn test_quality_from_happiness() {
+    // Thresholds: 0-109 Normal, 110-179 Silver, 180-219 Gold, 220-255 Iridium
     assert_eq!(quality_from_happiness(0), ItemQuality::Normal);
     assert_eq!(quality_from_happiness(50), ItemQuality::Normal);
-    assert_eq!(quality_from_happiness(127), ItemQuality::Normal);
-    assert_eq!(quality_from_happiness(128), ItemQuality::Silver);
-    assert_eq!(quality_from_happiness(199), ItemQuality::Silver);
-    assert_eq!(quality_from_happiness(200), ItemQuality::Gold);
-    assert_eq!(quality_from_happiness(229), ItemQuality::Gold);
-    assert_eq!(quality_from_happiness(230), ItemQuality::Iridium);
+    assert_eq!(quality_from_happiness(109), ItemQuality::Normal);
+    assert_eq!(quality_from_happiness(110), ItemQuality::Silver);
+    assert_eq!(quality_from_happiness(179), ItemQuality::Silver);
+    assert_eq!(quality_from_happiness(180), ItemQuality::Gold);
+    assert_eq!(quality_from_happiness(219), ItemQuality::Gold);
+    assert_eq!(quality_from_happiness(220), ItemQuality::Iridium);
     assert_eq!(quality_from_happiness(255), ItemQuality::Iridium);
 }
 
@@ -5699,14 +5700,16 @@ fn test_all_item_sprite_indices_within_atlas() {
 /// item_icon_index must pass through valid indices and only clamp out-of-bounds.
 #[test]
 fn test_item_icon_index_passthrough() {
-    // Valid indices pass through unchanged
+    // Valid indices pass through unchanged (capacity = 13×20 = 260)
     assert_eq!(item_icon_index(0), 0);
     assert_eq!(item_icon_index(64), 64);
     assert_eq!(item_icon_index(100), 100);
     assert_eq!(item_icon_index(200), 200);
     assert_eq!(item_icon_index(246), 246);
+    assert_eq!(item_icon_index(247), 247);
+    assert_eq!(item_icon_index(259), 259);
     // Out-of-bounds clamps to 0
-    assert_eq!(item_icon_index(247), 0);
+    assert_eq!(item_icon_index(260), 0);
     assert_eq!(item_icon_index(999), 0);
 }
 
@@ -5854,14 +5857,14 @@ fn test_quest_expiration_correct_day_count() {
 /// P1: quality_from_happiness boundary values must match documented thresholds.
 #[test]
 fn test_quality_thresholds_boundary_values() {
-    // Exact boundaries: 230, 200, 128
+    // Exact boundaries: 220, 180, 110
     assert_eq!(quality_from_happiness(255), ItemQuality::Iridium);
-    assert_eq!(quality_from_happiness(230), ItemQuality::Iridium);
-    assert_eq!(quality_from_happiness(229), ItemQuality::Gold);
-    assert_eq!(quality_from_happiness(200), ItemQuality::Gold);
-    assert_eq!(quality_from_happiness(199), ItemQuality::Silver);
-    assert_eq!(quality_from_happiness(128), ItemQuality::Silver);
-    assert_eq!(quality_from_happiness(127), ItemQuality::Normal);
+    assert_eq!(quality_from_happiness(220), ItemQuality::Iridium);
+    assert_eq!(quality_from_happiness(219), ItemQuality::Gold);
+    assert_eq!(quality_from_happiness(180), ItemQuality::Gold);
+    assert_eq!(quality_from_happiness(179), ItemQuality::Silver);
+    assert_eq!(quality_from_happiness(110), ItemQuality::Silver);
+    assert_eq!(quality_from_happiness(109), ItemQuality::Normal);
     assert_eq!(quality_from_happiness(0), ItemQuality::Normal);
 }
 

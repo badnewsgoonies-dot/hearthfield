@@ -20,6 +20,20 @@ use bevy::prelude::*;
 
 const INTERACT_RANGE: f32 = 32.0;
 
+/// Map animal happiness (0–255) to an icon index in icons_happiness.png (row 1, saturated).
+/// Col 0 = lowest mood, col 5 = highest mood.
+fn happiness_icon_index(happiness: u8) -> usize {
+    let col = match happiness {
+        0..=49 => 0,
+        50..=99 => 1,
+        100..=149 => 2,
+        150..=199 => 3,
+        200..=229 => 4,
+        230..=u8::MAX => 5,
+    };
+    6 + col // row 1 (saturated variants) = offset by 6 cols
+}
+
 pub fn handle_animal_interact(
     mut commands: Commands,
     player_input: Res<PlayerInput>,
@@ -27,6 +41,7 @@ pub fn handle_animal_interact(
     player_query: Query<&LogicalPosition, With<Player>>,
     mut animal_query: Query<(Entity, &mut Animal, &LogicalPosition)>,
     mut sfx_writer: EventWriter<PlaySfxEvent>,
+    sprite_data: Res<super::AnimalSpriteData>,
 ) {
     if input_blocks.is_blocked() {
         return;
@@ -115,6 +130,32 @@ pub fn handle_animal_interact(
                 pet_text,
                 Color::srgb(1.0, 0.52, 0.72),
             );
+
+            // Floating mood icon from icons_happiness.png above the text.
+            if sprite_data.loaded {
+                let icon_idx = happiness_icon_index(happiness);
+                let mut mood_sprite = Sprite::from_atlas_image(
+                    sprite_data.happiness_image.clone(),
+                    TextureAtlas {
+                        layout: sprite_data.happiness_layout.clone(),
+                        index: icon_idx,
+                    },
+                );
+                mood_sprite.custom_size = Some(Vec2::splat(12.0));
+                commands.spawn((
+                    super::FloatingFeedback {
+                        lifetime: Timer::from_seconds(1.2, TimerMode::Once),
+                        velocity: Vec2::new(0.0, 8.0),
+                    },
+                    mood_sprite,
+                    Transform::from_xyz(
+                        animal_pos.x + 10.0,
+                        animal_pos.y + 22.0,
+                        Z_EFFECTS + 1.0,
+                    ),
+                    Visibility::default(),
+                ));
+            }
 
             sfx_writer.send(PlaySfxEvent {
                 sfx_id: "animal_pet".to_string(),

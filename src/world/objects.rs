@@ -124,6 +124,10 @@ pub struct ObjectAtlases {
     pub tree_oak_brown_image: Handle<Image>,   // 80×96 — Farm/Town fall
     pub tree_birch_green_image: Handle<Image>, // 48×80 — Forest/DeepForest
     pub tree_pine_blue_image: Handle<Image>,   // 64×96 — SnowMountain
+    // Premium modern farm fence atlas (512×272, 32 cols × 17 rows, 16×16 tiles)
+    // Contains multiple fence styles: hedges, planks, stone walls, gates, chains.
+    pub modern_fences_image: Handle<Image>,
+    pub modern_fences_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads object atlas assets on first use. Subsequent calls are no-ops.
@@ -150,7 +154,7 @@ pub fn ensure_object_atlases_loaded(
     atlases.item_icon_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
         13,
-        19,
+        20,
         None,
         None,
     ));
@@ -262,6 +266,18 @@ pub fn ensure_object_atlases_loaded(
     atlases.tree_oak_brown_image = asset_server.load("sprites/tree_oak_brown.png");
     atlases.tree_birch_green_image = asset_server.load("sprites/tree_birch_green.png");
     atlases.tree_pine_blue_image = asset_server.load("sprites/tree_pine_blue.png");
+
+    // modern_farm_fences.png: 512×272, 32 cols × 17 rows of 16×16 fence tiles.
+    // Multi-style: hedges (rows 0-1), wood planks (rows 2-3), stone (rows 4-5),
+    // gates & posts (rows 6+), chain-link (rows 15-16).
+    atlases.modern_fences_image = asset_server.load("tilesets/modern_farm_fences.png");
+    atlases.modern_fences_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        32,
+        17,
+        None,
+        None,
+    ));
 
     atlases.loaded = true;
 }

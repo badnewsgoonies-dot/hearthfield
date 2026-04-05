@@ -106,6 +106,9 @@ pub struct AnimalSpriteData {
     pub egg_nest_layout: Handle<TextureAtlasLayout>,
     pub milk_grass_image: Handle<Image>,
     pub milk_grass_layout: Handle<TextureAtlasLayout>,
+    // Happiness/mood indicator icons (icons_happiness.png: 6 cols × 2 rows, 16×16)
+    pub happiness_image: Handle<Image>,
+    pub happiness_layout: Handle<TextureAtlasLayout>,
 }
 
 /// Loads all animal sprite atlases on first entry into Playing state.
@@ -234,6 +237,18 @@ pub fn load_animal_sprites(
         UVec2::new(16, 16),
         4,
         1,
+        None,
+        None,
+    ));
+
+    // icons_happiness.png: 96×32, 6 cols × 2 rows of 16×16 mood icons.
+    // Row 0: light variants, Row 1: saturated variants.
+    // Col 0-5 map to mood tiers (low → high happiness).
+    sprite_data.happiness_image = asset_server.load("ui/icons_happiness.png");
+    sprite_data.happiness_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        6,
+        2,
         None,
         None,
     ));

@@ -302,7 +302,7 @@ fn load_farming_atlases(
         None,
     ));
 
-    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt.png");
+    atlases.dirt_image = asset_server.load("tilesets/tilled_dirt_v2.png");
     atlases.dirt_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16),
         11,

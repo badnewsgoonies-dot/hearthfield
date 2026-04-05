@@ -53,7 +53,7 @@ pub fn npc_sprite_file(npc_id: &str) -> &'static str {
         "mayor_rex" => "sprites/npcs/npc_noble.png", // mayor — regal
         "sam" => "sprites/npcs/npc_scholar.png",    // musician — scholarly
         "nora" => "sprites/npcs/npc_farmer.png",    // farmer
-        "bjorn" => "sprites/npcs/npc_guard.png",    // carpenter — sturdy build
+        "bjorn" => "sprites/npcs/npc_miner.png",    // carpenter — sturdy build
         _ => "sprites/npcs/npc_guard.png",          // fallback
     }
 }

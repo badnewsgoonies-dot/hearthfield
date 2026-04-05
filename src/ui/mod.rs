@@ -32,7 +32,7 @@ use crate::shared::*;
 use bevy::prelude::*;
 
 pub const ITEM_ATLAS_COLUMNS: usize = 13;
-pub const ITEM_ATLAS_ROWS: usize = 19;
+pub const ITEM_ATLAS_ROWS: usize = 20;
 
 pub fn item_icon_index(sprite_index: u32) -> usize {
     let idx = sprite_index as usize;
@@ -105,6 +105,22 @@ pub struct UiIconAtlases {
     /// icons_special.png: 7 cols × 4 rows (stars, hearts, coins, gems)
     pub special_image: Handle<Image>,
     pub special_layout: Handle<TextureAtlasLayout>,
+    /// icons_white.png: 6 cols × 3 rows monochrome UI icons (disabled/hover states)
+    pub icons_white_image: Handle<Image>,
+    pub icons_white_layout: Handle<TextureAtlasLayout>,
+    /// ui_spritesheet.png: 56 cols × 15 rows comprehensive UI element atlas
+    /// Contains buttons, sliders, checkboxes, panels, symbols, and decorative elements.
+    pub ui_sheet_image: Handle<Image>,
+    pub ui_sheet_layout: Handle<TextureAtlasLayout>,
+    /// inventory_spritesheet.png: 23 cols × 21 rows inventory UI elements
+    /// Contains hearts, health bars, inventory slot backgrounds, button panels.
+    pub inventory_sheet_image: Handle<Image>,
+    pub inventory_sheet_layout: Handle<TextureAtlasLayout>,
+    /// buttons_26x26.png: 2 cols × 8 rows of 26×26 button backgrounds (light/dark pairs).
+    /// Rows graduate from light (top) to dark (bottom) for state styling.
+    /// Note: non-16×16 tile size — use buttons_image/layout specifically.
+    pub buttons_image: Handle<Image>,
+    pub buttons_layout: Handle<TextureAtlasLayout>,
     pub loaded: bool,
 }
 
@@ -124,7 +140,64 @@ fn preload_ui_icons(
     atlases.special_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16), 7, 4, None, None,
     ));
+    // icons_white.png: 96×48 → 6 cols × 3 rows of 16×16 monochrome icons
+    atlases.icons_white_image = asset_server.load("ui/icons_white.png");
+    atlases.icons_white_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16), 6, 3, None, None,
+    ));
+    // ui_spritesheet.png: 896×240 → 56 cols × 15 rows of 16×16 UI elements
+    atlases.ui_sheet_image = asset_server.load("ui/ui_spritesheet.png");
+    atlases.ui_sheet_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16), 56, 15, None, None,
+    ));
+    // inventory_spritesheet.png: 368×336 → 23 cols × 21 rows of 16×16 elements
+    atlases.inventory_sheet_image = asset_server.load("ui/inventory_spritesheet.png");
+    atlases.inventory_sheet_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16), 23, 21, None, None,
+    ));
+    // buttons_26x26.png: 96×192, tile size 48×24 → 2 cols × 8 rows of button bg
+    atlases.buttons_image = asset_server.load("ui/buttons_26x26.png");
+    atlases.buttons_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(48, 24), 2, 8, None, None,
+    ));
     atlases.loaded = true;
+}
+
+/// Premium non-atlas UI images — dialog backgrounds, panel art, etc.
+/// Loaded once at startup, available to all screens.
+#[derive(Resource, Default)]
+pub struct PremiumUiImages {
+    /// dialog_box.png: 48×48 9-slice tile for custom-sized panels
+    pub dialog_9slice: Handle<Image>,
+    /// dialog_box_big.png: 176×48 pre-rendered clean dialog panel
+    pub dialog_big: Handle<Image>,
+    /// dialog_box_medium.png: 128×48 pre-rendered clean dialog panel
+    pub dialog_medium: Handle<Image>,
+    /// dialog_box_small.png: 112×48 pre-rendered clean dialog panel
+    pub dialog_small: Handle<Image>,
+    /// inventory_hearts_light.png: 7 cols × 21 rows — light theme heart icons
+    pub hearts_light_image: Handle<Image>,
+    pub hearts_light_layout: Handle<TextureAtlasLayout>,
+    pub loaded: bool,
+}
+
+fn preload_premium_ui(
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut images: ResMut<PremiumUiImages>,
+) {
+    if images.loaded {
+        return;
+    }
+    images.dialog_9slice = asset_server.load("ui/dialog_box.png");
+    images.dialog_big = asset_server.load("ui/dialog_box_big.png");
+    images.dialog_medium = asset_server.load("ui/dialog_box_medium.png");
+    images.dialog_small = asset_server.load("ui/dialog_box_small.png");
+    images.hearts_light_image = asset_server.load("ui/inventory_hearts_light.png");
+    images.hearts_light_layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16), 7, 21, None, None,
+    ));
+    images.loaded = true;
 }
 
 /// Build an ImageNode from icons.png by atlas index.
@@ -185,7 +258,8 @@ impl Plugin for UiPlugin {
 
         // ─── FONT LOADING + MENU ASSETS + ICON ATLASES — runs at Startup ───
         app.init_resource::<UiIconAtlases>();
-        app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets, preload_ui_icons));
+        app.init_resource::<PremiumUiImages>();
+        app.add_systems(Startup, (load_ui_font, menu_kit::load_menu_assets, preload_ui_icons, preload_premium_ui));
 
         // ─── AUDIO — music state resource + event handlers ───
         app.init_resource::<audio::MusicState>();

@@ -22,7 +22,9 @@ pub mod speech_bubbles;
 
 use animation::animate_npc_sprites;
 use dialogue::{handle_npc_interaction, reset_daily_talks, ActiveNpcInteraction, DailyTalkTracker};
-use emotes::{animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, NpcEmoteEvent};
+use emotes::{
+    animate_emote_bubbles, spawn_emote_bubbles, EmoteSprites, FaceEmoteSprites, NpcEmoteEvent,
+};
 use gifts::{handle_gift_input, handle_gifts, update_gift_hearts};
 use idle_behavior::{attach_npc_shadows, npc_idle_behavior_system, ShadowSpriteCache};
 use map_events::{handle_day_end, handle_map_transition, GiftDecayTracker};
@@ -59,6 +61,7 @@ impl Plugin for NpcPlugin {
             .init_resource::<WeddingTimer>()
             .init_resource::<FarmVisitTracker>()
             .init_resource::<EmoteSprites>()
+            .init_resource::<FaceEmoteSprites>()
             .init_resource::<ShadowSpriteCache>()
             .init_resource::<SpeechBubbleAtlas>()
             .add_event::<NpcEmoteEvent>();
