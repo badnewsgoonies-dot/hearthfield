@@ -4,6 +4,25 @@ use crate::world::map_data::{EdgeTarget, MapRegistry};
 use bevy::prelude::*;
 use rand::Rng;
 
+/// Cooldown after a map transition to prevent rapid-fire double-transitions.
+/// When the player lands on a new map, this timer must expire before another
+/// transition can fire. Prevents bounce-back when spawning near an edge.
+#[derive(Resource)]
+pub struct TransitionCooldown {
+    pub timer: Timer,
+}
+
+impl Default for TransitionCooldown {
+    fn default() -> Self {
+        Self {
+            timer: Timer::from_seconds(0.0, TimerMode::Once),
+        }
+    }
+}
+
+/// Marker type for InputBlocks during map transitions.
+pub struct MapTransitionBlock;
+
 /// A short sparkle burst played when an item is added to the player's inventory.
 #[derive(Component, Debug)]
 pub struct PickupSparkle {
@@ -442,7 +461,21 @@ pub fn map_transition_check(
     query: Query<&GridPosition, With<Player>>,
     mut map_events: EventWriter<MapTransitionEvent>,
     registry: Res<MapRegistry>,
+    mut cooldown: ResMut<TransitionCooldown>,
+    time: Res<Time>,
+    input_blocks: Res<InputBlocks>,
 ) {
+    // Tick the cooldown timer.
+    cooldown.timer.tick(time.delta());
+
+    // Don't check for transitions if cooldown is active or input is blocked.
+    if !cooldown.timer.finished() {
+        return;
+    }
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     let Ok(grid_pos) = query.get_single() else {
         return;
     };
@@ -464,6 +497,8 @@ pub fn handle_map_transition(
     mut camera_snap: ResMut<super::CameraSnap>,
     mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
     registry: Res<MapRegistry>,
+    mut cooldown: ResMut<TransitionCooldown>,
+    mut input_blocks: ResMut<InputBlocks>,
 ) {
     // Process only the most recent transition (in case multiple fire).
     let Some(ev) = events.read().last() else {
@@ -503,6 +538,13 @@ pub fn handle_map_transition(
     // Update bounds for the new map.
     let (min_x, max_x, min_y, max_y) = map_bounds_from_registry(&ev.to_map, &registry);
     collision_map.bounds = (min_x, max_x, min_y, max_y);
+
+    // Set a cooldown to prevent immediate re-triggering on the new map.
+    cooldown.timer = Timer::from_seconds(0.25, TimerMode::Once);
+
+    // Block input during the transition fade so the player can't walk
+    // into walls while collision data is being rebuilt.
+    input_blocks.block::<MapTransitionBlock>();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

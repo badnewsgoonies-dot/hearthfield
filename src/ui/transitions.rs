@@ -1,3 +1,4 @@
+use crate::player::interaction::MapTransitionBlock;
 use crate::save::{LoadCompleteEvent, LoadRequestEvent};
 use crate::shared::*;
 use bevy::prelude::*;
@@ -108,6 +109,7 @@ pub fn update_fade(
     time: Res<Time>,
     mut fade: ResMut<ScreenFade>,
     mut query: Query<&mut BackgroundColor, With<ScreenFadeOverlay>>,
+    mut input_blocks: ResMut<InputBlocks>,
 ) {
     if !fade.active {
         return;
@@ -127,6 +129,8 @@ pub fn update_fade(
             }
         } else {
             fade.active = false;
+            // Release the input block pushed during map transition.
+            input_blocks.unblock::<MapTransitionBlock>();
         }
     } else {
         fade.alpha += diff.signum() * fade.speed * dt;

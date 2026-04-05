@@ -20,6 +20,7 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<ToolCooldown>();
         app.init_resource::<CollisionMap>();
         app.init_resource::<CameraSnap>();
+        app.init_resource::<interaction::TransitionCooldown>();
         app.init_resource::<PlayerSpriteData>();
         app.init_resource::<tool_anim::ProceduralToolSprites>();
         // -- Spawn player + tile cursor when we enter Playing --
