@@ -223,16 +223,22 @@ pub fn spawn_npcs_for_map(
             ))
             .id();
 
-        // Floating name tag above the NPC sprite (48px sprite height + 2px gap).
+        // Floating name tag above the NPC sprite.
+        // font_size is in world units; camera scale is 1/PIXEL_SCALE (=1/3), so
+        // each world unit renders as PIXEL_SCALE screen pixels.
+        // font_size 3.0 → 3 world units × 3 screen-pixels/unit = 9 screen pixels,
+        // which is within the 8-10px target for a small readable label.
+        // Z offset 1.0 ensures the label renders above the NPC sprite (z ~0) and
+        // nearby world-object sprites, preventing overlap with buildings and trees.
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Text2d::new(npc_def.name.clone()),
                 TextFont {
-                    font_size: 5.0,
+                    font_size: 3.0,
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 26.0, 0.1),
+                Transform::from_xyz(0.0, 26.0, 1.0),
             ));
         });
 
@@ -340,15 +346,19 @@ pub fn spawn_mayor_for_intro(
             ))
             .id();
 
+        // Same label parameters as spawn_npcs_for_map: 3.0 world-unit font
+        // (= 9 screen pixels at 3x camera zoom) placed 26 world units above
+        // the entity origin (just above the 24-unit sprite top), Z +1.0 to
+        // render above the NPC sprite and surrounding world objects.
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Text2d::new(npc_def.name.clone()),
                 TextFont {
-                    font_size: 5.0,
+                    font_size: 3.0,
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 26.0, 0.1),
+                Transform::from_xyz(0.0, 26.0, 1.0),
             ));
         });
 
