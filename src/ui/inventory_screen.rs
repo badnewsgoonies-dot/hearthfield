@@ -79,107 +79,125 @@ pub fn spawn_inventory_screen(
                 align_items: AlignItems::Center,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.55)),
         ))
         .with_children(|parent| {
-            // Main inventory panel — wider to fit 12 cols at readable size
+            // ── Main panel ──────────────────────────────────────────────
             parent
                 .spawn((
                     Node {
-                        width: Val::Px(820.0),
-                        height: Val::Px(460.0),
+                        width: Val::Px(560.0),
+                        height: Val::Px(380.0),
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
-                        padding: UiRect::all(Val::Px(16.0)),
-                        row_gap: Val::Px(8.0),
+                        padding: UiRect::new(
+                            Val::Px(20.0),
+                            Val::Px(20.0),
+                            Val::Px(14.0),
+                            Val::Px(14.0),
+                        ),
+                        row_gap: Val::Px(10.0),
                         border: UiRect::all(Val::Px(3.0)),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.12, 0.1, 0.08, 0.95)),
-                    BorderColor(Color::srgb(0.5, 0.4, 0.25)),
+                    BackgroundColor(Color::srgba(0.14, 0.11, 0.08, 0.97)),
+                    BorderColor(Color::srgb(0.55, 0.42, 0.22)),
                 ))
                 .with_children(|panel| {
-                    // Title with money bag icon (icons.png row 1, col 4 = index 22)
-                    panel.spawn((
-                        super::icon_node(&ui_icons, 22),
-                        super::icon_size_node(),
-                    ));
-                    panel.spawn((
-                        Text::new("INVENTORY"),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 22.0,
+                    // ── Title bar ────────────────────────────────────────
+                    panel
+                        .spawn((Node {
+                            width: Val::Percent(100.0),
+                            flex_direction: FlexDirection::Row,
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            column_gap: Val::Px(8.0),
+                            margin: UiRect::bottom(Val::Px(2.0)),
                             ..default()
-                        },
-                        TextColor(Color::srgb(1.0, 0.9, 0.6)),
-                    ));
+                        },))
+                        .with_children(|title_row| {
+                            title_row.spawn((
+                                super::icon_node(&ui_icons, 22),
+                                super::icon_size_node(),
+                            ));
+                            title_row.spawn((
+                                Text::new("INVENTORY"),
+                                TextFont {
+                                    font: font.clone(),
+                                    font_size: 20.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(1.0, 0.92, 0.65)),
+                            ));
+                        });
 
-                    // Hint text
+                    // ── Hint ─────────────────────────────────────────────
                     panel.spawn((
                         Text::new("WASD/Arrows: Move | Enter: Use | Esc: Close"),
                         TextFont {
                             font: font.clone(),
-                            font_size: 12.0,
+                            font_size: 11.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                        TextColor(Color::srgb(0.5, 0.5, 0.5)),
                     ));
 
-                    // Grid: 3 rows x 12 columns = 36 slots
+                    // ── Icon-only grid: 3 rows × 12 cols ────────────────
+                    // Harvest Moon style: compact square slots, no text
                     for row in 0..3 {
                         panel
                             .spawn((Node {
                                 width: Val::Percent(100.0),
                                 flex_direction: FlexDirection::Row,
                                 justify_content: JustifyContent::Center,
-                                column_gap: Val::Px(3.0),
+                                column_gap: Val::Px(2.0),
                                 ..default()
                             },))
                             .with_children(|row_node| {
                                 for col in 0..12 {
                                     let index = row * 12 + col;
+                                    let slot_ref = if index < inventory.slots.len() {
+                                        inventory.slots[index].as_ref()
+                                    } else {
+                                        None
+                                    };
+                                    let item_id = slot_ref.map(|s| s.item_id.as_str());
+                                    let sprite_idx = slot_ref
+                                        .and_then(|s| item_registry.get(&s.item_id))
+                                        .map(|def| def.sprite_index)
+                                        .unwrap_or(0);
+                                    let has_item = slot_ref.is_some();
+                                    let qty = slot_ref.map(|s| s.quantity).unwrap_or(0);
+
                                     row_node
                                         .spawn((
                                             InventoryGridSlot { index },
                                             InventorySlotBg { index },
                                             Node {
-                                                width: Val::Px(62.0),
-                                                height: Val::Px(80.0),
-                                                flex_direction: FlexDirection::Column,
-                                                justify_content: JustifyContent::FlexStart,
+                                                width: Val::Px(42.0),
+                                                height: Val::Px(42.0),
+                                                justify_content: JustifyContent::Center,
                                                 align_items: AlignItems::Center,
                                                 border: UiRect::all(Val::Px(2.0)),
-                                                padding: UiRect::axes(Val::Px(3.0), Val::Px(4.0)),
-                                                row_gap: Val::Px(2.0),
+                                                position_type: PositionType::Relative,
                                                 ..default()
                                             },
-                                            ImageNode {
-                                                image: asset_server.load("ui/inventory_blocks.png"),
-                                                ..default()
-                                            },
-                                            BorderColor(Color::srgba(0.4, 0.35, 0.3, 0.7)),
+                                            BackgroundColor(Color::srgba(0.2, 0.17, 0.13, 0.8)),
+                                            BorderColor(Color::srgba(0.35, 0.3, 0.22, 0.9)),
                                         ))
                                         .with_children(|slot| {
-                                            // Item icon — use per-crop Pickup PNG when available
-                                            let slot_ref = if index < inventory.slots.len() {
-                                                inventory.slots[index].as_ref()
-                                            } else {
-                                                None
-                                            };
-                                            let item_id = slot_ref.map(|s| s.item_id.as_str());
-                                            let sprite_idx = slot_ref
-                                                .and_then(|s| item_registry.get(&s.item_id))
-                                                .map(|def| def.sprite_index)
-                                                .unwrap_or(0);
-                                            let has_item = slot_ref.is_some();
+                                            // Item icon — centered, no text
                                             if atlas_data.loaded {
                                                 slot.spawn((
                                                     InventorySlotIcon { index },
-                                                    item_image_node(&atlas_data, item_id, sprite_idx),
+                                                    item_image_node(
+                                                        &atlas_data,
+                                                        item_id,
+                                                        sprite_idx,
+                                                    ),
                                                     Node {
                                                         width: Val::Px(32.0),
                                                         height: Val::Px(32.0),
-                                                        margin: UiRect::bottom(Val::Px(2.0)),
                                                         ..default()
                                                     },
                                                     if has_item {
@@ -189,94 +207,131 @@ pub fn spawn_inventory_screen(
                                                     },
                                                 ));
                                             }
-                                            // Item name
+                                            // Quantity badge (bottom-right corner)
+                                            if has_item && qty > 1 {
+                                                slot.spawn((
+                                                    InventorySlotQuantity { index },
+                                                    Text::new(format!("{}", qty)),
+                                                    TextFont {
+                                                        font: font.clone(),
+                                                        font_size: 10.0,
+                                                        ..default()
+                                                    },
+                                                    TextColor(Color::WHITE),
+                                                    Node {
+                                                        position_type: PositionType::Absolute,
+                                                        right: Val::Px(1.0),
+                                                        bottom: Val::Px(0.0),
+                                                        ..default()
+                                                    },
+                                                ));
+                                            } else {
+                                                // Hidden qty placeholder for update system
+                                                slot.spawn((
+                                                    InventorySlotQuantity { index },
+                                                    Text::new(""),
+                                                    TextFont {
+                                                        font: font.clone(),
+                                                        font_size: 10.0,
+                                                        ..default()
+                                                    },
+                                                    TextColor(Color::WHITE),
+                                                    Node {
+                                                        position_type: PositionType::Absolute,
+                                                        right: Val::Px(1.0),
+                                                        bottom: Val::Px(0.0),
+                                                        ..default()
+                                                    },
+                                                    Visibility::Hidden,
+                                                ));
+                                            }
+                                            // Hidden text nodes for the update system
                                             slot.spawn((
                                                 InventorySlotItemName { index },
                                                 Text::new(""),
                                                 TextFont {
                                                     font: font.clone(),
-                                                    font_size: 10.0,
+                                                    font_size: 1.0,
                                                     ..default()
                                                 },
-                                                TextColor(Color::srgb(0.97, 0.95, 0.9)),
-                                                Node {
-                                                    width: Val::Percent(100.0),
-                                                    min_height: Val::Px(14.0),
-                                                    ..default()
-                                                },
+                                                Visibility::Hidden,
                                             ));
-                                            // Status / equipped badge
                                             slot.spawn((
                                                 InventorySlotStatus { index },
                                                 Text::new(""),
                                                 TextFont {
                                                     font: font.clone(),
-                                                    font_size: 9.0,
+                                                    font_size: 1.0,
                                                     ..default()
                                                 },
-                                                TextColor(Color::srgb(0.72, 0.9, 0.72)),
-                                                Node {
-                                                    width: Val::Percent(100.0),
-                                                    ..default()
-                                                },
-                                            ));
-                                            // Quantity
-                                            slot.spawn((
-                                                InventorySlotQuantity { index },
-                                                Text::new(""),
-                                                TextFont {
-                                                    font: font.clone(),
-                                                    font_size: 9.0,
-                                                    ..default()
-                                                },
-                                                TextColor(Color::srgb(0.8, 0.78, 0.74)),
-                                                Node {
-                                                    width: Val::Percent(100.0),
-                                                    ..default()
-                                                },
+                                                Visibility::Hidden,
                                             ));
                                         });
                                 }
                             });
                     }
-                    // Hovered item details
+
+                    // ── Selected item detail panel ──────────────────────
                     panel
                         .spawn((
                             Node {
                                 width: Val::Percent(100.0),
-                                min_height: Val::Px(92.0),
-                                padding: UiRect::all(Val::Px(10.0)),
+                                min_height: Val::Px(100.0),
+                                flex_direction: FlexDirection::Row,
+                                column_gap: Val::Px(14.0),
+                                padding: UiRect::all(Val::Px(12.0)),
                                 border: UiRect::all(Val::Px(2.0)),
                                 ..default()
                             },
-                            BackgroundColor(Color::srgba(0.16, 0.13, 0.1, 0.98)),
-                            BorderColor(Color::srgb(0.58, 0.48, 0.28)),
+                            BackgroundColor(Color::srgba(0.18, 0.14, 0.1, 0.95)),
+                            BorderColor(Color::srgb(0.5, 0.4, 0.25)),
                         ))
                         .with_children(|desc_panel| {
+                            // Large item icon placeholder
                             desc_panel.spawn((
-                                Text::new("Selected Item"),
-                                TextFont {
-                                    font: font.clone(),
-                                    font_size: 14.0,
-                                    ..default()
-                                },
-                                TextColor(Color::srgb(1.0, 0.9, 0.65)),
-                            ));
-                            desc_panel.spawn((
-                                InventoryDescText,
-                                Text::new("Move the cursor over an item to inspect it."),
-                                TextFont {
-                                    font: font.clone(),
-                                    font_size: 13.0,
-                                    ..default()
-                                },
-                                TextColor(Color::srgb(0.85, 0.82, 0.72)),
                                 Node {
-                                    width: Val::Percent(100.0),
-                                    margin: UiRect::top(Val::Px(4.0)),
+                                    width: Val::Px(48.0),
+                                    height: Val::Px(48.0),
                                     ..default()
                                 },
+                                BackgroundColor(Color::srgba(0.1, 0.08, 0.06, 0.6)),
                             ));
+
+                            // Text column
+                            desc_panel
+                                .spawn((Node {
+                                    flex_direction: FlexDirection::Column,
+                                    flex_grow: 1.0,
+                                    row_gap: Val::Px(4.0),
+                                    ..default()
+                                },))
+                                .with_children(|text_col| {
+                                    text_col.spawn((
+                                        Text::new("Select an item"),
+                                        TextFont {
+                                            font: font.clone(),
+                                            font_size: 16.0,
+                                            ..default()
+                                        },
+                                        TextColor(Color::srgb(1.0, 0.92, 0.65)),
+                                    ));
+                                    text_col.spawn((
+                                        InventoryDescText,
+                                        Text::new(
+                                            "Use the cursor to browse your items.",
+                                        ),
+                                        TextFont {
+                                            font: font.clone(),
+                                            font_size: 14.0,
+                                            ..default()
+                                        },
+                                        TextColor(Color::srgb(0.78, 0.74, 0.66)),
+                                        Node {
+                                            width: Val::Percent(100.0),
+                                            ..default()
+                                        },
+                                    ));
+                                });
                         });
                 });
         });
