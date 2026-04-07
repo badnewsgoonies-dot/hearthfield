@@ -79,7 +79,7 @@ pub fn spawn_minimap(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
     let mut image = Image::new_fill(
         size,
         TextureDimension::D2,
-        &[20, 30, 20, 255],
+        &[0, 0, 0, 0],
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
@@ -90,7 +90,7 @@ pub fn spawn_minimap(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
     commands.insert_resource(MinimapState {
         image_handle: handle.clone(),
         cached_map: None,
-        base_pixels: vec![[20, 30, 20, 255]; MAX_MAP * MAX_MAP],
+        base_pixels: vec![[0, 0, 0, 0]; MAX_MAP * MAX_MAP],
         map_width: MAX_MAP,
         map_height: MAX_MAP,
         last_player_tile: None,
@@ -115,7 +115,7 @@ pub fn spawn_minimap(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
             ..default()
         },
         BorderColor(Color::srgba(0.5, 0.45, 0.3, 0.8)),
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.4)),
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
         GlobalZIndex(10),
     ));
 }
@@ -153,8 +153,8 @@ pub fn update_minimap(
         minimap.map_width = w;
         minimap.map_height = h;
 
-        // Clear to void
-        minimap.base_pixels = vec![[20, 30, 20, 255]; MAX_MAP * MAX_MAP];
+        // Clear to transparent (pixels outside map bounds must not render as black)
+        minimap.base_pixels = vec![[0, 0, 0, 0]; MAX_MAP * MAX_MAP];
 
         // Fill actual tiles (flip Y: image row 0 = top, game y=0 = bottom)
         for y in 0..h {

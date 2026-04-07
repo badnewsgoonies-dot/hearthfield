@@ -541,7 +541,9 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             west: None,
         },
         MapId::PlayerHouse => EdgeDefs {
-            north: Some((MapId::Farm, EdgeTarget::Fixed(16, 3))),
+            // Exit one tile south of farmhouse door (7-8, 19) so the player
+            // appears right outside the house, not across the map.
+            north: Some((MapId::Farm, EdgeTarget::Fixed(8, 18))),
             south: None,
             east: None,
             west: None,
@@ -559,19 +561,22 @@ fn edges_for(map_id: MapId) -> EdgeDefs {
             west: None,
         },
         MapId::GeneralStore => EdgeDefs {
-            north: Some((MapId::Town, EdgeTarget::Fixed(6, 8))),
+            // Exit 1 tile north of door at Town (5-6, y=2) — safely inside map.
+            north: Some((MapId::Town, EdgeTarget::Fixed(6, 3))),
             south: None,
             east: None,
             west: None,
         },
         MapId::AnimalShop => EdgeDefs {
-            north: Some((MapId::Town, EdgeTarget::Fixed(22, 8))),
+            // Exit 1 tile north of door at Town (22-23, y=2) — safely inside map.
+            north: Some((MapId::Town, EdgeTarget::Fixed(22, 3))),
             south: None,
             east: None,
             west: None,
         },
         MapId::Blacksmith => EdgeDefs {
-            north: Some((MapId::Town, EdgeTarget::Fixed(22, 18))),
+            // Exit 1 tile north of door at Town (22-23, y=13) — safely inside map.
+            north: Some((MapId::Town, EdgeTarget::Fixed(22, 14))),
             south: None,
             east: None,
             west: None,

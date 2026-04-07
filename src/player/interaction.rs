@@ -4,6 +4,25 @@ use crate::world::map_data::{EdgeTarget, MapRegistry};
 use bevy::prelude::*;
 use rand::Rng;
 
+/// Cooldown after a map transition to prevent rapid-fire double-transitions.
+/// When the player lands on a new map, this timer must expire before another
+/// transition can fire. Prevents bounce-back when spawning near an edge.
+#[derive(Resource)]
+pub struct TransitionCooldown {
+    pub timer: Timer,
+}
+
+impl Default for TransitionCooldown {
+    fn default() -> Self {
+        Self {
+            timer: Timer::from_seconds(0.0, TimerMode::Once),
+        }
+    }
+}
+
+/// Marker type for InputBlocks during map transitions.
+pub struct MapTransitionBlock;
+
 /// A short sparkle burst played when an item is added to the player's inventory.
 #[derive(Component, Debug)]
 pub struct PickupSparkle {
@@ -322,9 +341,11 @@ mod tests {
     #[test]
     fn player_house_exit_lands_on_farm_path_outside_door_trigger() {
         let reg = test_registry();
+        // Exit from PlayerHouse north edge should land near farmhouse door (7-8, 19),
+        // one tile south at (8, 18) to avoid immediate re-entry.
         assert_eq!(
             edge_transition_from_registry(&MapId::PlayerHouse, 8, 15, &reg),
-            Some((MapId::Farm, 16, 3))
+            Some((MapId::Farm, 8, 18))
         );
     }
 
@@ -442,7 +463,21 @@ pub fn map_transition_check(
     query: Query<&GridPosition, With<Player>>,
     mut map_events: EventWriter<MapTransitionEvent>,
     registry: Res<MapRegistry>,
+    mut cooldown: ResMut<TransitionCooldown>,
+    time: Res<Time>,
+    input_blocks: Res<InputBlocks>,
 ) {
+    // Tick the cooldown timer.
+    cooldown.timer.tick(time.delta());
+
+    // Don't check for transitions if cooldown is active or input is blocked.
+    if !cooldown.timer.finished() {
+        return;
+    }
+    if input_blocks.is_blocked() {
+        return;
+    }
+
     let Ok(grid_pos) = query.get_single() else {
         return;
     };
@@ -464,6 +499,9 @@ pub fn handle_map_transition(
     mut camera_snap: ResMut<super::CameraSnap>,
     mut query: Query<(&mut LogicalPosition, &mut GridPosition), With<Player>>,
     registry: Res<MapRegistry>,
+    mut cooldown: ResMut<TransitionCooldown>,
+    mut input_blocks: ResMut<InputBlocks>,
+    mut boat_mode: ResMut<BoatMode>,
 ) {
     // Process only the most recent transition (in case multiple fire).
     let Some(ev) = events.read().last() else {
@@ -495,6 +533,15 @@ pub fn handle_map_transition(
         camera_snap.frames_remaining = 3;
     }
 
+    // Reset boat mode when leaving a water map — prevents being stuck on
+    // land maps where all tiles are impassable in sailing mode.
+    if boat_mode.active {
+        let to_water_map = matches!(ev.to_map, MapId::CoralIsland | MapId::Beach);
+        if !to_water_map {
+            boat_mode.active = false;
+        }
+    }
+
     // Invalidate the collision map — the world domain will re-populate it
     // for the new map via sync_collision_map when WorldMap updates.
     collision_map.initialised = false;
@@ -503,6 +550,13 @@ pub fn handle_map_transition(
     // Update bounds for the new map.
     let (min_x, max_x, min_y, max_y) = map_bounds_from_registry(&ev.to_map, &registry);
     collision_map.bounds = (min_x, max_x, min_y, max_y);
+
+    // Set a cooldown to prevent immediate re-triggering on the new map.
+    cooldown.timer = Timer::from_seconds(0.25, TimerMode::Once);
+
+    // Block input during the transition fade so the player can't walk
+    // into walls while collision data is being rebuilt.
+    input_blocks.block::<MapTransitionBlock>();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

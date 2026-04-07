@@ -266,6 +266,7 @@ pub fn spawn_crafting_screen(
                                         }
                                     }
 
+                                    // Recipe name — fixed width so materials column aligns
                                     row.spawn((
                                         CraftingRecipeName { index: i },
                                         Text::new(""),
@@ -275,7 +276,12 @@ pub fn spawn_crafting_screen(
                                             ..default()
                                         },
                                         TextColor(Color::WHITE),
+                                        Node {
+                                            width: Val::Px(280.0),
+                                            ..default()
+                                        },
                                     ));
+                                    // Materials — right-aligned, fills remaining space
                                     row.spawn((
                                         CraftingRecipeMaterials { index: i },
                                         Text::new(""),
@@ -285,6 +291,11 @@ pub fn spawn_crafting_screen(
                                             ..default()
                                         },
                                         TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                                        Node {
+                                            flex_grow: 1.0,
+                                            justify_content: JustifyContent::FlexEnd,
+                                            ..default()
+                                        },
                                     ));
                                 });
                             }

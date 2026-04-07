@@ -172,8 +172,14 @@ pub fn preload_item_atlas(
     // Load per-crop Pickup icon overrides (higher quality than atlas)
     for (crop_id, path) in [
         ("turnip", "sprites/items/Pickup_Crop_Turnip_16x16.png"),
-        ("cauliflower", "sprites/items/Pickup_Crop_Cauliflower_16x16.png"),
-        ("strawberry", "sprites/items/Pickup_Crop_Strawberry_16x16.png"),
+        (
+            "cauliflower",
+            "sprites/items/Pickup_Crop_Cauliflower_16x16.png",
+        ),
+        (
+            "strawberry",
+            "sprites/items/Pickup_Crop_Strawberry_16x16.png",
+        ),
         ("tomato", "sprites/items/Pickup_Crop_Tomato_16x16.png"),
         ("corn", "sprites/items/Pickup_Crop_Corn_16x16.png"),
         ("pumpkin", "sprites/items/Pickup_Crop_Pumpkin_16x16.png"),
@@ -218,7 +224,13 @@ pub fn preload_weather_icon_atlas(
 // SPAWN HUD
 // ═══════════════════════════════════════════════════════════════════════
 
-pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_server: Res<AssetServer>, mut layouts: ResMut<Assets<TextureAtlasLayout>>, ui_icons: Res<super::UiIconAtlases>) {
+pub fn spawn_hud(
+    mut commands: Commands,
+    font_handle: Res<UiFontHandle>,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    ui_icons: Res<super::UiIconAtlases>,
+) {
     let font = font_handle.0.clone();
 
     // Root container — full screen overlay, no interaction blocking
@@ -405,15 +417,13 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
                                         ImageNode {
                                             image: asset_server.load("ui/icons_special.png"),
                                             texture_atlas: Some(TextureAtlas {
-                                                layout: layouts.add(
-                                                    TextureAtlasLayout::from_grid(
-                                                        UVec2::new(16, 16),
-                                                        7,
-                                                        4,
-                                                        None,
-                                                        None,
-                                                    ),
-                                                ),
+                                                layout: layouts.add(TextureAtlasLayout::from_grid(
+                                                    UVec2::new(16, 16),
+                                                    7,
+                                                    4,
+                                                    None,
+                                                    None,
+                                                )),
                                                 index: 14,
                                             }),
                                             ..default()
@@ -647,12 +657,13 @@ pub fn spawn_hud(mut commands: Commands, font_handle: Res<UiFontHandle>, asset_s
         });
 
     // ─── OBJECTIVE — absolute position, top-left below top bar ───
+    // Top bar height is 64 px. Use 72 px to clear it with 8 px breathing room.
     commands
         .spawn((
             HudObjective,
             Node {
                 position_type: PositionType::Absolute,
-                top: Val::Px(52.0),
+                top: Val::Px(72.0),
                 left: Val::Px(12.0),
                 padding: UiRect {
                     left: Val::Px(10.0),
@@ -766,7 +777,7 @@ fn spawn_hotbar(parent: &mut ChildBuilder, font: &Handle<Font>) {
                             .spawn((
                                 HotbarSlot { index: i },
                                 Node {
-                                    width: Val::Px(46.0),
+                                    width: Val::Px(52.0),
                                     height: Val::Px(46.0),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
@@ -1114,6 +1125,32 @@ pub fn update_tool_display(
     }
 }
 
+fn compact_item_name(name: &str) -> String {
+    const MAX_LABEL_CHARS: usize = 9;
+    const MIN_VISIBLE_CHARS: usize = 6;
+
+    let char_count = name.chars().count();
+    if char_count <= MAX_LABEL_CHARS {
+        return name.to_string();
+    }
+
+    let words: Vec<&str> = name.split_whitespace().collect();
+    if let Some(first_word) = words.first() {
+        let first_word_chars = first_word.chars().count();
+        if first_word_chars >= MIN_VISIBLE_CHARS && first_word_chars <= MAX_LABEL_CHARS {
+            return (*first_word).to_string();
+        }
+
+        if words.len() > 1 && first_word_chars + 3 <= MAX_LABEL_CHARS {
+            if let Some(initial) = words[1].chars().next() {
+                return format!("{} {}.", first_word, initial);
+            }
+        }
+    }
+
+    name.chars().take(MAX_LABEL_CHARS).collect()
+}
+
 pub fn update_hotbar(
     inventory: Res<Inventory>,
     item_registry: Res<ItemRegistry>,
@@ -1155,14 +1192,8 @@ pub fn update_hotbar(
             if let Some(ref slot_data) = inventory.slots[idx] {
                 let name = item_registry
                     .get(&slot_data.item_id)
-                    .map(|def| {
-                        if def.name.len() > 6 {
-                            format!("{}.", &def.name[..5])
-                        } else {
-                            def.name.clone()
-                        }
-                    })
-                    .unwrap_or_else(|| slot_data.item_id.chars().take(6).collect());
+                    .map(|def| compact_item_name(&def.name))
+                    .unwrap_or_else(|| slot_data.item_id.chars().take(9).collect());
                 **text = name;
                 tc.0 = Color::srgb(1.0, 1.0, 1.0);
             } else {
@@ -1250,7 +1281,12 @@ pub fn update_hotbar_icons(
         if idx < inventory.slots.len() {
             if let Some(ref slot_data) = inventory.slots[idx] {
                 if let Some(def) = item_registry.get(&slot_data.item_id) {
-                    super::apply_item_icon(&mut img, &atlas_data, &slot_data.item_id, def.sprite_index);
+                    super::apply_item_icon(
+                        &mut img,
+                        &atlas_data,
+                        &slot_data.item_id,
+                        def.sprite_index,
+                    );
                 }
             }
         }

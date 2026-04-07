@@ -223,16 +223,26 @@ pub fn spawn_npcs_for_map(
             ))
             .id();
 
-        // Floating name tag above the NPC sprite (48px sprite height + 2px gap).
+        // Floating name tag: Text2d renders in points, which are NOT world units.
+        // The camera is scaled to 1/PIXEL_SCALE, so text appears PIXEL_SCALE times
+        // larger than its point size. Apply inverse scale (1/PIXEL_SCALE) on the
+        // transform so a 10pt font renders at ~10 screen pixels.
+        // Text2d font_size is in screen pixels at 1:1 camera. Camera is at
+        // 1/PIXEL_SCALE (1/3), so world is 3x zoomed. Scale text by 1/PIXEL_SCALE²
+        // to counteract both the camera zoom AND the parent coordinate space.
+        // NPC name tag: use very small font_size in world-space units.
+        // Camera is at 1/PIXEL_SCALE (1/3), so 1 world unit = 3 screen pixels.
+        // font_size 3.0 in world space ≈ 9 screen pixels of text height.
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Text2d::new(npc_def.name.clone()),
                 TextFont {
-                    font_size: 5.0,
+                    font_size: 3.0,
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 26.0, 0.1),
+                TextLayout::new_with_justify(JustifyText::Center),
+                Transform::from_xyz(0.0, 18.0, 1.0),
             ));
         });
 
@@ -340,15 +350,22 @@ pub fn spawn_mayor_for_intro(
             ))
             .id();
 
+        // Text2d font_size is in screen pixels at 1:1 camera. Camera is at
+        // 1/PIXEL_SCALE (1/3), so world is 3x zoomed. Scale text by 1/PIXEL_SCALE²
+        // to counteract both the camera zoom AND the parent coordinate space.
+        // NPC name tag: use very small font_size in world-space units.
+        // Camera is at 1/PIXEL_SCALE (1/3), so 1 world unit = 3 screen pixels.
+        // font_size 3.0 in world space ≈ 9 screen pixels of text height.
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Text2d::new(npc_def.name.clone()),
                 TextFont {
-                    font_size: 5.0,
+                    font_size: 3.0,
                     ..default()
                 },
                 TextColor(name_color),
-                Transform::from_xyz(0.0, 26.0, 0.1),
+                TextLayout::new_with_justify(JustifyText::Center),
+                Transform::from_xyz(0.0, 18.0, 1.0),
             ));
         });
 

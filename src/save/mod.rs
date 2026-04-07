@@ -1150,6 +1150,8 @@ fn handle_new_game(
     mut machine_registry: ResMut<ProcessingMachineRegistry>,
     existing_chests: Query<Entity, With<ChestMarker>>,
     existing_machines: Query<Entity, With<ProcessingMachine>>,
+    mut current_map_id: ResMut<CurrentMapId>,
+    mut map_events: EventWriter<MapTransitionEvent>,
 ) {
     for ev in new_game_events.read() {
         info!(
@@ -1211,6 +1213,16 @@ fn handle_new_game(
 
         // Starter items are granted by grant_starter_items in player/interaction.rs
         // (runs on first frame of Playing state when inventory is empty).
+
+        // Force map reload: invalidate CurrentMapId so handle_map_transition
+        // doesn't skip the reload, then fire a transition event to load
+        // PlayerHouse and reposition the live player entity.
+        current_map_id.map_id = MapId::Farm; // dummy — differs from PlayerHouse
+        map_events.send(MapTransitionEvent {
+            to_map: player_state.current_map, // PlayerHouse (from default)
+            to_x: player_state.save_grid_x,   // 8
+            to_y: player_state.save_grid_y,   // 8
+        });
 
         info!("New game initialized.");
     }

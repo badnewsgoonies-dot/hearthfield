@@ -5,6 +5,7 @@ mod data;
 mod economy;
 mod farming;
 mod fishing;
+mod headless;
 mod input;
 mod mining;
 mod npcs;
@@ -160,6 +161,8 @@ fn main() {
         .add_plugins(mining::MiningPlugin)
         .add_plugins(ui::UiPlugin)
         .add_plugins(save::SavePlugin)
+        // Headless test telemetry (enabled by HEARTHFIELD_HEADLESS env var)
+        .add_plugins(headless::HeadlessPlugin)
         // Data loading
         .add_plugins(data::DataPlugin)
         // Camera

@@ -263,7 +263,49 @@ impl Plugin for FarmingPlugin {
                 render::animate_sprinklers
                     .after(render::sync_farm_objects_sprites)
                     .run_if(in_state(GameState::Playing)),
+            )
+            // ------------------------------------------------------------------
+            // Cleanup farm overlay entities when leaving the Farm map.
+            // Soil, crop, and farm-object sprites have no MapTile component,
+            // so the world transition handler doesn't despawn them — they bleed
+            // into interior maps at Z_FARM_OVERLAY (above house floor).
+            // ------------------------------------------------------------------
+            .add_systems(
+                Update,
+                cleanup_farm_visuals_on_map_leave
+                    .in_set(UpdatePhase::Simulation)
+                    .run_if(in_state(GameState::Playing)),
             );
+    }
+}
+
+/// Despawn all farm overlay sprites when transitioning away from the Farm.
+/// FarmState data (tilled grid, crop data) is preserved — only visuals are
+/// removed. sync_soil_sprites / sync_crop_sprites will re-create them when
+/// the player returns to Farm.
+fn cleanup_farm_visuals_on_map_leave(
+    mut commands: Commands,
+    mut events: EventReader<MapTransitionEvent>,
+    mut farm_entities: ResMut<FarmEntities>,
+    soil_query: Query<Entity, With<SoilTileEntity>>,
+    crop_query: Query<Entity, With<CropTileEntity>>,
+    obj_query: Query<Entity, With<FarmObjectEntity>>,
+) {
+    for ev in events.read() {
+        if ev.to_map != MapId::Farm {
+            for e in soil_query.iter() {
+                commands.entity(e).despawn();
+            }
+            for e in crop_query.iter() {
+                commands.entity(e).despawn();
+            }
+            for e in obj_query.iter() {
+                commands.entity(e).despawn();
+            }
+            farm_entities.soil_entities.clear();
+            farm_entities.crop_entities.clear();
+            farm_entities.object_entities.clear();
+        }
     }
 }
 
