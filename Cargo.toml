@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "dlc/pilot", "dlc/city", "dlc/police", "ironclad"]
+members = [".", "dlc/pilot", "dlc/city", "dlc/police", "dlc/greenfield", "ironclad"]
 resolver = "2"
 
 [package]

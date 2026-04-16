@@ -10,3 +10,7 @@ sprites downlaoded packages/
 assets/police/sprites/staging/
 tools/vision/__pycache__/
 target/
+
+# GC-OS write-op dispatcher runtime artifacts
+/.gc-write-ops-inbox.json
+/.gc-write-ops-log/
