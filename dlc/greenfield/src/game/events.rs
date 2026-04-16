@@ -41,3 +41,36 @@ pub struct SimulationTickedEvent;
 
 #[derive(Event, Debug, Default)]
 pub struct RenderTickedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct GameLoadedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct GameUnloadedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ConfigurationChangedEvent;
+
+#[derive(Event, Debug, Clone)]
+pub struct ButtonPressedEvent {
+    pub button_id: u32,
+}
+
+#[derive(Event, Debug, Clone)]
+pub struct TimerElapsedEvent {
+    pub timer_id: u32,
+    pub elapsed_secs: f32,
+}
+
+#[derive(Event, Debug, Clone)]
+pub struct ScoreChangedEvent {
+    pub old_score: i32,
+    pub new_score: i32,
+}
+
+#[derive(Event, Debug, Clone)]
+pub struct PlayerMovedEvent {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}

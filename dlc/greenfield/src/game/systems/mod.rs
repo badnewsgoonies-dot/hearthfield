@@ -2,3 +2,8 @@ pub mod boot_tick;
 pub mod input_tick;
 pub mod sim_tick;
 pub mod render_tick;
+pub mod tick_clock_sys;
+pub mod record_tick_sys;
+pub mod handle_config_sys;
+pub mod play_audio_sys;
+pub mod update_hud_sys;

@@ -23,3 +23,15 @@ pub struct RecordingMarker;
 
 #[derive(Component, Debug, Default)]
 pub struct DebugOverlay;
+
+#[derive(Component, Debug, Default)]
+pub struct SaveMarker;
+
+#[derive(Component, Debug, Default)]
+pub struct LoadMarker;
+
+#[derive(Component, Debug, Default)]
+pub struct AnimatedSprite;
+
+#[derive(Component, Debug, Default)]
+pub struct HudTimer;
