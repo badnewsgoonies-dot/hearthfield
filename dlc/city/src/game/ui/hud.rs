@@ -466,6 +466,7 @@ fn role_short_label(role: &CoworkerRole) -> &'static str {
         CoworkerRole::Analyst => "Analyst",
         CoworkerRole::Coordinator => "Coord",
         CoworkerRole::Intern => "Intern",
+        CoworkerRole::Specialist => "Spec",
     }
 }
 

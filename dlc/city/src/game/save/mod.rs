@@ -9,9 +9,9 @@ use serde_json::Value;
 use crate::game::components::OfficeWorker;
 use crate::game::events::DayAdvanced;
 use crate::game::resources::{
-    CareerProgression, CoworkerProfile, CoworkerRole, DayClock, DayOutcome, DayStats,
-    FiredMilestones, InboxState, MilestoneKind, OfficeEconomyRules, OfficeRunConfig, OfficeTask,
-    PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind,
+    CareerProgression, CoworkerPersonality, CoworkerProfile, CoworkerRole, DayClock, DayOutcome,
+    DayStats, FiredMilestones, InboxState, MilestoneKind, OfficeEconomyRules, OfficeRunConfig,
+    OfficeTask, PlayerCareerState, PlayerMindState, SocialGraphState, TaskBoard, TaskId, TaskKind,
     TaskPriority, UnlockCatalogState, WorkerStats,
 };
 use crate::game::OfficeGameState;
@@ -257,6 +257,7 @@ fn coworker_role_str(role: CoworkerRole) -> &'static str {
         CoworkerRole::Analyst => "analyst",
         CoworkerRole::Coordinator => "coordinator",
         CoworkerRole::Intern => "intern",
+        CoworkerRole::Specialist => "specialist",
     }
 }
 
@@ -267,6 +268,7 @@ fn parse_coworker_role(raw: &str) -> Result<CoworkerRole, String> {
         "analyst" => Ok(CoworkerRole::Analyst),
         "coordinator" => Ok(CoworkerRole::Coordinator),
         "intern" => Ok(CoworkerRole::Intern),
+        "specialist" => Ok(CoworkerRole::Specialist),
         other => Err(format!("unknown coworker role: {other}")),
     }
 }
@@ -566,14 +568,24 @@ pub fn apply_snapshot(
     progression.diplomacy_perk = snapshot.progression.diplomacy_perk;
     progression.normalize(economy);
 
+    // Personality + backstory are static character data (not serialized);
+    // restore them by id from the canonical default profile set.
+    let default_traits = SocialGraphState::default().profiles;
     let mut restored_profiles = Vec::with_capacity(snapshot.social_graph.profiles.len());
     for profile in &snapshot.social_graph.profiles {
+        let (personality, backstory) = default_traits
+            .iter()
+            .find(|p| p.id == profile.id)
+            .map(|p| (p.personality, p.backstory))
+            .unwrap_or((CoworkerPersonality::Neutral, ""));
         restored_profiles.push(CoworkerProfile {
             id: profile.id,
             codename: profile.codename.clone(),
             role: parse_coworker_role(&profile.role)?,
             affinity: profile.affinity,
             trust: profile.trust,
+            personality,
+            backstory,
         });
     }
     if !restored_profiles.is_empty() {
