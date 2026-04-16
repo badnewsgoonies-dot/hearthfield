@@ -34,6 +34,12 @@ pub struct GreenfieldPlugin;
 impl Plugin for GreenfieldPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GreenfieldState>()
+            .add_systems(Update, systems::drain_score_changes::drain_score_changes_system)
+            .add_systems(Update, systems::drain_damage::drain_damage_system)
+            .add_systems(Update, systems::emit_game_loaded_tick::emit_game_loaded_tick_system)
+            .add_systems(Update, systems::award_xp::award_xp_system)
+            .add_systems(Update, systems::increment_score::increment_score_system)
+            .add_systems(Update, systems::advance_turn::advance_turn_system)
             .add_systems(Update, systems::log_score_changes::log_score_changes_system)
             .add_systems(Update, systems::loot_drop_sys::drop_loot_system)
             .add_systems(Update, systems::combat_resolver_sys::resolve_combat_system)
