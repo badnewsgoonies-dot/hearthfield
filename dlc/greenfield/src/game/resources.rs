@@ -60,3 +60,9 @@ pub const CRIT_MULTIPLIER: f32 = 1.5;
 pub const RESPAWN_TIME: f32 = 3.0;
 
 pub const MAX_ENEMIES: u32 = 50;
+
+pub const MAX_INVENTORY: u32 = 64;
+
+pub const XP_PER_LEVEL: u32 = 100;
+
+pub const CRIT_CHANCE: f32 = 0.15;

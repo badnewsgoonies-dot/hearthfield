@@ -83,3 +83,48 @@ pub struct Health;
 
 #[derive(Component, Debug, Default)]
 pub struct Mana;
+
+#[derive(Component, Debug, Default)]
+pub struct Shield;
+
+#[derive(Component, Debug, Default)]
+pub struct Weapon;
+
+#[derive(Component, Debug, Default)]
+pub struct Armor;
+
+#[derive(Component, Debug, Default)]
+pub struct Potion;
+
+#[derive(Component, Debug, Default)]
+pub struct Scroll;
+
+#[derive(Component, Debug, Default)]
+pub struct Gem;
+
+#[derive(Component, Debug, Default)]
+pub struct Relic;
+
+#[derive(Component, Debug, Default)]
+pub struct Keystone;
+
+#[derive(Component, Debug, Default)]
+pub struct Rune;
+
+#[derive(Component, Debug, Default)]
+pub struct Sigil;
+
+#[derive(Component, Debug, Default)]
+pub struct Totem;
+
+#[derive(Component, Debug, Default)]
+pub struct Trinket;
+
+#[derive(Component, Debug, Default)]
+pub struct Amulet;
+
+#[derive(Component, Debug, Default)]
+pub struct Ring;
+
+#[derive(Component, Debug, Default)]
+pub struct Charm;

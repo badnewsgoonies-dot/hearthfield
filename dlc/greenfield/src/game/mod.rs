@@ -20,6 +20,11 @@ pub enum GreenfieldState {
     Combat,
     Inventory,
     Dialog,
+    Trading,
+    Crafting,
+    Upgrading,
+    Resting,
+    Exploring,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
