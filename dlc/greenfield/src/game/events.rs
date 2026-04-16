@@ -74,3 +74,48 @@ pub struct PlayerMovedEvent {
     pub y: f32,
     pub z: f32,
 }
+
+#[derive(Event, Debug, Default)]
+pub struct EnemyDefeatedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct AllyDownedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ChestOpenedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct PortalActivatedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CheckpointReachedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct GoalReachedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct DoorOpenedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct KeyCollectedEvent;
+
+#[derive(Event, Debug, Clone)]
+pub struct DamageDealtEvent {
+    pub amount: i32,
+}
+
+#[derive(Event, Debug, Clone)]
+pub struct ItemPickedUpEvent {
+    pub item_id: u32,
+}
+
+#[derive(Event, Debug, Clone)]
+pub struct ExperienceGainedEvent {
+    pub amount: u32,
+}
+
+#[derive(Event, Debug, Clone)]
+pub struct EnemySpawnedEvent {
+    pub at_x: f32,
+    pub at_y: f32,
+}

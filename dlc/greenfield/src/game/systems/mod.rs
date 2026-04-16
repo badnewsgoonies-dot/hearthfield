@@ -7,3 +7,8 @@ pub mod record_tick_sys;
 pub mod handle_config_sys;
 pub mod play_audio_sys;
 pub mod update_hud_sys;
+pub mod damage_tick_sys;
+pub mod enemy_spawner_sys;
+pub mod combat_resolver_sys;
+pub mod loot_drop_sys;
+pub mod log_score_changes;

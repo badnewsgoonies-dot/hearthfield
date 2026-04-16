@@ -29,3 +29,34 @@ pub struct GameConfig {
     pub target_fps: f32,
     pub recording_enabled: bool,
 }
+
+#[derive(Resource, Debug, Default)]
+pub struct EnemyCatalog;
+
+#[derive(Resource, Debug, Default)]
+pub struct LootTable;
+
+#[derive(Resource, Debug, Default)]
+pub struct SpawnerRegistry;
+
+#[derive(Resource, Debug, Default)]
+pub struct GameScore {
+    pub total: u32,
+    pub high: u32,
+}
+
+#[derive(Resource, Debug, Default)]
+pub struct LevelProgress {
+    pub level: u32,
+    pub xp: u32,
+}
+
+pub const MAX_HEALTH: i32 = 100;
+
+pub const BASE_DAMAGE: i32 = 10;
+
+pub const CRIT_MULTIPLIER: f32 = 1.5;
+
+pub const RESPAWN_TIME: f32 = 3.0;
+
+pub const MAX_ENEMIES: u32 = 50;

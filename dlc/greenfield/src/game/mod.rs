@@ -17,6 +17,9 @@ pub enum GreenfieldState {
     Loading,
     Settings,
     Credits,
+    Combat,
+    Inventory,
+    Dialog,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -31,6 +34,28 @@ pub struct GreenfieldPlugin;
 impl Plugin for GreenfieldPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GreenfieldState>()
+            .add_systems(Update, systems::log_score_changes::log_score_changes_system)
+            .add_systems(Update, systems::loot_drop_sys::drop_loot_system)
+            .add_systems(Update, systems::combat_resolver_sys::resolve_combat_system)
+            .add_systems(Update, systems::enemy_spawner_sys::spawn_enemies_system)
+            .add_systems(Update, systems::damage_tick_sys::damage_tick_system)
+            .init_resource::<resources::LevelProgress>()
+            .init_resource::<resources::GameScore>()
+            .init_resource::<resources::SpawnerRegistry>()
+            .init_resource::<resources::LootTable>()
+            .init_resource::<resources::EnemyCatalog>()
+            .add_event::<events::EnemySpawnedEvent>()
+            .add_event::<events::ExperienceGainedEvent>()
+            .add_event::<events::ItemPickedUpEvent>()
+            .add_event::<events::DamageDealtEvent>()
+            .add_event::<events::KeyCollectedEvent>()
+            .add_event::<events::DoorOpenedEvent>()
+            .add_event::<events::GoalReachedEvent>()
+            .add_event::<events::CheckpointReachedEvent>()
+            .add_event::<events::PortalActivatedEvent>()
+            .add_event::<events::ChestOpenedEvent>()
+            .add_event::<events::AllyDownedEvent>()
+            .add_event::<events::EnemyDefeatedEvent>()
             .add_systems(Update, systems::update_hud_sys::update_hud_system)
             .add_systems(Update, systems::play_audio_sys::play_audio_system)
             .add_systems(Update, systems::handle_config_sys::handle_config_system)
@@ -72,3 +97,8 @@ impl Plugin for GreenfieldPlugin {
 pub mod scene;
 pub mod audio;
 pub mod input;
+pub mod combat;
+pub mod inventory;
+pub mod ai_behavior;
+pub mod dialogue;
+pub mod quests;
