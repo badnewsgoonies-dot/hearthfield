@@ -176,7 +176,7 @@ pub struct PremiumUiImages {
     /// dialog_box_small.png: 112×48 pre-rendered clean dialog panel
     pub dialog_small: Handle<Image>,
     /// inventory_hearts_light.png: 7 cols × 21 rows — light theme heart icons
-    pub hearts_light_image: Handle<Image>,
+    pub hearts_light_image_x: Handle<Image>,
     pub hearts_light_layout: Handle<TextureAtlasLayout>,
     pub loaded: bool,
 }
@@ -193,7 +193,7 @@ fn preload_premium_ui(
     images.dialog_big = asset_server.load("ui/dialog_box_big.png");
     images.dialog_medium = asset_server.load("ui/dialog_box_medium.png");
     images.dialog_small = asset_server.load("ui/dialog_box_small.png");
-    images.hearts_light_image = asset_server.load("ui/inventory_hearts_light.png");
+    images.hearts_light_image_x = asset_server.load("ui/inventory_hearts_light.png");
     images.hearts_light_layout = layouts.add(TextureAtlasLayout::from_grid(
         UVec2::new(16, 16), 7, 21, None, None,
     ));
