@@ -1820,7 +1820,33 @@ fn vasquez_assignment_comment(case_id: &str, stage: PartnerStage) -> String {
         }
     };
 
-    format!("Vasquez: {line} ({case_name})")
+    let core = format!("Vasquez: {line} ({case_name})");
+    match vasquez_assignment_aside(case_id) {
+        Some(aside) => format!("{core}\n— {aside}"),
+        None => core,
+    }
+}
+
+/// One-line category-specific aside Vasquez adds at case assignment — the first
+/// beat the player sees on a new case. Returns None for unclassified cases.
+fn vasquez_assignment_aside(case_id: &str) -> Option<&'static str> {
+    Some(match case_category(case_id)? {
+        CaseCategory::Property => {
+            "Property crew. Expect owners who've already written the guilty party in their head — don't borrow their story."
+        }
+        CaseCategory::Violent => {
+            "Violent file. Clock's the enemy now. Talk to witnesses before the adrenaline edits their memory."
+        }
+        CaseCategory::Disturbance => {
+            "Neighborhood wants a presence more than an arrest. Read the temperature before you read the room."
+        }
+        CaseCategory::Investigation => {
+            "This one's a puzzle before it's a case. No shortcuts — the street will punish anything rushed."
+        }
+        CaseCategory::Serial => {
+            "Pattern case. We're not chasing one incident, we're chasing the signature. Keep the lens wide."
+        }
+    })
 }
 
 fn vasquez_evidence_comment(case_id: &str, stage: PartnerStage, evidence_id: &str) -> String {
@@ -2720,6 +2746,99 @@ mod tests {
                 assert_ne!(
                     asides[i], asides[j],
                     "evidence category asides {i} and {j} collided: {:?}",
+                    asides[i]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn assignment_comment_appends_category_aside_for_known_case() {
+        use super::vasquez_assignment_comment;
+
+        let comment = vasquez_assignment_comment(
+            "detective_005_arson",
+            PartnerStage::WorkingRapport,
+        );
+        // Core line still present.
+        assert!(comment.starts_with("Vasquez: "));
+        // Violent-category assignment aside is appended on a new "— " line.
+        assert!(comment.contains("\n— "));
+        assert!(comment.contains("Violent file"));
+    }
+
+    #[test]
+    fn assignment_comment_omits_aside_for_unclassified_case() {
+        use super::vasquez_assignment_comment;
+
+        let comment = vasquez_assignment_comment(
+            "patrol_999_unknown",
+            PartnerStage::Stranger,
+        );
+        assert!(
+            !comment.contains('\n'),
+            "unclassified case should yield single-line comment, got: {comment:?}"
+        );
+        assert!(comment.starts_with("Vasquez: "));
+    }
+
+    #[test]
+    fn assignment_aside_distinct_from_patrol_and_evidence() {
+        use super::{
+            vasquez_assignment_comment, vasquez_evidence_comment, vasquez_patrol_comment,
+        };
+
+        // Same case, same stage — each of the three commentary surfaces should
+        // produce a distinct aside. Flavor drifts with context, not collides.
+        let assignment = vasquez_assignment_comment(
+            "detective_005_arson",
+            PartnerStage::Stranger,
+        );
+        let evidence = vasquez_evidence_comment(
+            "detective_005_arson",
+            PartnerStage::Stranger,
+            "burner_phone",
+        );
+        let patrol = vasquez_patrol_comment(
+            "detective_005_arson",
+            PartnerStage::Stranger,
+            "Downtown",
+        );
+
+        let a_aside = assignment.split("\n— ").nth(1).expect("assignment aside expected");
+        let e_aside = evidence.split("\n— ").nth(1).expect("evidence aside expected");
+        let p_aside = patrol.split("\n— ").nth(1).expect("patrol aside expected");
+
+        assert_ne!(a_aside, e_aside, "assignment and evidence collided");
+        assert_ne!(a_aside, p_aside, "assignment and patrol collided");
+        assert_ne!(e_aside, p_aside, "evidence and patrol collided");
+    }
+
+    #[test]
+    fn assignment_aside_differs_per_category() {
+        use super::vasquez_assignment_comment;
+
+        let property =
+            vasquez_assignment_comment("patrol_001_petty_theft", PartnerStage::Stranger);
+        let violent =
+            vasquez_assignment_comment("detective_005_arson", PartnerStage::Stranger);
+        let disturbance =
+            vasquez_assignment_comment("patrol_003_noise", PartnerStage::Stranger);
+        let investigation =
+            vasquez_assignment_comment("sergeant_005_cold_case", PartnerStage::Stranger);
+        let serial =
+            vasquez_assignment_comment("lieutenant_001_serial", PartnerStage::Stranger);
+
+        let asides: Vec<&str> = [&property, &violent, &disturbance, &investigation, &serial]
+            .iter()
+            .map(|s| s.split("\n— ").nth(1).expect("expected assignment aside"))
+            .collect();
+
+        for i in 0..asides.len() {
+            for j in (i + 1)..asides.len() {
+                assert_ne!(
+                    asides[i], asides[j],
+                    "assignment category asides {i} and {j} collided: {:?}",
                     asides[i]
                 );
             }
