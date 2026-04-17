@@ -1193,3 +1193,47 @@ pub fn format_clock(total_minutes: u32) -> String {
     let minutes = total_minutes % 60;
     format!("{hours:02}:{minutes:02}")
 }
+
+#[derive(Resource, Debug, Default)]
+pub struct CalendarState {
+    pub current_minute: u32,
+    pub meetings_today: u32,
+}
+
+#[derive(Resource, Debug, Default)]
+pub struct MeetingQueue {
+    pub pending: u32,
+}
+
+pub const MAX_MEETINGS_PER_DAY: u32 = 6;
+
+pub const DEFAULT_MEETING_DURATION_MIN: u32 = 30;
+
+pub const REMINDER_LEAD_TIME_MIN: u32 = 5;
+
+#[derive(Resource, Debug, Default)]
+pub struct CoffeeBrewsToday {
+    pub count: u32,
+
+}
+
+pub const COFFEE_ENERGY_BOOST: i32 = 15;
+
+pub const COFFEE_COOLDOWN_SECS: u64 = 60;
+
+#[derive(Resource, Debug, Default)]
+pub struct ReputationState {
+    pub score: i32,
+    pub tier: u8,
+}
+
+pub const MAX_REPUTATION: i32 = 1000;
+
+pub const REPUTATION_TIER_SIZE: i32 = 200;
+
+#[derive(Resource, Debug, Default)]
+pub struct AchievementState {
+    pub unlocked: u32,
+}
+
+pub const MAX_ACHIEVEMENTS: u32 = 64;

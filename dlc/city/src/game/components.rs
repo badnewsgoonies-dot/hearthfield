@@ -64,3 +64,21 @@ impl NpcCoworker {
         Self { npc_id, role }
     }
 }
+
+#[derive(Component, Debug, Default)]
+pub struct MeetingRoom;
+
+#[derive(Component, Debug, Default)]
+pub struct MeetingAttendee;
+
+#[derive(Component, Debug, Default)]
+pub struct CoffeeMachine;
+
+#[derive(Component, Debug, Default)]
+pub struct CoffeeMugHeld;
+
+#[derive(Component, Debug, Default)]
+pub struct ReputationTracker;
+
+#[derive(Component, Debug, Default)]
+pub struct AchievementBadge;

@@ -122,3 +122,180 @@ pub struct EnemySpawnedEvent {
 
 #[derive(Event, Debug, Default)]
 pub struct BenchmarkStartedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct McpScaleEvent01;
+
+#[derive(Event, Debug, Default)]
+pub struct McpScaleEvent02;
+
+#[derive(Event, Debug, Default)]
+pub struct McpScaleEvent03;
+
+#[derive(Event, Debug, Default)]
+pub struct McpScaleEvent04;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent01;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent02;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent03;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent04;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent05;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent06;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent07;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent08;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent09;
+
+#[derive(Event, Debug, Default)]
+pub struct BigBatchEvent10;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent01;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent02;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent03;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent04;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent05;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent06;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent07;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent08;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent09;
+
+#[derive(Event, Debug, Default)]
+pub struct BareEvent10;
+
+#[derive(Event, Debug, Default)]
+pub struct TrialA3Event;
+
+#[derive(Event, Debug, Default)]
+pub struct TrialAchainEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ScoreBroadcastEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct HeartbeatPulseEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CombatInitiatedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct AttackStartedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct DamageAppliedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CombatResolvedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ItemPickedUpInvEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ItemDroppedInvEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ItemEquippedInvEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ItemUnequippedInvEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct InventoryOverflowEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ItemConsumedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ItemStackedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CraftingStartedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CraftingCompletedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CraftingFailedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct RecipeUnlockedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MaterialConsumedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct OutputProducedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct FrameSampledEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct TickAdvancedEvent;
+
+#[derive(Event, Debug, Clone)]
+pub struct PlayerDamage {
+    pub amount: f32,
+
+}
+
+#[derive(Event, Debug, Default)]
+pub struct QuestAcceptedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct QuestCompletedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct QuestAbandonedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct QuestProgressEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MusicTrackStartedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MusicTrackEndedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MusicCrossfadeRequestedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CheckpointActivatedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CheckpointRestoredEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CheckpointRegistryUpdatedEvent;

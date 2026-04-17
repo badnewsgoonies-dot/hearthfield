@@ -25,3 +25,12 @@ pub use visuals::update_visuals;
 
 #[cfg(test)]
 mod tests;
+pub mod calendar_tick_sys;
+pub mod meeting_scheduler_sys;
+pub mod meeting_reminder_sys;
+pub mod meeting_attend_sys;
+pub mod coffee_brew_sys;
+pub mod coffee_consume_sys;
+pub mod reputation_apply_sys;
+pub mod reputation_tier_sys;
+pub mod achievement_unlock_sys;

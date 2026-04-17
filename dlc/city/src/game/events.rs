@@ -90,3 +90,42 @@ pub struct RelationshipMilestone {
     pub coworker_name: String,
     pub milestone: MilestoneKind,
 }
+
+#[derive(Event, Debug, Default)]
+pub struct MeetingScheduledEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MeetingStartingEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MeetingAttendedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MeetingSkippedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct MeetingReminderEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CoffeeBrewedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct CoffeeDrunkEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct EnergyBoostedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ReputationGainedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ReputationLostEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct ReputationTierChangedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct AchievementUnlockedEvent;
+
+#[derive(Event, Debug, Default)]
+pub struct AchievementProgressEvent;
