@@ -806,7 +806,11 @@ fn apply_trust_pressure(
     }
 }
 
-fn advance_partner_arc(registry: Res<NpcRegistry>, mut partner_arc: ResMut<PartnerArc>) {
+fn advance_partner_arc(
+    registry: Res<NpcRegistry>,
+    mut partner_arc: ResMut<PartnerArc>,
+    mut toast_events: EventWriter<ToastEvent>,
+) {
     let Some(relationship) = registry.relationships.get(PARTNER_ID) else {
         return;
     };
@@ -816,10 +820,16 @@ fn advance_partner_arc(registry: Res<NpcRegistry>, mut partner_arc: ResMut<Partn
         return;
     }
 
+    let previous_stage = partner_arc.stage;
     partner_arc.stage = target_stage;
     partner_arc
         .events_triggered
         .insert(format!("partner_stage:{target_stage:?}"));
+
+    toast_events.send(ToastEvent {
+        message: vasquez_promotion_line(previous_stage, target_stage).to_string(),
+        duration_secs: 4.0,
+    });
 }
 
 fn cleanup_npcs(mut commands: Commands, npc_query: Query<Entity, With<Npc>>) {
@@ -1850,6 +1860,46 @@ fn vasquez_patrol_comment(case_id: &str, stage: PartnerStage, map_name: &str) ->
     format!("Vasquez: {line} ({case_id} near {map_name})")
 }
 
+fn vasquez_promotion_line(from: PartnerStage, to: PartnerStage) -> &'static str {
+    match (from, to) {
+        // Single-step ascents — the expected cadence.
+        (PartnerStage::Stranger, PartnerStage::UneasyPartners) => {
+            "Vasquez: Alright. You're not useless. Don't read into that."
+        }
+        (PartnerStage::UneasyPartners, PartnerStage::WorkingRapport) => {
+            "Vasquez: Working with you is starting to feel like working WITH you. Progress."
+        }
+        (PartnerStage::WorkingRapport, PartnerStage::TrustedPartners) => {
+            "Vasquez: I'd take a door with you. That's as close to a compliment as I give."
+        }
+        (PartnerStage::TrustedPartners, PartnerStage::BestFriends) => {
+            "Vasquez: Whatever this job costs us, we cover each other. Always."
+        }
+        // Multi-step jumps — rare, but possible if trust spikes.
+        (PartnerStage::Stranger, PartnerStage::WorkingRapport) => {
+            "Vasquez: Didn't see that coming. You earned the jump. Don't blow it."
+        }
+        (PartnerStage::Stranger, PartnerStage::TrustedPartners) => {
+            "Vasquez: I don't fast-track anyone. You're the exception."
+        }
+        (PartnerStage::Stranger, PartnerStage::BestFriends) => {
+            "Vasquez: I don't know how you pulled this off. But yeah. We're solid."
+        }
+        (PartnerStage::UneasyPartners, PartnerStage::TrustedPartners) => {
+            "Vasquez: Two steps at once. You're closing distance fast, rookie."
+        }
+        (PartnerStage::UneasyPartners, PartnerStage::BestFriends) => {
+            "Vasquez: From cold shoulders to covering my six. That's a story worth telling."
+        }
+        (PartnerStage::WorkingRapport, PartnerStage::BestFriends) => {
+            "Vasquez: Partner to family in one case. Don't let it go to your head."
+        }
+        // Non-ascending transitions are blocked by advance_partner_arc's guard,
+        // but keep an honest fallback rather than panic.
+        _ => "Vasquez: Something shifted between us. Good shift, I hope.",
+    }
+}
+
 fn ghost_case_tip(case_id: &str, hour: u8) -> String {
     let prefix = match time_band(hour) {
         TimeBand::Morning => "Burner note before breakfast:",
@@ -2232,6 +2282,113 @@ mod tests {
             app.update();
             assert_eq!(app.world().resource::<PartnerArc>().stage, expected_stage);
         }
+    }
+
+    #[test]
+    fn partner_stage_promotion_emits_toast() {
+        let mut app = build_test_app();
+        app.update();
+        // Drain any startup toasts so we only see the promotion event.
+        app.world_mut()
+            .resource_mut::<Events<ToastEvent>>()
+            .clear();
+
+        app.world_mut()
+            .resource_mut::<NpcRegistry>()
+            .relationships
+            .get_mut(PARTNER_ID)
+            .unwrap()
+            .trust = 15;
+        app.update();
+
+        let events = app.world().resource::<Events<ToastEvent>>();
+        let mut reader = events.get_cursor();
+        let emitted: Vec<String> = reader
+            .read(events)
+            .map(|event| event.message.clone())
+            .collect();
+
+        assert!(
+            emitted.iter().any(|msg| msg.contains("not useless")),
+            "expected Stranger->UneasyPartners promotion toast, got: {emitted:?}"
+        );
+        assert_eq!(
+            app.world().resource::<PartnerArc>().stage,
+            PartnerStage::UneasyPartners
+        );
+    }
+
+    #[test]
+    fn partner_stage_promotion_fires_on_every_ascending_step() {
+        let mut app = build_test_app();
+        app.update();
+
+        for (trust, expected_stage) in [
+            (10, PartnerStage::UneasyPartners),
+            (35, PartnerStage::WorkingRapport),
+            (65, PartnerStage::TrustedPartners),
+            (95, PartnerStage::BestFriends),
+        ] {
+            app.world_mut()
+                .resource_mut::<Events<ToastEvent>>()
+                .clear();
+
+            app.world_mut()
+                .resource_mut::<NpcRegistry>()
+                .relationships
+                .get_mut(PARTNER_ID)
+                .unwrap()
+                .trust = trust;
+            app.update();
+
+            let events = app.world().resource::<Events<ToastEvent>>();
+            let mut reader = events.get_cursor();
+            let saw_vasquez_toast = reader
+                .read(events)
+                .any(|event| event.message.starts_with("Vasquez:"));
+
+            assert!(
+                saw_vasquez_toast,
+                "expected Vasquez promotion toast on advance to {expected_stage:?}"
+            );
+            assert_eq!(
+                app.world().resource::<PartnerArc>().stage,
+                expected_stage
+            );
+        }
+    }
+
+    #[test]
+    fn partner_stage_does_not_re_emit_toast_without_promotion() {
+        let mut app = build_test_app();
+        app.update();
+
+        // First bump triggers UneasyPartners and a toast.
+        app.world_mut()
+            .resource_mut::<NpcRegistry>()
+            .relationships
+            .get_mut(PARTNER_ID)
+            .unwrap()
+            .trust = 15;
+        app.update();
+
+        // Drain and tick again at the same trust level — no promotion, no toast.
+        app.world_mut()
+            .resource_mut::<Events<ToastEvent>>()
+            .clear();
+        app.update();
+
+        let events = app.world().resource::<Events<ToastEvent>>();
+        let mut reader = events.get_cursor();
+        let vasquez_toast_count = reader
+            .read(events)
+            .filter(|event| event.message.starts_with("Vasquez:"))
+            .count();
+
+        assert_eq!(
+            vasquez_toast_count, 0,
+            "no promotion occurred, so advance_partner_arc must stay silent"
+        );
     }
 
     #[test]
