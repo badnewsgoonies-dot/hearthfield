@@ -1573,6 +1573,16 @@ fn dialogue_profile(npc_id: &str) -> DialogueProfile {
             casework: "\"If your live case depends on a shortcut,\" Lucia says, \"fix it now. Court punishes arrogance more reliably than crime does.\"",
             volunteered: "\"The innocent ramble,\" she adds. \"The coached answer in tidy bricks. Listen for the masonry.\"",
         },
+        "det_vasquez" => DialogueProfile {
+            low_trust: "Vasquez eyes you without stopping his report. \"You are the new one. Do not make me repeat fundamentals twice.\"",
+            mid_trust: "Vasquez taps the whiteboard. \"You are catching the order of operations. Keep doing that and I will stop narrating.\"",
+            high_trust: "Vasquez gives a small nod. \"You read a scene like someone who plans to still be here in five years. I like that.\"",
+            morning: "\"Morning shift tells you who lied last night,\" Vasquez says. \"People cannot hold yesterday's alibi past ten AM.\"",
+            afternoon: "Vasquez stretches once. \"Afternoon is when tired cops cut corners. Do not be that cop.\"",
+            night: "\"Night work clears the pretenders out,\" Vasquez says. \"If somebody is still working at eleven, the case matters to them.\"",
+            casework: "\"Whatever is live, work it like the file is reading you back,\" Vasquez says. \"Every note is evidence of your attention.\"",
+            volunteered: "\"Free hint,\" Vasquez adds. \"When a witness mentions the time with too much precision, assume they rehearsed it.\"",
+        },
         _ => DialogueProfile {
             low_trust: "They study you warily, weighing badge against motive.",
             mid_trust: "They answer with a little less caution than before.",
@@ -2840,6 +2850,60 @@ mod tests {
                     asides[i], asides[j],
                     "assignment category asides {i} and {j} collided: {:?}",
                     asides[i]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_authored_npc_has_a_dedicated_dialogue_profile() {
+        use super::{dialogue_profile, AUTHORED_NPCS};
+
+        // The fallback arm's low_trust line — any NPC mapped to it is falling
+        // through to generic text instead of authored voice.
+        let fallback_low_trust =
+            "They study you warily, weighing badge against motive.";
+
+        for authored in AUTHORED_NPCS.iter() {
+            let profile = dialogue_profile(authored.id);
+            assert_ne!(
+                profile.low_trust, fallback_low_trust,
+                "authored NPC '{}' is falling through to the generic dialogue fallback — \
+                 it needs a dedicated arm in dialogue_profile()",
+                authored.id
+            );
+        }
+    }
+
+    #[test]
+    fn det_vasquez_dialogue_profile_matches_partner_voice() {
+        use super::dialogue_profile;
+
+        let profile = dialogue_profile("det_vasquez");
+        // All 8 slots reference "Vasquez" by name — his voice is the signature,
+        // not anonymous generic third-person like the fallback.
+        let slots = [
+            profile.low_trust,
+            profile.mid_trust,
+            profile.high_trust,
+            profile.morning,
+            profile.afternoon,
+            profile.night,
+            profile.casework,
+            profile.volunteered,
+        ];
+        for (idx, line) in slots.iter().enumerate() {
+            assert!(
+                line.contains("Vasquez"),
+                "det_vasquez profile slot {idx} does not name Vasquez: {line:?}"
+            );
+        }
+        // Every slot must be distinct — no lazy duplicates.
+        for i in 0..slots.len() {
+            for j in (i + 1)..slots.len() {
+                assert_ne!(
+                    slots[i], slots[j],
+                    "det_vasquez profile slots {i} and {j} are identical"
                 );
             }
         }
