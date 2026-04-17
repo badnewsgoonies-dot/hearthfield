@@ -1837,7 +1837,11 @@ fn vasquez_evidence_comment(case_id: &str, stage: PartnerStage, evidence_id: &st
         }
     };
 
-    format!("Vasquez: {line} ({case_id}, {evidence_name})")
+    let core = format!("Vasquez: {line} ({case_id}, {evidence_name})");
+    match vasquez_evidence_aside(case_id) {
+        Some(aside) => format!("{core}\n— {aside}"),
+        None => core,
+    }
 }
 
 fn vasquez_patrol_comment(case_id: &str, stage: PartnerStage, map_name: &str) -> String {
@@ -1865,7 +1869,7 @@ fn vasquez_patrol_comment(case_id: &str, stage: PartnerStage, map_name: &str) ->
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum CasePatrolCategory {
+enum CaseCategory {
     Property,
     Violent,
     Disturbance,
@@ -1873,10 +1877,10 @@ enum CasePatrolCategory {
     Serial,
 }
 
-/// Classifies a case into the category that drives Vasquez's patrol aside.
+/// Classifies a case into the category that drives Vasquez's commentary flavor.
 /// Matches on the `{kind}` suffix of the `{rank}_{nnn}_{kind}` case id convention.
 /// Returns None for case ids that don't match any known kind — callers skip the aside.
-fn case_patrol_category(case_id: &str) -> Option<CasePatrolCategory> {
+fn case_category(case_id: &str) -> Option<CaseCategory> {
     const PROPERTY: &[&str] = &[
         "petty_theft",
         "vandalism",
@@ -1898,15 +1902,15 @@ fn case_patrol_category(case_id: &str) -> Option<CasePatrolCategory> {
     let match_any = |kinds: &[&str]| kinds.iter().any(|kind| case_id.ends_with(kind));
 
     if match_any(PROPERTY) {
-        Some(CasePatrolCategory::Property)
+        Some(CaseCategory::Property)
     } else if match_any(VIOLENT) {
-        Some(CasePatrolCategory::Violent)
+        Some(CaseCategory::Violent)
     } else if match_any(DISTURBANCE) {
-        Some(CasePatrolCategory::Disturbance)
+        Some(CaseCategory::Disturbance)
     } else if match_any(INVESTIGATION) {
-        Some(CasePatrolCategory::Investigation)
+        Some(CaseCategory::Investigation)
     } else if match_any(SERIAL) {
-        Some(CasePatrolCategory::Serial)
+        Some(CaseCategory::Serial)
     } else {
         None
     }
@@ -1915,21 +1919,43 @@ fn case_patrol_category(case_id: &str) -> Option<CasePatrolCategory> {
 /// One-line category-specific aside Vasquez adds to patrol commentary.
 /// Returns None for cases that don't fit a category; the caller then omits the aside.
 fn vasquez_patrol_aside(case_id: &str) -> Option<&'static str> {
-    Some(match case_patrol_category(case_id)? {
-        CasePatrolCategory::Property => {
+    Some(match case_category(case_id)? {
+        CaseCategory::Property => {
             "Property jobs: people lose something, then lose the plot about it. Don't."
         }
-        CasePatrolCategory::Violent => {
+        CaseCategory::Violent => {
             "Violent scene. Sight lines first, sympathy second. You can grieve on the drive back."
         }
-        CasePatrolCategory::Disturbance => {
+        CaseCategory::Disturbance => {
             "Small call. Which means somebody's hoping it stays small — watch the thing under it."
         }
-        CasePatrolCategory::Investigation => {
+        CaseCategory::Investigation => {
             "This one wants patience. The street won't hand it over. You have to earn the handoff."
         }
-        CasePatrolCategory::Serial => {
+        CaseCategory::Serial => {
             "These cases have a rhythm. Find the rhythm, you find the guy."
+        }
+    })
+}
+
+/// One-line category-specific aside Vasquez adds when fresh evidence lands.
+/// Returns None for cases that don't fit a category; caller then omits the aside.
+fn vasquez_evidence_aside(case_id: &str) -> Option<&'static str> {
+    Some(match case_category(case_id)? {
+        CaseCategory::Property => {
+            "Property cases live or die on chain-of-custody. Bag it, tag it, log it, yesterday."
+        }
+        CaseCategory::Violent => {
+            "On a violent case this is worth more than it looks. Double the chain, triple the photos."
+        }
+        CaseCategory::Disturbance => {
+            "Even on a small call — write it like a judge will read it back. Habits save careers."
+        }
+        CaseCategory::Investigation => {
+            "Patience rewarded. Log it clean. The story these build is going to matter in a quiet room later."
+        }
+        CaseCategory::Serial => {
+            "This is the kind of fragment the pattern falls out of. Don't file it casual."
         }
     })
 }
@@ -2466,46 +2492,46 @@ mod tests {
     }
 
     #[test]
-    fn case_patrol_category_classifies_every_registered_case() {
-        use super::{case_patrol_category, CasePatrolCategory};
+    fn case_category_classifies_every_registered_case() {
+        use super::{case_category, CaseCategory};
 
         // Registered case ids → expected category. Full registry inventory.
-        let expectations: &[(&str, CasePatrolCategory)] = &[
+        let expectations: &[(&str, CaseCategory)] = &[
             // Property
-            ("patrol_001_petty_theft", CasePatrolCategory::Property),
-            ("patrol_002_vandalism", CasePatrolCategory::Property),
-            ("patrol_005_shoplifting", CasePatrolCategory::Property),
-            ("patrol_006_car_breakin", CasePatrolCategory::Property),
-            ("patrol_007_graffiti", CasePatrolCategory::Property),
-            ("patrol_008_trespassing", CasePatrolCategory::Property),
-            ("detective_001_burglary", CasePatrolCategory::Property),
-            ("detective_003_fraud", CasePatrolCategory::Property),
-            ("sergeant_003_theft_ring", CasePatrolCategory::Property),
+            ("patrol_001_petty_theft", CaseCategory::Property),
+            ("patrol_002_vandalism", CaseCategory::Property),
+            ("patrol_005_shoplifting", CaseCategory::Property),
+            ("patrol_006_car_breakin", CaseCategory::Property),
+            ("patrol_007_graffiti", CaseCategory::Property),
+            ("patrol_008_trespassing", CaseCategory::Property),
+            ("detective_001_burglary", CaseCategory::Property),
+            ("detective_003_fraud", CaseCategory::Property),
+            ("sergeant_003_theft_ring", CaseCategory::Property),
             // Violent
-            ("detective_002_assault", CasePatrolCategory::Violent),
-            ("detective_005_arson", CasePatrolCategory::Violent),
-            ("detective_007_hitrun", CasePatrolCategory::Violent),
-            ("sergeant_001_homicide", CasePatrolCategory::Violent),
-            ("sergeant_002_kidnapping", CasePatrolCategory::Violent),
+            ("detective_002_assault", CaseCategory::Violent),
+            ("detective_005_arson", CaseCategory::Violent),
+            ("detective_007_hitrun", CaseCategory::Violent),
+            ("sergeant_001_homicide", CaseCategory::Violent),
+            ("sergeant_002_kidnapping", CaseCategory::Violent),
             // Disturbance
-            ("patrol_003_noise", CasePatrolCategory::Disturbance),
-            ("patrol_004_lost_pet", CasePatrolCategory::Disturbance),
+            ("patrol_003_noise", CaseCategory::Disturbance),
+            ("patrol_004_lost_pet", CaseCategory::Disturbance),
             // Investigation
-            ("detective_004_missing", CasePatrolCategory::Investigation),
-            ("detective_006_drugs", CasePatrolCategory::Investigation),
-            ("detective_008_blackmail", CasePatrolCategory::Investigation),
-            ("sergeant_004_corruption", CasePatrolCategory::Investigation),
-            ("sergeant_005_cold_case", CasePatrolCategory::Investigation),
+            ("detective_004_missing", CaseCategory::Investigation),
+            ("detective_006_drugs", CaseCategory::Investigation),
+            ("detective_008_blackmail", CaseCategory::Investigation),
+            ("sergeant_004_corruption", CaseCategory::Investigation),
+            ("sergeant_005_cold_case", CaseCategory::Investigation),
             // Serial (narrative climax cases)
-            ("sergeant_006_serial_vandal", CasePatrolCategory::Serial),
-            ("lieutenant_001_serial", CasePatrolCategory::Serial),
-            ("lieutenant_002_conspiracy", CasePatrolCategory::Serial),
-            ("lieutenant_003_final", CasePatrolCategory::Serial),
+            ("sergeant_006_serial_vandal", CaseCategory::Serial),
+            ("lieutenant_001_serial", CaseCategory::Serial),
+            ("lieutenant_002_conspiracy", CaseCategory::Serial),
+            ("lieutenant_003_final", CaseCategory::Serial),
         ];
 
         for (case_id, expected) in expectations {
             assert_eq!(
-                case_patrol_category(case_id),
+                case_category(case_id),
                 Some(*expected),
                 "case {case_id} should classify as {expected:?}"
             );
@@ -2513,11 +2539,11 @@ mod tests {
     }
 
     #[test]
-    fn case_patrol_category_returns_none_for_unknown_case_id() {
-        use super::case_patrol_category;
-        assert!(case_patrol_category("patrol_999_unknown").is_none());
-        assert!(case_patrol_category("").is_none());
-        assert!(case_patrol_category("random_text").is_none());
+    fn case_category_returns_none_for_unknown_case_id() {
+        use super::case_category;
+        assert!(case_category("patrol_999_unknown").is_none());
+        assert!(case_category("").is_none());
+        assert!(case_category("random_text").is_none());
     }
 
     #[test]
@@ -2591,6 +2617,109 @@ mod tests {
                 assert_ne!(
                     asides[i], asides[j],
                     "category asides {i} and {j} collided: {:?}",
+                    asides[i]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn evidence_comment_appends_category_aside_for_known_case() {
+        use super::vasquez_evidence_comment;
+
+        let comment = vasquez_evidence_comment(
+            "detective_005_arson",
+            PartnerStage::WorkingRapport,
+            "burner_phone",
+        );
+        // Core line still present.
+        assert!(comment.starts_with("Vasquez: "));
+        assert!(comment.contains("(detective_005_arson, burner phone)"));
+        // Violent-category evidence aside is appended on a new "— " line.
+        assert!(comment.contains("\n— "));
+        assert!(comment.contains("violent case"));
+    }
+
+    #[test]
+    fn evidence_comment_omits_aside_for_unclassified_case() {
+        use super::vasquez_evidence_comment;
+
+        let comment = vasquez_evidence_comment(
+            "patrol_999_unknown",
+            PartnerStage::Stranger,
+            "fingerprint",
+        );
+        assert!(
+            !comment.contains('\n'),
+            "unclassified case should yield single-line comment, got: {comment:?}"
+        );
+        assert!(comment.starts_with("Vasquez: "));
+    }
+
+    #[test]
+    fn evidence_comment_aside_differs_from_patrol_aside() {
+        use super::{vasquez_evidence_comment, vasquez_patrol_comment};
+
+        let patrol = vasquez_patrol_comment(
+            "detective_005_arson",
+            PartnerStage::Stranger,
+            "Downtown",
+        );
+        let evidence = vasquez_evidence_comment(
+            "detective_005_arson",
+            PartnerStage::Stranger,
+            "burner_phone",
+        );
+
+        let patrol_aside = patrol.split("\n— ").nth(1).expect("patrol aside expected");
+        let evidence_aside = evidence.split("\n— ").nth(1).expect("evidence aside expected");
+
+        assert_ne!(
+            patrol_aside, evidence_aside,
+            "patrol and evidence must have distinct asides for the same category"
+        );
+    }
+
+    #[test]
+    fn evidence_aside_differs_per_category() {
+        use super::vasquez_evidence_comment;
+
+        let property = vasquez_evidence_comment(
+            "patrol_001_petty_theft",
+            PartnerStage::Stranger,
+            "fingerprint",
+        );
+        let violent = vasquez_evidence_comment(
+            "detective_005_arson",
+            PartnerStage::Stranger,
+            "burner_phone",
+        );
+        let disturbance = vasquez_evidence_comment(
+            "patrol_003_noise",
+            PartnerStage::Stranger,
+            "witness_statement",
+        );
+        let investigation = vasquez_evidence_comment(
+            "sergeant_005_cold_case",
+            PartnerStage::Stranger,
+            "photo_of_scene",
+        );
+        let serial = vasquez_evidence_comment(
+            "lieutenant_001_serial",
+            PartnerStage::Stranger,
+            "tip_off",
+        );
+
+        let asides: Vec<&str> = [&property, &violent, &disturbance, &investigation, &serial]
+            .iter()
+            .map(|s| s.split("\n— ").nth(1).expect("expected evidence aside"))
+            .collect();
+
+        for i in 0..asides.len() {
+            for j in (i + 1)..asides.len() {
+                assert_ne!(
+                    asides[i], asides[j],
+                    "evidence category asides {i} and {j} collided: {:?}",
                     asides[i]
                 );
             }
