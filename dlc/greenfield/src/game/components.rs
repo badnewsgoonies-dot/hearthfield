@@ -128,3 +128,9 @@ pub struct Ring;
 
 #[derive(Component, Debug, Default)]
 pub struct Charm;
+
+#[derive(Component, Debug, Default)]
+pub struct BenchmarkTag;
+
+#[derive(Component, Debug, Default)]
+pub struct McpOnlyProbeTag;

@@ -25,6 +25,7 @@ pub enum GreenfieldState {
     Upgrading,
     Resting,
     Exploring,
+    Benchmarking,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -39,6 +40,8 @@ pub struct GreenfieldPlugin;
 impl Plugin for GreenfieldPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GreenfieldState>()
+            .init_resource::<resources::BenchmarkBudget>()
+            .add_event::<events::BenchmarkStartedEvent>()
             .add_systems(Update, systems::drain_score_changes::drain_score_changes_system)
             .add_systems(Update, systems::drain_damage::drain_damage_system)
             .add_systems(Update, systems::emit_game_loaded_tick::emit_game_loaded_tick_system)

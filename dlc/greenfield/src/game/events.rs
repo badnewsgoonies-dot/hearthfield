@@ -119,3 +119,6 @@ pub struct EnemySpawnedEvent {
     pub at_x: f32,
     pub at_y: f32,
 }
+
+#[derive(Event, Debug, Default)]
+pub struct BenchmarkStartedEvent;

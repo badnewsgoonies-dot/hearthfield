@@ -66,3 +66,8 @@ pub const MAX_INVENTORY: u32 = 64;
 pub const XP_PER_LEVEL: u32 = 100;
 
 pub const CRIT_CHANCE: f32 = 0.15;
+
+#[derive(Resource, Debug, Default)]
+pub struct BenchmarkBudget;
+
+pub const BENCHMARK_TIMEOUT_MS: u64 = 5000;
