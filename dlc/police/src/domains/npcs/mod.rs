@@ -4,12 +4,13 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::domains::cases::{case_definition, witness_lines, CaseRegistry};
 use crate::shared::{
-    CaseAssignedEvent, CaseBoard, DayOfWeek, DialogueEndEvent, DialogueStartEvent,
-    EvidenceCollectedEvent, Facing, GameState, GridPosition, InterrogationEndEvent,
-    InterrogationStartEvent, MapId, MapTransitionEvent, Npc, NpcDef, NpcId, NpcRegistry,
-    NpcRelationship, NpcRole, NpcTrustChangeEvent, PartnerArc, PartnerStage, PlayerInput,
-    PlayerState, ScheduleEntry, ShiftClock, ToastEvent, UpdatePhase, Weather, XpGainedEvent,
-    MAX_PRESSURE, MAX_TRUST, MIN_TRUST, PIXEL_SCALE, TILE_SIZE, XP_PER_INTERROGATION,
+    CaseAssignedEvent, CaseBoard, CaseFailedEvent, CaseSolvedEvent, DayOfWeek, DialogueEndEvent,
+    DialogueStartEvent, EvidenceCollectedEvent, Facing, GameState, GridPosition,
+    InterrogationEndEvent, InterrogationStartEvent, MapId, MapTransitionEvent, Npc, NpcDef, NpcId,
+    NpcRegistry, NpcRelationship, NpcRole, NpcTrustChangeEvent, PartnerArc, PartnerStage,
+    PlayerInput, PlayerState, ScheduleEntry, ShiftClock, ToastEvent, UpdatePhase, Weather,
+    XpGainedEvent, MAX_PRESSURE, MAX_TRUST, MIN_TRUST, PIXEL_SCALE, TILE_SIZE,
+    XP_PER_INTERROGATION,
 };
 
 const INTERACTION_RANGE_TILES: i32 = 2;
@@ -459,6 +460,7 @@ impl Plugin for NpcsPlugin {
                     advance_partner_arc,
                     emit_investigation_commentary,
                     emit_patrol_commentary,
+                    emit_case_completion_commentary,
                 )
                     .chain()
                     .in_set(UpdatePhase::Reactions),
@@ -928,6 +930,34 @@ fn emit_patrol_commentary(
             ),
             duration_secs: 3.2,
         });
+    }
+}
+
+fn emit_case_completion_commentary(
+    mut solved_events: EventReader<CaseSolvedEvent>,
+    mut failed_events: EventReader<CaseFailedEvent>,
+    partner_arc: Res<PartnerArc>,
+    mut commentary_state: ResMut<InvestigationCommentaryState>,
+    mut toast_events: EventWriter<ToastEvent>,
+) {
+    for event in solved_events.read() {
+        let key = format!("vasquez:solved:{}", event.case_id);
+        if commentary_state.emitted_keys.insert(key) {
+            toast_events.send(ToastEvent {
+                message: vasquez_case_solved_comment(&event.case_id, partner_arc.stage),
+                duration_secs: 4.5,
+            });
+        }
+    }
+
+    for event in failed_events.read() {
+        let key = format!("vasquez:failed:{}", event.case_id);
+        if commentary_state.emitted_keys.insert(key) {
+            toast_events.send(ToastEvent {
+                message: vasquez_case_failed_comment(&event.case_id, partner_arc.stage),
+                duration_secs: 4.5,
+            });
+        }
     }
 }
 
@@ -1859,6 +1889,102 @@ fn vasquez_assignment_aside(case_id: &str) -> Option<&'static str> {
     })
 }
 
+fn vasquez_case_solved_comment(case_id: &str, stage: PartnerStage) -> String {
+    let line = match stage {
+        PartnerStage::Stranger => {
+            "Case closed. Take a shift off the caffeine before Torres puts another live file on us."
+        }
+        PartnerStage::UneasyPartners => {
+            "Done. I'll file it clean so it stays done. Decent work, new one."
+        }
+        PartnerStage::WorkingRapport => {
+            "Solid close. That's what this job's supposed to feel like when the fundamentals hold."
+        }
+        PartnerStage::TrustedPartners => {
+            "That's what I wanted to see. Clean case, honest closing — no asterisks."
+        }
+        PartnerStage::BestFriends => {
+            "Beautiful work. This is the kind of close that keeps people in the job too long."
+        }
+    };
+
+    let core = format!("Vasquez: {line} ({case_id})");
+    match vasquez_case_solved_aside(case_id) {
+        Some(aside) => format!("{core}\n— {aside}"),
+        None => core,
+    }
+}
+
+fn vasquez_case_failed_comment(case_id: &str, stage: PartnerStage) -> String {
+    let line = match stage {
+        PartnerStage::Stranger => {
+            "It happens. Write up what you learned before memory starts editing the tape."
+        }
+        PartnerStage::UneasyPartners => {
+            "Rough close. The file still has to tell an honest story about what went wrong."
+        }
+        PartnerStage::WorkingRapport => {
+            "We don't win them all. Make this one mean something by catching the tell for next time."
+        }
+        PartnerStage::TrustedPartners => {
+            "Hurts. Better a clean loss than a dirty win — log it honest."
+        }
+        PartnerStage::BestFriends => {
+            "That one stings. Tomorrow we pick up whatever we can carry and keep walking."
+        }
+    };
+
+    let core = format!("Vasquez: {line} ({case_id})");
+    match vasquez_case_failed_aside(case_id) {
+        Some(aside) => format!("{core}\n— {aside}"),
+        None => core,
+    }
+}
+
+/// Category-specific aside appended when a case is SOLVED.
+/// Tone: earned satisfaction, matched to case weight.
+fn vasquez_case_solved_aside(case_id: &str) -> Option<&'static str> {
+    Some(match case_category(case_id)? {
+        CaseCategory::Property => {
+            "Paperwork closes clean on these. Owner gets answers, city gets receipts."
+        }
+        CaseCategory::Violent => {
+            "Dangerous file, quiet drive home tonight. Don't undersell that."
+        }
+        CaseCategory::Disturbance => {
+            "Block's quieter now. That matters more than the report length ever admits."
+        }
+        CaseCategory::Investigation => {
+            "The slow pull paid. That's the specific win this kind of case gives you — savor it."
+        }
+        CaseCategory::Serial => {
+            "Pattern broken. That's the one detectives carry home for years. Breathe."
+        }
+    })
+}
+
+/// Category-specific aside appended when a case FAILS.
+/// Tone: rueful honesty, no crushing judgment. Vasquez has been there.
+fn vasquez_case_failed_aside(case_id: &str) -> Option<&'static str> {
+    Some(match case_category(case_id)? {
+        CaseCategory::Property => {
+            "Suspect walks. Owner's going to call again — have your honest answer ready."
+        }
+        CaseCategory::Violent => {
+            "Violent case slipped. Make peace with it tonight or the job does the math for you."
+        }
+        CaseCategory::Disturbance => {
+            "Small case, bigger footprint than the form suggests. Get there sooner next time."
+        }
+        CaseCategory::Investigation => {
+            "Lost the thread. The pattern files itself — later eyes might catch what ours missed."
+        }
+        CaseCategory::Serial => {
+            "Pattern case we couldn't close. That one doesn't leave. Keep your notes live."
+        }
+    })
+}
+
 fn vasquez_evidence_comment(case_id: &str, stage: PartnerStage, evidence_id: &str) -> String {
     let evidence_name = evidence_id.replace('_', " ");
     let line = match stage {
@@ -2306,6 +2432,8 @@ mod tests {
         app.add_event::<MapTransitionEvent>();
         app.add_event::<XpGainedEvent>();
         app.add_event::<ToastEvent>();
+        app.add_event::<CaseSolvedEvent>();
+        app.add_event::<CaseFailedEvent>();
         app.add_plugins(NpcsPlugin);
         app
     }
@@ -2906,6 +3034,60 @@ mod tests {
                     "det_vasquez profile slots {i} and {j} are identical"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn case_solved_emits_vasquez_toast_with_category_aside() {
+        let mut app = build_test_app();
+        app.update();
+        app.world_mut()
+            .resource_mut::<Events<ToastEvent>>()
+            .clear();
+
+        app.world_mut()
+            .resource_mut::<Events<CaseSolvedEvent>>()
+            .send(CaseSolvedEvent {
+                case_id: "detective_005_arson".to_string(),
+                xp_reward: 100,
+                gold_reward: 250,
+                reputation_reward: 10,
+            });
+        app.update();
+
+        let events = app.world().resource::<Events<ToastEvent>>();
+        let mut reader = events.get_cursor();
+        let emitted: Vec<String> = reader
+            .read(events)
+            .map(|event| event.message.clone())
+            .collect();
+
+        assert!(
+            emitted.iter().any(|msg| msg.starts_with("Vasquez:")),
+            "expected Vasquez solved toast, got: {emitted:?}"
+        );
+        assert!(
+            emitted.iter().any(|msg| msg.contains("Dangerous file")),
+            "expected violent-category solved aside, got: {emitted:?}"
+        );
+    }
+
+    #[test]
+    fn case_solved_and_failed_comments_are_distinct() {
+        use super::{vasquez_case_failed_comment, vasquez_case_solved_comment};
+
+        // Same case, same stage — winning and losing must sound different.
+        for stage in [
+            PartnerStage::Stranger,
+            PartnerStage::WorkingRapport,
+            PartnerStage::BestFriends,
+        ] {
+            let solved = vasquez_case_solved_comment("detective_005_arson", stage);
+            let failed = vasquez_case_failed_comment("detective_005_arson", stage);
+            assert_ne!(
+                solved, failed,
+                "solved and failed must not coincide at stage {stage:?}"
+            );
         }
     }
 
