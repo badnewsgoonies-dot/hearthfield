@@ -1,11 +1,10 @@
 use bevy::prelude::*;
-use crate::game::resources::QuestLog;
 use crate::game::events::QuestCompletedEvent;
+use crate::game::resources::QuestLog;
 
-pub fn quest_complete_system(mut log: ResMut<QuestLog>, mut reader: EventReader<QuestCompletedEvent>) {
-    for _ev in reader.read() {
-        log.active = log.active.saturating_sub(1);
-        log.completed = log.completed.saturating_add(1);
+pub fn quest_complete_system(mut events: EventReader<QuestCompletedEvent>, mut state: ResMut<QuestLog>) {
+    for _ev in events.read() {
+        state.active = state.active.saturating_sub(1);
+        state.completed = state.completed.saturating_add(1);
     }
-
 }
