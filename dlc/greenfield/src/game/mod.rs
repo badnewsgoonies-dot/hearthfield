@@ -6,49 +6,45 @@ pub mod plugins;
 pub mod resources;
 pub mod systems;
 
+/// Top-level state machine for the Greenfield DLC.
+///
+/// Pruned from the original scaffold to seven coherent states that
+/// reflect the farming-defense gameplay loop. Matches the shape of
+/// `OfficeGameState` in the city DLC — boot, menu, in-game phases,
+/// pause, end.
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GreenfieldState {
+    /// Initial state on app boot. Loads sprites and resources, then
+    /// transitions to MainMenu.
     #[default]
     Boot,
+    /// Title screen. Press any key to start.
     MainMenu,
-    Playing,
+    /// Active play phase — farmer is tending crops; no critters
+    /// currently on the field.
+    Tending,
+    /// Active play phase — critters present; the farmer must defend.
+    Defending,
+    /// Active play phase — harvest cycle; crops have matured and
+    /// the farmer is collecting them.
+    Harvesting,
+    /// Game paused (Esc).
     Paused,
+    /// Run ended (farmer hp hit zero, or all crops eaten).
     GameOver,
-    Loading,
-    Settings,
-    Credits,
-    Combat,
-    Inventory,
-    Dialog,
-    Trading,
-    Crafting,
-    Upgrading,
-    Resting,
-    Exploring,
-    Benchmarking,
-    McpScaleVar01,
-    McpScaleVar02,
-    McpScaleVar03,
-    McpScaleVar04,
-    BigBatchVar01,
-    BigBatchVar02,
-    BigBatchVar03,
-    BigBatchVar04,
-    BigBatchVar05,
-    BigBatchVar06,
-    BigBatchVar07,
-    BigBatchVar08,
-    BigBatchVar09,
-    BigBatchVar10,
-    Crafting__Idle,
-    Crafting__Active,
-    Crafting__Cooldown,
 }
 
+/// Update-phase set ordering used inside the Greenfield plugin.
+/// Mirrors the convention in `src/shared/schedule.rs::UpdatePhase`
+/// without re-exporting from the host crate (DLCs are siblings,
+/// not dependents).
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GreenfieldSet {
+    /// Read keyboard / gamepad.
     Input,
+    /// Update game-state resources and entities.
     Simulation,
+    /// Draw HUD, update sprites.
     Render,
 }
 
@@ -57,6 +53,15 @@ pub struct GreenfieldPlugin;
 impl Plugin for GreenfieldPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GreenfieldState>()
+            .configure_sets(
+                Update,
+                (
+                    GreenfieldSet::Input,
+                    GreenfieldSet::Simulation,
+                    GreenfieldSet::Render,
+                )
+                    .chain(),
+            )
             .add_systems(Update, systems::music_tick_sys::music_tick_system)
             .init_resource::<resources::MusicState>()
             .add_event::<events::MusicCrossfadeRequestedEvent>()
@@ -136,82 +141,6 @@ impl Plugin for GreenfieldPlugin {
             .add_systems(Update, systems::score_broadcast_tick::score_broadcast_tick_system)
             .add_event::<events::ScoreBroadcastEvent>()
             .init_resource::<resources::BroadcastScore>()
-            .add_event::<events::TrialAchainEvent>()
-            .init_resource::<resources::TrialA3Res>()
-            .add_event::<events::TrialA3Event>()
-            .add_systems(Update, systems::mcp_sys_10::mcp_sys_10_system)
-            .add_systems(Update, systems::mcp_sys_09::mcp_sys_09_system)
-            .add_systems(Update, systems::mcp_sys_08::mcp_sys_08_system)
-            .add_systems(Update, systems::mcp_sys_07::mcp_sys_07_system)
-            .add_systems(Update, systems::mcp_sys_06::mcp_sys_06_system)
-            .add_systems(Update, systems::mcp_sys_05::mcp_sys_05_system)
-            .add_systems(Update, systems::mcp_sys_04::mcp_sys_04_system)
-            .add_systems(Update, systems::mcp_sys_03::mcp_sys_03_system)
-            .add_systems(Update, systems::mcp_sys_02::mcp_sys_02_system)
-            .add_systems(Update, systems::mcp_sys_01::mcp_sys_01_system)
-            .add_plugins(plugins::McpPlugin10)
-            .add_plugins(plugins::McpPlugin09)
-            .add_plugins(plugins::McpPlugin08)
-            .add_plugins(plugins::McpPlugin07)
-            .add_plugins(plugins::McpPlugin06)
-            .add_plugins(plugins::McpPlugin05)
-            .add_plugins(plugins::McpPlugin04)
-            .add_plugins(plugins::McpPlugin03)
-            .add_plugins(plugins::McpPlugin02)
-            .add_plugins(plugins::McpPlugin01)
-            .init_resource::<resources::BareRes10>()
-            .init_resource::<resources::BareRes09>()
-            .init_resource::<resources::BareRes08>()
-            .init_resource::<resources::BareRes07>()
-            .init_resource::<resources::BareRes06>()
-            .init_resource::<resources::BareRes05>()
-            .init_resource::<resources::BareRes04>()
-            .init_resource::<resources::BareRes03>()
-            .init_resource::<resources::BareRes02>()
-            .init_resource::<resources::BareRes01>()
-            .add_event::<events::BareEvent10>()
-            .add_event::<events::BareEvent09>()
-            .add_event::<events::BareEvent08>()
-            .add_event::<events::BareEvent07>()
-            .add_event::<events::BareEvent06>()
-            .add_event::<events::BareEvent05>()
-            .add_event::<events::BareEvent04>()
-            .add_event::<events::BareEvent03>()
-            .add_event::<events::BareEvent02>()
-            .add_event::<events::BareEvent01>()
-            .init_resource::<resources::FinisherRes03>()
-            .init_resource::<resources::FinisherRes02>()
-            .init_resource::<resources::FinisherRes01>()
-            .init_resource::<resources::BigBatchRes10>()
-            .init_resource::<resources::BigBatchRes09>()
-            .init_resource::<resources::BigBatchRes08>()
-            .init_resource::<resources::BigBatchRes07>()
-            .init_resource::<resources::BigBatchRes06>()
-            .init_resource::<resources::BigBatchRes05>()
-            .init_resource::<resources::BigBatchRes04>()
-            .init_resource::<resources::BigBatchRes03>()
-            .init_resource::<resources::BigBatchRes02>()
-            .init_resource::<resources::BigBatchRes01>()
-            .add_event::<events::BigBatchEvent10>()
-            .add_event::<events::BigBatchEvent09>()
-            .add_event::<events::BigBatchEvent08>()
-            .add_event::<events::BigBatchEvent07>()
-            .add_event::<events::BigBatchEvent06>()
-            .add_event::<events::BigBatchEvent05>()
-            .add_event::<events::BigBatchEvent04>()
-            .add_event::<events::BigBatchEvent03>()
-            .add_event::<events::BigBatchEvent02>()
-            .add_event::<events::BigBatchEvent01>()
-            .init_resource::<resources::McpScaleRes04>()
-            .init_resource::<resources::McpScaleRes03>()
-            .init_resource::<resources::McpScaleRes02>()
-            .init_resource::<resources::McpScaleRes01>()
-            .add_event::<events::McpScaleEvent04>()
-            .add_event::<events::McpScaleEvent03>()
-            .add_event::<events::McpScaleEvent02>()
-            .add_event::<events::McpScaleEvent01>()
-            .init_resource::<resources::BenchmarkBudget>()
-            .add_event::<events::BenchmarkStartedEvent>()
             .add_systems(Update, systems::drain_score_changes::drain_score_changes_system)
             .add_systems(Update, systems::drain_damage::drain_damage_system)
             .add_systems(Update, systems::emit_game_loaded_tick::emit_game_loaded_tick_system)
@@ -232,52 +161,25 @@ impl Plugin for GreenfieldPlugin {
             .add_event::<events::ExperienceGainedEvent>()
             .add_event::<events::ItemPickedUpEvent>()
             .add_event::<events::DamageDealtEvent>()
-            .add_event::<events::KeyCollectedEvent>()
-            .add_event::<events::DoorOpenedEvent>()
-            .add_event::<events::GoalReachedEvent>()
-            .add_event::<events::CheckpointReachedEvent>()
-            .add_event::<events::PortalActivatedEvent>()
-            .add_event::<events::ChestOpenedEvent>()
-            .add_event::<events::AllyDownedEvent>()
             .add_event::<events::EnemyDefeatedEvent>()
             .add_systems(Update, systems::update_hud_sys::update_hud_system)
-            .add_systems(Update, systems::play_audio_sys::play_audio_system)
             .add_systems(Update, systems::handle_config_sys::handle_config_system)
             .add_systems(Update, systems::record_tick_sys::record_tick_system)
             .add_systems(Update, systems::tick_clock_sys::tick_clock_system)
             .add_event::<events::PlayerMovedEvent>()
             .add_event::<events::ScoreChangedEvent>()
-            .add_event::<events::TimerElapsedEvent>()
-            .add_event::<events::ButtonPressedEvent>()
-            .add_event::<events::ConfigurationChangedEvent>()
-            .add_event::<events::GameUnloadedEvent>()
             .add_event::<events::GameLoadedEvent>()
             .init_resource::<resources::GameConfig>()
             .init_resource::<resources::RecordingBuffer>()
             .init_resource::<resources::TurnClock>()
-            .init_resource::<resources::SettingsCache>()
             .init_resource::<resources::AudioManager>()
-            .add_systems(Update, systems::render_tick::render_tick)
             .add_systems(Update, systems::sim_tick::sim_tick)
             .add_systems(Update, systems::input_tick::input_tick)
             .add_systems(Update, systems::boot_tick::boot_tick)
-            .add_event::<events::RenderTickedEvent>()
-            .add_event::<events::SimulationTickedEvent>()
-            .add_event::<events::InputTickedEvent>()
-            .add_event::<events::TurnRecordedEvent>()
-            .add_event::<events::TurnEndedEvent>()
-            .add_event::<events::TurnBeganEvent>()
-            .add_event::<events::GameEndedEvent>()
-            .add_event::<events::GameResumedEvent>()
-            .add_event::<events::GamePausedEvent>()
-            .add_event::<events::GameStartedEvent>()
-            .add_event::<events::MainMenuExitedEvent>()
-            .add_event::<events::MainMenuEnteredEvent>()
-            .add_event::<events::BootCompletedEvent>()
-            .add_event::<events::BootStartedEvent>()
             ;
     }
 }
+
 pub mod scene;
 pub mod audio;
 pub mod input;
@@ -286,17 +188,6 @@ pub mod inventory;
 pub mod ai_behavior;
 pub mod dialogue;
 pub mod quests;
-pub mod scaffold_01;
-pub mod scaffold_02;
-pub mod scaffold_03;
-pub mod scaffold_04;
-pub mod scaffold_05;
-pub mod scaffold_06;
-pub mod scaffold_11;
-pub mod scaffold_12;
-pub mod scaffold_13;
-pub mod scaffold_14;
-pub mod scaffold_15;
 pub mod crafting_data;
 pub mod crafting_lookup;
 pub mod crafting_validator;
