@@ -1,6 +1,7 @@
 use bevy::prelude::*;
-use crate::game::events::GameLoadedEvent;
 
-pub fn emit_game_loaded_tick_system(mut events: EventWriter<GameLoadedEvent>) {
-    events.send(GameLoadedEvent::default());
+pub fn emit_game_loaded_tick_system(mut emitted: Local<bool>, mut writer: EventWriter<crate::game::events::GameLoadedEvent>) {
+    if *emitted { return; }
+    *emitted = true;
+    writer.send(crate::game::events::GameLoadedEvent);
 }
