@@ -1,5 +1,10 @@
 use bevy::prelude::*;
+use crate::game::components::McpStruct01;
 
-pub fn mcp_sys_01_system() {
-    // mcp scale variant 1 — sized for batch dispatch
+/// MCP scale variant 01 — spawns a McpStruct01 entity on first run,
+/// then no-ops. Wired into McpPlugin01::build() at v15.
+pub fn mcp_sys_01_system(mut commands: Commands, mut spawned: Local<bool>) {
+    if *spawned { return; }
+    commands.spawn(McpStruct01::new_01());
+    *spawned = true;
 }

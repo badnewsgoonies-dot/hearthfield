@@ -174,6 +174,17 @@ impl Plugin for GreenfieldPlugin {
             .add_systems(Update, systems::sim_tick::sim_tick)
             .add_systems(Update, systems::input_tick::input_tick)
             .add_systems(Update, systems::boot_tick::boot_tick)
+            // ─── v15: previously-orphaned systems wired in ───────────
+            .add_systems(Update, systems::play_audio_sys::play_audio_system)
+            .add_systems(Update, systems::render_tick::render_tick)
+            // ─── v15: McpPlugin01..10 scaffolds registered ──────────
+            .add_plugins((
+                plugins::McpPlugin01, plugins::McpPlugin02,
+                plugins::McpPlugin03, plugins::McpPlugin04,
+                plugins::McpPlugin05, plugins::McpPlugin06,
+                plugins::McpPlugin07, plugins::McpPlugin08,
+                plugins::McpPlugin09, plugins::McpPlugin10,
+            ))
             ;
     }
 }
