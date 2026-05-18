@@ -147,3 +147,5 @@ pub mod ported_pts_to_candles;
 pub mod ported_shimmer_color;
 
 pub mod ported_format_gold_alt;
+
+pub mod ported_read_dpad_just_pressed_helper;
