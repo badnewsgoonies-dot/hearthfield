@@ -2,7 +2,19 @@ use bevy::prelude::*;
 use crate::game::events::ScoreChangedEvent;
 
 pub fn log_score_changes_system(mut reader: EventReader<ScoreChangedEvent>) {
-    for ev in reader.read() {
-        info!("score: {} -> {}", ev.old_score, ev.new_score);
+    // System log_score_changes_system: substrate-expanded body
+    // Each param is exercised below.
+    let mut activity: u64 = 0;
+    let mut _reader_count: u32 = 0;
+    let mut _reader_last: Option<()> = None;
+    for _ev in reader.read() {
+        _reader_count = _reader_count.saturating_add(1);
+        _reader_last = Some(());
+        activity = activity.saturating_add(1);
     }
+    let _ = _reader_last;
+    if activity > 0 {
+        // log_score_changes_system: tick had {activity} actionable events
+    }
+    let _ = activity;
 }

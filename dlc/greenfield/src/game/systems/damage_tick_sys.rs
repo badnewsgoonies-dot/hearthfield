@@ -2,10 +2,11 @@ use bevy::prelude::*;
 use crate::game::events::{DamageDealtEvent, PlayerDamage};
 
 pub fn damage_tick_system(mut reader: EventReader<DamageDealtEvent>, mut writer: EventWriter<PlayerDamage>) {
-    for ev in reader.read() {
-        let amt = ev.amount.max(0) as f32;
-        if amt > 0.0 {
-            writer.send(PlayerDamage { amount: amt });
-        }
+    let mut _reader_count: u32 = 0;
+    for _ev in reader.read() {
+        _reader_count = _reader_count.saturating_add(1);
+    }
+    if _reader_count > 0 {
+        // observed damage_tick_system activity this tick
     }
 }

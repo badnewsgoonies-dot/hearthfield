@@ -15,3 +15,137 @@ pub mod save;
 pub mod skills;
 pub mod ui;
 pub mod world;
+
+
+
+pub mod ported_consume;
+
+pub mod ported_refund;
+
+pub mod ported_admit;
+
+
+pub mod ported_shift_overlay_cleanup;
+
+pub mod ported_ledger_cleanup;
+
+pub mod ported_kit_screen_cleanup;
+
+pub mod ported_chart_screen_cleanup;
+
+pub mod ported_staff_screen_cleanup;
+
+pub mod ported_treatment_screen_cleanup;
+
+pub mod ported_ward_upgrade_cleanup;
+
+pub mod ported_touch_overlay_cleanup;
+
+pub mod ported_clamp_helper;
+
+pub mod ported_shift_for_date;
+
+pub mod ported_format_shift_time;
+
+
+pub mod ported_bed_tile_hash;
+
+pub mod ported_score_to_credits;
+
+pub mod ported_set_pixel_helper;
+
+pub mod ported_set_px_helper;
+
+pub mod ported_shift_name_for_date;
+
+pub mod ported_ward_image_source;
+
+pub mod ported_facing_delta_helper;
+
+pub mod ported_tint_hash;
+
+pub mod ported_format_credits;
+
+pub mod ported_compact_med_name;
+
+pub mod ported_icon_size_node_helper;
+
+pub mod ported_simple_hash_helper;
+
+pub mod ported_patient_atlas_index;
+
+pub mod ported_trust_tier;
+
+pub mod ported_rare_case_display_name;
+
+pub mod ported_rare_case_sell_price;
+
+pub mod ported_preference_to_points_helper;
+
+pub mod ported_tag_color_helper;
+
+pub mod ported_ward_decor_png_size;
+
+pub mod ported_ward_object_atlas_index;
+
+pub mod ported_object_tint_helper;
+
+pub mod ported_put_pixel_helper;
+
+pub mod ported_ward_label;
+
+pub mod ported_facing_offset_player;
+
+pub mod ported_facing_offset_chest;
+
+pub mod ported_facing_rotation_sign_helper;
+
+pub mod ported_shift_display_name;
+
+pub mod ported_shift_for_cycle;
+
+pub mod ported_decor_color;
+
+pub mod ported_bed_color;
+
+pub mod ported_tier_label_helper;
+
+pub mod ported_ward_object_color;
+
+pub mod ported_tool_damage;
+
+pub mod ported_tool_fatigue_cost;
+
+pub mod ported_staff_action_damage;
+
+pub mod ported_severity_text_color;
+
+pub mod ported_severity_weight;
+
+pub mod ported_tier_level_helper;
+
+pub mod ported_map_to_case_location;
+
+pub mod ported_bed_atlas_index;
+
+pub mod ported_tile_palette;
+
+pub mod ported_autotile_idx;
+
+pub mod ported_atlas_idx;
+
+pub mod ported_legend_price;
+
+pub mod ported_set_pixel;
+
+pub mod ported_autotile_idx2;
+
+pub mod ported_fmt_gold;
+
+pub mod ported_pts_to_candles;
+
+pub mod ported_shimmer_color;
+
+pub mod ported_format_gold_alt;
+
+pub mod ported_read_dpad_just_pressed_helper;

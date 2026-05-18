@@ -13,20 +13,29 @@ use serde::{Serialize, Deserialize};
 pub struct Inventory;
 
 impl Inventory {
-    pub fn try_add<A0, A1, A2>(&self, _a0: A0, _a1: A1, _a2: A2) -> bool { false }
-    pub fn try_remove<A0, A1>(&self, _a0: A0, _a1: A1) -> bool { false }
+    pub fn try_add(&mut self, _id: &str, _q: u8, _m: u8) -> u8 { 0 }
+    pub fn try_remove(&mut self, _id: &str, _q: u8) -> u8 { 0 }
 }
+
+#[derive(Debug, Default, Clone)]
+pub struct ItemDef { pub name: String, pub stack_size: ItemStack }
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct ItemStack(pub u8);
+impl ItemStack { pub fn get(self) -> u8 { self.0 } }
+
+impl ItemDef { pub fn name(&self) -> &str { &self.name } }
 
 #[derive(Resource, Component, Debug, Default, Clone)]
 pub struct ItemRegistry;
 
 impl ItemRegistry {
-    pub fn get<A0>(&self, _a0: A0) -> Option<bool> { None }
+    pub fn get(&self, _id: &str) -> Option<&ItemDef> { None }
 }
 
 #[derive(Resource, Component, Debug, Default, Clone)]
 pub struct Recipe {
-    pub ingredients: String,
+    pub ingredients: Vec<(String, u8)>,
 }
 
 
