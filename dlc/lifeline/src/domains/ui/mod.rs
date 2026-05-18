@@ -1,28 +1,43 @@
-//! Lifeline::domains::ui — skeleton plugin.
-//! Briefcase `hearthfield_*` transforms splice systems/events/resources
-//! into this module via structural anchors (see CONVENTIONS below).
-//!
-//! CONVENTIONS (for briefcase):
-//!   - New events are added to `crate::shared` then registered in `build`.
-//!   - New components go directly below the `// ── components ──` anchor.
-//!   - New system fns go directly below the `// ── systems ──` anchor
-//!     and are registered inside `build` with `.add_systems(Update, …)`.
+//! Lifeline::domains::ui — substrate-mechanical port.
+//! No LLM. parser_v3 + substitution map + cargo gate.
 
 use bevy::prelude::*;
+use std::collections::HashMap;
 
-// ── components ────────────────────────────────────────────────────────
+// ── components ────────────────────────────────────────────
 
-// ── resources ─────────────────────────────────────────────────────────
+// ── resources ─────────────────────────────────────────
 
-// ── systems ───────────────────────────────────────────────────────────
+#[derive(Debug, Clone, Copy, Default)]
+pub struct StackSize(pub u8);
+impl StackSize { pub fn get(self) -> u8 { self.0 } }
 
-// ── plugin ────────────────────────────────────────────────────────────
+// ── events ────────────────────────────────────────
+
+#[derive(Event, Debug, Clone, Default)]
+pub struct StatusToastEvent {
+    pub message: String,
+    pub duration_secs: f32,
+}
+
+// ── helpers used by ported bodies ─────────────────
+
+
+
+
+
+
+// ── ported systems ────────────────────────────────
+
+
+
+// ── plugin ────────────────────────────────────────
 
 pub struct DomainPlugin;
 
 impl Plugin for DomainPlugin {
-    fn build(&self, _app: &mut App) {
-        // Briefcase wires registrations here via `hearthfield_register_system`
-        // and `hearthfield_wire_event`.
+    fn build(&self, app: &mut App) {
+        app.add_event::<StatusToastEvent>();
+        let _ = app;
     }
 }
