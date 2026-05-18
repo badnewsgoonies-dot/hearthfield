@@ -185,6 +185,32 @@ impl Plugin for GreenfieldPlugin {
                 plugins::McpPlugin07, plugins::McpPlugin08,
                 plugins::McpPlugin09, plugins::McpPlugin10,
             ))
+            // ─── v16: state machine wiring ──────────────────────────
+            .init_resource::<systems::state_machine::PrePauseState>()
+            .add_systems(Update, (
+                systems::state_machine::main_menu_to_tending
+                    .run_if(in_state(GreenfieldState::MainMenu)),
+                systems::state_machine::tending_to_defending
+                    .run_if(in_state(GreenfieldState::Tending)),
+                systems::state_machine::defending_to_tending
+                    .run_if(in_state(GreenfieldState::Defending)),
+                systems::state_machine::pause_toggle,
+                systems::state_machine::check_game_over,
+                systems::state_machine::game_over_to_main_menu
+                    .run_if(in_state(GreenfieldState::GameOver)),
+            ))
+            .add_systems(OnEnter(GreenfieldState::MainMenu),
+                         systems::state_machine::spawn_main_menu_hud)
+            .add_systems(OnExit(GreenfieldState::MainMenu),
+                         systems::state_machine::despawn_main_menu_hud)
+            .add_systems(OnEnter(GreenfieldState::Paused),
+                         systems::state_machine::spawn_pause_hud)
+            .add_systems(OnExit(GreenfieldState::Paused),
+                         systems::state_machine::despawn_pause_hud)
+            .add_systems(OnEnter(GreenfieldState::GameOver),
+                         systems::state_machine::spawn_game_over_hud)
+            .add_systems(OnExit(GreenfieldState::GameOver),
+                         systems::state_machine::despawn_game_over_hud)
             ;
     }
 }
