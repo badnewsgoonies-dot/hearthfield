@@ -239,3 +239,15 @@ pub mod ported_decorative_fence_mask_helper;
 pub mod ported_default_spawn_position_helper;
 
 pub mod ported_fallback_tile_palette_helper;
+
+
+
+
+
+
+
+
+
+pub mod ported_uses_biome_tree_png_helper;
+
+pub mod ported_reachable_world_maps_helper;
