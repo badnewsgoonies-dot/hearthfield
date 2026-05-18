@@ -197,3 +197,45 @@ pub mod ported_crop_stage_color_helper;
 pub mod ported_machine_atlas_index_helper;
 
 pub mod ported_npc_sprite_file_helper;
+
+pub mod ported_npc_color_helper;
+
+pub mod ported_read_dpad_axis_helper;
+
+pub mod ported_item_to_machine_type_helper;
+
+pub mod ported_preference_toast_message_helper;
+
+pub mod ported_quality_from_happiness_helper;
+
+pub mod ported_is_path_neighbor_helper;
+
+pub mod ported_music_path_helper;
+
+pub mod ported_write_all_ron_files_helper;
+
+pub mod ported_bait_bite_multiplier_helper;
+
+pub mod ported_day_tag_helper;
+
+pub mod ported_path_autotile_index_helper;
+
+pub mod ported_format_last_saved_helper;
+
+pub mod ported_map_display_name_helper;
+
+pub mod ported_map_id_display_name_helper;
+
+pub mod ported_sprinkler_affected_tiles_helper;
+
+pub mod ported_map_bounds_hardcoded_helper;
+
+pub mod ported_map_id_filename_helper;
+
+pub mod ported_tree_tint_helper;
+
+pub mod ported_decorative_fence_mask_helper;
+
+pub mod ported_default_spawn_position_helper;
+
+pub mod ported_fallback_tile_palette_helper;
