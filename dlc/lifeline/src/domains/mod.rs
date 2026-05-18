@@ -17,7 +17,6 @@ pub mod ui;
 pub mod world;
 
 
-pub mod _debug_solo;
 
 pub mod ported_consume;
 
