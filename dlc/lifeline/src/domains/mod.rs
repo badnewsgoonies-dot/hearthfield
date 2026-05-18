@@ -91,3 +91,59 @@ pub mod ported_ward_object_atlas_index;
 pub mod ported_object_tint_helper;
 
 pub mod ported_put_pixel_helper;
+
+pub mod ported_ward_label;
+
+pub mod ported_facing_offset_player;
+
+pub mod ported_facing_offset_chest;
+
+pub mod ported_facing_rotation_sign_helper;
+
+pub mod ported_shift_display_name;
+
+pub mod ported_shift_for_cycle;
+
+pub mod ported_decor_color;
+
+pub mod ported_bed_color;
+
+pub mod ported_tier_label_helper;
+
+pub mod ported_ward_object_color;
+
+pub mod ported_tool_damage;
+
+pub mod ported_tool_fatigue_cost;
+
+pub mod ported_staff_action_damage;
+
+pub mod ported_severity_text_color;
+
+pub mod ported_severity_weight;
+
+pub mod ported_tier_level_helper;
+
+pub mod ported_map_to_case_location;
+
+pub mod ported_bed_atlas_index;
+
+pub mod ported_tile_palette;
+
+pub mod ported_autotile_idx;
+
+pub mod ported_atlas_idx;
+
+pub mod ported_legend_price;
+
+pub mod ported_set_pixel;
+
+pub mod ported_autotile_idx2;
+
+pub mod ported_fmt_gold;
+
+pub mod ported_pts_to_candles;
+
+pub mod ported_shimmer_color;
+
+pub mod ported_format_gold_alt;
