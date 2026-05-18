@@ -185,3 +185,15 @@ pub mod ported_tool_frame_duration_helper;
 pub mod ported_candle_positions_helper;
 
 pub mod ported_is_indoor_map_helper;
+
+pub mod ported_rock_atlas_index_helper;
+
+pub mod ported_format_gold_helper;
+
+pub mod ported_is_outdoor_map_helper;
+
+pub mod ported_crop_stage_color_helper;
+
+pub mod ported_machine_atlas_index_helper;
+
+pub mod ported_npc_sprite_file_helper;
