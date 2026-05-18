@@ -1,6 +1,8 @@
 use bevy::prelude::*;
-use crate::game::events::CombatInitiatedEvent;
+use crate::game::events::{CombatInitiatedEvent, AttackStartedEvent};
 
-pub fn combat_initiate_system(mut events: EventReader<CombatInitiatedEvent>) {
-    let _started = events.read().count();
+pub fn combat_initiate_system(mut reader: EventReader<CombatInitiatedEvent>, mut writer: EventWriter<AttackStartedEvent>) {
+    for _ev in reader.read() {
+        writer.send(AttackStartedEvent);
+    }
 }
