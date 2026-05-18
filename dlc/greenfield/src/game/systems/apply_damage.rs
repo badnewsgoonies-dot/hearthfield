@@ -1,9 +1,16 @@
 use bevy::prelude::*;
-use crate::game::resources;
-use crate::game::events;
-pub fn apply_damage(mut health: ResMut<resources::PlayerHealth>, mut damage_events: EventReader<events::PlayerDamage>) {
-    for event in damage_events.read() {
-        health.hp = (health.hp - event.amount).max(0.0);
-    }
+use crate::game::resources::*;
+use crate::game::events::*;
 
+/// Pickaxe damage per tool tier.
+pub fn apply_damage(tier: ToolTier) -> u8 {
+    match tier {
+        ToolTier::Basic => 1,
+        ToolTier::Copper => 2,
+        ToolTier::Iron => 3,
+        ToolTier::Gold => 4,
+        ToolTier::Iridium => 5,
+    }
 }
+
+

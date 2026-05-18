@@ -271,7 +271,10 @@ pub struct PlayerDamage {
 }
 
 #[derive(Event, Debug, Default)]
-pub struct QuestAcceptedEvent;
+pub struct QuestAcceptedEvent {
+    pub quest_id: String,
+}
+
 
 #[derive(Event, Debug, Default)]
 pub struct QuestCompletedEvent;
