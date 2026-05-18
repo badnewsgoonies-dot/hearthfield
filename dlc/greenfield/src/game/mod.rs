@@ -53,6 +53,10 @@ pub struct GreenfieldPlugin;
 impl Plugin for GreenfieldPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GreenfieldState>()
+            // ─── Hearthfield host integration (v12) ──────────────────
+            .init_resource::<hearthfield::shared::Calendar>()
+            .add_event::<hearthfield::shared::CropHarvestedEvent>()
+            // ─────────────────────────────────────────────────────────
             .configure_sets(
                 Update,
                 (
