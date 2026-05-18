@@ -61,3 +61,33 @@ pub mod ported_shift_name_for_date;
 pub mod ported_ward_image_source;
 
 pub mod ported_facing_delta_helper;
+
+pub mod ported_tint_hash;
+
+pub mod ported_format_credits;
+
+pub mod ported_compact_med_name;
+
+pub mod ported_icon_size_node_helper;
+
+pub mod ported_simple_hash_helper;
+
+pub mod ported_patient_atlas_index;
+
+pub mod ported_trust_tier;
+
+pub mod ported_rare_case_display_name;
+
+pub mod ported_rare_case_sell_price;
+
+pub mod ported_preference_to_points_helper;
+
+pub mod ported_tag_color_helper;
+
+pub mod ported_ward_decor_png_size;
+
+pub mod ported_ward_object_atlas_index;
+
+pub mod ported_object_tint_helper;
+
+pub mod ported_put_pixel_helper;
