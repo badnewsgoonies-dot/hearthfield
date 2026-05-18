@@ -58,10 +58,11 @@ output, file inspection, or the chain envelope.
 | b11  | 20 / 20    | 30 / 30 | 20/20 |  0 / 30     | 70    | sibling parity + theme — but no host integration |
 | b12  | 20 / 20    | 30 / 30 | 20/20 |  0 / 30     | 70    | red — env-missing alsa-sys / libudev-sys (chain audit captured) |
 | b13  | 20 / 20    | 30 / 30 | 20/20 | 25 / 30     | 95    | I1+I2+I4+I5+I6 land green; only I3 (UpdatePhase) left |
+| b14  | 20 / 20    | 30 / 30 | 20/20 | 30 / 30     | **100** | I3: GreenfieldSet dropped, UpdatePhase from shared adopted |
 
-After v13: only the I3 box (replace `GreenfieldSet` with shared
-`UpdatePhase`) is unchecked. Score is **95/100**. The next iteration
-(v14) is small and targets exactly that: 5 more points and a 100% rubric.
+**Greenfield is fully validated as a real Hearthfield DLC.** Every
+criterion in the rubric is met. The chain has the full audit trail
+from b0 (empty shell) to b14 (full integration).
 
 ## Iteration discipline rule
 

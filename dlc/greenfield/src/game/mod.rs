@@ -34,19 +34,11 @@ pub enum GreenfieldState {
     GameOver,
 }
 
-/// Update-phase set ordering used inside the Greenfield plugin.
-/// Mirrors the convention in `src/shared/schedule.rs::UpdatePhase`
-/// without re-exporting from the host crate (DLCs are siblings,
-/// not dependents).
-#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GreenfieldSet {
-    /// Read keyboard / gamepad.
-    Input,
-    /// Update game-state resources and entities.
-    Simulation,
-    /// Draw HUD, update sprites.
-    Render,
-}
+// Update-phase set ordering. Greenfield is a Hearthfield DLC
+// sibling, so it consumes the host's shared UpdatePhase from
+// hearthfield::shared::schedule rather than defining its own.
+// (I3 of RUBRIC.md.)
+pub use hearthfield::shared::UpdatePhase;
 
 pub struct GreenfieldPlugin;
 
@@ -60,9 +52,11 @@ impl Plugin for GreenfieldPlugin {
             .configure_sets(
                 Update,
                 (
-                    GreenfieldSet::Input,
-                    GreenfieldSet::Simulation,
-                    GreenfieldSet::Render,
+                    UpdatePhase::Input,
+                    UpdatePhase::Intent,
+                    UpdatePhase::Simulation,
+                    UpdatePhase::Reactions,
+                    UpdatePhase::Presentation,
                 )
                     .chain(),
             )
