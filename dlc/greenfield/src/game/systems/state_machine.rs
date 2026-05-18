@@ -204,3 +204,125 @@ pub fn despawn_game_over_hud(
         commands.entity(e).despawn();
     }
 }
+
+// ─── v17: Harvesting rhythm ─────────────────────────────────────────────
+
+/// Tracks when the next harvest window opens. Driven off TurnClock.turn
+/// which advances once per second.
+#[derive(Resource, Debug, Default, Clone, Copy)]
+pub struct HarvestCycle {
+    /// `turn` value of the most recent Tending → Harvesting transition,
+    /// or `None` if we have never harvested yet.
+    pub last_harvest_at: Option<u32>,
+    /// `turn` value of the most recent Harvesting → Tending transition.
+    pub last_yield_at: Option<u32>,
+}
+
+/// Every TENDING_TO_HARVEST_SECS in Tending, transition to Harvesting.
+const TENDING_TO_HARVEST_SECS: u32 = 30;
+const HARVEST_WINDOW_SECS:     u32 = 5;
+
+pub fn tending_to_harvesting(
+    clock: Res<crate::game::resources::TurnClock>,
+    mut cycle: ResMut<HarvestCycle>,
+    mut next: ResMut<NextState<GreenfieldState>>,
+) {
+    let since = match cycle.last_yield_at {
+        Some(last) => clock.turn.saturating_sub(last),
+        None => clock.turn, // pre-first-harvest: count from boot
+    };
+    if since >= TENDING_TO_HARVEST_SECS {
+        cycle.last_harvest_at = Some(clock.turn);
+        next.set(GreenfieldState::Harvesting);
+    }
+}
+
+pub fn harvesting_to_tending(
+    clock: Res<crate::game::resources::TurnClock>,
+    mut cycle: ResMut<HarvestCycle>,
+    mut next: ResMut<NextState<GreenfieldState>>,
+) {
+    let opened = cycle.last_harvest_at.unwrap_or(clock.turn);
+    if clock.turn.saturating_sub(opened) >= HARVEST_WINDOW_SECS {
+        cycle.last_yield_at = Some(clock.turn);
+        next.set(GreenfieldState::Tending);
+    }
+}
+
+/// While Harvesting, increment the game score at a steady rate.
+pub fn harvest_payout(
+    time: Res<Time>,
+    mut score: ResMut<crate::game::resources::GameScore>,
+    mut accum: Local<f32>,
+) {
+    *accum += time.delta_secs();
+    while *accum >= 0.25 {
+        *accum -= 0.25;
+        score.total = score.total.saturating_add(10);
+    }
+}
+
+/// On entering Harvesting, spawn a banner.
+#[derive(Component, Debug)]
+pub struct HudHarvesting;
+
+pub fn spawn_harvesting_hud(mut commands: Commands) {
+    commands.spawn((
+        HudHarvesting,
+        Text::new("HARVEST!"),
+        TextFont { font_size: 40.0, ..default() },
+        TextColor(Color::srgb(0.5, 1.0, 0.4)),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Percent(10.0),
+            left: Val::Percent(45.0),
+            ..default()
+        },
+    ));
+}
+
+pub fn despawn_harvesting_hud(
+    mut commands: Commands,
+    q: Query<Entity, With<HudHarvesting>>,
+) {
+    for e in &q {
+        commands.entity(e).despawn();
+    }
+}
+
+// ─── v17b: emit lifecycle events on state transitions ──────────────────
+//
+// Several lifecycle events were declared in events.rs but never sent —
+// MainMenuEnteredEvent, GameStartedEvent, GamePausedEvent, etc.
+// Fire them alongside the state transitions so downstream systems
+// (recording, telemetry, audio cues) can hook in later without touching
+// the state machine itself.
+
+use crate::game::events::{
+    MainMenuEnteredEvent, MainMenuExitedEvent,
+    GameStartedEvent, GamePausedEvent, GameResumedEvent, GameEndedEvent,
+};
+
+pub fn emit_main_menu_entered(mut w: EventWriter<MainMenuEnteredEvent>) {
+    w.send(MainMenuEnteredEvent);
+}
+
+pub fn emit_main_menu_exited(mut w: EventWriter<MainMenuExitedEvent>) {
+    w.send(MainMenuExitedEvent);
+}
+
+pub fn emit_game_started(mut w: EventWriter<GameStartedEvent>) {
+    w.send(GameStartedEvent);
+}
+
+pub fn emit_game_paused(mut w: EventWriter<GamePausedEvent>) {
+    w.send(GamePausedEvent);
+}
+
+pub fn emit_game_resumed(mut w: EventWriter<GameResumedEvent>) {
+    w.send(GameResumedEvent);
+}
+
+pub fn emit_game_ended(mut w: EventWriter<GameEndedEvent>) {
+    w.send(GameEndedEvent);
+}

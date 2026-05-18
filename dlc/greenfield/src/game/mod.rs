@@ -211,6 +211,33 @@ impl Plugin for GreenfieldPlugin {
                          systems::state_machine::spawn_game_over_hud)
             .add_systems(OnExit(GreenfieldState::GameOver),
                          systems::state_machine::despawn_game_over_hud)
+            // ─── v17: Harvest rhythm ────────────────────────────────
+            .init_resource::<systems::state_machine::HarvestCycle>()
+            .add_systems(Update, (
+                systems::state_machine::tending_to_harvesting
+                    .run_if(in_state(GreenfieldState::Tending)),
+                systems::state_machine::harvesting_to_tending
+                    .run_if(in_state(GreenfieldState::Harvesting)),
+                systems::state_machine::harvest_payout
+                    .run_if(in_state(GreenfieldState::Harvesting)),
+            ))
+            .add_systems(OnEnter(GreenfieldState::Harvesting),
+                         systems::state_machine::spawn_harvesting_hud)
+            .add_systems(OnExit(GreenfieldState::Harvesting),
+                         systems::state_machine::despawn_harvesting_hud)
+            // ─── v17b: emit lifecycle events on state transitions ───
+            .add_systems(OnEnter(GreenfieldState::MainMenu),
+                         systems::state_machine::emit_main_menu_entered)
+            .add_systems(OnExit(GreenfieldState::MainMenu), (
+                systems::state_machine::emit_main_menu_exited,
+                systems::state_machine::emit_game_started,
+            ))
+            .add_systems(OnEnter(GreenfieldState::Paused),
+                         systems::state_machine::emit_game_paused)
+            .add_systems(OnExit(GreenfieldState::Paused),
+                         systems::state_machine::emit_game_resumed)
+            .add_systems(OnEnter(GreenfieldState::GameOver),
+                         systems::state_machine::emit_game_ended)
             ;
     }
 }
