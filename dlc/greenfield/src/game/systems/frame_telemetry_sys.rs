@@ -1,8 +1,7 @@
 use bevy::prelude::*;
-use crate::game::events;
+use crate::game::resources::TickCounter;
 
-pub fn frame_telemetry_system(time: Res<Time>, mut writer: EventWriter<events::FrameSampledEvent>) {
-    info!("frame at {:?}", time.elapsed());
-    writer.send(events::FrameSampledEvent);
-
+pub fn frame_telemetry_system(mut state: ResMut<TickCounter>, time: Res<Time>) {
+    let _delta = time.delta_secs();
+    state.value = state.value.saturating_add(1);
 }

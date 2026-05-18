@@ -1,5 +1,5 @@
 use bevy::prelude::*;
 
 pub fn trial_a4_system() {
-    let _ = ();
+    // trial A4 — benchmark fixture
 }

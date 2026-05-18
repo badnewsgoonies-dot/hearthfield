@@ -1,44 +1,47 @@
-# greenfield_dlc
+# Greenfield DLC
 
-A DLC skeleton shaped exactly for the GC-OS write-op transforms
-(`briefcase_v015.hearthfield_transforms`). Every structural anchor in
-this crate matches what the transforms expect:
+A Hearthfield DLC sibling crate. Theme: **tower-defense farming survival**.
+The player tends a small green field and defends growing crops from
+critters that drift in to eat them.
 
-- `app.init_state::<GreenfieldState>()` is the Plugin::build chain root
-  where `hearthfield_add_event` / `hearthfield_register_system` splice
-  new plumbing.
-- `src/game/events.rs` has its `\Z` end-of-file anchor ready for unit
-  Event structs.
-- `src/game/components.rs` has the same for Component structs.
-- `src/game/systems/` hosts module files that `hearthfield_register_system`
-  wires into the build chain once their fns exist.
-
-## Propagation contract
-
-The point of this crate is that the **mechanical** transforms can
-build it up from an inbox without human intervention, one cargo-gated
-write-op at a time. Populate `.gc-write-ops-inbox.json` at the
-hearthfield repo root and run:
+## Build & run
 
 ```
-python3 -m orchestrator.daemon --mode write \
-  --project /home/geni/hearthfield \
-  --cargo-package greenfield_dlc
+cargo run -p greenfield_dlc
 ```
 
-Each entry is applied, `cargo check -p greenfield_dlc` runs, and the
-change is kept (on green) or reverted byte-for-byte (on regression).
-Successes and failures land in `.gc-write-ops-log/{success,failure}/`.
+## Controls
 
-## Not here (yet)
+- `WASD` move the farmer around the field
+- `Space` attack — strike the nearest critter (3 hits to dispatch)
+- `Esc` pause
 
-Things the current transform set can't author:
+## Gameplay loop
 
-- Fielded Events / Components (only unit structs)
-- Resources (no `hearthfield_add_resource` yet)
-- New system-module files with fn bodies (register_system only wires
-  pre-existing fns)
-- Use imports, enums, trait impls
+- Crops grow through stages: `Seed -> Sprout -> Sapling -> Mature -> Harvest`
+  (typed transitions via `ironclad::game_lifecycle` — same lifecycle
+  pattern as Hearthfield's tool, soil, and animal progressions)
+- Critters spawn at the edges and drift toward the nearest crop
+- When a critter touches the farmer, the farmer takes 5 HP damage
+  (with a 0.5s hit cooldown so it doesn't spam)
+- Attacking a critter accumulates damage; 3 hits resolves combat
+  and drops loot + XP + score, despawning the critter
+- HUD shows live HP / Score / Level / XP
 
-These are additive transforms — each one a self-contained regex-splice
-on a stable anchor. Add them, re-run write-mode, watch the crate grow.
+## Position in the Hearthfield universe
+
+Greenfield is a workspace sibling of `hearthfield`, `dlc/city`,
+`dlc/lifeline`, `dlc/pilot`, and `dlc/police`. It shares the
+Bevy 0.15 engine version and the project-wide asset pipeline. It
+does NOT depend on the hearthfield host crate (DLCs are siblings,
+not dependents) but it uses the workspace-shared `ironclad`
+proc-macro crate for typed lifecycle progressions, matching the
+pattern in `src/shared/lifecycle_types.rs`.
+
+## Substrate provenance
+
+This DLC was filled in from an empty scaffold by the GC-OS substrate
+across 10 chain-resident cork.compose iterations. Each iteration is
+queryable by compose_id, signed, and replayable byte-identically.
+See the `substrate/greenfield-slice-v1` branch's commit history for
+the full lineage.

@@ -2219,6 +2219,10 @@ name = "greenfield_dlc"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "hearthfield",
+ "ironclad",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
