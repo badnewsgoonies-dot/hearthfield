@@ -60,3 +60,4 @@ pub mod quest_accept_sys;
 pub mod quest_complete_sys;
 pub mod music_tick_sys;
 pub mod checkpoint_activate_sys;
+pub mod state_machine;
