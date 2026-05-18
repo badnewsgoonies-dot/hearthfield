@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 
 pub fn trial_a5_system() {
-    // placeholder
-    let _ = 42_u32;
+    // trial A5 — benchmark fixture
 }

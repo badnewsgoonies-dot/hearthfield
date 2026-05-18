@@ -1,1 +1,6 @@
-use bevy::prelude::*;
+//! Scaffold module 12
+//!
+//! Filled by substrate iteration v6.
+
+#[allow(dead_code)]
+pub(crate) const MODULE_TAG: &str = "scaffold_12";
