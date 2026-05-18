@@ -46,3 +46,18 @@ pub mod ported_clamp_helper;
 pub mod ported_shift_for_date;
 
 pub mod ported_format_shift_time;
+
+
+pub mod ported_bed_tile_hash;
+
+pub mod ported_score_to_credits;
+
+pub mod ported_set_pixel_helper;
+
+pub mod ported_set_px_helper;
+
+pub mod ported_shift_name_for_date;
+
+pub mod ported_ward_image_source;
+
+pub mod ported_facing_delta_helper;
