@@ -149,3 +149,39 @@ pub mod ported_shimmer_color;
 pub mod ported_format_gold_alt;
 
 pub mod ported_read_dpad_just_pressed_helper;
+
+pub mod ported_tool_hand_offset_helper;
+
+pub mod ported_tool_tier_label_helper;
+
+pub mod ported_world_to_grid_helper;
+
+pub mod ported_xp_for_rarity_helper;
+
+pub mod ported_square_area_helper;
+
+pub mod ported_stamina_cost_helper;
+
+pub mod ported_terrain_tint_helper;
+
+pub mod ported_tool_display_name_helper;
+
+pub mod ported_weekday_name_helper;
+
+pub mod ported_summarize_next_festival_helper;
+
+pub mod ported_tool_kind_from_item_id_helper;
+
+pub mod ported_buff_type_label_helper;
+
+pub mod ported_bush_variant_color_helper;
+
+pub mod ported_happiness_icon_index_helper;
+
+pub mod ported_shimmer_color_for_ore_helper;
+
+pub mod ported_tool_frame_duration_helper;
+
+pub mod ported_candle_positions_helper;
+
+pub mod ported_is_indoor_map_helper;
