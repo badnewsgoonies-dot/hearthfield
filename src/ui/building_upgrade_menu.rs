@@ -331,17 +331,6 @@ pub fn spawn_building_upgrade_menu(
                 });
         });
 }
-
-pub fn despawn_building_upgrade_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<BuildingUpgradeMenuRoot>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<BuildingUpgradeMenuState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // NAVIGATION + INPUT
 // ═══════════════════════════════════════════════════════════════════════

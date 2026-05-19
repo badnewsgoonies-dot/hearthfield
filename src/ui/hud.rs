@@ -2308,14 +2308,3 @@ pub fn update_touch_overlay(
         *bg = BackgroundColor(Color::srgba(1.0, 1.0, 1.0, alpha));
     }
 }
-
-/// Despawns the touch controls overlay (called on HUD exit).
-pub fn despawn_touch_overlay(
-    mut commands: Commands,
-    query: Query<Entity, With<TouchControlsOverlay>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<TouchOverlayTimer>();
-}

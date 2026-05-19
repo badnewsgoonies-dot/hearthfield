@@ -240,17 +240,6 @@ pub fn spawn_relationships_screen(
                 });
         });
 }
-
-pub fn despawn_relationships_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<RelationshipsScreenRoot>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<RelationshipsUiState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════

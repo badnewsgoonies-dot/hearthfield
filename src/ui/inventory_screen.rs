@@ -336,17 +336,6 @@ pub fn spawn_inventory_screen(
                 });
         });
 }
-
-pub fn despawn_inventory_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<InventoryScreenRoot>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<InventoryUiState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════

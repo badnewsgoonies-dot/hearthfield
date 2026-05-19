@@ -314,17 +314,6 @@ pub fn spawn_crafting_screen(
                 });
         });
 }
-
-pub fn despawn_crafting_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<CraftingScreenRoot>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<CraftingUiState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════

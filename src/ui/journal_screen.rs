@@ -264,17 +264,6 @@ fn spawn_detail_children(parent: &mut ChildBuilder, quest: &Quest, font: &Handle
         ));
     }
 }
-
-pub fn despawn_journal_screen(
-    mut commands: Commands,
-    query: Query<Entity, With<JournalScreenRoot>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<JournalUiState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════

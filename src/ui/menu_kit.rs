@@ -199,3 +199,27 @@ fn on_button_click(
         action.activate = true;
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// GENERIC DESPAWN HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+//
+// Replaces the family of `despawn_*_screen / despawn_*_menu / despawn_*_overlay`
+// functions that all had the same shape: walk a marker query, despawn_recursive,
+// optionally remove a resource. Each unique <(Marker, Resource)> pairing is
+// now spelled `despawn_marked::<Marker, Resource>` directly in the AppBuilder.
+//
+// Identified by `briefcase_v015.compression.ast_analysis` (cluster of 6
+// structurally-identical functions across 5 UI files).
+
+/// Despawn the entity tree rooted under marker `M` and remove resource `R`.
+/// 1:1 replacement for the bespoke `despawn_*_screen` family in src/ui/.
+pub fn despawn_marked_and_drop_resource<M: Component, R: Resource>(
+    mut commands: Commands,
+    query: Query<Entity, With<M>>,
+) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+    commands.remove_resource::<R>();
+}

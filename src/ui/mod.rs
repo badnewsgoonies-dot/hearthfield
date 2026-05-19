@@ -395,7 +395,7 @@ impl Plugin for UiPlugin {
             (
                 hud::despawn_hud,
                 hud::despawn_floating_gold_text,
-                hud::despawn_touch_overlay,
+                menu_kit::despawn_marked_and_drop_resource::<hud::TouchControlsOverlay, hud::TouchOverlayTimer>,
             ),
         );
         app.add_systems(
@@ -487,7 +487,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::Inventory),
-            inventory_screen::despawn_inventory_screen,
+            menu_kit::despawn_marked_and_drop_resource::<inventory_screen::InventoryScreenRoot, inventory_screen::InventoryUiState>,
         );
         app.add_systems(
             Update,
@@ -506,7 +506,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::Journal),
-            journal_screen::despawn_journal_screen,
+            menu_kit::despawn_marked_and_drop_resource::<journal_screen::JournalScreenRoot, journal_screen::JournalUiState>,
         );
         app.add_systems(
             Update,
@@ -526,7 +526,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::RelationshipsView),
-            relationships_screen::despawn_relationships_screen,
+            menu_kit::despawn_marked_and_drop_resource::<relationships_screen::RelationshipsScreenRoot, relationships_screen::RelationshipsUiState>,
         );
         app.add_systems(
             Update,
@@ -590,7 +590,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::Crafting),
-            crafting_screen::despawn_crafting_screen,
+            menu_kit::despawn_marked_and_drop_resource::<crafting_screen::CraftingScreenRoot, crafting_screen::CraftingUiState>,
         );
         app.add_systems(
             Update,
@@ -609,7 +609,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::BuildingUpgrade),
-            building_upgrade_menu::despawn_building_upgrade_menu,
+            menu_kit::despawn_marked_and_drop_resource::<building_upgrade_menu::BuildingUpgradeMenuRoot, building_upgrade_menu::BuildingUpgradeMenuState>,
         );
         app.add_systems(
             Update,
