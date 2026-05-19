@@ -1988,15 +1988,6 @@ pub fn update_floating_gold_text(
 }
 
 /// Despawns all floating gold text entities (called on HUD exit).
-pub fn despawn_floating_gold_text(
-    mut commands: Commands,
-    query: Query<Entity, With<FloatingGoldText>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // TOUCH CONTROLS OVERLAY — functional on-screen buttons for mobile
 // ═══════════════════════════════════════════════════════════════════════

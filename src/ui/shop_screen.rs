@@ -365,14 +365,6 @@ fn build_upgrade_entries(
         })
         .collect()
 }
-
-pub fn despawn_shop_screen(mut commands: Commands, query: Query<Entity, With<ShopScreenRoot>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<ShopUiState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // UPDATE SYSTEMS
 // ═══════════════════════════════════════════════════════════════════════

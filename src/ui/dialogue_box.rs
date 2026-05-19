@@ -247,14 +247,6 @@ pub fn spawn_dialogue_box(
                 });
         });
 }
-
-pub fn despawn_dialogue_box(mut commands: Commands, query: Query<Entity, With<DialogueBoxRoot>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<DialogueUiState>();
-}
-
 // ═══════════════════════════════════════════════════════════════════════
 // INTERACTION — advance through dialogue lines
 // ═══════════════════════════════════════════════════════════════════════

@@ -223,3 +223,14 @@ pub fn despawn_marked_and_drop_resource<M: Component, R: Resource>(
     }
     commands.remove_resource::<R>();
 }
+
+/// Despawn the entity tree rooted under marker `M`, no resource cleanup.
+/// 1:1 replacement for `despawn_*` fns that only walk-and-despawn_recursive.
+pub fn despawn_marked<M: Component>(
+    mut commands: Commands,
+    query: Query<Entity, With<M>>,
+) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+}

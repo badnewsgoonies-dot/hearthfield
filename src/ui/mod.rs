@@ -361,7 +361,7 @@ impl Plugin for UiPlugin {
         );
         app.add_systems(
             OnExit(GameState::FishEncyclopedia),
-            fish_encyclopedia::despawn_fish_encyclopedia_screen,
+            menu_kit::despawn_marked::<fish_encyclopedia::FishEncyclopediaRoot>,
         );
         app.add_systems(
             Update,
@@ -394,7 +394,7 @@ impl Plugin for UiPlugin {
             OnExit(GameState::Playing),
             (
                 hud::despawn_hud,
-                hud::despawn_floating_gold_text,
+                menu_kit::despawn_marked::<hud::FloatingGoldText>,
                 menu_kit::despawn_marked_and_drop_resource::<hud::TouchControlsOverlay, hud::TouchOverlayTimer>,
             ),
         );
@@ -429,7 +429,7 @@ impl Plugin for UiPlugin {
         app.add_systems(OnEnter(GameState::Playing), toast::spawn_toast_container);
         app.add_systems(OnExit(GameState::Playing), toast::despawn_toast_container);
         app.add_systems(OnEnter(GameState::Playing), minimap::spawn_minimap);
-        app.add_systems(OnExit(GameState::Playing), minimap::despawn_minimap);
+        app.add_systems(OnExit(GameState::Playing), menu_kit::despawn_marked_and_drop_resource::<minimap::MinimapNode, minimap::MinimapState>);
         app.add_systems(
             Update,
             (
@@ -549,7 +549,7 @@ impl Plugin for UiPlugin {
         app.add_systems(
             OnExit(GameState::Dialogue),
             (
-                dialogue_box::despawn_dialogue_box,
+                menu_kit::despawn_marked_and_drop_resource::<dialogue_box::DialogueBoxRoot, dialogue_box::DialogueUiState>,
                 tool_tutorial::despawn_tool_tutorial_overlay,
             ),
         );
@@ -573,7 +573,7 @@ impl Plugin for UiPlugin {
 
         // ─── SHOP SCREEN ───
         app.add_systems(OnEnter(GameState::Shop), shop_screen::spawn_shop_screen);
-        app.add_systems(OnExit(GameState::Shop), shop_screen::despawn_shop_screen);
+        app.add_systems(OnExit(GameState::Shop), menu_kit::despawn_marked_and_drop_resource::<shop_screen::ShopScreenRoot, shop_screen::ShopUiState>);
         app.add_systems(
             Update,
             (
@@ -623,7 +623,7 @@ impl Plugin for UiPlugin {
 
         // ─── PAUSE MENU ───
         app.add_systems(OnEnter(GameState::Paused), pause_menu::spawn_pause_menu);
-        app.add_systems(OnExit(GameState::Paused), pause_menu::despawn_pause_menu);
+        app.add_systems(OnExit(GameState::Paused), menu_kit::despawn_marked_and_drop_resource::<pause_menu::PauseMenuRoot, pause_menu::PauseMenuState>);
         app.add_systems(
             Update,
             (

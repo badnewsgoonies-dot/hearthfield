@@ -69,16 +69,6 @@ pub fn spawn_fish_encyclopedia_screen(
                 });
         });
 }
-
-pub fn despawn_fish_encyclopedia_screen(
-    mut commands: Commands,
-    roots: Query<Entity, With<FishEncyclopediaRoot>>,
-) {
-    for entity in &roots {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 pub fn update_fish_encyclopedia_visuals() {}
 
 pub fn fish_encyclopedia_navigation(

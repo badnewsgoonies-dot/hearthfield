@@ -121,13 +121,6 @@ pub fn spawn_minimap(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
 }
 
 /// Despawn minimap when leaving Playing state.
-pub fn despawn_minimap(mut commands: Commands, query: Query<Entity, With<MinimapNode>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    commands.remove_resource::<MinimapState>();
-}
-
 /// Update minimap pixels each frame: regenerate base on map change,
 /// overlay player and NPC positions.
 pub fn update_minimap(

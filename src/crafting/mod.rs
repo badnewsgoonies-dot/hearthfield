@@ -102,7 +102,7 @@ impl Plugin for CraftingPlugin {
             // Cleanup particles when leaving Playing state
             .add_systems(
                 OnExit(GameState::Playing),
-                machines::despawn_machine_particles,
+                crate::ui::menu_kit::despawn_marked::<machines::MachineParticle>,
             );
     }
 }

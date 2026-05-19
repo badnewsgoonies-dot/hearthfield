@@ -1001,13 +1001,3 @@ pub fn update_machine_particles(
         sprite.color = Color::srgba(1.0, 1.0, 1.0, alpha);
     }
 }
-
-/// Cleanup: despawn all machine particles (called on state exit).
-pub fn despawn_machine_particles(
-    mut commands: Commands,
-    query: Query<Entity, With<MachineParticle>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-}
