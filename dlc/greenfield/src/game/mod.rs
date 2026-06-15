@@ -93,6 +93,8 @@ impl Plugin for GreenfieldPlugin {
             .init_resource::<resources::TickCounter>()
             .init_resource::<systems::wave_address_sys::WaveSeed>()
             .add_systems(Update, systems::wave_address_sys::spawn_addressed_wave_system)
+            .init_resource::<systems::tombstone_sys::KillLog>()
+            .add_systems(Update, systems::tombstone_sys::revert_last_kill_system)
             // Lifecycle events emitted by the state machine (v16) but never registered.
             .add_event::<events::GameStartedEvent>()
             .add_event::<events::GameEndedEvent>()
