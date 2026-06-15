@@ -139,8 +139,40 @@ mod tests {
         assert_eq!(a.tiles, b.tiles, "same seed must yield identical tiles");
         assert_eq!(a.tiles.len(), 24 * 18, "tile grid is width*height");
         assert!(a.objects.iter().all(|o| o.x >= 0 && (o.x as usize) < 24 && o.y >= 0 && (o.y as usize) < 18));
-        // spawn is walkable (Path by construction)
         let sp = a.spawn_pos;
         assert_eq!(a.tiles[(sp.1 as usize) * 24 + sp.0 as usize], TileKind::Path);
+    }
+
+    #[test]
+    fn fully_traversable_from_spawn() {
+        // Every generated map must be fully walkable from the spawn — no isolated pockets.
+        // (Verified across diverse seeds standalone: spawn reaches 100% of walkable cells.)
+        let walkable = |t: &TileKind| !matches!(t, TileKind::Water | TileKind::Stone | TileKind::Void);
+        for seed in [1000u64, 2001, 4242, 7777, 31337] {
+            let m = generate_procedural_map(seed, 24, 18, MapId::Procedural(seed));
+            let (w, h) = (m.width, m.height);
+            let total = m.tiles.iter().filter(|t| walkable(t)).count();
+            let (sx, sy) = m.spawn_pos;
+            let start = (sy as usize) * w + sx as usize;
+            assert!(walkable(&m.tiles[start]), "spawn must be walkable (seed {seed})");
+            let mut seen = vec![false; w * h];
+            let mut stack = vec![start];
+            seen[start] = true;
+            let mut reached = 0usize;
+            while let Some(i) = stack.pop() {
+                reached += 1;
+                let (x, y) = ((i % w) as i32, (i / w) as i32);
+                for (nx, ny) in [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)] {
+                    if nx >= 0 && (nx as usize) < w && ny >= 0 && (ny as usize) < h {
+                        let j = (ny as usize) * w + nx as usize;
+                        if !seen[j] && walkable(&m.tiles[j]) {
+                            seen[j] = true;
+                            stack.push(j);
+                        }
+                    }
+                }
+            }
+            assert_eq!(reached, total, "all walkable cells reachable from spawn (seed {seed})");
+        }
     }
 }
