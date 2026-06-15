@@ -885,7 +885,12 @@ pub fn despawn_hud(
 
 fn map_display_name(map: MapId) -> &'static str {
     match map {
-        MapId::Procedural(_) => "The Wilds",
+        MapId::Procedural(seed) => match seed % 4 {
+            0 => "The Wilds — Meadow",
+            1 => "The Wilds — Forest",
+            2 => "The Wilds — Beach",
+            _ => "The Wilds — Rocky",
+        },
         MapId::Farm => "Hearthfield Farm",
         MapId::Town => "Willowbrook",
         MapId::TownWest => "West Willowbrook",
