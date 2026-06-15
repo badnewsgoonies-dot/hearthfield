@@ -1445,13 +1445,21 @@ fn spawn_initial_map(
 pub fn debug_enter_procedural_map(
     keys: Res<ButtonInput<KeyCode>>,
     mut map_events: EventWriter<MapTransitionEvent>,
+    mut registry: ResMut<MapRegistry>,
     mut seed: Local<u64>,
 ) {
     if keys.just_pressed(KeyCode::F6) {
         *seed = seed.wrapping_add(1);
         let s = 1000u64.wrapping_add(*seed);
+        let id = MapId::Procedural(s);
+        // Insert the freshly grown map into the registry so the transition + edge system see it.
+        // (Procedural maps have no RON file; without this they'd only load via the generate fallback,
+        // which bypasses registry-driven edge transitions — i.e. no walkable way back to the Farm.)
+        if let Some(data) = map_data::load_map_data(id) {
+            registry.maps.insert(id, data);
+        }
         map_events.send(MapTransitionEvent {
-            to_map: MapId::Procedural(s),
+            to_map: id,
             to_x: 12,
             to_y: 9,
         });

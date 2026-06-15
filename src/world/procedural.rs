@@ -13,7 +13,7 @@
 
 use crate::shared::{MapId, TileKind};
 use super::maps::WorldObjectKind;
-use super::map_data::{MapData, ObjectDef, EdgeDefs};
+use super::map_data::{MapData, ObjectDef, EdgeDefs, EdgeTarget};
 
 /// Deterministic splitmix64 — a pure function of the seed. Same seed => same stream => same map.
 struct Rng(u64);
@@ -186,7 +186,13 @@ pub fn generate_procedural_map(seed: u64, width: usize, height: usize, id: MapId
         spawn_pos: (px as i32, py as i32), // center path cell — walkable by construction
         transitions: Vec::new(),
         doors: Vec::new(),
-        edges: EdgeDefs { north: None, south: None, east: None, west: None },
+        // Walking off the south edge returns to the Farm — the way out of the Wilds.
+        edges: EdgeDefs {
+            north: None,
+            south: Some((MapId::Farm, EdgeTarget::Fixed(16, 12))),
+            east: None,
+            west: None,
+        },
         buildings: Vec::new(),
     }
 }
