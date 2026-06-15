@@ -114,6 +114,7 @@ impl Plugin for WorldPlugin {
                 (
                     handle_map_transition,
                     debug_enter_procedural_map,
+                    auto_enter_procedural_on_boot,
                     handle_tool_use_on_objects,
                     handle_forageable_pickup,
                     chests::place_chest,
@@ -1436,6 +1437,30 @@ fn spawn_initial_map(
         &registry,
         &mut adjacent_cache,
     );
+}
+
+/// Headless/runtime verification hook: if `HF_PROC_SEED=<u64>` is set, auto-enter that procedural
+/// map a few frames after boot (once). Lets a headless run (Xvfb + software renderer) exercise the
+/// procedural channel without injecting keystrokes.
+pub fn auto_enter_procedural_on_boot(
+    mut map_events: EventWriter<MapTransitionEvent>,
+    mut registry: ResMut<MapRegistry>,
+    mut frame: Local<u32>,
+) {
+    *frame += 1;
+    if *frame != 30 {
+        return; // let startup settle, then fire exactly once
+    }
+    if let Ok(v) = std::env::var("HF_PROC_SEED") {
+        if let Ok(s) = v.parse::<u64>() {
+            let id = MapId::Procedural(s);
+            if let Some(data) = map_data::load_map_data(id) {
+                registry.maps.retain(|k, _| !matches!(k, MapId::Procedural(_)));
+                registry.maps.insert(id, data);
+            }
+            map_events.send(MapTransitionEvent { to_map: id, to_x: 12, to_y: 9 });
+        }
+    }
 }
 
 /// Debug: F6 warps to a freshly generated procedural map (each press uses a new seed).
