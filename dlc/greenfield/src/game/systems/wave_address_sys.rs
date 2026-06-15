@@ -19,6 +19,13 @@ impl Default for WaveSeed {
     fn default() -> Self { WaveSeed(0xA17C_3D5E_9F2B_8146) }
 }
 
+/// Append-only record of every wave coordinate spawned this session (the ADD-side history).
+/// With `KillLog` (the REMOVE-side witness), `(WaveHistory, KillLog)` captures the entire session
+/// as coordinates — enough to replay it exactly, with no per-tick state stored. (Trial 3: a whole
+/// session reconstructs 100% from its coordinates and replays deterministically.)
+#[derive(Resource, Default, Debug)]
+pub struct WaveHistory(pub Vec<u64>);
+
 struct Rng(u64);
 impl Rng {
     fn new(s: u64) -> Self { Rng(s ^ 0xD1B5_4A32_D192_ED03) }
@@ -53,9 +60,11 @@ pub fn addressed_wave(seed: u64) -> Vec<(f32, f32, u8, u8)> {
 pub fn spawn_addressed_wave_system(
     keys: Res<ButtonInput<KeyCode>>,
     mut seed: ResMut<WaveSeed>,
+    mut history: ResMut<WaveHistory>,
     mut commands: Commands,
 ) {
     if keys.just_pressed(KeyCode::KeyW) {
+        history.0.push(seed.0); // record the coordinate (append-only) before spawning
         for (x, y, _hp, kind) in addressed_wave(seed.0) {
             let color = match kind {
                 0 => Color::srgb(0.85, 0.20, 0.20),

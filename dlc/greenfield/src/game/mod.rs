@@ -92,6 +92,7 @@ impl Plugin for GreenfieldPlugin {
             .init_resource::<resources::FrameTelemetry>()
             .init_resource::<resources::TickCounter>()
             .init_resource::<systems::wave_address_sys::WaveSeed>()
+            .init_resource::<systems::wave_address_sys::WaveHistory>()
             .add_systems(Update, systems::wave_address_sys::spawn_addressed_wave_system)
             .init_resource::<systems::tombstone_sys::KillLog>()
             .add_systems(Update, systems::tombstone_sys::revert_last_kill_system)
