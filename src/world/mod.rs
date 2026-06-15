@@ -113,6 +113,7 @@ impl Plugin for WorldPlugin {
                 Update,
                 (
                     handle_map_transition,
+                    debug_enter_procedural_map,
                     handle_tool_use_on_objects,
                     handle_forageable_pickup,
                     chests::place_chest,
@@ -1435,6 +1436,26 @@ fn spawn_initial_map(
         &registry,
         &mut adjacent_cache,
     );
+}
+
+/// Debug: F6 warps to a freshly generated procedural map (each press uses a new seed).
+/// Demonstrates the generative-seedling channel — a full map grown live from a coordinate,
+/// loaded via load_map's fallback to generate_map(Procedural(seed)). Spawn (12,9) is on the
+/// generator's center path (walkable by construction).
+pub fn debug_enter_procedural_map(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut map_events: EventWriter<MapTransitionEvent>,
+    mut seed: Local<u64>,
+) {
+    if keys.just_pressed(KeyCode::F6) {
+        *seed = seed.wrapping_add(1);
+        let s = 1000u64.wrapping_add(*seed);
+        map_events.send(MapTransitionEvent {
+            to_map: MapId::Procedural(s),
+            to_x: 12,
+            to_y: 9,
+        });
+    }
 }
 
 /// Handle MapTransitionEvent: despawn current map, load new one.

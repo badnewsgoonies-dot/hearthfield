@@ -134,6 +134,7 @@ pub fn is_outdoor_map(map: MapId) -> bool {
             | MapId::CoralIsland
             | MapId::MineEntrance
             | MapId::SnowMountain
+            | MapId::Procedural(_)
     )
 }
 
