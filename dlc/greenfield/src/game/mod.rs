@@ -91,6 +91,8 @@ impl Plugin for GreenfieldPlugin {
             .add_event::<events::FrameSampledEvent>()
             .init_resource::<resources::FrameTelemetry>()
             .init_resource::<resources::TickCounter>()
+            .init_resource::<systems::wave_address_sys::WaveSeed>()
+            .add_systems(Update, systems::wave_address_sys::spawn_addressed_wave_system)
             // Lifecycle events emitted by the state machine (v16) but never registered.
             .add_event::<events::GameStartedEvent>()
             .add_event::<events::GameEndedEvent>()
