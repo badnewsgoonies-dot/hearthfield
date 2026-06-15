@@ -1456,6 +1456,8 @@ pub fn debug_enter_procedural_map(
         // (Procedural maps have no RON file; without this they'd only load via the generate fallback,
         // which bypasses registry-driven edge transitions — i.e. no walkable way back to the Farm.)
         if let Some(data) = map_data::load_map_data(id) {
+            // Keep only the current procedural map — avoid unbounded registry growth across presses.
+            registry.maps.retain(|k, _| !matches!(k, MapId::Procedural(_)));
             registry.maps.insert(id, data);
         }
         map_events.send(MapTransitionEvent {
