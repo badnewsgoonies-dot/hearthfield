@@ -27,7 +27,6 @@ impl Rng {
         z ^ (z >> 31)
     }
     fn below(&mut self, n: u64) -> u64 { self.next() % n }
-    fn chance(&mut self, num: u64, den: u64) -> bool { self.below(den) < num }
 }
 
 /// Generate a deterministic, map-like, schema-valid `MapData` from `seed`.
