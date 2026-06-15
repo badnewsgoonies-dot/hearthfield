@@ -119,6 +119,7 @@ fn map_bounds_from_registry(map: &MapId, registry: &MapRegistry) -> (i32, i32, i
 fn map_bounds_hardcoded(map: &MapId) -> (i32, i32, i32, i32) {
     match map {
         MapId::Farm => (0, 31, 0, 23),
+        MapId::Procedural(_) => (0, 23, 0, 17),  // 24x18 procedural map bounds
         MapId::Town => (0, 27, 0, 21),
         MapId::TownWest => (0, 15, 0, 21),
         MapId::Beach => (0, 19, 0, 13),

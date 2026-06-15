@@ -307,6 +307,7 @@ pub fn switch_music_on_map_change(
 ) {
     for event in map_events.read() {
         let track = match event.to_map {
+            MapId::Procedural(_) => "forest",
             MapId::Farm => match calendar.season {
                 Season::Spring => "spring",
                 Season::Summer => "summer",

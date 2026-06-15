@@ -67,6 +67,7 @@ pub enum WorldObjectKind {
 /// teleports or fallback positioning).
 pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
     match map_id {
+        MapId::Procedural(_) => (12, 9),
         MapId::Farm => (16, 12),
         MapId::Town => (12, 8),
         MapId::TownWest => (12, 14),
@@ -94,6 +95,11 @@ pub fn default_spawn_position(map_id: MapId) -> (i32, i32) {
 
 pub fn generate_map(map_id: MapId) -> MapDef {
     match map_id {
+        MapId::Procedural(seed) => {
+            let d = super::map_data::load_map_data(MapId::Procedural(seed))
+                .expect("procedural maps always generate");
+            super::map_data::map_data_to_map_def(&d)
+        }
         MapId::Farm => generate_farm(),
         MapId::Town => generate_town(),
         MapId::TownWest => generate_town_west(),

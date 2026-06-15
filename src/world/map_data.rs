@@ -233,6 +233,10 @@ pub fn map_data_to_map_def(data: &MapData) -> MapDef {
 /// Attempt to load a `MapData` from `assets/maps/{map_id}.ron`.
 /// Returns `None` if the file doesn't exist or fails to parse.
 pub fn load_map_data(map_id: MapId) -> Option<MapData> {
+    // Generative-seedling channel: procedural maps have no RON file — grow them from the seed.
+    if let MapId::Procedural(seed) = map_id {
+        return Some(super::procedural::generate_procedural_map(seed, 24, 18, map_id));
+    }
     let name = map_id_filename(map_id);
     let path = format!("assets/maps/{}.ron", name);
     let contents = std::fs::read_to_string(&path).ok()?;
@@ -498,6 +502,7 @@ fn doors_for(map_id: MapId) -> Vec<DoorDef> {
 
 fn edges_for(map_id: MapId) -> EdgeDefs {
     match map_id {
+        MapId::Procedural(_) => EdgeDefs { north: None, south: None, east: None, west: None },
         MapId::Farm => EdgeDefs {
             north: Some((MapId::SnowMountain, EdgeTarget::ClampX(1))),
             south: Some((MapId::Town, EdgeTarget::ClampX(20))),
@@ -705,6 +710,8 @@ pub fn map_id_filename(map_id: MapId) -> &'static str {
         MapId::Tavern => "tavern",
         MapId::CoralIsland => "coral_island",
         MapId::SnowMountain => "snow_mountain",
+        // Procedural maps have no RON file; load_map_data generates them before this is reached.
+        MapId::Procedural(_) => "procedural",
     }
 }
 

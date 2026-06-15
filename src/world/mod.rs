@@ -19,6 +19,7 @@ pub mod grass_decor;
 pub mod lighting;
 pub mod map_data;
 pub mod maps;
+pub mod procedural;
 pub mod objects;
 pub mod seasonal;
 pub mod tree_fx;

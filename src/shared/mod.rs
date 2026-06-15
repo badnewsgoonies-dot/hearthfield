@@ -612,6 +612,10 @@ pub enum MapId {
     Library,
     Tavern,
     SnowMountain,
+    /// Generative-seedling channel: a procedurally generated map addressed by its seed.
+    /// The `u64` IS the generating coordinate — `procedural::generate_procedural_map(seed, ..)`
+    /// is a pure function of it, so the id self-addresses the map.
+    Procedural(u64),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

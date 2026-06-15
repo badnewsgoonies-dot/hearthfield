@@ -368,6 +368,7 @@ fn push_unique_map(maps: &mut Vec<MapId>, map_id: MapId) {
 
 fn map_id_display_name(map_id: MapId) -> &'static str {
     match map_id {
+        MapId::Procedural(_) => "Wilds",
         MapId::Farm => "Farm",
         MapId::Town => "Town",
         MapId::TownWest => "West Willowbrook",
