@@ -1,4 +1,4 @@
-use crate::game::components::Enemy;
+use crate::game::components::{Enemy, EnemyKey};
 use crate::game::events::{CombatInitiatedEvent, PlayerMovedEvent};
 use bevy::prelude::*;
 
@@ -7,7 +7,7 @@ pub fn input_tick(
     time: Res<Time>,
     mut move_writer: EventWriter<PlayerMovedEvent>,
     mut combat_writer: EventWriter<CombatInitiatedEvent>,
-    enemies: Query<Entity, With<Enemy>>,
+    enemies: Query<(Entity, &EnemyKey), With<Enemy>>,
 ) {
     let speed = 100.0_f32 * time.delta_secs();
     let mut dx = 0.0_f32;
@@ -32,7 +32,14 @@ pub fn input_tick(
         });
     }
     if keyboard.just_pressed(KeyCode::Space) {
-        if let Some(enemy) = enemies.iter().next() {
+        // Deterministic target selection: Bevy query iteration order is
+        // arbitrary, so `.iter().next()` initiated combat with WHICHEVER
+        // enemy the ECS happened to yield -- a replay-relevant
+        // nondeterminism (assessment claim, settled 2026-08-15). The
+        // stable EnemyKey from the append-only history is the ordering
+        // coordinate: lowest key = the oldest living enemy, identical on
+        // every run of the same history.
+        if let Some((enemy, _)) = enemies.iter().min_by_key(|(_, key)| *key) {
             combat_writer.send(CombatInitiatedEvent { enemy });
         }
     }
