@@ -9,14 +9,16 @@
 //! survivor set is NOT seed-addressable; it is path-dependent on the player's action
 //! trace, and lives on the trace/replay side. Build by addition, gate removal.)
 
-use bevy::prelude::*;
 use crate::game::components::Enemy;
+use bevy::prelude::*;
 
 /// The wave coordinate. Same seed ⇒ identical wave (reproducible, can't drift).
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct WaveSeed(pub u64);
 impl Default for WaveSeed {
-    fn default() -> Self { WaveSeed(0xA17C_3D5E_9F2B_8146) }
+    fn default() -> Self {
+        WaveSeed(0xA17C_3D5E_9F2B_8146)
+    }
 }
 
 /// Append-only record of every wave coordinate spawned this session (the ADD-side history).
@@ -28,7 +30,9 @@ pub struct WaveHistory(pub Vec<u64>);
 
 struct Rng(u64);
 impl Rng {
-    fn new(s: u64) -> Self { Rng(s ^ 0xD1B5_4A32_D192_ED03) }
+    fn new(s: u64) -> Self {
+        Rng(s ^ 0xD1B5_4A32_D192_ED03)
+    }
     fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
         let mut z = self.0;
@@ -36,7 +40,9 @@ impl Rng {
         z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
         z ^ (z >> 31)
     }
-    fn below(&mut self, n: u64) -> u64 { self.next() % n }
+    fn below(&mut self, n: u64) -> u64 {
+        self.next() % n
+    }
 }
 
 /// Pure function: `seed` → the full enemy set (x, y, hp, kind). No external input.
@@ -73,7 +79,11 @@ pub fn spawn_addressed_wave_system(
                 _ => Color::srgb(0.55, 0.20, 0.20),
             };
             commands.spawn((
-                Sprite { color, custom_size: Some(Vec2::splat(20.0)), ..default() },
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(20.0)),
+                    ..default()
+                },
                 Transform::from_xyz(x, y, 1.0),
                 Enemy,
             ));
@@ -88,7 +98,11 @@ mod tests {
     #[test]
     fn wave_is_a_pure_function_of_the_seed() {
         for s in [0u64, 1, 42, 1000, u64::MAX] {
-            assert_eq!(addressed_wave(s), addressed_wave(s), "same seed must give the same wave");
+            assert_eq!(
+                addressed_wave(s),
+                addressed_wave(s),
+                "same seed must give the same wave"
+            );
         }
         // distinct seeds generally differ
         assert_ne!(addressed_wave(1), addressed_wave(2));
@@ -107,92 +121,157 @@ mod tests {
 // for the key, 100% coverage vs ~63% sampling.)
 // ─────────────────────────────────────────────────────────────────────────────
 pub mod coord {
-    pub const GRID_W: u128 = 22;
-    pub const GRID_H: u128 = 12;
-    pub const CELLS: u128 = GRID_W * GRID_H; // 264 positions
-    pub const HPS: u128 = 5;                 // hp ∈ {2..6}
-    pub const KINDS: u128 = 4;
-    pub const RADIX: u128 = CELLS * HPS * KINDS; // 5280 distinct enemies
-    pub const N: usize = 8;                  // fixed wave size for this grammar
-    /// The field's cardinality: RADIX^N. The domain law is [0, M); everything
-    /// at or beyond M refuses by name inside the operator (never caller-side).
-    /// wave_coordinate.v0 is ORDERED by operator ruling (2026-08-15); a
-    /// multiset identity would be a second admitted family, never a silent
-    /// re-meaning of this one.
-    pub const M: u128 = 604_047_902_015_764_404_633_600_000_000;
-
-    /// Named refusals of the coordinate field. `address_outside_field` is the
-    /// ruled name for Q >= M (rediscovered from the live GCOS vocabulary);
-    /// the two structural codes are its in-pattern kin. Pre-repair battery:
-    /// gc-project status/wave_coordinate_v0/BATTERY_BEFORE.md.
-    #[derive(Debug, PartialEq, Eq)]
-    pub enum CoordRefusal {
-        /// Q decodes nowhere: Q >= M. No aliasing, no modular reuse.
-        AddressOutsideField { q: u128, m: u128 },
-        /// rank input is not exactly N enemies.
-        AddressLengthInvalid { got: usize, want: usize },
-        /// a component digit is outside its declared range.
-        AddressDigitOutsideField { index: usize, cell: u128, hp: u128, kind: u128 },
+    // The game runtime consumes unrank/advance. The reverse boundary is retained
+    // for external coordinate admission and round-trip certification.
+    #[allow(dead_code)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum EnemyComponent {
+        Cell,
+        Hp,
+        Kind,
     }
 
-    impl CoordRefusal {
-        /// The stable refusal name, matching the GCOS vocabulary.
-        pub fn name(&self) -> &'static str {
+    #[allow(dead_code)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum Refusal {
+        OutsideField {
+            q: u128,
+            upper_bound: u128,
+        },
+        LengthInvalid {
+            actual: usize,
+            expected: usize,
+        },
+        DigitOutsideField {
+            enemy_index: usize,
+            component: EnemyComponent,
+            value: u128,
+            upper_bound: u128,
+        },
+    }
+
+    impl Refusal {
+        pub const fn code(&self) -> &'static str {
             match self {
-                CoordRefusal::AddressOutsideField { .. } => "address_outside_field",
-                CoordRefusal::AddressLengthInvalid { .. } => "address_length_invalid",
-                CoordRefusal::AddressDigitOutsideField { .. } => "address_digit_outside_field",
+                Self::OutsideField { .. } => "address_outside_field",
+                Self::LengthInvalid { .. } => "address_length_invalid",
+                Self::DigitOutsideField { .. } => "address_digit_outside_field",
             }
         }
     }
 
-    /// unrank: index → wave (Vec of (x, y, hp, kind)). Pure, positional,
-    /// defined on [0, M) and REFUSING outside it — the check lives here,
-    /// inside the operator, never at a caller.
-    pub fn unrank(mut k: u128) -> Result<Vec<(f32, f32, u8, u8)>, CoordRefusal> {
-        if k >= M {
-            return Err(CoordRefusal::AddressOutsideField { q: k, m: M });
+    pub const GRID_W: u128 = 22;
+    pub const GRID_H: u128 = 12;
+    pub const CELLS: u128 = GRID_W * GRID_H; // 264 positions
+    pub const HPS: u128 = 5; // hp ∈ {2..6}
+    pub const KINDS: u128 = 4;
+    pub const RADIX: u128 = CELLS * HPS * KINDS; // 5280 distinct enemies
+    pub const N: usize = 8; // fixed wave size for this grammar
+
+    const fn domain_size() -> u128 {
+        let mut size = 1u128;
+        let mut position = 0usize;
+        while position < N {
+            size *= RADIX;
+            position += 1;
         }
-        let mut codes = vec![0u128; N];
-        for i in (0..N).rev() { codes[i] = k % RADIX; k /= RADIX; } // base-RADIX, big-endian
-        Ok(codes.into_iter().map(|e| {
-            let kind = (e % KINDS) as u8; let e2 = e / KINDS;
-            let hp = (e2 % HPS) as u8 + 2; let cell = e2 / HPS;
-            let cx = (cell % GRID_W) as f32; let cy = (cell / GRID_W) as f32;
-            (cx * 40.0 - 440.0, cy * 40.0 - 240.0, hp, kind)
-        }).collect())
+        size
     }
 
-    /// rank: the genuine inverse over checked digits. Exactly N enemies,
-    /// each (cell < CELLS, hp < HPS, kind < KINDS); anything else refuses
-    /// by name. On the checked domain, rank∘unrank == id and no malformed
-    /// vector can collide with a valid coordinate.
-    pub fn rank(enemies: &[(u128, u128, u128)]) -> Result<u128, CoordRefusal> {
-        if enemies.len() != N {
-            return Err(CoordRefusal::AddressLengthInvalid { got: enemies.len(), want: N });
+    pub const DOMAIN_SIZE: u128 = domain_size();
+
+    /// Unrank an in-domain coordinate into its ordered eight-enemy wave.
+    pub fn unrank(mut q: u128) -> Result<Vec<(f32, f32, u8, u8)>, Refusal> {
+        if q >= DOMAIN_SIZE {
+            return Err(Refusal::OutsideField {
+                q,
+                upper_bound: DOMAIN_SIZE,
+            });
         }
+
+        let mut codes = vec![0u128; N];
+        for i in (0..N).rev() {
+            codes[i] = q % RADIX;
+            q /= RADIX;
+        }
+        Ok(codes
+            .into_iter()
+            .map(|enemy| {
+                let kind = (enemy % KINDS) as u8;
+                let rest = enemy / KINDS;
+                let hp = (rest % HPS) as u8 + 2;
+                let cell = rest / HPS;
+                let cx = (cell % GRID_W) as f32;
+                let cy = (cell / GRID_W) as f32;
+                (cx * 40.0 - 440.0, cy * 40.0 - 240.0, hp, kind)
+            })
+            .collect())
+    }
+
+    /// Rank exactly eight valid `(cell, hp_digit, kind)` entries in sequence order.
+    #[allow(dead_code)]
+    pub fn rank(enemies: &[(u128, u128, u128)]) -> Result<u128, Refusal> {
+        if enemies.len() != N {
+            return Err(Refusal::LengthInvalid {
+                actual: enemies.len(),
+                expected: N,
+            });
+        }
+
         let mut x = 0u128;
-        for (i, &(cell, hp, kind)) in enemies.iter().enumerate() {
-            if cell >= CELLS || hp >= HPS || kind >= KINDS {
-                return Err(CoordRefusal::AddressDigitOutsideField { index: i, cell, hp, kind });
+        for (enemy_index, &(cell, hp, kind)) in enemies.iter().enumerate() {
+            for (component, value, upper_bound) in [
+                (EnemyComponent::Cell, cell, CELLS),
+                (EnemyComponent::Hp, hp, HPS),
+                (EnemyComponent::Kind, kind, KINDS),
+            ] {
+                if value >= upper_bound {
+                    return Err(Refusal::DigitOutsideField {
+                        enemy_index,
+                        component,
+                        value,
+                        upper_bound,
+                    });
+                }
             }
             x = x * RADIX + (cell * HPS + hp) * KINDS + kind;
         }
         Ok(x)
     }
 
-    #[cfg(test)]
-    mod m_law {
-        #[test]
-        fn m_is_exactly_radix_to_the_n() {
-            assert_eq!(super::M, super::RADIX.pow(super::N as u32));
+    /// Advance within the non-cyclic v0 field. The upper rim is a refusal.
+    pub fn advance(q: u128) -> Result<u128, Refusal> {
+        if q >= DOMAIN_SIZE {
+            return Err(Refusal::OutsideField {
+                q,
+                upper_bound: DOMAIN_SIZE,
+            });
         }
+        if q == DOMAIN_SIZE - 1 {
+            return Err(Refusal::OutsideField {
+                q: DOMAIN_SIZE,
+                upper_bound: DOMAIN_SIZE,
+            });
+        }
+        Ok(q + 1)
     }
 }
 
 /// The wave coordinate index (a true position in the wave-grammar, unlike the splitmix key).
-#[derive(Resource, Default, Debug)]
-pub struct WaveIndex(pub u128);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WaveProgress {
+    Ready(u128),
+    Refused(coord::Refusal),
+}
+
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WaveIndex(pub WaveProgress);
+
+impl Default for WaveIndex {
+    fn default() -> Self {
+        Self(WaveProgress::Ready(0))
+    }
+}
 
 /// Press **I** to spawn the wave at the current *coordinate* (then advance by one). Sequential
 /// indices give adjacent waves — the legible, positional counterpart to W's avalanche key.
@@ -202,96 +281,326 @@ pub fn spawn_indexed_wave_system(
     mut commands: Commands,
 ) {
     if keys.just_pressed(KeyCode::KeyI) {
-        // The caller consumes the checked Result; the domain law lives in the
-        // operator. At the rim (idx == M) this refuses by name — it never
-        // wraps and never manufactures a coordinate. A cyclic counter would
-        // be a different admitted family.
-        match coord::unrank(idx.0) {
-            Ok(wave) => {
-                for (x, y, _hp, kind) in wave {
-                    let color = match kind {
-                        0 => Color::srgb(0.20, 0.60, 0.90),
-                        1 => Color::srgb(0.30, 0.80, 0.50),
-                        2 => Color::srgb(0.90, 0.80, 0.20),
-                        _ => Color::srgb(0.70, 0.40, 0.90),
-                    };
-                    commands.spawn((
-                        Sprite { color, custom_size: Some(Vec2::splat(20.0)), ..default() },
-                        Transform::from_xyz(x, y, 1.0),
-                        Enemy,
-                    ));
-                }
-                // Advance only within the field; the counter halts at M-1.
-                if idx.0 + 1 < coord::M {
-                    idx.0 += 1;
-                } else {
-                    info!("wave coordinate rim: next index would leave the field \
-                           (address_outside_field); counter holds at M-1");
-                }
+        let q = match idx.0 {
+            WaveProgress::Ready(q) => q,
+            WaveProgress::Refused(refusal) => {
+                bevy::log::error!("wave_coordinate.v0 refused: {}", refusal.code());
+                return;
             }
+        };
+        let wave = match coord::unrank(q) {
+            Ok(wave) => wave,
             Err(refusal) => {
-                info!("wave spawn refused: {} ({:?})", refusal.name(), refusal);
+                bevy::log::error!("wave_coordinate.v0 refused: {}", refusal.code());
+                idx.0 = WaveProgress::Refused(refusal);
+                return;
             }
+        };
+        for (x, y, _hp, kind) in wave {
+            let color = match kind {
+                0 => Color::srgb(0.20, 0.60, 0.90),
+                1 => Color::srgb(0.30, 0.80, 0.50),
+                2 => Color::srgb(0.90, 0.80, 0.20),
+                _ => Color::srgb(0.70, 0.40, 0.90),
+            };
+            commands.spawn((
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(20.0)),
+                    ..default()
+                },
+                Transform::from_xyz(x, y, 1.0),
+                Enemy,
+            ));
         }
+        idx.0 = match coord::advance(q) {
+            Ok(next_q) => WaveProgress::Ready(next_q),
+            Err(refusal) => {
+                bevy::log::error!("wave_coordinate.v0 refused: {}", refusal.code());
+                WaveProgress::Refused(refusal)
+            }
+        };
     }
 }
 
 #[cfg(test)]
 mod coord_tests {
-    use super::coord;
-    use super::coord::CoordRefusal;
+    use super::{coord, spawn_indexed_wave_system, WaveIndex, WaveProgress};
+    use crate::game::components::Enemy;
+    use bevy::prelude::*;
+
+    mod oracle {
+        const WIDTH: u128 = 22;
+        const HEIGHT: u128 = 12;
+        const HIT_POINT_VALUES: u128 = 5;
+        const ENEMY_KINDS: u128 = 4;
+        const ENEMIES_PER_WAVE: usize = 8;
+        const ENEMY_COUNT: u128 = WIDTH * HEIGHT * HIT_POINT_VALUES * ENEMY_KINDS;
+
+        const fn coordinate_count() -> u128 {
+            let mut count = 1u128;
+            let mut remaining = ENEMIES_PER_WAVE;
+            while remaining > 0 {
+                count *= ENEMY_COUNT;
+                remaining -= 1;
+            }
+            count
+        }
+
+        pub const COORDINATE_COUNT: u128 = coordinate_count();
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum Refusal {
+            Outside,
+            Length,
+            Digit,
+        }
+
+        impl Refusal {
+            pub const fn code(self) -> &'static str {
+                match self {
+                    Self::Outside => "address_outside_field",
+                    Self::Length => "address_length_invalid",
+                    Self::Digit => "address_digit_outside_field",
+                }
+            }
+        }
+
+        pub fn unrank(mut address: u128) -> Result<Vec<(f32, f32, u8, u8)>, Refusal> {
+            if address >= COORDINATE_COUNT {
+                return Err(Refusal::Outside);
+            }
+            let mut encoded = [0u128; ENEMIES_PER_WAVE];
+            let mut position = ENEMIES_PER_WAVE;
+            while position > 0 {
+                position -= 1;
+                encoded[position] = address % ENEMY_COUNT;
+                address /= ENEMY_COUNT;
+            }
+            Ok(encoded
+                .into_iter()
+                .map(|value| {
+                    let kind = (value % ENEMY_KINDS) as u8;
+                    let without_kind = value / ENEMY_KINDS;
+                    let hp = (without_kind % HIT_POINT_VALUES) as u8 + 2;
+                    let cell = without_kind / HIT_POINT_VALUES;
+                    let column = (cell % WIDTH) as f32;
+                    let row = (cell / WIDTH) as f32;
+                    (column * 40.0 - 440.0, row * 40.0 - 240.0, hp, kind)
+                })
+                .collect())
+        }
+
+        pub fn rank(values: &[(u128, u128, u128)]) -> Result<u128, Refusal> {
+            if values.len() != ENEMIES_PER_WAVE {
+                return Err(Refusal::Length);
+            }
+            let mut address = 0u128;
+            for &(cell, hp, kind) in values {
+                if cell >= WIDTH * HEIGHT || hp >= HIT_POINT_VALUES || kind >= ENEMY_KINDS {
+                    return Err(Refusal::Digit);
+                }
+                let enemy = cell * HIT_POINT_VALUES * ENEMY_KINDS + hp * ENEMY_KINDS + kind;
+                address = address * ENEMY_COUNT + enemy;
+            }
+            Ok(address)
+        }
+
+        pub fn advance(address: u128) -> Result<u128, Refusal> {
+            if address >= COORDINATE_COUNT - 1 {
+                return Err(Refusal::Outside);
+            }
+            Ok(address + 1)
+        }
+    }
+
+    fn production_code<T>(result: Result<T, coord::Refusal>) -> Result<T, &'static str> {
+        result.map_err(|refusal| refusal.code())
+    }
+
+    fn oracle_code<T>(result: Result<T, oracle::Refusal>) -> Result<T, &'static str> {
+        result.map_err(oracle::Refusal::code)
+    }
 
     #[test]
-    fn rank_is_the_genuine_inverse_of_unrank_on_the_domain() {
-        for k in [0u128, 1, 5279, 5280, 123_456_789, u64::MAX as u128, coord::M - 1] {
-            let w = coord::unrank(k).expect("in-domain unrank");
-            let enemies: Vec<(u128, u128, u128)> = w.iter().map(|&(x, y, hp, kind)| {
-                let cx = ((x + 440.0) / 40.0) as u128;
-                let cy = ((y + 240.0) / 40.0) as u128;
-                (cy * coord::GRID_W + cx, hp as u128 - 2, kind as u128)
-            }).collect();
-            assert_eq!(coord::rank(&enemies), Ok(k), "rank∘unrank must be identity");
+    fn rank_is_the_genuine_inverse_of_unrank() {
+        for q in [
+            0u128,
+            1,
+            5279,
+            5280,
+            123_456_789,
+            u64::MAX as u128,
+            coord::DOMAIN_SIZE - 1,
+        ] {
+            let w = coord::unrank(q).expect("declared address must unrank");
+            let enemies: Vec<(u128, u128, u128)> = w
+                .iter()
+                .map(|&(x, y, hp, kind)| {
+                    let cx = ((x + 440.0) / 40.0) as u128;
+                    let cy = ((y + 240.0) / 40.0) as u128;
+                    (cy * coord::GRID_W + cx, hp as u128 - 2, kind as u128)
+                })
+                .collect();
+            assert_eq!(coord::rank(&enemies), Ok(q), "rank∘unrank must be identity");
         }
     }
 
     #[test]
-    fn outside_the_field_refuses_by_name() {
-        // The BATTERY_BEFORE roster: M, M+1, u128::MAX all refused; M-1 green.
-        for q in [coord::M, coord::M + 1, u128::MAX] {
-            let got = coord::unrank(q);
+    fn independent_oracle_agrees_on_values_domains_and_refusal_map() {
+        assert_eq!(coord::DOMAIN_SIZE, 604_047_902_015_764_404_633_600_000_000);
+        assert_eq!(coord::DOMAIN_SIZE, oracle::COORDINATE_COUNT);
+
+        for q in [
+            0,
+            1,
+            5279,
+            5280,
+            123_456_789,
+            u64::MAX as u128,
+            coord::DOMAIN_SIZE - 1,
+            coord::DOMAIN_SIZE,
+            coord::DOMAIN_SIZE + 1,
+            7 + 2 * coord::DOMAIN_SIZE,
+            u128::MAX,
+        ] {
             assert_eq!(
-                got,
-                Err(CoordRefusal::AddressOutsideField { q, m: coord::M }),
-                "Q >= M must refuse address_outside_field, never alias"
+                production_code(coord::unrank(q)),
+                oracle_code(oracle::unrank(q)),
+                "unrank disagreement at {q}"
             );
         }
-        assert!(coord::unrank(coord::M - 1).is_ok(), "M-1 is the last citizen");
+
+        let valid = vec![(0, 0, 0); 8];
+        let short = vec![(0, 0, 0), (1, 1, 1), (2, 2, 2)];
+        let mut invalid_cell = valid.clone();
+        invalid_cell[3].0 = 264;
+        let mut invalid_hp = valid.clone();
+        invalid_hp[4].1 = 5;
+        let mut invalid_kind = valid.clone();
+        invalid_kind[5].2 = 4;
+        for values in [&valid, &short, &invalid_cell, &invalid_hp, &invalid_kind] {
+            assert_eq!(
+                production_code(coord::rank(values)),
+                oracle_code(oracle::rank(values)),
+                "rank refusal map disagreement for {values:?}"
+            );
+        }
+
+        for q in [
+            0,
+            coord::DOMAIN_SIZE - 2,
+            coord::DOMAIN_SIZE - 1,
+            coord::DOMAIN_SIZE,
+            u128::MAX,
+        ] {
+            assert_eq!(
+                production_code(coord::advance(q)),
+                oracle_code(oracle::advance(q)),
+                "progression disagreement at {q}"
+            );
+        }
     }
 
     #[test]
-    fn malformed_rank_inputs_refuse_by_name() {
-        // Wrong length: exactly N or refusal, never positional acceptance.
-        let short = [(0u128, 0u128, 0u128); 3];
+    fn hostile_battery_flips_aliases_and_malformed_values_to_refusals() {
+        let m = coord::DOMAIN_SIZE;
+
         assert_eq!(
-            coord::rank(&short),
-            Err(CoordRefusal::AddressLengthInvalid { got: 3, want: coord::N })
+            coord::unrank(m).unwrap_err().code(),
+            "address_outside_field"
         );
-        // Out-of-range digit: the old collision rank((0,0,4)) == rank((0,1,0))
-        // is now unrepresentable — the invalid tuple refuses before folding.
-        let mut wave = [(0u128, 0u128, 0u128); 8];
-        wave[0] = (0, 0, coord::KINDS); // kind == 4, outside [0, KINDS)
         assert_eq!(
-            coord::rank(&wave),
-            Err(CoordRefusal::AddressDigitOutsideField { index: 0, cell: 0, hp: 0, kind: coord::KINDS })
+            coord::unrank(m + 1).unwrap_err().code(),
+            "address_outside_field"
+        );
+        assert_eq!(
+            coord::unrank(7 + 2 * m).unwrap_err().code(),
+            "address_outside_field"
+        );
+        assert_eq!(
+            coord::unrank(u128::MAX).unwrap_err().code(),
+            "address_outside_field"
+        );
+        assert!(coord::unrank(m - 1).is_ok());
+
+        // This exact three-enemy row produced 132_050 before the length law.
+        let short = [(0, 0, 0), (1, 1, 1), (2, 2, 2)];
+        assert_eq!(
+            coord::rank(&short).unwrap_err().code(),
+            "address_length_invalid"
+        );
+
+        let mut invalid = vec![(0, 0, 0); coord::N];
+        invalid[0].2 = coord::KINDS;
+        let mut formerly_colliding = vec![(0, 0, 0); coord::N];
+        formerly_colliding[0].1 = 1;
+        assert_eq!(
+            coord::rank(&invalid).unwrap_err().code(),
+            "address_digit_outside_field"
+        );
+        assert!(coord::rank(&formerly_colliding).is_ok());
+
+        let mut ordered = vec![(0, 0, 0); coord::N];
+        ordered[0] = (1, 1, 1);
+        let mut permuted = ordered.clone();
+        permuted.swap(0, 1);
+        assert_ne!(
+            coord::rank(&ordered).unwrap(),
+            coord::rank(&permuted).unwrap(),
+            "ordered wave identity must distinguish a permutation"
         );
     }
 
     #[test]
-    fn ordered_is_the_identity_by_ruling() {
-        // wave_coordinate.v0 is ORDERED (operator ruling 2026-08-15):
-        // a permuted vector is a different coordinate, lawfully.
-        let a: Vec<(u128, u128, u128)> = (0..8).map(|i| (i as u128, 0, 0)).collect();
-        let b: Vec<(u128, u128, u128)> = (0..8).rev().map(|i| (i as u128, 0, 0)).collect();
-        assert_ne!(coord::rank(&a).unwrap(), coord::rank(&b).unwrap());
+    fn every_invalid_enemy_component_names_its_structural_refusal() {
+        for (component, value) in [
+            (coord::EnemyComponent::Cell, coord::CELLS),
+            (coord::EnemyComponent::Hp, coord::HPS),
+            (coord::EnemyComponent::Kind, coord::KINDS),
+        ] {
+            let mut enemies = vec![(0, 0, 0); coord::N];
+            match component {
+                coord::EnemyComponent::Cell => enemies[6].0 = value,
+                coord::EnemyComponent::Hp => enemies[6].1 = value,
+                coord::EnemyComponent::Kind => enemies[6].2 = value,
+            }
+            assert_eq!(
+                coord::rank(&enemies),
+                Err(coord::Refusal::DigitOutsideField {
+                    enemy_index: 6,
+                    component,
+                    value,
+                    upper_bound: value,
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn live_progression_spawns_the_last_wave_once_then_halts_on_refusal() {
+        let mut app = App::new();
+        app.init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(WaveIndex(WaveProgress::Ready(coord::DOMAIN_SIZE - 1)))
+            .add_systems(Update, spawn_indexed_wave_system);
+
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyI);
+        app.update();
+
+        assert!(matches!(
+            app.world().resource::<WaveIndex>().0,
+            WaveProgress::Refused(coord::Refusal::OutsideField {
+                q: coord::DOMAIN_SIZE,
+                upper_bound: coord::DOMAIN_SIZE,
+            })
+        ));
+        let first_count = app.world_mut().query::<&Enemy>().iter(app.world()).count();
+        assert_eq!(first_count, coord::N);
+
+        app.update();
+        let second_count = app.world_mut().query::<&Enemy>().iter(app.world()).count();
+        assert_eq!(second_count, first_count, "a refused rim cannot respawn");
     }
 }
