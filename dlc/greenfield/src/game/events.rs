@@ -75,8 +75,10 @@ pub struct PlayerMovedEvent {
     pub z: f32,
 }
 
-#[derive(Event, Debug, Default)]
-pub struct EnemyDefeatedEvent;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct EnemyDefeatedEvent {
+    pub enemy: Entity,
+}
 
 #[derive(Event, Debug, Default)]
 pub struct AllyDownedEvent;
@@ -135,17 +137,25 @@ pub struct ScoreBroadcastEvent;
 #[derive(Event, Debug, Default)]
 pub struct HeartbeatPulseEvent;
 
-#[derive(Event, Debug, Default)]
-pub struct CombatInitiatedEvent;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct CombatInitiatedEvent {
+    pub enemy: Entity,
+}
 
-#[derive(Event, Debug, Default)]
-pub struct AttackStartedEvent;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct AttackStartedEvent {
+    pub enemy: Entity,
+}
 
-#[derive(Event, Debug, Default)]
-pub struct DamageAppliedEvent;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct DamageAppliedEvent {
+    pub enemy: Entity,
+}
 
-#[derive(Event, Debug, Default)]
-pub struct CombatResolvedEvent;
+#[derive(Event, Debug, Clone, Copy)]
+pub struct CombatResolvedEvent {
+    pub enemy: Entity,
+}
 
 #[derive(Event, Debug, Default)]
 pub struct ItemPickedUpInvEvent;

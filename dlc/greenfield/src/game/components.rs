@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Component, Debug, Default)]
 pub struct GreenfieldRoot;
@@ -38,6 +39,27 @@ pub struct HudTimer;
 
 #[derive(Component, Debug, Default)]
 pub struct Enemy;
+
+/// Stable gameplay identity carried across Bevy entity replacement.
+#[derive(
+    Component,
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
+pub struct EnemyKey(pub u64);
+
+/// Append-history event that causally introduced this addressed-wave enemy.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WaveOrigin(pub u64);
 
 #[derive(Component, Debug, Default)]
 pub struct Ally;

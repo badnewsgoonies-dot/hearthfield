@@ -28,6 +28,20 @@ cargo run -p greenfield_dlc
   and drops loot + XP + score, despawning the critter
 - HUD shows live HP / Score / Level / XP
 
+## Append-only removal replay
+
+Addressed waves, enemy removals, and restorations form one append-only history.
+`W` appends `WaveSpawned(seed, generation)` before spawning; combat appends an
+`EnemyRemoved` receipt with the exact stable enemy key and full visual transform;
+`U` appends `EnemyRestored` with a new stable key and never erases the removal.
+
+The cold replayer certifies a deliberately bounded state quotient: live enemies
+introduced by recorded addressed waves, plus witnessed restorations, including
+their stable keys, wave parents, transforms, sprite colours, sizes, and flip flags.
+It does not claim to reconstruct timing, player input, Bevy entity handles, or
+external enemies that were never removed. Torn receipt sequences, mismatched
+removal snapshots, unknown restorations, and duplicate restorations refuse by name.
+
 ## Position in the Hearthfield universe
 
 Greenfield is a workspace sibling of `hearthfield`, `dlc/city`,

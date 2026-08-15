@@ -97,7 +97,9 @@ impl Plugin for GreenfieldPlugin {
             .init_resource::<systems::wave_address_sys::WaveIndex>()
             .add_systems(Update, systems::wave_address_sys::spawn_indexed_wave_system)
             .init_resource::<systems::tombstone_sys::KillLog>()
+            .init_resource::<systems::tombstone_sys::EnemyKeyAllocator>()
             .add_systems(Update, systems::tombstone_sys::revert_last_kill_system)
+            .add_systems(Update, systems::tombstone_sys::audit_enemy_history_system)
             // Lifecycle events emitted by the state machine (v16) but never registered.
             .add_event::<events::GameStartedEvent>()
             .add_event::<events::GameEndedEvent>()

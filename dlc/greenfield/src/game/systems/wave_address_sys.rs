@@ -9,7 +9,10 @@
 //! survivor set is NOT seed-addressable; it is path-dependent on the player's action
 //! trace, and lives on the trace/replay side. Build by addition, gate removal.)
 
-use crate::game::components::Enemy;
+use crate::game::components::{Enemy, WaveOrigin};
+use crate::game::systems::tombstone_sys::{
+    addressed_enemy_snapshot, wave_enemy_key, EnemyKeyAllocator, KillLog, ADDRESSED_WAVE_GENERATION,
+};
 use bevy::prelude::*;
 
 /// The wave coordinate. Same seed ⇒ identical wave (reproducible, can't drift).
@@ -21,10 +24,8 @@ impl Default for WaveSeed {
     }
 }
 
-/// Append-only record of every wave coordinate spawned this session (the ADD-side history).
-/// With `KillLog` (the REMOVE-side witness), `(WaveHistory, KillLog)` captures the entire session
-/// as coordinates — enough to replay it exactly, with no per-tick state stored. (Trial 3: a whole
-/// session reconstructs 100% from its coordinates and replays deterministically.)
+/// Convenience index of addressed-wave seeds. The authoritative replay history
+/// is `KillLog`; this cache alone makes no whole-session claim.
 #[derive(Resource, Default, Debug)]
 pub struct WaveHistory(pub Vec<u64>);
 
@@ -67,25 +68,24 @@ pub fn spawn_addressed_wave_system(
     keys: Res<ButtonInput<KeyCode>>,
     mut seed: ResMut<WaveSeed>,
     mut history: ResMut<WaveHistory>,
+    mut replay_history: ResMut<KillLog>,
     mut commands: Commands,
 ) {
     if keys.just_pressed(KeyCode::KeyW) {
         history.0.push(seed.0); // record the coordinate (append-only) before spawning
-        for (x, y, _hp, kind) in addressed_wave(seed.0) {
-            let color = match kind {
-                0 => Color::srgb(0.85, 0.20, 0.20),
-                1 => Color::srgb(0.90, 0.55, 0.20),
-                2 => Color::srgb(0.80, 0.25, 0.60),
-                _ => Color::srgb(0.55, 0.20, 0.20),
+        let wave_ref = replay_history.append_wave_spawned(seed.0, ADDRESSED_WAVE_GENERATION);
+        for (member_index, (x, y, _hp, kind)) in addressed_wave(seed.0).into_iter().enumerate() {
+            let Some(enemy_key) = wave_enemy_key(wave_ref, member_index) else {
+                error!("addressed-wave enemy key outside field");
+                continue;
             };
+            let snapshot = addressed_enemy_snapshot(x, y, kind);
             commands.spawn((
-                Sprite {
-                    color,
-                    custom_size: Some(Vec2::splat(20.0)),
-                    ..default()
-                },
-                Transform::from_xyz(x, y, 1.0),
+                snapshot.sprite(),
+                snapshot.transform(),
                 Enemy,
+                enemy_key,
+                WaveOrigin(wave_ref.0),
             ));
         }
         seed.0 = seed.0.wrapping_add(1); // next press addresses the next wave
@@ -95,6 +95,11 @@ pub fn spawn_addressed_wave_system(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::components::{EnemyKey, WaveOrigin};
+    use crate::game::systems::tombstone_sys::{
+        replay_history, EnemyHistoryEvent, EnemySnapshot, HistoryEventRef, ReplayedEnemy,
+    };
+
     #[test]
     fn wave_is_a_pure_function_of_the_seed() {
         for s in [0u64, 1, 42, 1000, u64::MAX] {
@@ -106,6 +111,56 @@ mod tests {
         }
         // distinct seeds generally differ
         assert_ne!(addressed_wave(1), addressed_wave(2));
+    }
+
+    #[test]
+    fn live_addressed_spawn_matches_the_append_only_replay_quotient() {
+        let seed = 42;
+        let expected_count = addressed_wave(seed).len();
+        let mut app = App::new();
+        app.init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(WaveSeed(seed))
+            .init_resource::<WaveHistory>()
+            .init_resource::<KillLog>()
+            .add_systems(Update, spawn_addressed_wave_system);
+
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyW);
+        app.update();
+
+        let log = app.world().resource::<KillLog>();
+        assert_eq!(log.records().len(), 1);
+        assert!(matches!(
+            log.records()[0].event,
+            EnemyHistoryEvent::WaveSpawned {
+                seed: recorded_seed,
+                generation: ADDRESSED_WAVE_GENERATION,
+            } if recorded_seed == seed
+        ));
+        let replayed = replay_history(log).expect("live history must replay");
+        assert_eq!(replayed.live_enemies.len(), expected_count);
+
+        let mut query = app
+            .world_mut()
+            .query::<(&EnemyKey, &WaveOrigin, &Transform, &Sprite)>();
+        let mut live: Vec<_> = query
+            .iter(app.world())
+            .map(|(key, origin, transform, sprite)| ReplayedEnemy {
+                entity_key: *key,
+                full_snapshot: EnemySnapshot::capture(transform, sprite),
+                causal_parent: Some(HistoryEventRef(origin.0)),
+            })
+            .collect();
+        live.sort_by_key(|enemy| enemy.entity_key);
+
+        assert_eq!(live, replayed.live_enemies);
+        for (member_index, enemy) in live.iter().enumerate() {
+            assert_eq!(
+                enemy.entity_key,
+                wave_enemy_key(HistoryEventRef(0), member_index).unwrap()
+            );
+        }
     }
 }
 
@@ -278,6 +333,7 @@ impl Default for WaveIndex {
 pub fn spawn_indexed_wave_system(
     keys: Res<ButtonInput<KeyCode>>,
     mut idx: ResMut<WaveIndex>,
+    mut enemy_keys: ResMut<EnemyKeyAllocator>,
     mut commands: Commands,
 ) {
     if keys.just_pressed(KeyCode::KeyI) {
@@ -297,6 +353,10 @@ pub fn spawn_indexed_wave_system(
             }
         };
         for (x, y, _hp, kind) in wave {
+            let Some(enemy_key) = enemy_keys.allocate() else {
+                bevy::log::error!("enemy key field exhausted; indexed wave refused");
+                return;
+            };
             let color = match kind {
                 0 => Color::srgb(0.20, 0.60, 0.90),
                 1 => Color::srgb(0.30, 0.80, 0.50),
@@ -311,6 +371,7 @@ pub fn spawn_indexed_wave_system(
                 },
                 Transform::from_xyz(x, y, 1.0),
                 Enemy,
+                enemy_key,
             ));
         }
         idx.0 = match coord::advance(q) {
@@ -327,6 +388,7 @@ pub fn spawn_indexed_wave_system(
 mod coord_tests {
     use super::{coord, spawn_indexed_wave_system, WaveIndex, WaveProgress};
     use crate::game::components::Enemy;
+    use crate::game::systems::tombstone_sys::EnemyKeyAllocator;
     use bevy::prelude::*;
 
     mod oracle {
@@ -581,6 +643,7 @@ mod coord_tests {
     fn live_progression_spawns_the_last_wave_once_then_halts_on_refusal() {
         let mut app = App::new();
         app.init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<EnemyKeyAllocator>()
             .insert_resource(WaveIndex(WaveProgress::Ready(coord::DOMAIN_SIZE - 1)))
             .add_systems(Update, spawn_indexed_wave_system);
 
